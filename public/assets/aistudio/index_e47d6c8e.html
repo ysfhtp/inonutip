@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="tr" class="scroll-smooth dark"><head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <title>İnönü Tıp Dönem I Ders Programı (2026-2027)</title>
+  <meta id="themeColorMeta" name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="İnönü Tıp D1">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="İnönü Üniversitesi Tıp Fakültesi Dönem I (2026-2027) Ders Programı">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link id="appManifestLink" rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22%C4%B0n%C3%B6n%C3%BC%20T%C4%B1p%20D%C3%B6nem%20I%20Ders%20Program%C4%B1%22%2C%22short_name%22%3A%22%C4%B0n%C3%B6n%C3%BC%20T%C4%B1p%20D1%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23000000%22%2C%22theme_color%22%3A%22%23000000%22%7D">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'Inter', 'Segoe UI', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
+      background-color: #f2f4f8;
+      color: #1c1c1e;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    .dark body {
+      background-color: #000000;
+      color: #f2f2f7;
+    }
+
+    .ios-ambient-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(0, 122, 255, 0.16), transparent 48%),
+        radial-gradient(circle at 85% 25%, rgba(88, 86, 214, 0.13), transparent 48%),
+        radial-gradient(circle at 50% 85%, rgba(52, 199, 89, 0.10), transparent 52%),
+        #eef2f7;
+    }
+    .dark .ios-ambient-bg {
+      background:
+        radial-gradient(circle at 18% 12%, rgba(10, 132, 255, 0.22), transparent 50%),
+        radial-gradient(circle at 82% 28%, rgba(94, 92, 230, 0.18), transparent 50%),
+        radial-gradient(circle at 50% 88%, rgba(48, 209, 88, 0.10), transparent 55%),
+        #000000;
+    }
+
+    .ios-glass {
+      background: rgba(255, 255, 255, 0.46);
+      backdrop-filter: blur(36px) saturate(210%);
+      -webkit-backdrop-filter: blur(36px) saturate(210%);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      box-shadow: 0 8px 28px -4px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+    .dark .ios-glass {
+      background: rgba(30, 30, 36, 0.42);
+      backdrop-filter: blur(36px) saturate(210%);
+      -webkit-backdrop-filter: blur(36px) saturate(210%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .ios-glass-bar {
+      background: rgba(242, 244, 248, 0.34);
+      backdrop-filter: blur(55px) saturate(220%);
+      -webkit-backdrop-filter: blur(55px) saturate(220%);
+      border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+    }
+    .dark .ios-glass-bar {
+      background: rgba(12, 12, 16, 0.32);
+      backdrop-filter: blur(55px) saturate(220%);
+      -webkit-backdrop-filter: blur(55px) saturate(220%);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+    }
+
+    /* iOS 18 Authentic Liquid Glass Dock - Enhanced Translucency */
+    .ios-floating-dock {
+      background: rgba(255, 255, 255, 0.42);
+      backdrop-filter: blur(65px) saturate(250%);
+      -webkit-backdrop-filter: blur(65px) saturate(250%);
+      border: 0.5px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+    .dark .ios-floating-dock {
+      background: rgba(24, 24, 30, 0.44);
+      backdrop-filter: blur(65px) saturate(250%);
+      -webkit-backdrop-filter: blur(65px) saturate(250%);
+      border: 0.5px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    }
+
+    #tabIndicatorPill {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 0;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      will-change: transform, width;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .dark #tabIndicatorPill {
+      background: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+    }
+
+    .ios-pill-control {
+      background: rgba(118, 118, 128, 0.10);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+    .dark .ios-pill-control {
+      background: rgba(255, 255, 255, 0.09);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .safe-bottom { padding-bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px)); }
+  </style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:-apple-system, BlinkMacSystemFont, SF Pro Display, SF Pro Text, Inter, Segoe UI, sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.inset-0{inset:0px}.inset-x-3{left:0.75rem;right:0.75rem}.bottom-24{bottom:6rem}.left-1\/2{left:50%}.left-3{left:0.75rem}.right-2\.5{right:0.625rem}.top-0{top:0px}.top-2{top:0.5rem}.top-3{top:0.75rem}.right-2{right:0.5rem}.top-1\.5{top:0.375rem}.z-10{z-index:10}.z-30{z-index:30}.z-40{z-index:40}.z-50{z-index:50}.mx-auto{margin-left:auto;margin-right:auto}.mt-0\.5{margin-top:0.125rem}.block{display:block}.inline-block{display:inline-block}.inline{display:inline}.flex{display:flex}.inline-flex{display:inline-flex}.grid{display:grid}.hidden{display:none}.h-3{height:0.75rem}.h-3\.5{height:0.875rem}.h-4{height:1rem}.h-5{height:1.25rem}.h-7{height:1.75rem}.h-8{height:2rem}.h-1\.5{height:0.375rem}.h-px{height:1px}.w-3{width:0.75rem}.w-3\.5{width:0.875rem}.w-4{width:1rem}.w-5{width:1.25rem}.w-7{width:1.75rem}.w-8{width:2rem}.w-full{width:100%}.w-1{width:0.25rem}.w-1\.5{width:0.375rem}.min-w-0{min-width:0px}.max-w-2xl{max-width:42rem}.max-w-\[135px\]{max-width:135px}.max-w-md{max-width:28rem}.flex-1{flex:1 1 0%}.shrink-0{flex-shrink:0}.-translate-x-1\/2{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.touch-manipulation{touch-action:manipulation}.select-none{-webkit-user-select:none;user-select:none}.snap-x{scroll-snap-type:x var(--tw-scroll-snap-strictness)}.snap-mandatory{--tw-scroll-snap-strictness:mandatory}.snap-start{scroll-snap-align:start}.list-inside{list-style-position:inside}.list-decimal{list-style-type:decimal}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-5{grid-template-columns:repeat(5, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-0\.5{gap:0.125rem}.gap-1{gap:0.25rem}.gap-1\.5{gap:0.375rem}.gap-2{gap:0.5rem}.gap-2\.5{gap:0.625rem}.gap-3{gap:0.75rem}.space-y-2 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))}.space-y-2\.5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.625rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.625rem * var(--tw-space-y-reverse))}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.space-y-3\.5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.875rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.875rem * var(--tw-space-y-reverse))}.self-stretch{align-self:stretch}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.scroll-smooth{scroll-behavior:smooth}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rounded-2xl{border-radius:1rem}.rounded-3xl{border-radius:1.5rem}.rounded-full{border-radius:9999px}.border{border-width:1px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-blue-500\/20{border-color:rgb(59 130 246 / 0.2)}.border-slate-200\/60{border-color:rgb(226 232 240 / 0.6)}.border-teal-500\/25{border-color:rgb(20 184 166 / 0.25)}.border-teal-500\/35{border-color:rgb(20 184 166 / 0.35)}.bg-black\/30{background-color:rgb(0 0 0 / 0.3)}.bg-blue-500\/10{background-color:rgb(59 130 246 / 0.1)}.bg-blue-500\/15{background-color:rgb(59 130 246 / 0.15)}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-slate-500\/20{background-color:rgb(100 116 139 / 0.2)}.bg-transparent{background-color:transparent}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-blue-500{--tw-bg-opacity:1;background-color:rgb(59 130 246 / var(--tw-bg-opacity, 1))}.bg-slate-300\/50{background-color:rgb(203 213 225 / 0.5)}.bg-teal-500{--tw-bg-opacity:1;background-color:rgb(20 184 166 / var(--tw-bg-opacity, 1))}.bg-teal-500\/20{background-color:rgb(20 184 166 / 0.2)}.p-0\.5{padding:0.125rem}.p-1{padding:0.25rem}.p-3{padding:0.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.px-1{padding-left:0.25rem;padding-right:0.25rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-2\.5{padding-left:0.625rem;padding-right:0.625rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-3\.5{padding-left:0.875rem;padding-right:0.875rem}.px-4{padding-left:1rem;padding-right:1rem}.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.pb-0\.5{padding-bottom:0.125rem}.pb-1{padding-bottom:0.25rem}.pb-6{padding-bottom:1.5rem}.pl-9{padding-left:2.25rem}.pr-16{padding-right:4rem}.pt-1{padding-top:0.25rem}.pt-1\.5{padding-top:0.375rem}.pt-2{padding-top:0.5rem}.pt-3\.5{padding-top:0.875rem}.pt-\[env\(safe-area-inset-top\2c 0px\)\]{padding-top:env(safe-area-inset-top,0px)}.pr-1{padding-right:0.25rem}.text-center{text-align:center}.text-right{text-align:right}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.text-\[9px\]{font-size:9px}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.font-extrabold{font-weight:800}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.leading-snug{line-height:1.375}.leading-tight{line-height:1.25}.tracking-tight{letter-spacing:-0.025em}.tracking-wider{letter-spacing:0.05em}.tracking-wide{letter-spacing:0.025em}.text-\[\#8e8e93\]{--tw-text-opacity:1;color:rgb(142 142 147 / var(--tw-text-opacity, 1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-blue-600{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-rose-600{--tw-text-opacity:1;color:rgb(225 29 72 / var(--tw-text-opacity, 1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105 / var(--tw-text-opacity, 1))}.text-slate-700{--tw-text-opacity:1;color:rgb(51 65 85 / var(--tw-text-opacity, 1))}.text-slate-800{--tw-text-opacity:1;color:rgb(30 41 59 / var(--tw-text-opacity, 1))}.text-slate-900{--tw-text-opacity:1;color:rgb(15 23 42 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-teal-600{--tw-text-opacity:1;color:rgb(13 148 136 / var(--tw-text-opacity, 1))}.text-teal-700{--tw-text-opacity:1;color:rgb(15 118 110 / var(--tw-text-opacity, 1))}.antialiased{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.placeholder-slate-400::placeholder{--tw-placeholder-opacity:1;color:rgb(148 163 184 / var(--tw-placeholder-opacity, 1))}.opacity-70{opacity:0.7}.opacity-75{opacity:0.75}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.ring-1{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)}.ring-2{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)}.ring-blue-500\/50{--tw-ring-color:rgb(59 130 246 / 0.5)}.ring-teal-500\/20{--tw-ring-color:rgb(20 184 166 / 0.2)}.backdrop-blur-md{--tw-backdrop-blur:blur(12px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-200{transition-duration:200ms}.selection\:bg-blue-500\/20 *::selection{background-color:rgb(59 130 246 / 0.2)}.selection\:bg-blue-500\/20::selection{background-color:rgb(59 130 246 / 0.2)}.hover\:bg-blue-500:hover{--tw-bg-opacity:1;background-color:rgb(59 130 246 / var(--tw-bg-opacity, 1))}.hover\:bg-blue-500\/10:hover{background-color:rgb(59 130 246 / 0.1)}.hover\:bg-blue-500\/20:hover{background-color:rgb(59 130 246 / 0.2)}.hover\:bg-slate-500\/15:hover{background-color:rgb(100 116 139 / 0.15)}.hover\:bg-slate-500\/10:hover{background-color:rgb(100 116 139 / 0.1)}.hover\:text-blue-600:hover{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.hover\:text-slate-700:hover{--tw-text-opacity:1;color:rgb(51 65 85 / var(--tw-text-opacity, 1))}.hover\:opacity-90:hover{opacity:0.9}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.focus\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)}.focus\:ring-blue-500\/40:focus{--tw-ring-color:rgb(59 130 246 / 0.4)}.active\:scale-95:active{--tw-scale-x:.95;--tw-scale-y:.95;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.dark\:border-slate-800\/80:is(.dark *){border-color:rgb(30 41 59 / 0.8)}.dark\:border-teal-400\/20:is(.dark *){border-color:rgb(45 212 191 / 0.2)}.dark\:bg-blue-400\/15:is(.dark *){background-color:rgb(96 165 250 / 0.15)}.dark\:bg-blue-500\/15:is(.dark *){background-color:rgb(59 130 246 / 0.15)}.dark\:bg-slate-800:is(.dark *){--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.dark\:bg-teal-400\/25:is(.dark *){background-color:rgb(45 212 191 / 0.25)}.dark\:text-blue-200:is(.dark *){--tw-text-opacity:1;color:rgb(191 219 254 / var(--tw-text-opacity, 1))}.dark\:text-blue-300:is(.dark *){--tw-text-opacity:1;color:rgb(147 197 253 / var(--tw-text-opacity, 1))}.dark\:text-blue-400:is(.dark *){--tw-text-opacity:1;color:rgb(96 165 250 / var(--tw-text-opacity, 1))}.dark\:text-rose-400:is(.dark *){--tw-text-opacity:1;color:rgb(251 113 133 / var(--tw-text-opacity, 1))}.dark\:text-slate-100:is(.dark *){--tw-text-opacity:1;color:rgb(241 245 249 / var(--tw-text-opacity, 1))}.dark\:text-slate-200:is(.dark *){--tw-text-opacity:1;color:rgb(226 232 240 / var(--tw-text-opacity, 1))}.dark\:text-slate-300:is(.dark *){--tw-text-opacity:1;color:rgb(203 213 225 / var(--tw-text-opacity, 1))}.dark\:text-slate-400:is(.dark *){--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.dark\:text-slate-500:is(.dark *){--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.dark\:text-white:is(.dark *){--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.dark\:text-teal-200:is(.dark *){--tw-text-opacity:1;color:rgb(153 246 228 / var(--tw-text-opacity, 1))}.dark\:text-teal-400:is(.dark *){--tw-text-opacity:1;color:rgb(45 212 191 / var(--tw-text-opacity, 1))}.dark\:hover\:text-blue-400:hover:is(.dark *){--tw-text-opacity:1;color:rgb(96 165 250 / var(--tw-text-opacity, 1))}.dark\:hover\:text-slate-200:hover:is(.dark *){--tw-text-opacity:1;color:rgb(226 232 240 / var(--tw-text-opacity, 1))}@media (min-width: 640px){.sm\:inset-x-auto{left:auto;right:auto}.sm\:left-1\/2{left:50%}.sm\:w-\[460px\]{width:460px}.sm\:-translate-x-1\/2{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.sm\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.sm\:gap-2{gap:0.5rem}.sm\:text-lg{font-size:1.125rem;line-height:1.75rem}.sm\:text-sm{font-size:0.875rem;line-height:1.25rem}.sm\:text-xl{font-size:1.25rem;line-height:1.75rem}}</style><style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:-apple-system, BlinkMacSystemFont, SF Pro Display, SF Pro Text, Inter, Segoe UI, sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.inset-0{inset:0px}.inset-x-3{left:0.75rem;right:0.75rem}.bottom-24{bottom:6rem}.left-1\/2{left:50%}.left-3{left:0.75rem}.right-2\.5{right:0.625rem}.top-0{top:0px}.top-2{top:0.5rem}.top-3{top:0.75rem}.right-2{right:0.5rem}.top-1\.5{top:0.375rem}.z-10{z-index:10}.z-30{z-index:30}.z-40{z-index:40}.z-50{z-index:50}.mx-auto{margin-left:auto;margin-right:auto}.mt-0\.5{margin-top:0.125rem}.block{display:block}.inline-block{display:inline-block}.inline{display:inline}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-3{height:0.75rem}.h-3\.5{height:0.875rem}.h-4{height:1rem}.h-5{height:1.25rem}.h-7{height:1.75rem}.h-8{height:2rem}.h-1\.5{height:0.375rem}.h-px{height:1px}.w-3{width:0.75rem}.w-3\.5{width:0.875rem}.w-4{width:1rem}.w-5{width:1.25rem}.w-7{width:1.75rem}.w-8{width:2rem}.w-full{width:100%}.w-1{width:0.25rem}.w-1\.5{width:0.375rem}.min-w-0{min-width:0px}.max-w-2xl{max-width:42rem}.max-w-\[135px\]{max-width:135px}.max-w-md{max-width:28rem}.flex-1{flex:1 1 0%}.shrink-0{flex-shrink:0}.-translate-x-1\/2{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.touch-manipulation{touch-action:manipulation}.select-none{-webkit-user-select:none;user-select:none}.snap-x{scroll-snap-type:x var(--tw-scroll-snap-strictness)}.snap-mandatory{--tw-scroll-snap-strictness:mandatory}.snap-start{scroll-snap-align:start}.list-inside{list-style-position:inside}.list-decimal{list-style-type:decimal}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-5{grid-template-columns:repeat(5, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-0\.5{gap:0.125rem}.gap-1{gap:0.25rem}.gap-1\.5{gap:0.375rem}.gap-2{gap:0.5rem}.gap-2\.5{gap:0.625rem}.gap-3{gap:0.75rem}.space-y-2 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))}.space-y-2\.5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.625rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.625rem * var(--tw-space-y-reverse))}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.space-y-3\.5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.875rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.875rem * var(--tw-space-y-reverse))}.self-stretch{align-self:stretch}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.scroll-smooth{scroll-behavior:smooth}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rounded-2xl{border-radius:1rem}.rounded-3xl{border-radius:1.5rem}.rounded-full{border-radius:9999px}.border{border-width:1px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-blue-500\/20{border-color:rgb(59 130 246 / 0.2)}.border-slate-200\/60{border-color:rgb(226 232 240 / 0.6)}.bg-black\/30{background-color:rgb(0 0 0 / 0.3)}.bg-blue-500\/10{background-color:rgb(59 130 246 / 0.1)}.bg-blue-500\/15{background-color:rgb(59 130 246 / 0.15)}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-slate-500\/20{background-color:rgb(100 116 139 / 0.2)}.bg-transparent{background-color:transparent}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-blue-500{--tw-bg-opacity:1;background-color:rgb(59 130 246 / var(--tw-bg-opacity, 1))}.bg-rose-500{--tw-bg-opacity:1;background-color:rgb(244 63 94 / var(--tw-bg-opacity, 1))}.bg-slate-300\/50{background-color:rgb(203 213 225 / 0.5)}.p-0\.5{padding:0.125rem}.p-1{padding:0.25rem}.p-3{padding:0.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.px-1{padding-left:0.25rem;padding-right:0.25rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-2\.5{padding-left:0.625rem;padding-right:0.625rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-3\.5{padding-left:0.875rem;padding-right:0.875rem}.px-4{padding-left:1rem;padding-right:1rem}.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.pb-0\.5{padding-bottom:0.125rem}.pb-1{padding-bottom:0.25rem}.pb-6{padding-bottom:1.5rem}.pl-9{padding-left:2.25rem}.pr-16{padding-right:4rem}.pt-1{padding-top:0.25rem}.pt-1\.5{padding-top:0.375rem}.pt-2{padding-top:0.5rem}.pt-3\.5{padding-top:0.875rem}.pt-\[env\(safe-area-inset-top\2c 0px\)\]{padding-top:env(safe-area-inset-top,0px)}.pr-1{padding-right:0.25rem}.text-center{text-align:center}.text-right{text-align:right}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.text-\[9px\]{font-size:9px}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.leading-snug{line-height:1.375}.leading-tight{line-height:1.25}.tracking-tight{letter-spacing:-0.025em}.tracking-wider{letter-spacing:0.05em}.text-\[\#8e8e93\]{--tw-text-opacity:1;color:rgb(142 142 147 / var(--tw-text-opacity, 1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-blue-600{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-rose-600{--tw-text-opacity:1;color:rgb(225 29 72 / var(--tw-text-opacity, 1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105 / var(--tw-text-opacity, 1))}.text-slate-700{--tw-text-opacity:1;color:rgb(51 65 85 / var(--tw-text-opacity, 1))}.text-slate-800{--tw-text-opacity:1;color:rgb(30 41 59 / var(--tw-text-opacity, 1))}.text-slate-900{--tw-text-opacity:1;color:rgb(15 23 42 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.antialiased{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.placeholder-slate-400::placeholder{--tw-placeholder-opacity:1;color:rgb(148 163 184 / var(--tw-placeholder-opacity, 1))}.opacity-70{opacity:0.7}.opacity-75{opacity:0.75}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.backdrop-blur-md{--tw-backdrop-blur:blur(12px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-200{transition-duration:200ms}.selection\:bg-blue-500\/20 *::selection{background-color:rgb(59 130 246 / 0.2)}.selection\:bg-blue-500\/20::selection{background-color:rgb(59 130 246 / 0.2)}.hover\:bg-blue-500:hover{--tw-bg-opacity:1;background-color:rgb(59 130 246 / var(--tw-bg-opacity, 1))}.hover\:bg-blue-500\/10:hover{background-color:rgb(59 130 246 / 0.1)}.hover\:bg-blue-500\/20:hover{background-color:rgb(59 130 246 / 0.2)}.hover\:bg-slate-500\/15:hover{background-color:rgb(100 116 139 / 0.15)}.hover\:bg-slate-500\/10:hover{background-color:rgb(100 116 139 / 0.1)}.hover\:text-blue-600:hover{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.hover\:text-slate-700:hover{--tw-text-opacity:1;color:rgb(51 65 85 / var(--tw-text-opacity, 1))}.hover\:opacity-90:hover{opacity:0.9}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.focus\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)}.focus\:ring-blue-500\/40:focus{--tw-ring-color:rgb(59 130 246 / 0.4)}.active\:scale-95:active{--tw-scale-x:.95;--tw-scale-y:.95;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.dark\:border-slate-800\/80:is(.dark *){border-color:rgb(30 41 59 / 0.8)}.dark\:bg-blue-400\/15:is(.dark *){background-color:rgb(96 165 250 / 0.15)}.dark\:bg-blue-500\/15:is(.dark *){background-color:rgb(59 130 246 / 0.15)}.dark\:bg-slate-800:is(.dark *){--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.dark\:text-blue-200:is(.dark *){--tw-text-opacity:1;color:rgb(191 219 254 / var(--tw-text-opacity, 1))}.dark\:text-blue-300:is(.dark *){--tw-text-opacity:1;color:rgb(147 197 253 / var(--tw-text-opacity, 1))}.dark\:text-blue-400:is(.dark *){--tw-text-opacity:1;color:rgb(96 165 250 / var(--tw-text-opacity, 1))}.dark\:text-rose-400:is(.dark *){--tw-text-opacity:1;color:rgb(251 113 133 / var(--tw-text-opacity, 1))}.dark\:text-slate-100:is(.dark *){--tw-text-opacity:1;color:rgb(241 245 249 / var(--tw-text-opacity, 1))}.dark\:text-slate-200:is(.dark *){--tw-text-opacity:1;color:rgb(226 232 240 / var(--tw-text-opacity, 1))}.dark\:text-slate-300:is(.dark *){--tw-text-opacity:1;color:rgb(203 213 225 / var(--tw-text-opacity, 1))}.dark\:text-slate-400:is(.dark *){--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.dark\:text-slate-500:is(.dark *){--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.dark\:text-white:is(.dark *){--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.dark\:hover\:text-blue-400:hover:is(.dark *){--tw-text-opacity:1;color:rgb(96 165 250 / var(--tw-text-opacity, 1))}.dark\:hover\:text-slate-200:hover:is(.dark *){--tw-text-opacity:1;color:rgb(226 232 240 / var(--tw-text-opacity, 1))}@media (min-width: 640px){.sm\:inset-x-auto{left:auto;right:auto}.sm\:left-1\/2{left:50%}.sm\:w-\[460px\]{width:460px}.sm\:-translate-x-1\/2{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.sm\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.sm\:gap-2{gap:0.5rem}.sm\:text-lg{font-size:1.125rem;line-height:1.75rem}.sm\:text-sm{font-size:0.875rem;line-height:1.25rem}.sm\:text-xl{font-size:1.25rem;line-height:1.75rem}}</style></head>
+<body class="safe-bottom antialiased selection:bg-blue-500/20">
+  <div class="ios-ambient-bg"></div>
+
+  <!-- Üst Başlık -->
+  <header class="sticky top-0 z-30 ios-glass-bar border-b transition-colors pt-[env(safe-area-inset-top,0px)]">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <p id="headerLiveClock" class="text-[11px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate">BUGÜN • 13 KASIM 2026 CUMA</p>
+        <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
+          İnönü Tıp Dönem I
+        </h1>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btnJumpTodayTop" type="button" class="px-3 py-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-xs font-semibold text-blue-600 dark:text-blue-400 transition">
+          Bugün
+        </button>
+        <button id="btnToggleTheme" type="button" class="w-8 h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Tema Değiştir">
+          <svg id="iconSun" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
+          <svg id="iconMoon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 pt-3.5 pb-6">
+
+    <!-- ==================== TAB 1: GÜNLÜK ==================== -->
+    <section id="viewDaily" class="space-y-3.5 hidden">
+      <!-- DATE CARD -->
+      <div class="ios-glass rounded-3xl p-4 space-y-3">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h2 id="selectedDayHeaderTitle" class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">13 Kasım 2026 Cuma</h2>
+              <span id="selectedDayRelativeBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300">Bugün</span>
+            </div>
+            <p id="selectedDaySubInfo" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">Kurul 2 • 4. Hafta • 8 Ayrı Ders Saati</p>
+          </div>
+
+          <div class="ios-pill-control p-0.5 rounded-full flex items-center shrink-0">
+            <button id="btnBannerToday" type="button" class="px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">Bugün</button>
+            <button id="btnBannerTomorrow" type="button" class="px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition">Yarın</button>
+          </div>
+        </div>
+
+        <!-- 5 Günlük Kaydırma (Çıkıntısız ve Tam Hizalı) -->
+        <div class="w-full">
+          <div class="overflow-hidden rounded-2xl w-full">
+            <div id="weekCarousel" class="w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex" style=""></div>
+          </div>
+          <div class="flex items-center justify-between px-1 pt-1.5 text-[10px] text-slate-400 dark:text-slate-500 select-none">
+            <span id="carouselWeekIndicator">Kurul 2 • 4. Hafta</span>
+            <span class="opacity-70 flex items-center gap-1">
+              <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+              Haftayı yana kaydır
+            </span>
+          </div>
+        </div>
+
+        <!-- Eşit Boyutlu Kompakt Gün Değiştirici -->
+        <div class="flex items-center justify-center gap-1.5 sm:gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
+          <button id="btnPrevDay" type="button" class="px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-1 active:scale-95 shadow-2xs">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+            <span>Önceki</span>
+          </button>
+
+          <div class="ios-pill-control px-2.5 py-1 rounded-full flex items-center justify-center">
+            <select id="selectDateDropdown" aria-label="Tarih Seçin" class="bg-transparent text-slate-800 dark:text-slate-100 text-xs font-bold focus:outline-none text-center cursor-pointer max-w-[135px] truncate"></select>
+          </div>
+
+          <button id="btnNextDay" type="button" class="px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-1 active:scale-95 shadow-2xs">
+            <span>Sonraki</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- LESSON SLOTS CONTAINER -->
+      <div id="dailySlotsContainer" class="space-y-2"></div>
+
+      <!-- CLEAN CALENDAR EXPORT BUTTON -->
+      <div class="pt-2 pb-1 flex justify-center">
+        <button id="btnExportDayIcs" type="button" class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition flex items-center gap-1.5 hover:bg-blue-500/10">
+          <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span>Bu Günün Derslerini Telefon Takvimine Ekle (.ics)</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: HAFTALAR ==================== -->
+    <section id="viewWeekly" class="hidden space-y-3.5">
+      <div class="ios-glass rounded-3xl p-4 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">Haftalık Program</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">13 Hafta • 65 Gün</p>
+          </div>
+          <div class="ios-pill-control p-0.5 rounded-full flex items-center text-xs">
+            <button id="btnFilterKurulAll" type="button" class="px-2.5 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs">Tümü</button>
+            <button id="btnFilterKurul1" type="button" class="px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300">Kurul I</button>
+            <button id="btnFilterKurul2" type="button" class="px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300">Kurul II</button>
+          </div>
+        </div>
+        <div id="weekSelectorPills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5"></div>
+      </div>
+      <div id="weeklyDaysContainer" class="space-y-3.5"></div>
+    </section>
+
+    <!-- ==================== TAB 3: ARAMA ==================== -->
+    <section id="viewSearch" class="hidden space-y-3.5">
+      <div class="ios-glass rounded-3xl p-4 space-y-3">
+        <div class="relative">
+          <input id="inputSearchQuery" type="text" placeholder="Ders, kod, hoca veya tarih ara..." class="w-full ios-pill-control text-slate-900 dark:text-white placeholder-slate-400 rounded-2xl pl-9 pr-16 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <button id="btnClearSearch" type="button" class="hidden absolute right-2.5 top-2 px-2 py-0.5 text-xs font-medium rounded-full bg-slate-500/20 text-slate-700 dark:text-slate-200">Temizle</button>
+        </div>
+        <p id="searchStatsBar" class="text-[11px] font-medium text-slate-500 dark:text-slate-400"></p>
+      </div>
+      <div id="searchResultsContainer" class="space-y-2"></div>
+    </section>
+
+    <!-- ==================== TAB 4: SINAV & NOT ==================== -->
+    <section id="viewInfo" class="hidden space-y-3.5">
+      <div class="ios-glass rounded-3xl p-4 space-y-3">
+        <h2 class="text-base font-bold text-slate-900 dark:text-white">Kurul Notu Hesaplayıcı</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+          <div class="ios-pill-control rounded-2xl p-3">
+            <label for="inpAraSinav" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Ara Sınav (%15)</label>
+            <input id="inpAraSinav" type="number" min="0" max="100" value="80" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5">
+          </div>
+          <div class="ios-pill-control rounded-2xl p-3">
+            <label for="inpKurulSonu" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Kurul Sonu (%85)</label>
+            <input id="inpKurulSonu" type="number" min="0" max="100" value="75" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5">
+          </div>
+          <div class="rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 p-3 flex flex-col justify-center">
+            <span class="text-[11px] font-medium text-blue-600 dark:text-blue-300">Teorik Ortalamanız</span>
+            <span id="outKurulNotu" class="text-xl font-bold text-blue-700 dark:text-blue-200 mt-0.5">75.75</span>
+          </div>
+        </div>
+      </div>
+      <div class="ios-glass rounded-3xl p-4 space-y-2.5">
+        <h2 class="text-base font-bold text-slate-900 dark:text-white">Sınav Saatleri</h2>
+        <div id="examsListContainer" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: KURULUM ==================== -->
+    <section id="viewInstall" class="space-y-3.5">
+      <div class="ios-glass rounded-3xl p-5 space-y-3">
+        <span class="inline-block px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
+          Uygulama Kurulumu
+        </span>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Ana Ekrana Ekleme Adımları</h2>
+        <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          Ders programını telefonuna uygulama gibi kurarak tam ekran ve çevrimdışı erişimle kullanabilirsin.
+        </p>
+        <ol class="text-xs sm:text-sm text-slate-700 dark:text-slate-200 space-y-2.5 list-decimal list-inside leading-relaxed pt-1">
+          <li>Bu siteyi telefonundaki <strong>Chrome</strong>, <strong>Safari</strong> veya <strong>Samsung Internet</strong> tarayıcısında aç.</li>
+          <li>Tarayıcı menüsünü (<strong>⋮</strong> veya paylaş simgesi) açıp <strong>"Ana ekrana ekle"</strong> veya <strong>"Uygulamayı yükle"</strong> seçeneğine dokun.</li>
+          <li>Onayladıktan sonra ana ekranına eklenen simge üzerinden tam ekran uygulama olarak kullanmaya başla.</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <!-- Note Modal -->
+  <div id="noteModal" class="fixed inset-0 z-50 hidden bg-black/30 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="ios-glass rounded-3xl max-w-md w-full p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 id="noteModalTitle" class="text-sm font-bold text-slate-900 dark:text-white">Ders Notu</h3>
+        <button id="btnCloseNoteModal" type="button" class="w-7 h-7 rounded-full ios-pill-control text-slate-500 flex items-center justify-center">✕</button>
+      </div>
+      <p id="noteModalSubtitle" class="text-xs text-slate-500 dark:text-slate-400"></p>
+      <textarea id="noteModalTextarea" rows="4" placeholder="Bu ders saati için notunuzu yazın..." class="w-full ios-pill-control rounded-2xl p-3 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"></textarea>
+      <div class="flex items-center justify-end gap-2">
+        <button id="btnDeleteNote" type="button" class="px-3 py-1.5 rounded-full text-rose-600 dark:text-rose-400 text-xs font-semibold">Sil</button>
+        <button id="btnSaveNote" type="button" class="px-4 py-1.5 rounded-full bg-blue-600 text-white text-xs font-semibold">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastBanner" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded-full ios-glass text-slate-900 dark:text-white text-xs font-semibold shadow-lg"></div>
+
+  <!-- AUTHENTIC APPLE iOS 18 FLOATING ISLAND DOCK -->
+  <nav class="fixed inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-[460px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));">
+    <div id="dockContainer" class="ios-floating-dock rounded-full p-1 flex items-center justify-between relative transition-transform">
+      <!-- Continuous Gliding Pill -->
+      <div id="tabIndicatorPill" style="transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform: translate3d(285.389px, 0px, 0px); width: 70.2556px;"></div>
+
+      <button type="button" data-tab="daily" data-tab-index="0" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none">
+        <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        </div>
+        <span class="text-[10px] tracking-tight">Bugün</span>
+      </button>
+
+      <button type="button" data-tab="weekly" data-tab-index="1" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none">
+        <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </div>
+        <span class="text-[10px] tracking-tight">Haftalar</span>
+      </button>
+
+      <button type="button" data-tab="search" data-tab-index="2" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none">
+        <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+        <span class="text-[10px] tracking-tight">Arama</span>
+      </button>
+
+      <button type="button" data-tab="info" data-tab-index="3" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none">
+        <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <span class="text-[10px] tracking-tight">Sınav &amp; Not</span>
+      </button>
+
+      <button type="button" data-tab="install" data-tab-index="4" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-bold relative z-10 transition-colors duration-200 select-none">
+        <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1.08);">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+        </div>
+        <span class="text-[10px] tracking-tight">Kurulum</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    // FULL VERIFIED SCHEDULE DATASET (65 DAYS, 520 LESSONS)
+    const SCHEDULE_DAYS = [{"date": "07.09.2026", "dayName": "Pazartesi", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 1, "page": 10, "slots": [{"slotNo": 1, "date": "07.09.2026", "time": "08.30-09.15", "code": "UYUM", "title": "Açılış konuşmaları ve eğitim programının tanıtımı (Kongre Kültür Merkezi)", "instructor": "Dekan", "group": ""}, {"slotNo": 2, "date": "07.09.2026", "time": "09.25-10.10", "code": "UYUM", "title": "Açılış konuşmaları ve eğitim programının tanıtımı (Kongre Kültür Merkezi)", "instructor": "Dekan Yardımcısı", "group": ""}, {"slotNo": 3, "date": "07.09.2026", "time": "10.20-11.05", "code": "UYUM", "title": "Açılış konuşmaları ve eğitim programının tanıtımı (Kongre Kültür Merkezi)", "instructor": "Dönem I Koordinatörü", "group": ""}, {"slotNo": 4, "date": "07.09.2026", "time": "11.15-12.00", "code": "UYUM", "title": "İnönü Tıpta doktor olmak", "instructor": "Ebru İnci Coşkun", "group": ""}, {"slotNo": 5, "date": "07.09.2026", "time": "13.10-13.55", "code": "UYUM", "title": "İnönü Tıpta öğrenci olmak", "instructor": "Dönem-IV Öğrencisi", "group": ""}, {"slotNo": 6, "date": "07.09.2026", "time": "14.05-14.50", "code": "UYUM", "title": "İnönü Tıpta ilk üç yıl", "instructor": "Lokman Hekim Tanrıverdi", "group": ""}, {"slotNo": 7, "date": "07.09.2026", "time": "15.00-15.45", "code": "UYUM", "title": "İnönü Tıpta son üç yıl", "instructor": "Hilal Ermiş", "group": ""}, {"slotNo": 8, "date": "07.09.2026", "time": "15.55-16.40", "code": "UYUM", "title": "İnönü Tıptan mezun olmak", "instructor": "Kemal Barış Sarıcı", "group": ""}]}, {"date": "08.09.2026", "dayName": "Salı", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 1, "page": 10, "slots": [{"slotNo": 1, "date": "08.09.2026", "time": "08.30-09.15", "code": "UYUM", "title": "Fakülte ve hastane tanıtım gezisi (Grup A)", "instructor": "", "group": ""}, {"slotNo": 2, "date": "08.09.2026", "time": "09.25-10.10", "code": "UYUM", "title": "Fakülte ve hastane tanıtım gezisi (Grup A)", "instructor": "", "group": ""}, {"slotNo": 3, "date": "08.09.2026", "time": "10.20-11.05", "code": "UYUM", "title": "Fakülte ve hastane tanıtım gezisi (Grup B)", "instructor": "", "group": ""}, {"slotNo": 4, "date": "08.09.2026", "time": "11.15-12.00", "code": "UYUM", "title": "Fakülte ve hastane tanıtım gezisi (Grup B)", "instructor": "", "group": ""}, {"slotNo": 5, "date": "08.09.2026", "time": "13.10-13.55", "code": "UYUM", "title": "Aile olmak nedir?", "instructor": "Ayşe Baran", "group": ""}, {"slotNo": 6, "date": "08.09.2026", "time": "14.05-14.50", "code": "UYUM", "title": "Malatya tarihçesi ve tanıtımı", "instructor": "Murat Zengin", "group": ""}, {"slotNo": 7, "date": "08.09.2026", "time": "15.00-15.45", "code": "UYUM", "title": "Siber güvenlik", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 8, "date": "08.09.2026", "time": "15.55-16.40", "code": "UYUM", "title": "Dijital dönüşüm ve üniversitenin bilişim alt yapısının tanıtılması", "instructor": "Mustafa扩大kaplan", "group": ""}]}, {"date": "09.09.2026", "dayName": "Çarşamba", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 1, "page": 10, "slots": [{"slotNo": 1, "date": "09.09.2026", "time": "08.30-09.15", "code": "UYUM", "title": "İnönü Tıp Öğrenci Toplulukları tanıtımı", "instructor": "Önder Uyanık", "group": ""}, {"slotNo": 2, "date": "09.09.2026", "time": "09.25-10.10", "code": "UYUM", "title": "İNÜ yayınevinin tanıtımı", "instructor": "Necati Bay", "group": ""}, {"slotNo": 3, "date": "09.09.2026", "time": "10.20-11.05", "code": "UYUM", "title": "Narkogençlik ve madde bağımlılığı", "instructor": "Ali Güneş", "group": ""}, {"slotNo": 4, "date": "09.09.2026", "time": "11.15-12.00", "code": "UYUM", "title": "Bağımlılık ile mücadele", "instructor": "Burcu Kayhan Tetik", "group": ""}, {"slotNo": 5, "date": "09.09.2026", "time": "13.10-13.55", "code": "UYUM", "title": "Eğitim materyallerinin tanıtılması (MBU, videolar ve kitapların tanıtılması)", "instructor": "Aslıhan Mete Yıldırım", "group": ""}, {"slotNo": 6, "date": "09.09.2026", "time": "14.05-14.50", "code": "UYUM", "title": "TEKNOKENT tanıtımı", "instructor": "Hasan Yılmaz", "group": ""}, {"slotNo": 7, "date": "09.09.2026", "time": "15.00-15.45", "code": "UYUM", "title": "Kütüphanenin akılcıl kullanımı", "instructor": "Nezihe Üstüner", "group": ""}, {"slotNo": 8, "date": "09.09.2026", "time": "15.55-16.40", "code": "UYUM", "title": "Deney Hayvanları Üretim ve Araştırma Merkezi Tanıtımı", "instructor": "Onural Özhan", "group": ""}]}, {"date": "10.09.2026", "dayName": "Perşembe", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 1, "page": 10, "slots": [{"slotNo": 1, "date": "10.09.2026", "time": "08.30-09.15", "code": "UYUM", "title": "Kemik iliği ve kök hücre nakli, onkoloji hastanesinin tanıtılması", "instructor": "Mehmet Ali Erkurt", "group": ""}, {"slotNo": 2, "date": "10.09.2026", "time": "09.25-10.10", "code": "UYUM", "title": "Erasmus değişim programı tanıtımı", "instructor": "Lokman Hekim Tanrıverdi", "group": ""}, {"slotNo": 3, "date": "10.09.2026", "time": "10.20-11.05", "code": "UYUM", "title": "Öğrencilerin uluslararası deneyimleri", "instructor": "Zeynep Keskin", "group": ""}, {"slotNo": 4, "date": "10.09.2026", "time": "11.15-12.00", "code": "UYUM", "title": "Organ doku bağışı ve nakli, karaciğer nakil hastanesinin tanıtılması", "instructor": "Sezai Yılmaz", "group": ""}, {"slotNo": 5, "date": "10.09.2026", "time": "13.10-13.55", "code": "UYUM", "title": "Fakülte ve hastane tanıtım gezisi (Grup C)", "instructor": "", "group": ""}, {"slotNo": 6, "date": "10.09.2026", "time": "14.05-14.50", "code": "UYUM", "title": "Fakülte ve hastane tanıtım gezisi (Grup C)", "instructor": "", "group": ""}, {"slotNo": 7, "date": "10.09.2026", "time": "15.00-15.45", "code": "UYUM", "title": "Fakülte ve hastane tanıtım gezisi (Grup D)", "instructor": "", "group": ""}, {"slotNo": 8, "date": "10.09.2026", "time": "15.55-16.40", "code": "UYUM", "title": "Fakülte ve hastane tanıtım gezisi (Grup D)", "instructor": "", "group": ""}]}, {"date": "11.09.2026", "dayName": "Cuma", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 1, "page": 10, "slots": [{"slotNo": 1, "date": "11.09.2026", "time": "08.30-09.15", "code": "UYUM", "title": "BEYAZ ÖNLÜK GİYME TÖRENİ", "instructor": "", "group": ""}, {"slotNo": 2, "date": "11.09.2026", "time": "09.25-10.10", "code": "UYUM", "title": "BEYAZ ÖNLÜK GİYME TÖRENİ", "instructor": "", "group": ""}, {"slotNo": 3, "date": "11.09.2026", "time": "10.20-11.05", "code": "UYUM", "title": "BEYAZ ÖNLÜK GİYME TÖRENİ", "instructor": "", "group": ""}, {"slotNo": 4, "date": "11.09.2026", "time": "11.15-12.00", "code": "UYUM", "title": "BEYAZ ÖNLÜK GİYME TÖRENİ", "instructor": "", "group": ""}, {"slotNo": 5, "date": "11.09.2026", "time": "13.10-13.55", "code": "UYUM", "title": "BEYAZ ÖNLÜK GİYME TÖRENİ", "instructor": "", "group": ""}, {"slotNo": 6, "date": "11.09.2026", "time": "14.05-14.50", "code": "UYUM", "title": "BEYAZ ÖNLÜK GİYME TÖRENİ", "instructor": "", "group": ""}, {"slotNo": 7, "date": "11.09.2026", "time": "15.00-15.45", "code": "UYUM", "title": "BEYAZ ÖNLÜK GİYME TÖRENİ", "instructor": "", "group": ""}, {"slotNo": 8, "date": "11.09.2026", "time": "15.55-16.40", "code": "UYUM", "title": "BEYAZ ÖNLÜK GİYME TÖRENİ", "instructor": "", "group": ""}]}, {"date": "14.09.2026", "dayName": "Pazartesi", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 2, "page": 11, "slots": [{"slotNo": 1, "date": "14.09.2026", "time": "08.30-09.15", "code": "KS101", "title": "Koruyucu sağlık nedir?", "instructor": "Osman Kurt", "group": ""}, {"slotNo": 2, "date": "14.09.2026", "time": "09.25-10.10", "code": "TTE101", "title": "Hekim hakları ve güvenli çalışma ortamı", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 3, "date": "14.09.2026", "time": "10.20-11.05", "code": "HSAĞ101", "title": "Uluslararası ve ulusal sağlıkla ilgili kuruluşlar", "instructor": "Ayşe Baran", "group": ""}, {"slotNo": 4, "date": "14.09.2026", "time": "11.15-12.00", "code": "TTE101", "title": "Bilim Tarihi", "instructor": "Irmak İçen Taşkın", "group": ""}, {"slotNo": 5, "date": "14.09.2026", "time": "13.10-13.55", "code": "TETİB101", "title": "Sağlık okur-yazarlığı", "instructor": "Osman Kurt", "group": ""}, {"slotNo": 6, "date": "14.09.2026", "time": "14.05-14.50", "code": "KS101", "title": "Sağlıkta insan gücü ve kurumsal sağlık çalışanı şeması (hemşire, diş hekimi, eczacı)", "instructor": "Metin Genç", "group": ""}, {"slotNo": 7, "date": "14.09.2026", "time": "15.00-15.45", "code": "TETİB101", "title": "Tıp eğitiminde öğrenme yöntemleri", "instructor": "Aslıhan Mete Yıldırım", "group": ""}, {"slotNo": 8, "date": "14.09.2026", "time": "15.55-16.40", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}]}, {"date": "15.09.2026", "dayName": "Salı", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 2, "page": 11, "slots": [{"slotNo": 1, "date": "15.09.2026", "time": "08.30-09.15", "code": "HSAĞ101", "title": "Kişisel bakım ve hijyen", "instructor": "Gülseda Boz", "group": ""}, {"slotNo": 2, "date": "15.09.2026", "time": "09.25-10.10", "code": "TETİB101", "title": "Tıp felsefesi", "instructor": "Esra Porgalı", "group": ""}, {"slotNo": 3, "date": "15.09.2026", "time": "10.20-11.05", "code": "TETİB101", "title": "Sağlık sosyolojisi", "instructor": "Esra Porgalı", "group": ""}, {"slotNo": 4, "date": "15.09.2026", "time": "11.15-12.00", "code": "TTE101", "title": "Tıp tarihine giriş", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 5, "date": "15.09.2026", "time": "13.10-13.55", "code": "TTE101", "title": "Tarih öncesi ve ilkçağ tıbbı", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 6, "date": "15.09.2026", "time": "14.05-14.50", "code": "TETİB101", "title": "Sağlıkta girişimcilik ve yenilikçilik", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 7, "date": "15.09.2026", "time": "15.00-15.45", "code": "TETİB101", "title": "Sağlıkta girişimcilik ve yenilikçilik", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 8, "date": "15.09.2026", "time": "15.55-16.40", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}]}, {"date": "16.09.2026", "dayName": "Çarşamba", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 2, "page": 11, "slots": [{"slotNo": 1, "date": "16.09.2026", "time": "08.30-09.15", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 2, "date": "16.09.2026", "time": "09.25-10.10", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 3, "date": "16.09.2026", "time": "10.20-11.05", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 4, "date": "16.09.2026", "time": "11.15-12.00", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 5, "date": "16.09.2026", "time": "13.10-13.55", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 6, "date": "16.09.2026", "time": "14.05-14.50", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 7, "date": "16.09.2026", "time": "15.00-15.45", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 8, "date": "16.09.2026", "time": "15.55-16.40", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}]}, {"date": "17.09.2026", "dayName": "Perşembe", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 2, "page": 11, "slots": [{"slotNo": 1, "date": "17.09.2026", "time": "08.30-09.15", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 2, "date": "17.09.2026", "time": "09.25-10.10", "code": "KS101", "title": "Gıda güvenliği", "instructor": "Sibel Uluata", "group": ""}, {"slotNo": 3, "date": "17.09.2026", "time": "10.20-11.05", "code": "KS101", "title": "Sağlıklı beslenme", "instructor": "Şükrü Güngör", "group": ""}, {"slotNo": 4, "date": "17.09.2026", "time": "11.15-12.00", "code": "KS101", "title": "Sağlık için egzersiz", "instructor": "Halil Düzova", "group": ""}, {"slotNo": 5, "date": "17.09.2026", "time": "13.10-13.55", "code": "KS101", "title": "Obeziteden korunma", "instructor": "Bahri Evren", "group": ""}, {"slotNo": 6, "date": "17.09.2026", "time": "14.05-14.50", "code": "TETİB101", "title": "Sağlık sosyolojisi", "instructor": "Esra Porgalı", "group": ""}, {"slotNo": 7, "date": "17.09.2026", "time": "15.00-15.45", "code": "HSAĞ101", "title": "Çevre ve sağlık", "instructor": "Gülseda Boz", "group": ""}, {"slotNo": 8, "date": "17.09.2026", "time": "15.55-16.40", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}]}, {"date": "18.09.2026", "dayName": "Cuma", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 2, "page": 11, "slots": [{"slotNo": 1, "date": "18.09.2026", "time": "08.30-09.15", "code": "TTE101", "title": "Mezopotamya tıbbı", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 2, "date": "18.09.2026", "time": "09.25-10.10", "code": "TTE101", "title": "Antik Mısır, Hindistan ve Çin tıbbı", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 3, "date": "18.09.2026", "time": "10.20-11.05", "code": "HSAĞ101", "title": "Nüfus ve sağlık", "instructor": "Osman Kurt", "group": ""}, {"slotNo": 4, "date": "18.09.2026", "time": "11.15-12.00", "code": "KS101", "title": "Deri sağlığı", "instructor": "Zekiye Kanat", "group": ""}, {"slotNo": 5, "date": "18.09.2026", "time": "13.10-13.55", "code": "KS101", "title": "Göz Sağlığı", "instructor": "Cem Çankaya", "group": ""}, {"slotNo": 6, "date": "18.09.2026", "time": "14.05-14.50", "code": "TETİB101", "title": "Tıbbi dil kullanımı", "instructor": "Cengiz Yakıncı", "group": ""}, {"slotNo": 7, "date": "18.09.2026", "time": "15.00-15.45", "code": "TETİB101", "title": "Tıp eğitiminde kavramlar", "instructor": "Aslıhan Mete Yıldırım", "group": ""}, {"slotNo": 8, "date": "18.09.2026", "time": "15.55-16.40", "code": "TETİB101", "title": "Teknoloji ve tıbbın etkileşimi", "instructor": "Emek Güldoğan", "group": ""}]}, {"date": "21.09.2026", "dayName": "Pazartesi", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 3, "page": 12, "slots": [{"slotNo": 1, "date": "21.09.2026", "time": "08.30-09.15", "code": "HSAĞ101", "title": "Su Hijyeni", "instructor": "Gülseda Boz", "group": ""}, {"slotNo": 2, "date": "21.09.2026", "time": "09.25-10.10", "code": "TETİB101", "title": "Tıbbi beceri eğitimi", "instructor": "Aslıhan Mete Yıldırım", "group": ""}, {"slotNo": 3, "date": "21.09.2026", "time": "10.20-11.05", "code": "TTE101", "title": "Antik Yunan ve Roma tıbbı", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 4, "date": "21.09.2026", "time": "11.15-12.00", "code": "TTE101", "title": "Ortaçağ ve İslam tıbbı", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 5, "date": "21.09.2026", "time": "13.10-13.55", "code": "KS101", "title": "Madde bağımlılığından korunma", "instructor": "Birgül Cumurcu", "group": ""}, {"slotNo": 6, "date": "21.09.2026", "time": "14.05-14.50", "code": "KS101", "title": "Laboratuvarlara Hazırlık", "instructor": "Elif Seren Tanrıverdi", "group": ""}, {"slotNo": 7, "date": "21.09.2026", "time": "15.00-15.45", "code": "KS101", "title": "Laboratuvar güvenliği: Biyolojik", "instructor": "Elif Seren Tanrıverdi", "group": ""}, {"slotNo": 8, "date": "21.09.2026", "time": "15.55-16.40", "code": "KS101", "title": "Laboratuvar güvenliği: Kimyasal", "instructor": "Çağatay Taşkapan", "group": ""}]}, {"date": "22.09.2026", "dayName": "Salı", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 3, "page": 12, "slots": [{"slotNo": 1, "date": "22.09.2026", "time": "08.30-09.15", "code": "TETİB101", "title": "Geleneksel ve tamamlayıcı tıp uygulamaları", "instructor": "Mehmet Ediz Sarıhan", "group": ""}, {"slotNo": 2, "date": "22.09.2026", "time": "09.25-10.10", "code": "TETİB101", "title": "Geleneksel ve tamamlayıcı tıp uygulamaları", "instructor": "Hakan Parlakpınar", "group": ""}, {"slotNo": 3, "date": "22.09.2026", "time": "10.20-11.05", "code": "HSAĞ101", "title": "Su kirliliği ve kontrolü", "instructor": "Gülseda Boz", "group": ""}, {"slotNo": 4, "date": "22.09.2026", "time": "11.15-12.00", "code": "HSAĞ101", "title": "Su kirliliği ve kontrolü", "instructor": "Gülseda Boz", "group": ""}, {"slotNo": 5, "date": "22.09.2026", "time": "13.10-13.55", "code": "TETİB101", "title": "Tıp ve sanat", "instructor": "Aslıhan Mete Yıldırım", "group": ""}, {"slotNo": 6, "date": "22.09.2026", "time": "14.05-14.50", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "22.09.2026", "time": "15.00-15.45", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "22.09.2026", "time": "15.55-16.40", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "23.09.2026", "dayName": "Çarşamba", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 3, "page": 12, "slots": [{"slotNo": 1, "date": "23.09.2026", "time": "08.30-09.15", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 2, "date": "23.09.2026", "time": "09.25-10.10", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 3, "date": "23.09.2026", "time": "10.20-11.05", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 4, "date": "23.09.2026", "time": "11.15-12.00", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 5, "date": "23.09.2026", "time": "13.10-13.55", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 6, "date": "23.09.2026", "time": "14.05-14.50", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 7, "date": "23.09.2026", "time": "15.00-15.45", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 8, "date": "23.09.2026", "time": "15.55-16.40", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}]}, {"date": "24.09.2026", "dayName": "Perşembe", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 3, "page": 12, "slots": [{"slotNo": 1, "date": "24.09.2026", "time": "08.30-09.15", "code": "KS101", "title": "Kemik sağlığı ve osteoporoz", "instructor": "Zühal Altay", "group": ""}, {"slotNo": 2, "date": "24.09.2026", "time": "09.25-10.10", "code": "KS101", "title": "Stres ve korunma", "instructor": "Esra Porgalı", "group": ""}, {"slotNo": 3, "date": "24.09.2026", "time": "10.20-11.05", "code": "HSAĞ101", "title": "Atık yönetimi", "instructor": "Gülseda Boz", "group": ""}, {"slotNo": 4, "date": "24.09.2026", "time": "11.15-12.00", "code": "TETİB101", "title": "Bilgi erişimi", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 5, "date": "24.09.2026", "time": "13.10-13.55", "code": "TETİB101", "title": "Etkin sunum hazırlama yöntemleri", "instructor": "Gülseda Boz", "group": ""}, {"slotNo": 6, "date": "24.09.2026", "time": "14.05-14.50", "code": "TTE101", "title": "Rönesans tıbbı ve 17-18. yy tıbbı", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 7, "date": "24.09.2026", "time": "15.00-15.45", "code": "TTE101", "title": "Selçuklu tıbbı", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 8, "date": "24.09.2026", "time": "15.55-16.40", "code": "MBU101", "title": "El antisepsisi kullanımı ve el yıkama becerisi", "instructor": "Zeynep Çelik", "group": ""}]}, {"date": "25.09.2026", "dayName": "Cuma", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 3, "page": 12, "slots": [{"slotNo": 1, "date": "25.09.2026", "time": "08.30-09.15", "code": "MBU101", "title": "El antisepsisi kullanımı ve el yıkama becerisi", "instructor": "Zeynep Çelik", "group": "Grup-I"}, {"slotNo": 2, "date": "25.09.2026", "time": "09.25-10.10", "code": "MBU101", "title": "Su numunesi alma", "instructor": "Gülseda Boz", "group": "Grup-I"}, {"slotNo": 3, "date": "25.09.2026", "time": "10.20-11.05", "code": "TTE101", "title": "Osmanlı Tıbbı", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 4, "date": "25.09.2026", "time": "11.15-12.00", "code": "TTE101", "title": "Türkiye Cumhuriyetinde tıp eğitiminin modernizasyonu", "instructor": "Mehmet Karataş", "group": ""}, {"slotNo": 5, "date": "25.09.2026", "time": "13.10-13.55", "code": "AİİT101", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "25.09.2026", "time": "14.05-14.50", "code": "AİİT101", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "25.09.2026", "time": "15.00-15.45", "code": "TD101", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "25.09.2026", "time": "15.55-16.40", "code": "TD101", "title": "Türk Dili", "instructor": "", "group": ""}]}, {"date": "28.09.2026", "dayName": "Pazartesi", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 4, "page": 13, "slots": [{"slotNo": 1, "date": "28.09.2026", "time": "08.30-09.15", "code": "MBU101", "title": "El antisepsisi kullanımı ve el yıkama becerisi", "instructor": "Zeynep Çelik", "group": "Grup-II"}, {"slotNo": 2, "date": "28.09.2026", "time": "09.25-10.10", "code": "MBU101", "title": "Su numunesi alma", "instructor": "Gülseda Boz", "group": "Grup-II"}, {"slotNo": 3, "date": "28.09.2026", "time": "10.20-11.05", "code": "TETİB101", "title": "Tıp biliminde ödüller", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 4, "date": "28.09.2026", "time": "11.15-12.00", "code": "HSAĞ101", "title": "Mesleki Risklerden Korunma", "instructor": "Osman Kurt", "group": ""}, {"slotNo": 5, "date": "28.09.2026", "time": "13.10-13.55", "code": "HSAĞ101", "title": "Afetlere (deprem, sel, biyolojik saldırı) hazırlık", "instructor": "Ayşe Baran", "group": ""}, {"slotNo": 6, "date": "28.09.2026", "time": "14.05-14.50", "code": "HSAĞ101", "title": "Afetlerde kurtarma ekipleri", "instructor": "Ayşe Baran", "group": ""}, {"slotNo": 7, "date": "28.09.2026", "time": "15.00-15.45", "code": "TETİB101", "title": "Afetlerde hekimin rolü", "instructor": "Mehmet Ediz Sarıhan", "group": ""}, {"slotNo": 8, "date": "28.09.2026", "time": "15.55-16.40", "code": "TBG101", "title": "Canlılık kavramı, Canlıların sınıflandırılması", "instructor": "Şengül Yüksel", "group": ""}]}, {"date": "29.09.2026", "dayName": "Salı", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 4, "page": 13, "slots": [{"slotNo": 1, "date": "29.09.2026", "time": "08.30-09.15", "code": "MBU101", "title": "El antisepsisi kullanımı ve el yıkama becerisi", "instructor": "Zeynep Çelik", "group": "Grup-III"}, {"slotNo": 2, "date": "29.09.2026", "time": "09.25-10.10", "code": "MBU101", "title": "Su numunesi alma", "instructor": "Gülseda Boz", "group": "Grup-III"}, {"slotNo": 3, "date": "29.09.2026", "time": "10.20-11.05", "code": "KS101", "title": "Üreme sağlığı/cinsel sağlık", "instructor": "İbrahim Topçu", "group": ""}, {"slotNo": 4, "date": "29.09.2026", "time": "11.15-12.00", "code": "KS101", "title": "Gebeliğin normal süreci", "instructor": "Rauf Melekoğlu", "group": ""}, {"slotNo": 5, "date": "29.09.2026", "time": "13.10-13.55", "code": "KS101", "title": "Lohusalığın normal süreci", "instructor": "Ebru İnci Coşkun", "group": ""}, {"slotNo": 6, "date": "29.09.2026", "time": "14.05-14.50", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "29.09.2026", "time": "15.00-15.45", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "29.09.2026", "time": "15.55-16.40", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "30.09.2026", "dayName": "Çarşamba", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 4, "page": 13, "slots": [{"slotNo": 1, "date": "30.09.2026", "time": "08.30-09.15", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 2, "date": "30.09.2026", "time": "09.25-10.10", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 3, "date": "30.09.2026", "time": "10.20-11.05", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 4, "date": "30.09.2026", "time": "11.15-12.00", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 5, "date": "30.09.2026", "time": "13.10-13.55", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 6, "date": "30.09.2026", "time": "14.05-14.50", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 7, "date": "30.09.2026", "time": "15.00-15.45", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 8, "date": "30.09.2026", "time": "15.55-16.40", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}]}, {"date": "01.10.2026", "dayName": "Perşembe", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 4, "page": 13, "slots": [{"slotNo": 1, "date": "01.10.2026", "time": "08.30-09.15", "code": "MBU101", "title": "El antisepsisi kullanımı ve el yıkama becerisi", "instructor": "Zeynep Çelik", "group": "Grup-IV"}, {"slotNo": 2, "date": "01.10.2026", "time": "09.25-10.10", "code": "MBU101", "title": "Su numunesi alma", "instructor": "Gülseda Boz", "group": "Grup-IV"}, {"slotNo": 3, "date": "01.10.2026", "time": "10.20-11.05", "code": "MBU101", "title": "Ağız ve diş sağlığı", "instructor": "Zekiye Şeyma Gümüşboğa", "group": ""}, {"slotNo": 4, "date": "01.10.2026", "time": "11.15-12.00", "code": "KS101", "title": "Sağlıklı çocuk gelişimi", "instructor": "Derya Doğan", "group": ""}, {"slotNo": 5, "date": "01.10.2026", "time": "13.10-13.55", "code": "KS101", "title": "Biyopsikososyal tıp", "instructor": "Esra Porgalı", "group": ""}, {"slotNo": 6, "date": "01.10.2026", "time": "14.05-14.50", "code": "TETİB101", "title": "Bebeklik ve erken çocukluk dönemi psikososyal gelişim", "instructor": "Yunus Emre Dönmez", "group": ""}, {"slotNo": 7, "date": "01.10.2026", "time": "15.00-15.45", "code": "TETİB101", "title": "Okul çağı çocukluk dönemi psikososyal gelişimi", "instructor": "İlknur Ucuz", "group": ""}, {"slotNo": 8, "date": "01.10.2026", "time": "15.55-16.40", "code": "TETİB101", "title": "Ergenlik dönemi psikososyal gelişimi", "instructor": "Arzu Çalışkan Demir", "group": ""}]}, {"date": "02.10.2026", "dayName": "Cuma", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 4, "page": 13, "slots": [{"slotNo": 1, "date": "02.10.2026", "time": "08.30-09.15", "code": "MBU101", "title": "El antisepsisi kullanımı ve el yıkama becerisi", "instructor": "Zeynep Çelik", "group": "Grup-V"}, {"slotNo": 2, "date": "02.10.2026", "time": "09.25-10.10", "code": "MBU101", "title": "Su numunesi alma", "instructor": "Gülseda Boz", "group": "Grup-V"}, {"slotNo": 3, "date": "02.10.2026", "time": "10.20-11.05", "code": "TBG101", "title": "Moleküler Evrim", "instructor": "Şengül Yüksel", "group": ""}, {"slotNo": 4, "date": "02.10.2026", "time": "11.15-12.00", "code": "TBG101", "title": "İnsan ve Ekolojik Etkileşimler", "instructor": "Şengül Yüksel", "group": ""}, {"slotNo": 5, "date": "02.10.2026", "time": "13.10-13.55", "code": "AİİT101", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "02.10.2026", "time": "14.05-14.50", "code": "AİİT101", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "02.10.2026", "time": "15.00-15.45", "code": "TD101", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "02.10.2026", "time": "15.55-16.40", "code": "TD101", "title": "Türk Dili", "instructor": "", "group": ""}]}, {"date": "05.10.2026", "dayName": "Pazartesi", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 5, "page": 14, "slots": [{"slotNo": 1, "date": "05.10.2026", "time": "08.30-09.15", "code": "MBU101", "title": "Diş sağlığı uygulaması", "instructor": "Zekiye Şeyma Gümüşboğa", "group": "Grup-I"}, {"slotNo": 2, "date": "05.10.2026", "time": "09.25-10.10", "code": "MBU101", "title": "Su dezenfeksiyonu ve suda klor tayini", "instructor": "Gülseda Boz", "group": "Grup-I"}, {"slotNo": 3, "date": "05.10.2026", "time": "10.20-11.05", "code": "KS101", "title": "Radyasyon güvenliği", "instructor": "Ahmet Turan Kaya", "group": ""}, {"slotNo": 4, "date": "05.10.2026", "time": "11.15-12.00", "code": "HSAĞ101", "title": "Demografik göstergeler", "instructor": "Ayşe Baran", "group": ""}, {"slotNo": 5, "date": "05.10.2026", "time": "13.10-13.55", "code": "AT101", "title": "Sağlıkta şiddet ve korunma", "instructor": "Mesut Yılmaz", "group": ""}, {"slotNo": 6, "date": "05.10.2026", "time": "14.05-14.50", "code": "KS101", "title": "Çocuk hasta güvenliği", "instructor": "Mehmet Tekin", "group": ""}, {"slotNo": 7, "date": "05.10.2026", "time": "15.00-15.45", "code": "AT101", "title": "Çocuk istismarı ve ihmalinden korunma", "instructor": "Erkal Gümüşboğa", "group": ""}, {"slotNo": 8, "date": "05.10.2026", "time": "15.55-16.40", "code": "AT101", "title": "Çocuk Hakları", "instructor": "Erkal Gümüşboğa", "group": ""}]}, {"date": "06.10.2026", "dayName": "Salı", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 5, "page": 14, "slots": [{"slotNo": 1, "date": "06.10.2026", "time": "08.30-09.15", "code": "MBU101", "title": "Diş sağlığı uygulaması", "instructor": "Zekiye Şeyma Gümüşboğa", "group": "Grup-II"}, {"slotNo": 2, "date": "06.10.2026", "time": "09.25-10.10", "code": "MBU101", "title": "Su dezenfeksiyonu ve suda klor tayini", "instructor": "Gülseda Boz", "group": "Grup-II"}, {"slotNo": 3, "date": "06.10.2026", "time": "10.20-11.05", "code": "HSAĞ101", "title": "Hastalık göstergeleri", "instructor": "Ayşe Baran", "group": ""}, {"slotNo": 4, "date": "06.10.2026", "time": "11.15-12.00", "code": "HSAĞ101", "title": "Dolaylı sağlık göstergeleri", "instructor": "Osman Kurt", "group": ""}, {"slotNo": 5, "date": "06.10.2026", "time": "13.10-13.55", "code": "KS101", "title": "Beşik ölümü ve beşik ölümünden korunma", "instructor": "Mehmet Tekin", "group": ""}, {"slotNo": 6, "date": "06.10.2026", "time": "14.05-14.50", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "06.10.2026", "time": "15.00-15.45", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "06.10.2026", "time": "15.55-16.40", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "07.10.2026", "dayName": "Çarşamba", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 5, "page": 14, "slots": [{"slotNo": 1, "date": "07.10.2026", "time": "08.30-09.15", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 2, "date": "07.10.2026", "time": "09.25-10.10", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 3, "date": "07.10.2026", "time": "10.20-11.05", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 4, "date": "07.10.2026", "time": "11.15-12.00", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 5, "date": "07.10.2026", "time": "13.10-13.55", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 6, "date": "07.10.2026", "time": "14.05-14.50", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 7, "date": "07.10.2026", "time": "15.00-15.45", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}, {"slotNo": 8, "date": "07.10.2026", "time": "15.55-16.40", "code": "USD", "title": "Seçmeli Ders", "instructor": "", "group": ""}]}, {"date": "08.10.2026", "dayName": "Perşembe", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 5, "page": 14, "slots": [{"slotNo": 1, "date": "08.10.2026", "time": "08.30-09.15", "code": "MBU101", "title": "Diş sağlığı uygulaması", "instructor": "Zekiye Şeyma Gümüşboğa", "group": "Grup-III"}, {"slotNo": 2, "date": "08.10.2026", "time": "09.25-10.10", "code": "MBU101", "title": "Su dezenfeksiyonu ve suda klor tayini", "instructor": "Gülseda Boz", "group": "Grup-III"}, {"slotNo": 3, "date": "08.10.2026", "time": "10.20-11.05", "code": "KS101", "title": "Yaşlı sağlığı", "instructor": "Funda Datlı Yakaryılmaz", "group": ""}, {"slotNo": 4, "date": "08.10.2026", "time": "11.15-12.00", "code": "KS101", "title": "Çocuklarda kan hastalığından korunma", "instructor": "Arzu Akyay", "group": ""}, {"slotNo": 5, "date": "08.10.2026", "time": "13.10-13.55", "code": "KS101", "title": "Erişkinlerde kan hastalıklarından korunma", "instructor": "Ahmet Sarıcı", "group": ""}, {"slotNo": 6, "date": "08.10.2026", "time": "14.05-14.50", "code": "KS101", "title": "Kalp krizinde risk etmenlerinden korunma", "instructor": "Necip Ermiş", "group": ""}, {"slotNo": 7, "date": "08.10.2026", "time": "15.00-15.45", "code": "KS101", "title": "Çocuklarda kalp hastalığından korunma", "instructor": "Engin Burak Selçuk", "group": ""}, {"slotNo": 8, "date": "08.10.2026", "time": "15.55-16.40", "code": "KS101", "title": "Çocuklarda merkezi sinir sistemi hastalıklarından korunma", "instructor": "Gül Yücel", "group": ""}]}, {"date": "09.10.2026", "dayName": "Cuma", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 5, "page": 14, "slots": [{"slotNo": 1, "date": "09.10.2026", "time": "08.30-09.15", "code": "MBU101", "title": "Diş sağlığı uygulaması", "instructor": "Zekiye Şeyma Gümüşboğa", "group": "Grup-IV"}, {"slotNo": 2, "date": "09.10.2026", "time": "09.25-10.10", "code": "MBU101", "title": "Su dezenfeksiyonu ve suda klor tayini", "instructor": "Gülseda Boz", "group": "Grup-IV"}, {"slotNo": 3, "date": "09.10.2026", "time": "10.20-11.05", "code": "KS101", "title": "Bağışıklık sisteminin güçlendirilmesi, korunması ve alerjik hastalıklardan korunma", "instructor": "Erdem Topal", "group": ""}, {"slotNo": 4, "date": "09.10.2026", "time": "11.15-12.00", "code": "KS101", "title": "Tarama testleri (çocuk ve kanser)", "instructor": "Burcu Kayhan Tetik", "group": ""}, {"slotNo": 5, "date": "09.10.2026", "time": "13.10-13.55", "code": "AİİT101", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "09.10.2026", "time": "14.05-14.50", "code": "AİİT101", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "09.10.2026", "time": "15.00-15.45", "code": "TD101", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "09.10.2026", "time": "15.55-16.40", "code": "TD101", "title": "Türk Dili", "instructor": "", "group": ""}]}, {"date": "12.10.2026", "dayName": "Pazartesi", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 6, "page": 15, "slots": [{"slotNo": 1, "date": "12.10.2026", "time": "08.30-09.15", "code": "MBU101", "title": "Diş sağlığı uygulaması", "instructor": "Zekiye Şeyma Gümüşboğa", "group": "Grup-V"}, {"slotNo": 2, "date": "12.10.2026", "time": "09.25-10.10", "code": "MBU101", "title": "Su dezenfeksiyonu ve suda klor tayini", "instructor": "Gülseda Boz", "group": "Grup-V"}, {"slotNo": 3, "date": "12.10.2026", "time": "10.20-11.05", "code": "KS101", "title": "Erişkinlerde böbrek ve idrar yolları sağlığı", "instructor": "Bayram Berktaş", "group": ""}, {"slotNo": 4, "date": "12.10.2026", "time": "11.15-12.00", "code": "KS101", "title": "Mide, bağırsak ve karaciğer sağlığı", "instructor": "Yüksel Seçkin", "group": ""}, {"slotNo": 5, "date": "12.10.2026", "time": "13.10-13.55", "code": "ORTAK", "title": "Beslenme ve Sağlık: Güncel Yaklaşımlar", "instructor": "Çiğdem Bozkır", "group": ""}, {"slotNo": 6, "date": "12.10.2026", "time": "14.05-14.50", "code": "KS101", "title": "Enfeksiyonların önlenmesi ve koruyucu ilaç uygulamaları/reddi", "instructor": "Zeynep Burçin Yılmaz", "group": ""}, {"slotNo": 7, "date": "12.10.2026", "time": "15.00-15.45", "code": "KS101", "title": "Cinsel yolla bulaşan hastalıklardan korunma", "instructor": "Sibel Altunışık Toplu", "group": ""}, {"slotNo": 8, "date": "12.10.2026", "time": "15.55-16.40", "code": "KS101", "title": "Zoonoz hastalıklardan korunma", "instructor": "Adem Köse", "group": ""}]}, {"date": "13.10.2026", "dayName": "Salı", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 6, "page": 15, "slots": [{"slotNo": 1, "date": "13.10.2026", "time": "08.30-09.15", "code": "KS101", "title": "Spor yaralanmalarının önlenmesi", "instructor": "Halil Düzova", "group": ""}, {"slotNo": 2, "date": "13.10.2026", "time": "09.25-10.10", "code": "HSAĞ101", "title": "Çocuklarda kazalardan korunma", "instructor": "Gülseda Boz", "group": ""}, {"slotNo": 3, "date": "13.10.2026", "time": "10.20-11.05", "code": "HSAĞ101", "title": "Yaşlılarda ev kazalarının önlenmesi", "instructor": "Metin Genç", "group": ""}, {"slotNo": 4, "date": "13.10.2026", "time": "11.15-12.00", "code": "HSAĞ101", "title": "İş kazalarının önlenmesi", "instructor": "Gülseda Boz", "group": ""}, {"slotNo": 5, "date": "13.10.2026", "time": "13.10-13.55", "code": "BÇ", "title": "Bağımsız Çalışma", "instructor": "", "group": ""}, {"slotNo": 6, "date": "13.10.2026", "time": "14.05-14.50", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "13.10.2026", "time": "15.00-15.45", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "13.10.2026", "time": "15.55-16.40", "code": "İNG101", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "14.10.2026", "dayName": "Çarşamba", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 6, "page": 15, "slots": [{"slotNo": 1, "date": "14.10.2026", "time": "08.30-09.15", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 2, "date": "14.10.2026", "time": "09.25-10.10", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 3, "date": "14.10.2026", "time": "10.20-11.05", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 4, "date": "14.10.2026", "time": "11.15-12.00", "code": "KDT101", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 5, "date": "14.10.2026", "time": "13.10-13.55", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 6, "date": "14.10.2026", "time": "14.05-14.50", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 7, "date": "14.10.2026", "time": "15.00-15.45", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 8, "date": "14.10.2026", "time": "15.55-16.40", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}]}, {"date": "15.10.2026", "dayName": "Perşembe", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 6, "page": 15, "slots": [{"slotNo": 1, "date": "15.10.2026", "time": "08.30-09.15", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 2, "date": "15.10.2026", "time": "09.25-10.10", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 3, "date": "15.10.2026", "time": "10.20-11.05", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 4, "date": "15.10.2026", "time": "11.15-12.00", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 5, "date": "15.10.2026", "time": "13.10-13.55", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 6, "date": "15.10.2026", "time": "14.05-14.50", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 7, "date": "15.10.2026", "time": "15.00-15.45", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 8, "date": "15.10.2026", "time": "15.55-16.40", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}]}, {"date": "16.10.2026", "dayName": "Cuma", "kurulNo": 1, "kurulAd": "Ders Kurulu I: Koruyucu Sağlık ve Tıpta İnsani Bilimler", "haftaNo": 6, "page": 15, "slots": [{"slotNo": 1, "date": "16.10.2026", "time": "08.30-09.15", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 2, "date": "16.10.2026", "time": "09.25-10.10", "code": "SINAV", "title": "TEORİK SINAV", "instructor": "", "group": ""}, {"slotNo": 3, "date": "16.10.2026", "time": "10.20-11.05", "code": "SINAV", "title": "TEORİK SINAV", "instructor": "", "group": ""}, {"slotNo": 4, "date": "16.10.2026", "time": "11.15-12.00", "code": "DEĞERLENDİRME", "title": "Kurul Sonu Değerlendirme ve Soru Paylaşım Saati", "instructor": "", "group": ""}, {"slotNo": 5, "date": "16.10.2026", "time": "13.10-13.55", "code": "AİİT101", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "16.10.2026", "time": "14.05-14.50", "code": "AİİT101", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "16.10.2026", "time": "15.00-15.45", "code": "TD101", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "16.10.2026", "time": "15.55-16.40", "code": "TD101", "title": "Türk Dili", "instructor": "", "group": ""}]}, {"date": "19.10.2026", "dayName": "Pazartesi", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 1, "page": 25, "slots": [{"slotNo": 1, "date": "19.10.2026", "time": "08.30-09.15", "code": "TB102", "title": "Kimyasal bağlar", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 2, "date": "19.10.2026", "time": "09.25-10.10", "code": "TB102", "title": "Kimyasal bağlar", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 3, "date": "19.10.2026", "time": "10.20-11.05", "code": "HE102", "title": "Mikroskop ve histolojik teknikler", "instructor": "Mehmet Gül", "group": ""}, {"slotNo": 4, "date": "19.10.2026", "time": "11.15-12.00", "code": "HE102", "title": "Mikroskop ve histolojik teknikler", "instructor": "Mehmet Gül", "group": ""}, {"slotNo": 5, "date": "19.10.2026", "time": "13.10-13.55", "code": "TBG102", "title": "Hücre, prokaryotik ve ökaryotik hücreler", "instructor": "Yılmaz Çiğremiş", "group": ""}, {"slotNo": 6, "date": "19.10.2026", "time": "14.05-14.50", "code": "TBG102", "title": "Hücre, prokaryotik ve ökaryotik hücreler", "instructor": "Yılmaz Çiğremiş", "group": ""}, {"slotNo": 7, "date": "19.10.2026", "time": "15.00-15.45", "code": "HE102", "title": "Hücrelerin genel özellikleri", "instructor": "Azibe Yıldız", "group": ""}, {"slotNo": 8, "date": "19.10.2026", "time": "15.55-16.40", "code": "BF102", "title": "Biyofiziğe modern bakış: Tıptaki yeri ve geleceği", "instructor": "Gökhan Zorlu", "group": ""}]}, {"date": "20.10.2026", "dayName": "Salı", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 1, "page": 25, "slots": [{"slotNo": 1, "date": "20.10.2026", "time": "08.30-09.15", "code": "TBG102", "title": "Organeller ve fonksiyonları", "instructor": "Yılmaz Çiğremiş", "group": ""}, {"slotNo": 2, "date": "20.10.2026", "time": "09.25-10.10", "code": "TBG102", "title": "Organeller ve fonksiyonları", "instructor": "Yılmaz Çiğremiş", "group": ""}, {"slotNo": 3, "date": "20.10.2026", "time": "10.20-11.05", "code": "FİZ102", "title": "Fizyoloji ile ilgili genel bilgiler ve homeostazis", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 4, "date": "20.10.2026", "time": "11.15-12.00", "code": "FİZ102", "title": "Fizyoloji ile ilgili genel bilgiler ve homeostazis", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 5, "date": "20.10.2026", "time": "13.10-13.55", "code": "BF102", "title": "Biyolojik sistemlerde termodinamik ve biyoenerjetik", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 6, "date": "20.10.2026", "time": "14.05-14.50", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "20.10.2026", "time": "15.00-15.45", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "20.10.2026", "time": "15.55-16.40", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "21.10.2026", "dayName": "Çarşamba", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 1, "page": 25, "slots": [{"slotNo": 1, "date": "21.10.2026", "time": "08.30-09.15", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 2, "date": "21.10.2026", "time": "09.25-10.10", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 3, "date": "21.10.2026", "time": "10.20-11.05", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 4, "date": "21.10.2026", "time": "11.15-12.00", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 5, "date": "21.10.2026", "time": "13.10-13.55", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 6, "date": "21.10.2026", "time": "14.05-14.50", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 7, "date": "21.10.2026", "time": "15.00-15.45", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 8, "date": "21.10.2026", "time": "15.55-16.40", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}]}, {"date": "22.10.2026", "dayName": "Perşembe", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 1, "page": 25, "slots": [{"slotNo": 1, "date": "22.10.2026", "time": "08.30-09.15", "code": "HE102", "title": "Plazma membranı", "instructor": "Azibe Yıldız", "group": ""}, {"slotNo": 2, "date": "22.10.2026", "time": "09.25-10.10", "code": "HE102", "title": "Plazma membranı", "instructor": "Azibe Yıldız", "group": ""}, {"slotNo": 3, "date": "22.10.2026", "time": "10.20-11.05", "code": "TB102", "title": "Organik bileşikler/fonksiyonel gruplar", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 4, "date": "22.10.2026", "time": "11.15-12.00", "code": "TB102", "title": "Organik bileşikler/fonksiyonel gruplar", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 5, "date": "22.10.2026", "time": "13.10-13.55", "code": "TBG102", "title": "LAB (Çeşitli hücrelerde hücre yapısının tanıtımı)", "instructor": "Yılmaz Çiğremiş", "group": "Grup-2"}, {"slotNo": 6, "date": "22.10.2026", "time": "14.05-14.50", "code": "TBG102", "title": "LAB (Çeşitli hücrelerde hücre yapısının tanıtımı)", "instructor": "Yılmaz Çiğremiş", "group": "Grup-1"}, {"slotNo": 7, "date": "22.10.2026", "time": "15.00-15.45", "code": "TB102", "title": "Karbonhidratlara giriş", "instructor": "Çağatay Taşkapan", "group": ""}, {"slotNo": 8, "date": "22.10.2026", "time": "15.55-16.40", "code": "TB102", "title": "Monosakkaritlerin reaksiyonları", "instructor": "Çağatay Taşkapan", "group": ""}]}, {"date": "23.10.2026", "dayName": "Cuma", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 1, "page": 25, "slots": [{"slotNo": 1, "date": "23.10.2026", "time": "08.30-09.15", "code": "BF102", "title": "Canlıların Atomik ve Moleküler İçeriği", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 2, "date": "23.10.2026", "time": "09.25-10.10", "code": "BF102", "title": "Hücre zarı: Akışkan mozaikten dinamik platforma", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 3, "date": "23.10.2026", "time": "10.20-11.05", "code": "FİZ102", "title": "Biyoritim", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 4, "date": "23.10.2026", "time": "11.15-12.00", "code": "FİZ102", "title": "Biyoritim", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 5, "date": "23.10.2026", "time": "13.30-14.15", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "23.10.2026", "time": "14.25-15.10", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "23.10.2026", "time": "15.20-16.05", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "23.10.2026", "time": "16.15-17.00", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}]}, {"date": "26.10.2026", "dayName": "Pazartesi", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 2, "page": 26, "slots": [{"slotNo": 1, "date": "26.10.2026", "time": "08.30-09.15", "code": "HE102", "title": "Endoplazmik retikulum, ribozom", "instructor": "Azibe Yıldız", "group": ""}, {"slotNo": 2, "date": "26.10.2026", "time": "09.25-10.10", "code": "HE102", "title": "Golgi kompleksi, mitokondri", "instructor": "Azibe Yıldız", "group": ""}, {"slotNo": 3, "date": "26.10.2026", "time": "10.20-11.05", "code": "TB102", "title": "Asitler ve bazlar", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 4, "date": "26.10.2026", "time": "11.15-12.00", "code": "TB102", "title": "Su ve pH", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 5, "date": "26.10.2026", "time": "13.10-13.55", "code": "TB102", "title": "Polisakkaritler", "instructor": "Çağatay Taşkapan", "group": ""}, {"slotNo": 6, "date": "26.10.2026", "time": "14.05-14.50", "code": "BF102", "title": "Hücre zarı: Akışkan mozaikten dinamik platforma", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 7, "date": "26.10.2026", "time": "15.00-15.45", "code": "BF102", "title": "Membrandan Pasif Geçiş ve Ozmozun Klinik Yansımaları", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 8, "date": "26.10.2026", "time": "15.55-16.40", "code": "BF102", "title": "Membrandan Pasif Geçiş ve Ozmozun Klinik Yansımaları", "instructor": "Gökhan Zorlu", "group": ""}]}, {"date": "27.10.2026", "dayName": "Salı", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 2, "page": 26, "slots": [{"slotNo": 1, "date": "27.10.2026", "time": "08.30-09.15", "code": "HE102", "title": "Lizozom, peroksizom, proteozom", "instructor": "Azibe Yıldız", "group": ""}, {"slotNo": 2, "date": "27.10.2026", "time": "09.25-10.10", "code": "TB102", "title": "Su ve pH", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 3, "date": "27.10.2026", "time": "10.20-11.05", "code": "TB102", "title": "Lipidlere giriş", "instructor": "Elif Gürel", "group": ""}, {"slotNo": 4, "date": "27.10.2026", "time": "11.15-12.00", "code": "TB102", "title": "Lipidlere giriş", "instructor": "Elif Gürel", "group": ""}, {"slotNo": 5, "date": "27.10.2026", "time": "13.10-13.55", "code": "FİZ102", "title": "Hücre hacminin düzenlenmesi", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 6, "date": "27.10.2026", "time": "14.05-14.50", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "27.10.2026", "time": "15.00-15.45", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "27.10.2026", "time": "15.55-16.40", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "28.10.2026", "dayName": "Çarşamba", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 2, "page": 26, "slots": [{"slotNo": 1, "date": "28.10.2026", "time": "08.30-09.15", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 2, "date": "28.10.2026", "time": "09.25-10.10", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 3, "date": "28.10.2026", "time": "10.20-11.05", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 4, "date": "28.10.2026", "time": "11.15-12.00", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 5, "date": "28.10.2026", "time": "13.10-13.55", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}, {"slotNo": 6, "date": "28.10.2026", "time": "14.05-14.50", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}, {"slotNo": 7, "date": "28.10.2026", "time": "15.00-15.45", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}, {"slotNo": 8, "date": "28.10.2026", "time": "15.55-16.40", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}]}, {"date": "29.10.2026", "dayName": "Perşembe", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 2, "page": 26, "slots": [{"slotNo": 1, "date": "29.10.2026", "time": "08.30-09.15", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}, {"slotNo": 2, "date": "29.10.2026", "time": "09.25-10.10", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}, {"slotNo": 3, "date": "29.10.2026", "time": "10.20-11.05", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}, {"slotNo": 4, "date": "29.10.2026", "time": "11.15-12.00", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}, {"slotNo": 5, "date": "29.10.2026", "time": "13.10-13.55", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}, {"slotNo": 6, "date": "29.10.2026", "time": "14.05-14.50", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}, {"slotNo": 7, "date": "29.10.2026", "time": "15.00-15.45", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}, {"slotNo": 8, "date": "29.10.2026", "time": "15.55-16.40", "code": "TATİL", "title": "CUMHURİYET BAYRAMI", "instructor": "", "group": ""}]}, {"date": "30.10.2026", "dayName": "Cuma", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 2, "page": 26, "slots": [{"slotNo": 1, "date": "30.10.2026", "time": "08.30-09.15", "code": "MBU102", "title": "Damla, merhem, sprey ve ilaç uygulamaları", "instructor": "Ahmet Çakır", "group": "Grup-I"}, {"slotNo": 2, "date": "30.10.2026", "time": "09.25-10.10", "code": "MBU102", "title": "Dakikada solunum ve nabız hızı sayımı", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-I"}, {"slotNo": 3, "date": "30.10.2026", "time": "10.20-11.05", "code": "TB102", "title": "Tamponlar", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 4, "date": "30.10.2026", "time": "11.15-12.00", "code": "TB102", "title": "Lipidlere giriş", "instructor": "Elif Gürel", "group": ""}, {"slotNo": 5, "date": "30.10.2026", "time": "13.30-14.15", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "30.10.2026", "time": "14.25-15.10", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "30.10.2026", "time": "15.20-16.05", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "30.10.2026", "time": "16.15-17.00", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}]}, {"date": "02.11.2026", "dayName": "Pazartesi", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 3, "page": 27, "slots": [{"slotNo": 1, "date": "02.11.2026", "time": "08.30-09.15", "code": "MBU102", "title": "Damla, merhem, sprey ve ilaç uygulamaları", "instructor": "Ahmet Çakır", "group": "Grup-II"}, {"slotNo": 2, "date": "02.11.2026", "time": "09.25-10.10", "code": "MBU102", "title": "Dakikada solunum ve nabız hızı sayımı", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-II"}, {"slotNo": 3, "date": "02.11.2026", "time": "10.20-11.05", "code": "MB102", "title": "Biochemical reactions", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 4, "date": "02.11.2026", "time": "11.15-12.00", "code": "MB102", "title": "Biochemical reactions", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 5, "date": "02.11.2026", "time": "13.10-13.55", "code": "HE102", "title": "İpliksi organeller, inklüzyonlar", "instructor": "Aslı Taşlıdere", "group": ""}, {"slotNo": 6, "date": "02.11.2026", "time": "14.05-14.50", "code": "HE102", "title": "İpliksi organeller, inklüzyonlar", "instructor": "Aslı Taşlıdere", "group": ""}, {"slotNo": 7, "date": "02.11.2026", "time": "15.00-15.45", "code": "BF102", "title": "Taşıyıcılı Pasif ve Aktif Transport Mekanizmaları", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 8, "date": "02.11.2026", "time": "15.55-16.40", "code": "FİZ102", "title": "Transkapiller taşınma", "instructor": "Nurettin Aydoğdu", "group": ""}]}, {"date": "03.11.2026", "dayName": "Salı", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 3, "page": 27, "slots": [{"slotNo": 1, "date": "03.11.2026", "time": "08.30-09.15", "code": "MBU102", "title": "Damla, merhem, sprey ve ilaç uygulamaları", "instructor": "Ahmet Çakır", "group": "Grup-III"}, {"slotNo": 2, "date": "03.11.2026", "time": "09.25-10.10", "code": "MBU102", "title": "Dakikada solunum ve nabız hızı sayımı", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-III"}, {"slotNo": 3, "date": "03.11.2026", "time": "10.20-11.05", "code": "FİZ102", "title": "Hücre membranından maddelerin taşınması", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 4, "date": "03.11.2026", "time": "11.15-12.00", "code": "FİZ102", "title": "Hücre membranından maddelerin taşınması", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 5, "date": "03.11.2026", "time": "13.10-13.55", "code": "FİZ102", "title": "Hücrelerarası iletişim", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 6, "date": "03.11.2026", "time": "14.05-14.50", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "03.11.2026", "time": "15.00-15.45", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "03.11.2026", "time": "15.55-16.40", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "04.11.2026", "dayName": "Çarşamba", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 3, "page": 27, "slots": [{"slotNo": 1, "date": "04.11.2026", "time": "08.30-09.15", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 2, "date": "04.11.2026", "time": "09.25-10.10", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 3, "date": "04.11.2026", "time": "10.20-11.05", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 4, "date": "04.11.2026", "time": "11.15-12.00", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 5, "date": "04.11.2026", "time": "13.30-14.15", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 6, "date": "04.11.2026", "time": "14.25-15.10", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 7, "date": "04.11.2026", "time": "15.00-15.45", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 8, "date": "04.11.2026", "time": "15.55-16.40", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}]}, {"date": "05.11.2026", "dayName": "Perşembe", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 3, "page": 27, "slots": [{"slotNo": 1, "date": "05.11.2026", "time": "08.30-09.15", "code": "MBU102", "title": "Damla, merhem, sprey ve ilaç uygulamaları", "instructor": "Ahmet Çakır", "group": "Grup-IV"}, {"slotNo": 2, "date": "05.11.2026", "time": "09.25-10.10", "code": "MBU102", "title": "Dakikada solunum ve nabız hızı sayımı", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-IV"}, {"slotNo": 3, "date": "05.11.2026", "time": "10.20-11.05", "code": "HE102", "title": "Nukleus", "instructor": "Aslı Taşlıdere", "group": ""}, {"slotNo": 4, "date": "05.11.2026", "time": "11.15-12.00", "code": "HE102", "title": "Nukleus", "instructor": "Aslı Taşlıdere", "group": ""}, {"slotNo": 5, "date": "05.11.2026", "time": "13.10-13.55", "code": "BF102", "title": "Aksiyon potansiyeli", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 6, "date": "05.11.2026", "time": "14.05-14.50", "code": "BF102", "title": "Aksiyon potansiyeli", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 7, "date": "05.11.2026", "time": "15.00-15.45", "code": "TBG102", "title": "Nucleus and nucleolus", "instructor": "Şengül Yüksel", "group": ""}, {"slotNo": 8, "date": "05.11.2026", "time": "15.55-16.40", "code": "TBG102", "title": "Hücre Döngüsü ve Kontrolü", "instructor": "Şengül Yüksel", "group": ""}]}, {"date": "06.11.2026", "dayName": "Cuma", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 3, "page": 27, "slots": [{"slotNo": 1, "date": "06.11.2026", "time": "08.30-09.15", "code": "MBU102", "title": "Damla, merhem, sprey ve ilaç uygulamaları", "instructor": "Ahmet Çakır", "group": "Grup-V"}, {"slotNo": 2, "date": "06.11.2026", "time": "09.25-10.10", "code": "MBU102", "title": "Dakikada solunum ve nabız hızı sayımı", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-V"}, {"slotNo": 3, "date": "06.11.2026", "time": "10.20-11.05", "code": "TBG102", "title": "Mitoz Bölünme", "instructor": "Şengül Yüksel", "group": ""}, {"slotNo": 4, "date": "06.11.2026", "time": "11.15-12.00", "code": "TBG102", "title": "Mitoz Bölünme", "instructor": "Şengül Yüksel", "group": ""}, {"slotNo": 5, "date": "06.11.2026", "time": "13.30-14.15", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "06.11.2026", "time": "14.25-15.10", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "06.11.2026", "time": "15.20-16.05", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "06.11.2026", "time": "16.15-17.00", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}]}, {"date": "09.11.2026", "dayName": "Pazartesi", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 4, "page": 28, "slots": [{"slotNo": 1, "date": "09.11.2026", "time": "08.30-09.15", "code": "TBG102", "title": "LAB (Mitoz bölünme)", "instructor": "Şengül Yüksel", "group": "Grup-1"}, {"slotNo": 2, "date": "09.11.2026", "time": "09.25-10.10", "code": "TBG102", "title": "LAB (Mitoz bölünme)", "instructor": "Şengül Yüksel", "group": "Grup-1"}, {"slotNo": 3, "date": "09.11.2026", "time": "10.20-11.05", "code": "TB102", "title": "Steryoizomerler", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 4, "date": "09.11.2026", "time": "11.15-12.00", "code": "TB102", "title": "Steryoizomerler", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 5, "date": "09.11.2026", "time": "13.10-16.40", "code": "SINAV", "title": "Zorunlu Ortak Dersler Vize Sınavları", "instructor": "", "group": ""}, {"slotNo": 6, "date": "09.11.2026", "time": "13.10-16.40", "code": "SINAV", "title": "Zorunlu Ortak Dersler Vize Sınavları", "instructor": "", "group": ""}, {"slotNo": 7, "date": "09.11.2026", "time": "13.10-16.40", "code": "SINAV", "title": "Zorunlu Ortak Dersler Vize Sınavları", "instructor": "", "group": ""}, {"slotNo": 8, "date": "09.11.2026", "time": "13.10-16.40", "code": "SINAV", "title": "Zorunlu Ortak Dersler Vize Sınavları", "instructor": "", "group": ""}]}, {"date": "10.11.2026", "dayName": "Salı", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 4, "page": 28, "slots": [{"slotNo": 1, "date": "10.11.2026", "time": "08.30-09.15", "code": "TBG102", "title": "LAB (Mitoz bölünme)", "instructor": "Şengül Yüksel", "group": "Grup-2"}, {"slotNo": 2, "date": "10.11.2026", "time": "09.25-10.10", "code": "TBG102", "title": "LAB (Mitoz bölünme)", "instructor": "Şengül Yüksel", "group": "Grup-2"}, {"slotNo": 3, "date": "10.11.2026", "time": "10.20-11.05", "code": "TB102", "title": "Amino asitlerin sınıflandırılması, genel yapısı ve kimyasal özellikleri", "instructor": "Mehmet Erman Erdemli", "group": ""}, {"slotNo": 4, "date": "10.11.2026", "time": "11.15-12.00", "code": "TB102", "title": "Amino asitlerin sınıflandırılması, genel yapısı ve kimyasal özellikleri", "instructor": "Mehmet Erman Erdemli", "group": ""}, {"slotNo": 5, "date": "10.11.2026", "time": "13.10-13.55", "code": "TB102", "title": "Amino asitlerin sınıflandırılması, genel yapısı ve kimyasal özellikleri", "instructor": "Mehmet Erman Erdemli", "group": ""}, {"slotNo": 6, "date": "10.11.2026", "time": "14.05-14.50", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "10.11.2026", "time": "15.00-15.45", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "10.11.2026", "time": "15.55-16.40", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "11.11.2026", "dayName": "Çarşamba", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 4, "page": 28, "slots": [{"slotNo": 1, "date": "11.11.2026", "time": "08.30-09.15", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 2, "date": "11.11.2026", "time": "09.25-10.10", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 3, "date": "11.11.2026", "time": "10.20-11.05", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 4, "date": "11.11.2026", "time": "11.15-12.00", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 5, "date": "11.11.2026", "time": "13.10-13.55", "code": "USD", "title": "USD ARA SINAV", "instructor": "", "group": ""}, {"slotNo": 6, "date": "11.11.2026", "time": "14.05-14.50", "code": "USD", "title": "USD ARA SINAV", "instructor": "", "group": ""}, {"slotNo": 7, "date": "11.11.2026", "time": "15.00-15.45", "code": "USD", "title": "USD ARA SINAV", "instructor": "", "group": ""}, {"slotNo": 8, "date": "11.11.2026", "time": "15.55-16.40", "code": "USD", "title": "USD ARA SINAV", "instructor": "", "group": ""}]}, {"date": "12.11.2026", "dayName": "Perşembe", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 4, "page": 28, "slots": [{"slotNo": 1, "date": "12.11.2026", "time": "08.30-09.15", "code": "MBU102", "title": "Glukometreyle kan şekeri ölçümü", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-I"}, {"slotNo": 2, "date": "12.11.2026", "time": "09.25-10.10", "code": "MBU102", "title": "Vücut sıcaklığının ölçülmesi", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-I"}, {"slotNo": 3, "date": "12.11.2026", "time": "10.20-11.05", "code": "TB102", "title": "Biyoenerjetik", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 4, "date": "12.11.2026", "time": "11.15-12.00", "code": "TB102", "title": "Biyoenerjetik", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 5, "date": "12.11.2026", "time": "13.10-13.55", "code": "TB102", "title": "Biyoenerjetik", "instructor": "Tayfun Güldür", "group": ""}, {"slotNo": 6, "date": "12.11.2026", "time": "14.05-14.50", "code": "FİZ102", "title": "Hücrelerarası iletişim", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 7, "date": "12.11.2026", "time": "15.00-15.45", "code": "FİZ102", "title": "Hücrelerarası iletişim", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 8, "date": "12.11.2026", "time": "15.55-16.40", "code": "TB102", "title": "Peptidler", "instructor": "Mehmet Erman Erdemli", "group": ""}]}, {"date": "13.11.2026", "dayName": "Cuma", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 4, "page": 28, "slots": [{"slotNo": 1, "date": "13.11.2026", "time": "08.30-09.15", "code": "BF102", "title": "İyon kanalları ve kanalopatiler", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 2, "date": "13.11.2026", "time": "09.25-10.10", "code": "BF102", "title": "İyon kanalları ve kanalopatiler", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 3, "date": "13.11.2026", "time": "10.20-11.05", "code": "SINAV", "title": "ARA SINAV", "instructor": "", "group": ""}, {"slotNo": 4, "date": "13.11.2026", "time": "11.15-12.00", "code": "DEĞERLENDİRME", "title": "Ara Sınav Değerlendirme ve Soru Paylaşım Saati", "instructor": "", "group": ""}, {"slotNo": 5, "date": "13.11.2026", "time": "13.30-14.15", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "13.11.2026", "time": "14.25-15.10", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "13.11.2026", "time": "15.20-16.05", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "13.11.2026", "time": "16.15-17.00", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}]}, {"date": "16.11.2026", "dayName": "Pazartesi", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 5, "page": 29, "slots": [{"slotNo": 1, "date": "16.11.2026", "time": "08.30-09.15", "code": "MBU102", "title": "Glukometreyle kan şekeri ölçümü", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-II"}, {"slotNo": 2, "date": "16.11.2026", "time": "09.25-10.10", "code": "MBU102", "title": "Vücut sıcaklığının ölçülmesi", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-II"}, {"slotNo": 3, "date": "16.11.2026", "time": "10.20-11.05", "code": "HE102", "title": "LAB (Mikroskop becerisi ve Hücre)", "instructor": "Nigar Vardı Mehmet Gül", "group": "Grup 1"}, {"slotNo": 4, "date": "16.11.2026", "time": "11.15-12.00", "code": "HE102", "title": "LAB (Mikroskop becerisi ve Hücre)", "instructor": "Nigar Vardı Mehmet Gül", "group": "Grup 1"}, {"slotNo": 5, "date": "16.11.2026", "time": "13.10-13.55", "code": "FİZ102", "title": "Uyarılabilir Hücreler ve Temel Özellikleri", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 6, "date": "16.11.2026", "time": "14.05-14.50", "code": "FİZ102", "title": "Membran potansiyelleri ve aksiyon potansiyeli", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 7, "date": "16.11.2026", "time": "15.00-15.45", "code": "BF102", "title": "Membran potansiyelleri ve Hodgkin-Huxley modeline giriş", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 8, "date": "16.11.2026", "time": "15.55-16.40", "code": "BF102", "title": "Gibbs-Donnan Dengesi ve Hücre İçi-Dışı İyon Dağılımı", "instructor": "Gökhan Zorlu", "group": ""}]}, {"date": "17.11.2026", "dayName": "Salı", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 5, "page": 29, "slots": [{"slotNo": 1, "date": "17.11.2026", "time": "08.30-09.15", "code": "MBU102", "title": "Glukometreyle kan şekeri ölçümü", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-III"}, {"slotNo": 2, "date": "17.11.2026", "time": "09.25-10.10", "code": "MBU102", "title": "Vücut sıcaklığının ölçülmesi", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-III"}, {"slotNo": 3, "date": "17.11.2026", "time": "10.20-11.05", "code": "TBG102", "title": "Mayoz bölünme ve gametogenez", "instructor": "Şengül Yüksel", "group": ""}, {"slotNo": 4, "date": "17.11.2026", "time": "11.15-12.00", "code": "TBG102", "title": "Mayoz bölünme ve gametogenez", "instructor": "Şengül Yüksel", "group": ""}, {"slotNo": 5, "date": "17.11.2026", "time": "13.10-13.55", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 6, "date": "17.11.2026", "time": "14.05-14.50", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "17.11.2026", "time": "15.00-15.45", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "17.11.2026", "time": "15.55-16.40", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "18.11.2026", "dayName": "Çarşamba", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 5, "page": 29, "slots": [{"slotNo": 1, "date": "18.11.2026", "time": "08.30-09.15", "code": "MBU102", "title": "Glukometreyle kan şekeri ölçümü", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-IV"}, {"slotNo": 2, "date": "18.11.2026", "time": "09.25-10.10", "code": "MBU102", "title": "Vücut sıcaklığının ölçülmesi", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-IV"}, {"slotNo": 3, "date": "18.11.2026", "time": "10.20-11.05", "code": "TB102", "title": "LAB (pH ölçümü ve titrasyon)", "instructor": "Tayfun Güldür", "group": "Grup II"}, {"slotNo": 4, "date": "18.11.2026", "time": "11.15-12.00", "code": "TB102", "title": "LAB (pH ölçümü ve titrasyon)", "instructor": "Tayfun Güldür", "group": "Grup II"}, {"slotNo": 5, "date": "18.11.2026", "time": "13.10-13.55", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 6, "date": "18.11.2026", "time": "14.05-14.50", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 7, "date": "18.11.2026", "time": "15.00-15.45", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 8, "date": "18.11.2026", "time": "15.55-16.40", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}]}, {"date": "19.11.2026", "dayName": "Perşembe", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 5, "page": 29, "slots": [{"slotNo": 1, "date": "19.11.2026", "time": "08.30-09.15", "code": "MBU102", "title": "Glukometreyle kan şekeri ölçümü", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-V"}, {"slotNo": 2, "date": "19.11.2026", "time": "09.25-10.10", "code": "MBU102", "title": "Vücut sıcaklığının ölçülmesi", "instructor": "Aslıhan Mete Yıldırım", "group": "Grup-V"}, {"slotNo": 3, "date": "19.11.2026", "time": "10.20-11.05", "code": "TB102", "title": "LAB (pH ölçümü ve titrasyon)", "instructor": "Tayfun Güldür", "group": "Grup I"}, {"slotNo": 4, "date": "19.11.2026", "time": "11.15-12.00", "code": "TB102", "title": "LAB (pH ölçümü ve titrasyon)", "instructor": "Tayfun Güldür", "group": "Grup I"}, {"slotNo": 5, "date": "19.11.2026", "time": "13.10-13.55", "code": "HE102", "title": "Epitel dokusunun genel özellikleri ve örtü epiteli", "instructor": "Nigar Vardı", "group": ""}, {"slotNo": 6, "date": "19.11.2026", "time": "14.05-14.50", "code": "HE102", "title": "Epitel dokusunun genel özellikleri ve örtü epiteli", "instructor": "Nigar Vardı", "group": ""}, {"slotNo": 7, "date": "19.11.2026", "time": "15.00-15.45", "code": "HE102", "title": "LAB (Mikroskop becerisi ve Hücre)", "instructor": "Aslı Taşlıdere-Azibe Yıldız", "group": "Grup 2"}, {"slotNo": 8, "date": "19.11.2026", "time": "15.55-16.40", "code": "HE102", "title": "LAB (Mikroskop becerisi ve Hücre)", "instructor": "Aslı Taşlıdere-Azibe Yıldız", "group": "Grup 2"}]}, {"date": "20.11.2026", "dayName": "Cuma", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 5, "page": 29, "slots": [{"slotNo": 1, "date": "20.11.2026", "time": "08.30-09.15", "code": "BF102", "title": "Patch-Clamp Tekniği ve Tek Kanal Akım Kayıtları", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 2, "date": "20.11.2026", "time": "09.25-10.10", "code": "FİZ102", "title": "Animasyonlarla Fizyoloji'nin gözden geçirilmesi", "instructor": "Nurettin Aydoğdu", "group": ""}, {"slotNo": 3, "date": "20.11.2026", "time": "10.20-11.05", "code": "TB102", "title": "Nükleik asitler", "instructor": "Yusuf Türköz", "group": ""}, {"slotNo": 4, "date": "20.11.2026", "time": "11.15-12.00", "code": "TB102", "title": "Nükleik asitler", "instructor": "Yusuf Türköz", "group": ""}, {"slotNo": 5, "date": "20.11.2026", "time": "13.30-14.15", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "20.11.2026", "time": "14.25-15.10", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "20.11.2026", "time": "15.20-16.05", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "20.11.2026", "time": "16.15-17.00", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}]}, {"date": "23.11.2026", "dayName": "Pazartesi", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 6, "page": 30, "slots": [{"slotNo": 1, "date": "23.11.2026", "time": "08.30-09.15", "code": "TB102", "title": "Proteinlerin yapısı", "instructor": "Mehmet Erman Erdemli", "group": ""}, {"slotNo": 2, "date": "23.11.2026", "time": "09.25-10.10", "code": "TB102", "title": "Proteinlerin yapısı", "instructor": "Mehmet Erman Erdemli", "group": ""}, {"slotNo": 3, "date": "23.11.2026", "time": "10.20-11.05", "code": "TB102", "title": "Purin ve pirimidin nükleotidlerin sentezi", "instructor": "Yusuf Türköz", "group": ""}, {"slotNo": 4, "date": "23.11.2026", "time": "11.15-12.00", "code": "TB102", "title": "Purin ve pirimidin nükleotidlerin sentezi", "instructor": "Yusuf Türköz", "group": ""}, {"slotNo": 5, "date": "23.11.2026", "time": "13.10-13.55", "code": "HE102", "title": "Hücre bağlantıları ve salgı epiteli", "instructor": "Nigar Vardı", "group": ""}, {"slotNo": 6, "date": "23.11.2026", "time": "14.05-14.50", "code": "HE102", "title": "Hücre bağlantıları ve salgı epiteli", "instructor": "Nigar Vardı", "group": ""}, {"slotNo": 7, "date": "23.11.2026", "time": "15.00-15.45", "code": "TB102", "title": "Enzimler", "instructor": "Cuma Mertoğlu", "group": ""}, {"slotNo": 8, "date": "23.11.2026", "time": "15.55-16.40", "code": "TB102", "title": "Enzimler", "instructor": "Cuma Mertoğlu", "group": ""}]}, {"date": "24.11.2026", "dayName": "Salı", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 6, "page": 30, "slots": [{"slotNo": 1, "date": "24.11.2026", "time": "08.30-09.15", "code": "HE102", "title": "LAB (Örtü epiteli)", "instructor": "Aslı Taşlıdere-Azibe Yıldız", "group": "Grup II"}, {"slotNo": 2, "date": "24.11.2026", "time": "09.25-10.10", "code": "HE102", "title": "LAB (Örtü epiteli)", "instructor": "Aslı Taşlıdere-Azibe Yıldız", "group": "Grup II"}, {"slotNo": 3, "date": "24.11.2026", "time": "10.20-11.05", "code": "TB102", "title": "Enzimler", "instructor": "Cuma Mertoğlu", "group": ""}, {"slotNo": 4, "date": "24.11.2026", "time": "11.15-12.00", "code": "TB102", "title": "Enzimler", "instructor": "Cuma Mertoğlu", "group": ""}, {"slotNo": 5, "date": "24.11.2026", "time": "13.10-13.55", "code": "BF102", "title": "Hücresel Sinyal İletiminin Biyofiziksel Temelleri", "instructor": "Gökhan Zorlu", "group": ""}, {"slotNo": 6, "date": "24.11.2026", "time": "14.05-14.50", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "24.11.2026", "time": "15.00-15.45", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "24.11.2026", "time": "15.55-16.40", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "25.11.2026", "dayName": "Çarşamba", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 6, "page": 30, "slots": [{"slotNo": 1, "date": "25.11.2026", "time": "08.30-09.15", "code": "TB102", "title": "Hemoglobin ve myoglobin", "instructor": "Mehmet Erman Erdemli", "group": ""}, {"slotNo": 2, "date": "25.11.2026", "time": "09.25-10.10", "code": "TB102", "title": "Hemoglobin ve myoglobin", "instructor": "Mehmet Erman Erdemli", "group": ""}, {"slotNo": 3, "date": "25.11.2026", "time": "10.20-11.05", "code": "HE102", "title": "LAB (Örtü epiteli)", "instructor": "Nigar Vardı-Aslı Taşlıdere", "group": "Grup I"}, {"slotNo": 4, "date": "25.11.2026", "time": "11.15-12.00", "code": "HE102", "title": "LAB (Örtü epiteli)", "instructor": "Nigar Vardı-Aslı Taşlıdere", "group": "Grup I"}, {"slotNo": 5, "date": "25.11.2026", "time": "13.10-13.55", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 6, "date": "25.11.2026", "time": "14.05-14.50", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 7, "date": "25.11.2026", "time": "15.00-15.45", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 8, "date": "25.11.2026", "time": "15.55-16.40", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}]}, {"date": "26.11.2026", "dayName": "Perşembe", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 6, "page": 30, "slots": [{"slotNo": 1, "date": "26.11.2026", "time": "08.30-09.15", "code": "TB102", "title": "Enzimler", "instructor": "Cuma Mertoğlu", "group": ""}, {"slotNo": 2, "date": "26.11.2026", "time": "09.25-10.10", "code": "TB102", "title": "Enzimler", "instructor": "Cuma Mertoğlu", "group": ""}, {"slotNo": 3, "date": "26.11.2026", "time": "10.20-11.05", "code": "HE102", "title": "Bağ doku hücreleri", "instructor": "Elif Karaca", "group": ""}, {"slotNo": 4, "date": "26.11.2026", "time": "11.15-12.00", "code": "HE102", "title": "Bağ doku hücreleri", "instructor": "Elif Karaca", "group": ""}, {"slotNo": 5, "date": "26.11.2026", "time": "13.10-13.55", "code": "HE102", "title": "LAB (Salgı epiteli)", "instructor": "Nigar Vardı-Mehmet Gül", "group": "Grup 2"}, {"slotNo": 6, "date": "26.11.2026", "time": "14.05-14.50", "code": "HE102", "title": "LAB (Salgı epiteli)", "instructor": "Nigar Vardı-Mehmet Gül", "group": "Grup 2"}, {"slotNo": 7, "date": "26.11.2026", "time": "15.00-15.45", "code": "HE102", "title": "LAB (Salgı epiteli)", "instructor": "Nigar Vardı-Azibe Yıldız", "group": "Grup 1"}, {"slotNo": 8, "date": "26.11.2026", "time": "15.55-16.40", "code": "HE102", "title": "LAB (Salgı epiteli)", "instructor": "Nigar Vardı-Azibe Yıldız", "group": "Grup 1"}]}, {"date": "27.11.2026", "dayName": "Cuma", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 6, "page": 30, "slots": [{"slotNo": 1, "date": "27.11.2026", "time": "08.30-09.15", "code": "TB102", "title": "Protein sentezi", "instructor": "Mehmet Erman Erdemli", "group": ""}, {"slotNo": 2, "date": "27.11.2026", "time": "09.25-10.10", "code": "TB102", "title": "Hücre membranı biyokimyası", "instructor": "Yusuf Türköz", "group": ""}, {"slotNo": 3, "date": "27.11.2026", "time": "10.20-11.05", "code": "TB102", "title": "Enzimler", "instructor": "Cuma Mertoğlu", "group": ""}, {"slotNo": 4, "date": "27.11.2026", "time": "11.15-12.00", "code": "TB102", "title": "Enzimler", "instructor": "Cuma Mertoğlu", "group": ""}, {"slotNo": 5, "date": "27.11.2026", "time": "13.30-14.15", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "27.11.2026", "time": "14.25-15.10", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "27.11.2026", "time": "15.20-16.05", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "27.11.2026", "time": "16.15-17.00", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}]}, {"date": "30.11.2026", "dayName": "Pazartesi", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 7, "page": 31, "slots": [{"slotNo": 1, "date": "30.11.2026", "time": "08.30-09.15", "code": "TB102", "title": "Laboratuvar Güvenliği", "instructor": "Çağatay Taşkapan", "group": ""}, {"slotNo": 2, "date": "30.11.2026", "time": "09.25-10.10", "code": "HE102", "title": "Bağ doku lifleri ve esas madde", "instructor": "Elif Karaca", "group": ""}, {"slotNo": 3, "date": "30.11.2026", "time": "10.20-11.05", "code": "HE102", "title": "Bağ doku tipleri", "instructor": "Elif Karaca", "group": ""}, {"slotNo": 4, "date": "30.11.2026", "time": "11.15-12.00", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 5, "date": "30.11.2026", "time": "13.10-13.55", "code": "TB102", "title": "Protein sentezi", "instructor": "Mehmet Erman Erdemli", "group": ""}, {"slotNo": 6, "date": "30.11.2026", "time": "14.05-14.50", "code": "TB102", "title": "Proteinlerin posttranslasyonel modifikasyonları", "instructor": "Mehmet Erman Erdemli", "group": ""}, {"slotNo": 7, "date": "30.11.2026", "time": "15.00-15.45", "code": "HE102", "title": "LAB (Bağ doku)", "instructor": "Mehmet Gül-Azibe Yıldız", "group": "Grup 1"}, {"slotNo": 8, "date": "30.11.2026", "time": "15.55-16.40", "code": "HE102", "title": "LAB (Bağ doku)", "instructor": "Mehmet Gül-Azibe Yıldız", "group": "Grup 1"}]}, {"date": "01.12.2026", "dayName": "Salı", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 7, "page": 31, "slots": [{"slotNo": 1, "date": "01.12.2026", "time": "08.30-09.15", "code": "HE102", "title": "LAB (Bağ doku)", "instructor": "Mehmet Gül-Azibe Yıldız", "group": "Grup 2"}, {"slotNo": 2, "date": "01.12.2026", "time": "09.25-10.10", "code": "HE102", "title": "LAB (Bağ doku)", "instructor": "Mehmet Gül-Azibe Yıldız", "group": "Grup 2"}, {"slotNo": 3, "date": "01.12.2026", "time": "10.20-11.05", "code": "TB102", "title": "Bağ doku biyokimyası ve ekstrasellüler matriks", "instructor": "Cuma Mertoğlu", "group": ""}, {"slotNo": 4, "date": "01.12.2026", "time": "11.15-12.00", "code": "TB102", "title": "Bağ doku biyokimyası ve ekstrasellüler matriks", "instructor": "Cuma Mertoğlu", "group": ""}, {"slotNo": 5, "date": "01.12.2026", "time": "13.10-13.55", "code": "TB102", "title": "Bağ doku biyokimyası ve ekstrasellüler matriks", "instructor": "Cuma Mertoğlu", "group": ""}, {"slotNo": 6, "date": "01.12.2026", "time": "14.05-14.50", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 7, "date": "01.12.2026", "time": "15.00-15.45", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}, {"slotNo": 8, "date": "01.12.2026", "time": "15.55-16.40", "code": "İNG102", "title": "İngilizce", "instructor": "", "group": ""}]}, {"date": "02.12.2026", "dayName": "Çarşamba", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 7, "page": 31, "slots": [{"slotNo": 1, "date": "02.12.2026", "time": "08.30-09.15", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 2, "date": "02.12.2026", "time": "09.25-10.10", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 3, "date": "02.12.2026", "time": "10.20-11.05", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 4, "date": "02.12.2026", "time": "11.15-12.00", "code": "KDT102", "title": "Kanıta Dayalı Tıp Uygulaması", "instructor": "", "group": ""}, {"slotNo": 5, "date": "02.12.2026", "time": "13.10-13.55", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 6, "date": "02.12.2026", "time": "14.05-14.50", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 7, "date": "02.12.2026", "time": "15.00-15.45", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}, {"slotNo": 8, "date": "02.12.2026", "time": "15.55-16.40", "code": "USD", "title": "Seçmeli ders", "instructor": "", "group": ""}]}, {"date": "03.12.2026", "dayName": "Perşembe", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 7, "page": 31, "slots": [{"slotNo": 1, "date": "03.12.2026", "time": "08.30-09.15", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 2, "date": "03.12.2026", "time": "09.25-10.10", "code": "SINAV", "title": "TEORİK SINAV", "instructor": "", "group": ""}, {"slotNo": 3, "date": "03.12.2026", "time": "10.20-11.05", "code": "SINAV", "title": "TEORİK SINAV", "instructor": "", "group": ""}, {"slotNo": 4, "date": "03.12.2026", "time": "11.15-12.00", "code": "DEĞERLENDİRME", "title": "Kurul Sonu Değerlendirme ve Soru Paylaşım Saati", "instructor": "", "group": ""}, {"slotNo": 5, "date": "03.12.2026", "time": "13.10-13.55", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 6, "date": "03.12.2026", "time": "14.05-14.50", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 7, "date": "03.12.2026", "time": "15.00-15.45", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}, {"slotNo": 8, "date": "03.12.2026", "time": "15.55-16.40", "code": "BÇ", "title": "Bağımsız çalışma", "instructor": "", "group": ""}]}, {"date": "04.12.2026", "dayName": "Cuma", "kurulNo": 2, "kurulAd": "Ders Kurulu II: Yaşamın Moleküler Temeli ve Hücre", "haftaNo": 7, "page": 31, "slots": [{"slotNo": 1, "date": "04.12.2026", "time": "08.30-09.15", "code": "SINAV", "title": "PRATİK SINAV", "instructor": "", "group": ""}, {"slotNo": 2, "date": "04.12.2026", "time": "09.25-10.10", "code": "SINAV", "title": "PRATİK SINAV", "instructor": "", "group": ""}, {"slotNo": 3, "date": "04.12.2026", "time": "10.20-11.05", "code": "SINAV", "title": "PRATİK SINAV", "instructor": "", "group": ""}, {"slotNo": 4, "date": "04.12.2026", "time": "11.15-12.00", "code": "SINAV", "title": "PRATİK SINAV", "instructor": "", "group": ""}, {"slotNo": 5, "date": "04.12.2026", "time": "13.30-14.15", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 6, "date": "04.12.2026", "time": "14.25-15.10", "code": "AİİT102", "title": "Atatürk İlkeleri ve İnkılap Tarihi", "instructor": "", "group": ""}, {"slotNo": 7, "date": "04.12.2026", "time": "15.20-16.05", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}, {"slotNo": 8, "date": "04.12.2026", "time": "16.15-17.00", "code": "TD102", "title": "Türk Dili", "instructor": "", "group": ""}]}];
+
+    function loadStore(key, fallback) {
+      try {
+        const raw = localStorage.getItem('iutf_d1_' + key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (e) { return fallback; }
+    }
+    function saveStore(key, val) {
+      try { localStorage.setItem('iutf_d1_' + key, JSON.stringify(val)); } catch (e) {}
+    }
+
+    const MONTHS_TR = ['', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    const MONTHS_SHORT_TR = ['', 'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+
+    function parseDateStr(dStr) {
+      const parts = dStr.split('.');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      return { day, month, year, ts: new Date(year, month - 1, day).getTime() };
+    }
+    function formatHumanDate(dStr, dayName) {
+      const p = parseDateStr(dStr);
+      return p.day + ' ' + MONTHS_TR[p.month] + ' ' + p.year + (dayName ? ' ' + dayName : '');
+    }
+    function formatShortDate(dStr) {
+      const p = parseDateStr(dStr);
+      return p.day + ' ' + MONTHS_SHORT_TR[p.month];
+    }
+
+    function detectInitialDate() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth() + 1;
+      const d = now.getDate();
+      const candidateStr = String(d).padStart(2, '0') + '.' + String(m).padStart(2, '0') + '.' + y;
+      const exactIdx = SCHEDULE_DAYS.findIndex(item => item.date === candidateStr);
+      if (exactIdx !== -1) return { todayStr: candidateStr, matchedIdx: exactIdx };
+      const fallbackIdx = SCHEDULE_DAYS.findIndex(item => item.date === '11.11.2026');
+      return { todayStr: '11.11.2026', matchedIdx: fallbackIdx !== -1 ? fallbackIdx : 0 };
+    }
+
+    const detected = detectInitialDate();
+    const state = {
+      activeTab: 'daily',
+      todayStr: detected.todayStr,
+      todayIdx: detected.matchedIdx,
+      selectedDayIdx: detected.matchedIdx,
+      slotNotes: loadStore('slotNotes', {}),
+      weeklyKurulFilter: 'ALL',
+      selectedWeekKey: null,
+      searchQuery: '',
+      quickCodeFilter: 'ALL',
+      editingNoteKey: null,
+      darkMode: loadStore('darkMode', true)
+    };
+
+    const initDayObj = SCHEDULE_DAYS[state.selectedDayIdx];
+    state.selectedWeekKey = initDayObj.kurulNo + '-' + initDayObj.haftaNo;
+
+    function getCalmAccent(slot) {
+      const code = (slot.code || '').toUpperCase();
+      const title = (slot.title || '');
+      if (code === 'SINAV' || title.toUpperCase().includes('SINAV')) return { bar: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400' };
+      if (title.toUpperCase().includes('LAB') || code.startsWith('MBU')) return { bar: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400' };
+      if (code === 'BÇ' || title.toLowerCase().includes('bağımsız')) return { bar: 'bg-slate-300 dark:bg-slate-700', text: 'text-slate-400 dark:text-slate-500' };
+      return { bar: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400' };
+    }
+
+    function getSlotTimeStatus(dateStr, timeRange) {
+      if (dateStr !== state.todayStr) return null;
+      const now = new Date();
+      const curMins = now.getHours() * 60 + now.getMinutes();
+      const parts = timeRange.split('-');
+      if (parts.length !== 2) return null;
+      const [sH, sM] = parts[0].split('.').map(Number);
+      const [eH, eM] = parts[1].split('.').map(Number);
+      if (isNaN(sH) || isNaN(eH)) return null;
+      if (curMins >= (sH * 60 + sM) && curMins <= (eH * 60 + eM)) return 'ACTIVE';
+      return null;
+    }
+
+    function renderHeaderClock() {
+      const todayDayObj = SCHEDULE_DAYS[state.todayIdx];
+      const clockEl = document.getElementById('headerLiveClock');
+      if (clockEl && todayDayObj) {
+        clockEl.textContent = 'BUGÜN • ' + formatHumanDate(todayDayObj.date, todayDayObj.dayName).toUpperCase();
+      }
+    }
+
+    function populateDateDropdown() {
+      const sel = document.getElementById('selectDateDropdown');
+      sel.innerHTML = '';
+      SCHEDULE_DAYS.forEach((d, idx) => {
+        const opt = document.createElement('option');
+        opt.value = String(idx);
+        const tag = idx === state.todayIdx ? ' (Bugün)' : '';
+        opt.textContent = d.date + ' ' + d.dayName + tag;
+        if (idx === state.selectedDayIdx) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    let carouselScrollTimeout = null;
+    let lastSelectTime = 0;
+
+    function selectDayByIndex(idx) {
+      if (idx === undefined || idx === null || isNaN(idx)) return;
+      const targetIdx = parseInt(idx, 10);
+      if (targetIdx < 0 || targetIdx >= SCHEDULE_DAYS.length) return;
+
+      const now = Date.now();
+      if (now - lastSelectTime < 180 && state.selectedDayIdx === targetIdx) return;
+      lastSelectTime = now;
+
+      state.selectedDayIdx = targetIdx;
+      renderDailyView();
+    }
+
+    function scrollCarouselToActiveWeek(smooth = true) {
+      const carousel = document.getElementById('weekCarousel');
+      if (!carousel) return;
+      const curDay = SCHEDULE_DAYS[state.selectedDayIdx];
+      if (!curDay) return;
+      const activeWeekKey = `${curDay.kurulNo}-${curDay.haftaNo}`;
+      const activeSlide = document.getElementById(`week-slide-${activeWeekKey}`);
+      if (activeSlide) {
+        const targetLeft = activeSlide.offsetLeft - carousel.offsetLeft;
+        if (!smooth) {
+          carousel.style.scrollBehavior = 'auto';
+          carousel.scrollLeft = targetLeft;
+          setTimeout(() => { carousel.style.scrollBehavior = ''; }, 50);
+        } else {
+          if (Math.abs(carousel.scrollLeft - targetLeft) > 10) {
+            carousel.scrollTo({ left: targetLeft, behavior: 'smooth' });
+          }
+        }
+        const indEl = document.getElementById('carouselWeekIndicator');
+        if (indEl) {
+          indEl.textContent = `Kurul ${curDay.kurulNo} • ${curDay.haftaNo}. Hafta`;
+        }
+      }
+    }
+
+    let carouselEventsBound = false;
+    function setupCarouselDelegation(carousel, allWeeks) {
+      if (carouselEventsBound || !carousel) return;
+      carouselEventsBound = true;
+
+      let startX = 0;
+      let startY = 0;
+      let moved = false;
+      let activeBtn = null;
+
+      carousel.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          moved = false;
+          activeBtn = e.target.closest('[data-idx]');
+        }
+      }, { passive: true });
+
+      carousel.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1) {
+          const dx = Math.abs(e.touches[0].clientX - startX);
+          const dy = Math.abs(e.touches[0].clientY - startY);
+          if (dx > 16 || dy > 16) {
+            moved = true;
+          }
+        }
+      }, { passive: true });
+
+      carousel.addEventListener('touchend', (e) => {
+        if (!moved && activeBtn) {
+          const idx = activeBtn.getAttribute('data-idx');
+          if (idx !== null) {
+            selectDayByIndex(idx);
+          }
+        }
+        activeBtn = null;
+      }, { passive: true });
+
+      carousel.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-idx]');
+        if (btn) {
+          const idx = btn.getAttribute('data-idx');
+          if (idx !== null) {
+            selectDayByIndex(idx);
+          }
+        }
+      });
+
+      carousel.addEventListener('scroll', () => {
+        if (carouselScrollTimeout) clearTimeout(carouselScrollTimeout);
+        carouselScrollTimeout = setTimeout(() => {
+          const slideWidth = carousel.clientWidth;
+          if (slideWidth > 0) {
+            const slideIdx = Math.round(carousel.scrollLeft / slideWidth);
+            const targetSlide = carousel.children[slideIdx];
+            if (targetSlide) {
+              const wKey = targetSlide.getAttribute('data-week-key');
+              const matchedWeek = allWeeks.find(w => w.key === wKey);
+              if (matchedWeek) {
+                const indEl = document.getElementById('carouselWeekIndicator');
+                if (indEl) indEl.textContent = `Kurul ${matchedWeek.kurulNo} • ${matchedWeek.haftaNo}. Hafta`;
+              }
+            }
+          }
+        }, 60);
+      });
+    }
+
+    function renderWeekCarousel() {
+      const carousel = document.getElementById('weekCarousel');
+      if (!carousel) return;
+
+      const curDay = SCHEDULE_DAYS[state.selectedDayIdx];
+      const activeWeekKey = `${curDay.kurulNo}-${curDay.haftaNo}`;
+      const allWeeks = getUniqueWeeks();
+
+      setupCarouselDelegation(carousel, allWeeks);
+
+      if (carousel.children.length === 0) {
+        allWeeks.forEach(w => {
+          const slide = document.createElement('div');
+          slide.id = `week-slide-${w.key}`;
+          slide.setAttribute('data-week-key', w.key);
+          slide.className = 'w-full shrink-0 snap-start grid grid-cols-5 gap-1.5 p-0.5 select-none';
+
+          w.days.forEach(d => {
+            const idx = SCHEDULE_DAYS.findIndex(item => item.date === d.date);
+            const p = parseDateStr(d.date);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.id = `day-btn-${idx}`;
+            btn.setAttribute('data-idx', String(idx));
+            btn.className = 'py-2 px-1 rounded-2xl ios-pill-control text-slate-700 dark:text-slate-300 font-medium text-center transition flex flex-col items-center justify-center relative active:scale-95 cursor-pointer touch-manipulation select-none';
+
+            btn.innerHTML = `
+              <span class="day-dot hidden w-1.5 h-1.5 rounded-full bg-blue-500 absolute top-1.5 right-2 pointer-events-none"></span>
+              <span class="text-[10px] opacity-75 pointer-events-none">${d.dayName.slice(0, 3)}</span>
+              <span class="text-xs sm:text-sm font-bold mt-0.5 pointer-events-none">${p.day} ${MONTHS_SHORT_TR[p.month]}</span>
+            `;
+
+            slide.appendChild(btn);
+          });
+
+          carousel.appendChild(slide);
+        });
+      }
+
+      SCHEDULE_DAYS.forEach((d, idx) => {
+        const btn = document.getElementById(`day-btn-${idx}`);
+        if (!btn) return;
+        const isSel = idx === state.selectedDayIdx;
+        const isTod = idx === state.todayIdx;
+        const dot = btn.querySelector('.day-dot');
+
+        if (isSel) {
+          btn.className = 'py-2 px-1 rounded-2xl bg-blue-600 text-white font-semibold text-center shadow-xs transition flex flex-col items-center justify-center relative active:scale-95 cursor-pointer touch-manipulation select-none';
+        } else {
+          btn.className = 'py-2 px-1 rounded-2xl ios-pill-control hover:opacity-90 text-slate-700 dark:text-slate-300 font-medium text-center transition flex flex-col items-center justify-center relative active:scale-95 cursor-pointer touch-manipulation select-none';
+        }
+
+        if (dot) {
+          if (isTod) {
+            dot.classList.remove('hidden');
+            dot.className = `day-dot w-1.5 h-1.5 rounded-full ${isSel ? 'bg-white' : 'bg-blue-500'} absolute top-1.5 right-2 pointer-events-none`;
+          } else {
+            dot.classList.add('hidden');
+          }
+        }
+      });
+
+      const indEl = document.getElementById('carouselWeekIndicator');
+      if (indEl) {
+        indEl.textContent = `Kurul ${curDay.kurulNo} • ${curDay.haftaNo}. Hafta`;
+      }
+
+      scrollCarouselToActiveWeek(true);
+    }
+
+    // PROMINENT MBU/LAB & GROUP HIGHLIGHT CARD (NO CHECKBOX, NO STRIKETHROUGH)
+    function createSlotCardElement(dayObj, slot, showDateChip) {
+      const accent = getCalmAccent(slot);
+      const slotKey = dayObj.date + '_' + slot.slotNo;
+      const userNote = state.slotNotes[slotKey] || '';
+      const liveStatus = getSlotTimeStatus(dayObj.date, slot.time);
+      const [startTime, endTime] = (slot.time || '-').split('-');
+
+      const isMbuOrLab = (slot.code || '').startsWith('MBU') || (slot.title || '').toUpperCase().includes('LAB');
+      const card = document.createElement('div');
+      card.className = `ios-glass rounded-2xl px-3.5 py-3 transition flex items-center gap-3 ${liveStatus === 'ACTIVE' ? 'ring-2 ring-blue-500/50' : ''} ${isMbuOrLab && slot.group ? 'border-teal-500/25 dark:border-teal-400/20' : ''}`;
+
+      const metaParts = [];
+      if (showDateChip) metaParts.push(`${dayObj.date} ${dayObj.dayName}`);
+      if (slot.code && slot.code !== 'BÇ') metaParts.push(slot.code);
+      if (slot.instructor) metaParts.push(slot.instructor);
+
+      const metaLineHtml = metaParts.length > 0 ? `<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">${metaParts.join('  •  ')}</p>` : '';
+      const noteHtml = userNote ? `<p class="text-[11px] text-blue-600 dark:text-blue-400 mt-1 truncate">Not: ${userNote.replace(/</g, '&lt;')}</p>` : '';
+
+      // High-visibility badge for Group in MBU and LABs
+      const groupBadgeHtml = slot.group
+        ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide ${isMbuOrLab ? 'bg-teal-500/20 text-teal-700 dark:bg-teal-400/25 dark:text-teal-200 border border-teal-500/35 ring-1 ring-teal-500/20' : 'bg-blue-500/15 text-blue-700 dark:bg-blue-400/20 dark:text-blue-200 border border-blue-500/30'} shrink-0 shadow-2xs">
+            <svg class="w-3 h-3 inline shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+            ${slot.group}
+          </span>`
+        : '';
+
+      card.innerHTML = `
+        <div class="w-13 shrink-0 text-right pr-1">
+          <div class="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">${startTime || ''}</div>
+          <div class="text-[10px] text-slate-400 dark:text-slate-500 leading-tight mt-0.5">${endTime || ''}</div>
+          <div class="text-[9px] font-semibold ${accent.text} mt-0.5">${slot.slotNo}. Ders</div>
+        </div>
+
+        <div class="w-1 self-stretch rounded-full ${accent.bar} shrink-0"></div>
+
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <h4 class="text-sm font-semibold text-slate-900 dark:text-white leading-snug">
+              ${slot.title}
+            </h4>
+            ${groupBadgeHtml}
+          </div>
+          ${metaLineHtml}
+          ${noteHtml}
+        </div>
+
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" class="btn-slot-note w-8 h-8 rounded-full hover:bg-slate-500/10 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition text-xs" title="Not Ekle">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.btn-slot-note').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openNoteModal(slotKey, `${dayObj.date} ${dayObj.dayName} • ${slot.slotNo}. Ders (${slot.time}) — ${slot.title}${slot.group ? ' (' + slot.group + ')' : ''}`);
+      });
+
+      return card;
+    }
+
+    function renderDailyView() {
+      renderHeaderClock();
+      populateDateDropdown();
+      renderWeekCarousel();
+
+      const dayObj = SCHEDULE_DAYS[state.selectedDayIdx];
+      const tomorrowIdx = Math.min(SCHEDULE_DAYS.length - 1, state.todayIdx + 1);
+
+      document.getElementById('selectedDayHeaderTitle').textContent = formatHumanDate(dayObj.date, dayObj.dayName);
+      document.getElementById('selectedDaySubInfo').textContent =
+        `Kurul ${dayObj.kurulNo} • ${dayObj.haftaNo}. Hafta • ${dayObj.slots.length} Ayrı Ders Saati`;
+
+      const btnToday = document.getElementById('btnBannerToday');
+      const btnTomorrow = document.getElementById('btnBannerTomorrow');
+      if (state.selectedDayIdx === state.todayIdx) {
+        btnToday.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition';
+        btnTomorrow.className = 'px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition';
+      } else if (state.selectedDayIdx === tomorrowIdx) {
+        btnToday.className = 'px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition';
+        btnTomorrow.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition';
+      } else {
+        btnToday.className = 'px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition';
+        btnTomorrow.className = 'px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition';
+      }
+
+      const relBadge = document.getElementById('selectedDayRelativeBadge');
+      const todayObj = SCHEDULE_DAYS[state.todayIdx];
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const diff = todayObj
+        ? Math.round((parseDateStr(dayObj.date).ts - parseDateStr(todayObj.date).ts) / msPerDay)
+        : (state.selectedDayIdx - state.todayIdx);
+      if (diff === 0) relBadge.textContent = 'Bugün';
+      else if (diff === 1) relBadge.textContent = 'Yarın';
+      else if (diff === -1) relBadge.textContent = 'Dün';
+      else if (diff > 1) relBadge.textContent = diff + ' gün sonra';
+      else relBadge.textContent = Math.abs(diff) + ' gün önce';
+
+      const container = document.getElementById('dailySlotsContainer');
+      container.innerHTML = '';
+
+      dayObj.slots.forEach(slot => {
+        if (slot.slotNo === 5) {
+          const lunchDiv = document.createElement('div');
+          lunchDiv.className = 'flex items-center gap-3 py-1 px-4 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider';
+          lunchDiv.innerHTML = `
+            <div class="h-px bg-slate-300/50 dark:bg-slate-800 flex-1"></div>
+            <span>Öğle Arası (12.00 - ${slot.time.split('-')[0]})</span>
+            <div class="h-px bg-slate-300/50 dark:bg-slate-800 flex-1"></div>
+          `;
+          container.appendChild(lunchDiv);
+        }
+        container.appendChild(createSlotCardElement(dayObj, slot, false));
+      });
+    }
+
+    function getUniqueWeeks() {
+      const map = new Map();
+      SCHEDULE_DAYS.forEach(d => {
+        const key = d.kurulNo + '-' + d.haftaNo;
+        if (!map.has(key)) {
+          map.set(key, {
+            key,
+            kurulNo: d.kurulNo,
+            haftaNo: d.haftaNo,
+            kurulAd: d.kurulAd,
+            startDate: d.date,
+            endDate: d.date,
+            days: []
+          });
+        }
+        const entry = map.get(key);
+        entry.endDate = d.date;
+        entry.days.push(d);
+      });
+      return Array.from(map.values());
+    }
+
+    function renderWeeklyView() {
+      const allWeeks = getUniqueWeeks();
+      const filteredWeeks = allWeeks.filter(w => {
+        if (state.weeklyKurulFilter === 'ALL') return true;
+        return String(w.kurulNo) === String(state.weeklyKurulFilter);
+      });
+
+      if (!filteredWeeks.some(w => w.key === state.selectedWeekKey) && filteredWeeks.length > 0) {
+        state.selectedWeekKey = filteredWeeks[0].key;
+      }
+
+      const pillsContainer = document.getElementById('weekSelectorPills');
+      pillsContainer.innerHTML = '';
+      filteredWeeks.forEach(w => {
+        const isSel = w.key === state.selectedWeekKey;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = `pill-w-${w.key}`;
+        btn.className = isSel
+          ? 'px-3.5 py-1.5 rounded-full bg-blue-600 text-white text-xs font-bold shrink-0 shadow-xs'
+          : 'px-3.5 py-1.5 rounded-full ios-pill-control hover:bg-slate-500/15 text-slate-700 dark:text-slate-300 text-xs font-medium shrink-0';
+        btn.textContent = `K${w.kurulNo} • ${w.haftaNo}. Hafta (${formatShortDate(w.startDate)} - ${formatShortDate(w.endDate)})`;
+        btn.addEventListener('click', () => {
+          state.selectedWeekKey = w.key;
+          renderWeeklyView();
+        });
+        pillsContainer.appendChild(btn);
+      });
+
+      setTimeout(() => {
+        const activePill = document.getElementById(`pill-w-${state.selectedWeekKey}`);
+        if (activePill && pillsContainer) {
+          const scrollTarget = activePill.offsetLeft - (pillsContainer.clientWidth / 2) + (activePill.clientWidth / 2);
+          pillsContainer.scrollTo({ left: Math.max(0, scrollTarget), behavior: 'smooth' });
+        }
+      }, 40);
+
+      const daysContainer = document.getElementById('weeklyDaysContainer');
+      daysContainer.innerHTML = '';
+      const activeWeek = filteredWeeks.find(w => w.key === state.selectedWeekKey);
+      if (!activeWeek) return;
+
+      activeWeek.days.forEach(dayObj => {
+        const dayBox = document.createElement('div');
+        dayBox.className = 'ios-glass rounded-3xl p-4 space-y-2.5';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between px-1 pb-1';
+        header.innerHTML = `
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">${formatHumanDate(dayObj.date, dayObj.dayName)}</h3>
+            ${dayObj.date === state.todayStr ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400">Bugün</span>' : ''}
+          </div>
+          <button type="button" class="btn-open-day-in-daily text-xs font-semibold text-blue-600 dark:text-blue-400">
+            Günü Aç →
+          </button>
+        `;
+        header.querySelector('.btn-open-day-in-daily').addEventListener('click', () => {
+          const idx = SCHEDULE_DAYS.findIndex(d => d.date === dayObj.date);
+          if (idx !== -1) {
+            state.selectedDayIdx = idx;
+            switchTab('daily');
+          }
+        });
+        dayBox.appendChild(header);
+
+        const slotsWrap = document.createElement('div');
+        slotsWrap.className = 'space-y-1.5';
+        dayObj.slots.forEach(slot => {
+          slotsWrap.appendChild(createSlotCardElement(dayObj, slot, false));
+        });
+        dayBox.appendChild(slotsWrap);
+        daysContainer.appendChild(dayBox);
+      });
+    }
+
+    function renderSearchView() {
+      const q = (state.searchQuery || '').trim().toLowerCase();
+      const results = [];
+
+      SCHEDULE_DAYS.forEach(dayObj => {
+        dayObj.slots.forEach(slot => {
+          if (q) {
+            const hay = `${dayObj.date} ${dayObj.dayName} ${slot.time} ${slot.code} ${slot.title} ${slot.instructor} ${slot.group}`.toLowerCase();
+            if (!hay.includes(q)) return;
+          }
+          results.push({ dayObj, slot });
+        });
+      });
+
+      document.getElementById('searchStatsBar').textContent = `${results.length} ders saati bulundu`;
+      const container = document.getElementById('searchResultsContainer');
+      container.innerHTML = '';
+
+      results.slice(0, 120).forEach(({ dayObj, slot }) => {
+        const card = createSlotCardElement(dayObj, slot, true);
+        card.classList.add('cursor-pointer');
+        card.addEventListener('click', () => {
+          const idx = SCHEDULE_DAYS.findIndex(d => d.date === dayObj.date);
+          if (idx !== -1) {
+            state.selectedDayIdx = idx;
+            switchTab('daily');
+          }
+        });
+        container.appendChild(card);
+      });
+    }
+
+    function renderInfoView() {
+      const examsContainer = document.getElementById('examsListContainer');
+      examsContainer.innerHTML = '';
+
+      SCHEDULE_DAYS.forEach(dayObj => {
+        dayObj.slots.forEach(slot => {
+          if (slot.code === 'SINAV' || slot.title.toUpperCase().includes('SINAV') || slot.code === 'DEĞERLENDİRME') {
+            const row = document.createElement('div');
+            row.className = 'p-3 rounded-2xl ios-pill-control flex items-center justify-between gap-2 cursor-pointer transition hover:opacity-90';
+            row.innerHTML = `
+              <div>
+                <div class="text-xs font-semibold text-rose-600 dark:text-rose-400">${dayObj.date} ${dayObj.dayName} • ${slot.time} (${slot.slotNo}. Ders)</div>
+                <div class="text-sm font-bold text-slate-900 dark:text-white mt-0.5">${slot.title}</div>
+              </div>
+              <span class="text-xs font-semibold text-blue-600 dark:text-blue-400 shrink-0">Aç →</span>
+            `;
+            row.addEventListener('click', () => {
+              const idx = SCHEDULE_DAYS.findIndex(d => d.date === dayObj.date);
+              if (idx !== -1) {
+                state.selectedDayIdx = idx;
+                switchTab('daily');
+              }
+            });
+            examsContainer.appendChild(row);
+          }
+        });
+      });
+      updateGradeCalc();
+    }
+
+    function updateGradeCalc() {
+      const ara = parseFloat(document.getElementById('inpAraSinav').value) || 0;
+      const son = parseFloat(document.getElementById('inpKurulSonu').value) || 0;
+      const total = (ara * 0.15) + (son * 0.85);
+      document.getElementById('outKurulNotu').textContent = total.toFixed(2);
+    }
+
+    function formatIcsDateTime(dateStr, timePart) {
+      const [d, m, y] = dateStr.split('.');
+      const [hh, mm] = timePart.split('.');
+      return `${y}${m}${d}T${hh}${mm}00`;
+    }
+
+    function exportSlotsToIcs(daysArray, filename) {
+      const lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Inonu Tip Donem 1//Ders Programi//TR',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH'
+      ];
+
+      daysArray.forEach(dayObj => {
+        dayObj.slots.forEach(slot => {
+          const tParts = slot.time.split('-');
+          if (tParts.length !== 2) return;
+          const dtStart = formatIcsDateTime(dayObj.date, tParts[0]);
+          const dtEnd = formatIcsDateTime(dayObj.date, tParts[1]);
+          const summary = `${slot.slotNo}. Ders: ${slot.code ? '[' + slot.code + '] ' : ''}${slot.title}`;
+          const desc = `Öğretim Üyesi: ${slot.instructor || '-'}\n${dayObj.kurulAd}`;
+          lines.push(
+            'BEGIN:VEVENT',
+            `UID:iutf-d1-${dayObj.date}-${slot.slotNo}@inonu.edu.tr`,
+            `DTSTART:${dtStart}`,
+            `DTEND:${dtEnd}`,
+            `SUMMARY:${summary}`,
+            `DESCRIPTION:${desc}`,
+            'END:VEVENT'
+          );
+        });
+      });
+
+      lines.push('END:VCALENDAR');
+      const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      showToast('Takvim dosyası (.ics) indirildi.');
+    }
+
+    function openNoteModal(slotKey, subtitleText) {
+      state.editingNoteKey = slotKey;
+      document.getElementById('noteModalSubtitle').textContent = subtitleText;
+      document.getElementById('noteModalTextarea').value = state.slotNotes[slotKey] || '';
+      document.getElementById('noteModal').classList.remove('hidden');
+    }
+    function closeNoteModal() {
+      state.editingNoteKey = null;
+      document.getElementById('noteModal').classList.add('hidden');
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toastBanner');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.classList.add('hidden'); }, 3000);
+    }
+
+    function updateTabPillPosition(animate = true) {
+      const activeBtn = document.querySelector(`.nav-tab-btn[data-tab="${state.activeTab}"]`);
+      const pill = document.getElementById('tabIndicatorPill');
+      const dock = document.getElementById('dockContainer');
+      if (!activeBtn || !pill || !dock) return;
+
+      const dockRect = dock.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      const left = btnRect.left - dockRect.left;
+      const width = btnRect.width;
+
+      pill.style.transition = animate ? 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
+      pill.style.transform = `translate3d(${left}px, 0, 0)`;
+      pill.style.width = `${width}px`;
+    }
+
+    // HER SEKMEDE İLGİLİ GÖRÜNÜMÜ ÇİZEN VE KİLİTLENMEYİ ÖNLEYEN ANA FONKSİYON
+    function renderActiveTab() {
+      if (state.activeTab === 'daily') {
+        renderDailyView();
+      } else if (state.activeTab === 'weekly') {
+        renderWeeklyView();
+      } else if (state.activeTab === 'search') {
+        renderSearchView();
+      } else if (state.activeTab === 'info') {
+        renderInfoView();
+      }
+    }
+
+    function switchTab(tabName, smoothScroll = true) {
+      state.activeTab = tabName;
+      if (tabName === 'weekly') {
+        const curDay = SCHEDULE_DAYS[state.selectedDayIdx];
+        state.selectedWeekKey = curDay.kurulNo + '-' + curDay.haftaNo;
+      }
+      const tabs = ['daily', 'weekly', 'search', 'info', 'install'];
+      tabs.forEach(t => {
+        const el = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (el) el.classList.toggle('hidden', t !== tabName);
+      });
+
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        const isCur = btn.getAttribute('data-tab') === tabName;
+        const iconWrap = btn.querySelector('.nav-icon-wrap');
+        const svg = btn.querySelector('svg');
+        if (isCur) {
+          btn.className = 'nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-bold relative z-10 transition-colors duration-200 select-none';
+          if (svg) svg.setAttribute('stroke-width', '2.2');
+          if (iconWrap) iconWrap.style.transform = 'scale(1.08)';
+        } else {
+          btn.className = 'nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none';
+          if (svg) svg.setAttribute('stroke-width', '1.9');
+          if (iconWrap) iconWrap.style.transform = 'scale(1.0)';
+        }
+      });
+
+      updateTabPillPosition(true);
+      renderActiveTab();
+      if (smoothScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function setupDockDragGesture() {
+      const dock = document.getElementById('dockContainer');
+      const pill = document.getElementById('tabIndicatorPill');
+      if (!dock || !pill) return;
+
+      let isDragging = false;
+      let targetTab = state.activeTab;
+
+      dock.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        pill.style.transition = 'none';
+      }, { passive: true });
+
+      dock.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const touch = e.touches[0];
+        const dockRect = dock.getBoundingClientRect();
+        const touchX = touch.clientX - dockRect.left;
+
+        const pillW = pill.offsetWidth || 70;
+        const clampedX = Math.max(4, Math.min(dockRect.width - pillW - 4, touchX - (pillW / 2)));
+        pill.style.transform = `translate3d(${clampedX}px, 0, 0)`;
+
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const btn = el ? el.closest('.nav-tab-btn') : null;
+        if (btn) {
+          const t = btn.getAttribute('data-tab');
+          if (t && t !== targetTab) {
+            targetTab = t;
+            document.querySelectorAll('.nav-tab-btn').forEach(b => {
+              const isTarget = b.getAttribute('data-tab') === targetTab;
+              const iconWrap = b.querySelector('.nav-icon-wrap');
+              if (isTarget) {
+                b.classList.add('text-blue-600', 'dark:text-blue-400');
+                b.classList.remove('text-[#8e8e93]');
+                if (iconWrap) iconWrap.style.transform = 'scale(1.08)';
+              } else {
+                b.classList.remove('text-blue-600', 'dark:text-blue-400');
+                b.classList.add('text-[#8e8e93]');
+                if (iconWrap) iconWrap.style.transform = 'scale(1.0)';
+              }
+            });
+          }
+        }
+      }, { passive: true });
+
+      dock.addEventListener('touchend', () => {
+        isDragging = false;
+        switchTab(targetTab, false);
+      });
+
+      window.addEventListener('resize', () => updateTabPillPosition(false));
+    }
+
+    function applyTheme() {
+      const root = document.documentElement;
+      const sun = document.getElementById('iconSun');
+      const moon = document.getElementById('iconMoon');
+      const meta = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
+      if (state.darkMode) {
+        root.classList.add('dark');
+        sun.classList.remove('hidden');
+        moon.classList.add('hidden');
+        if (meta) meta.setAttribute('content', '#000000');
+      } else {
+        root.classList.remove('dark');
+        sun.classList.add('hidden');
+        moon.classList.remove('hidden');
+        if (meta) meta.setAttribute('content', '#f2f4f8');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      applyTheme();
+      setupDockDragGesture();
+      switchTab('daily', false);
+
+      document.getElementById('btnToggleTheme').addEventListener('click', () => {
+        state.darkMode = !state.darkMode;
+        saveStore('darkMode', state.darkMode);
+        applyTheme();
+      });
+
+      document.getElementById('btnJumpTodayTop').addEventListener('click', () => {
+        state.selectedDayIdx = state.todayIdx;
+        switchTab('daily');
+        scrollCarouselToActiveWeek(true);
+      });
+      document.getElementById('btnBannerToday').addEventListener('click', () => {
+        state.selectedDayIdx = state.todayIdx;
+        renderDailyView();
+        scrollCarouselToActiveWeek(true);
+      });
+      document.getElementById('btnBannerTomorrow').addEventListener('click', () => {
+        state.selectedDayIdx = Math.min(SCHEDULE_DAYS.length - 1, state.todayIdx + 1);
+        renderDailyView();
+      });
+
+      document.getElementById('btnPrevDay').addEventListener('click', () => {
+        if (state.selectedDayIdx > 0) {
+          state.selectedDayIdx--;
+          renderDailyView();
+        }
+      });
+      document.getElementById('btnNextDay').addEventListener('click', () => {
+        if (state.selectedDayIdx < SCHEDULE_DAYS.length - 1) {
+          state.selectedDayIdx++;
+          renderDailyView();
+        }
+      });
+      document.getElementById('selectDateDropdown').addEventListener('change', (e) => {
+        state.selectedDayIdx = parseInt(e.target.value, 10) || 0;
+        renderDailyView();
+      });
+
+      document.getElementById('btnExportDayIcs').addEventListener('click', () => {
+        const d = SCHEDULE_DAYS[state.selectedDayIdx];
+        exportSlotsToIcs([d], `Inonu_Tip_${d.date}.ics`);
+      });
+
+      const kurulBtns = [
+        { id: 'btnFilterKurulAll', val: 'ALL' },
+        { id: 'btnFilterKurul1', val: '1' },
+        { id: 'btnFilterKurul2', val: '2' }
+      ];
+      kurulBtns.forEach(item => {
+        document.getElementById(item.id).addEventListener('click', () => {
+          state.weeklyKurulFilter = item.val;
+          kurulBtns.forEach(b => {
+            const el = document.getElementById(b.id);
+            el.className = b.val === item.val
+              ? 'px-2.5 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
+              : 'px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300';
+          });
+          renderWeeklyView();
+        });
+      });
+
+      const inpSearch = document.getElementById('inputSearchQuery');
+      const btnClear = document.getElementById('btnClearSearch');
+      inpSearch.addEventListener('input', () => {
+        state.searchQuery = inpSearch.value;
+        if (state.searchQuery) btnClear.classList.remove('hidden');
+        else btnClear.classList.add('hidden');
+        renderSearchView();
+      });
+      btnClear.addEventListener('click', () => {
+        inpSearch.value = '';
+        state.searchQuery = '';
+        btnClear.classList.add('hidden');
+        renderSearchView();
+      });
+
+      document.getElementById('inpAraSinav').addEventListener('input', updateGradeCalc);
+      document.getElementById('inpKurulSonu').addEventListener('input', updateGradeCalc);
+
+      document.getElementById('btnCloseNoteModal').addEventListener('click', closeNoteModal);
+      document.getElementById('btnSaveNote').addEventListener('click', () => {
+        if (!state.editingNoteKey) return;
+        const val = document.getElementById('noteModalTextarea').value.trim();
+        if (val) state.slotNotes[state.editingNoteKey] = val;
+        else delete state.slotNotes[state.editingNoteKey];
+        saveStore('slotNotes', state.slotNotes);
+        closeNoteModal();
+        renderDailyView();
+        showToast('Not kaydedildi.');
+      });
+      document.getElementById('btnDeleteNote').addEventListener('click', () => {
+        if (!state.editingNoteKey) return;
+        delete state.slotNotes[state.editingNoteKey];
+        saveStore('slotNotes', state.slotNotes);
+        closeNoteModal();
+        renderDailyView();
+        showToast('Not silindi.');
+      });
+
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
+      });
+
+      renderDailyView();
+      // Ensure the carousel instantly opens on TODAY'S WEEK (November / Kurul 2 • 4. Hafta) without starting at September!
+      scrollCarouselToActiveWeek(false);
+      requestAnimationFrame(() => scrollCarouselToActiveWeek(false));
+      setTimeout(() => scrollCarouselToActiveWeek(false), 30);
+      setTimeout(() => scrollCarouselToActiveWeek(false), 120);
+      setTimeout(() => scrollCarouselToActiveWeek(false), 300);
+      setTimeout(() => updateTabPillPosition(false), 50);
+    });
+  </script>
+
+
+</body></html>
