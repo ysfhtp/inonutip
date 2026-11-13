@@ -745,8 +745,24 @@
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
 
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .grid-cols-5 {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .object-cover {
+    object-fit: cover;
+  }
+
+  .whitespace-nowrap {
+    white-space: nowrap;
+  }
+
+  .text-\[9\.5px\] {
+    font-size: 9.5px;
   }
 
   .flex-col {
@@ -1158,6 +1174,10 @@
 
   .p-1 {
     padding: var(--spacing);
+  }
+
+  .p-2\.5 {
+    padding: calc(var(--spacing) * 2.5);
   }
 
   .p-3 {
@@ -1737,8 +1757,8 @@
       margin-inline: auto;
     }
 
-    .sm\:w-\[460px\] {
-      width: 460px;
+    .sm\:w-\[500px\] {
+      width: 500px;
     }
 
     .sm\:grid-cols-3 {
@@ -2305,6 +2325,7 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .safe-bottom { padding-bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px)); }
+    .dark input[type="date"] { color-scheme: dark; }
   </style>
 </head>
 <body class="safe-bottom antialiased selection:bg-blue-500/20">
@@ -2426,7 +2447,61 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 3: ARAMA ==================== -->
+    <!-- ==================== TAB 3: YEMEKHANE ==================== -->
+    <section id="viewFood" class="hidden space-y-3.5">
+      <div class="ios-glass rounded-3xl p-4 space-y-3">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 id="foodHeaderTitle" class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">13 Kasım 2026 Cuma</h2>
+              <span id="foodRelativeBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300">Bugün</span>
+            </div>
+            <p id="foodSubInfo" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">İnönü Üniversitesi Yemekhane Menüsü</p>
+          </div>
+
+          <div class="ios-pill-control p-0.5 rounded-full flex items-center shrink-0">
+            <button id="btnFoodModeDaily" type="button" class="px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">Günlük</button>
+            <button id="btnFoodModeWeekly" type="button" class="px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition">Haftalık</button>
+          </div>
+        </div>
+
+        <div id="foodWeekdayStrip" class="grid grid-cols-5 gap-1.5"></div>
+
+        <div class="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/80 flex-wrap sm:flex-nowrap">
+          <button id="btnFoodPrev" type="button" class="px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-1 active:scale-95 shadow-2xs shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+            <span id="btnFoodPrevLabel">Önceki</span>
+          </button>
+
+          <div class="flex items-center gap-1.5 min-w-0">
+            <button id="btnFoodToday" type="button" class="px-2.5 py-1 rounded-full bg-blue-500/12 hover:bg-blue-500/20 text-[11px] font-semibold text-blue-600 dark:text-blue-300 transition active:scale-95 shrink-0">Bugün</button>
+            <div class="ios-pill-control px-2.5 py-1 rounded-full flex items-center justify-center">
+              <input id="foodDateInput" type="date" aria-label="Yemekhane Tarihi" class="bg-transparent text-slate-800 dark:text-slate-100 text-xs font-bold focus:outline-none text-center cursor-pointer">
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="btnFoodNext" type="button" class="px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-1 active:scale-95 shadow-2xs">
+              <span id="btnFoodNextLabel">Sonraki</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+            <button id="btnFoodRefresh" type="button" aria-label="Menüyü Yenile" class="w-7 h-7 rounded-full ios-pill-control hover:bg-slate-500/15 flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95">
+              <svg id="iconFoodRefresh" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="foodAnnouncementsContainer" class="hidden space-y-2"></div>
+      <div id="foodMenuContainer" class="space-y-3.5"></div>
+
+      <div class="pt-1 pb-1 flex items-center justify-center gap-3 flex-wrap">
+        <a id="foodSourceLink" href="https://www.inonu.edu.tr/yemek" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-full text-[11px] font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition hover:bg-blue-500/10">inonu.edu.tr/yemek ↗</a>
+        <a id="foodReserveLink" href="https://yemek.inonu.edu.tr" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-full text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition">Yemek Rezervasyonu ↗</a>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: ARAMA ==================== -->
     <section id="viewSearch" class="hidden space-y-3.5">
       <div class="ios-glass rounded-3xl p-4 space-y-3">
         <div class="relative">
@@ -2508,7 +2583,7 @@
   <div id="toastBanner" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded-full ios-glass text-slate-900 dark:text-white text-xs font-semibold shadow-lg"></div>
 
   <!-- AUTHENTIC APPLE iOS 18 FLOATING ISLAND DOCK -->
-  <nav class="fixed inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[460px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
+  <nav class="fixed inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[500px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
     <div id="dockContainer" class="ios-floating-dock rounded-full p-1 flex items-center justify-between relative touch-none" style="touch-action: none;">
       <!-- Continuous Gliding Pill -->
       <div id="tabIndicatorPill" style="transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform: translate3d(285.389px, 0px, 0px); width: 70.2556px;"></div>
@@ -2517,35 +2592,42 @@
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
         </div>
-        <span id="navLabelDaily" class="text-[10px] tracking-tight">Bugün</span>
+        <span id="navLabelDaily" class="text-[9.5px] sm:text-[10px] tracking-tight whitespace-nowrap">Bugün</span>
       </button>
 
       <button type="button" data-tab="weekly" data-tab-index="1" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </div>
-        <span id="navLabelWeekly" class="text-[10px] tracking-tight">Haftalar</span>
+        <span id="navLabelWeekly" class="text-[9.5px] sm:text-[10px] tracking-tight whitespace-nowrap">Haftalar</span>
       </button>
 
       <button type="button" data-tab="search" data-tab-index="2" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
-        <span id="navLabelSearch" class="text-[10px] tracking-tight">Arama</span>
+        <span id="navLabelSearch" class="text-[9.5px] sm:text-[10px] tracking-tight whitespace-nowrap">Arama</span>
       </button>
 
       <button type="button" data-tab="info" data-tab-index="3" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </div>
-        <span id="navLabelInfo" class="text-[10px] tracking-tight">Sınav &amp; Not</span>
+        <span id="navLabelInfo" class="text-[9.5px] sm:text-[10px] tracking-tight whitespace-nowrap">Sınav &amp; Not</span>
       </button>
 
-      <button type="button" data-tab="install" data-tab-index="4" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-bold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="food" data-tab-index="4" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none">
+        <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>
+        </div>
+        <span id="navLabelFood" class="text-[9.5px] sm:text-[10px] tracking-tight whitespace-nowrap">Yemekhane</span>
+      </button>
+
+      <button type="button" data-tab="install" data-tab-index="5" class="nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-bold relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1.08);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
         </div>
-        <span id="navLabelInstall" class="text-[10px] tracking-tight">Kurulum</span>
+        <span id="navLabelInstall" class="text-[9.5px] sm:text-[10px] tracking-tight whitespace-nowrap">Kurulum</span>
       </button>
     </div>
   </nav>
@@ -2625,9 +2707,40 @@
         icsSavedToast: 'Takvim dosyası indirildi',
         navDaily: 'Bugün',
         navWeekly: 'Haftalar',
+        navFood: 'Yemekhane',
         navSearch: 'Arama',
         navInfo: 'Sınav & Not',
         navInstall: 'Kurulum',
+        foodMainMenu: 'Günün Menüsü',
+        foodModeDaily: 'Günlük',
+        foodModeWeekly: 'Haftalık',
+        foodThisWeek: 'Bu Hafta',
+        foodNextWeek: 'Gelecek Hafta',
+        foodPrevWeek: 'Geçen Hafta',
+        foodOtherWeek: 'Seçili Hafta',
+        foodWeekSummary: (daysCount, dishesCount) => `${daysCount} Gün • ${dishesCount} Çeşit Canlı Haftalık Menü`,
+        foodWeekLoading: 'Haftalık canlı yemek listesi yükleniyor...',
+        foodWeekEmptyTitle: 'Bu Haftanın Menüsü Henüz Yayınlanmadı',
+        foodWeekEmptyDesc: 'Yemekhane yönetimi bu hafta için henüz menü eklememiş olabilir.',
+        foodDayUnpublished: 'Bu gün için menü yayınlanmamış',
+        foodSpecialC: 'Çölyak Özel Menü',
+        foodSpecialD: 'Diyabet Özel Menü',
+        foodSpecialOther: (t) => `Diğer Yemekler (${t})`,
+        foodDishCount: (n) => `${n} Çeşit`,
+        foodCalorieTotal: (kcal) => `Toplam ~${kcal} Kalori`,
+        foodSourceSub: 'İnönü Üniversitesi Yemekhane Menüsü',
+        foodLoading: 'Canlı yemek listesi yükleniyor...',
+        foodEmptyWeekendTitle: 'Hafta Sonu Yemek Hizmeti Yok',
+        foodEmptyWeekendDesc: 'Cumartesi ve Pazar günleri yemekhane hizmeti verilmemektedir.',
+        foodEmptyTitle: 'Yemek Listesi Bulunamadı',
+        foodEmptyDesc: 'Bu tarih için henüz menü yayınlanmamış olabilir.',
+        foodGoMonday: "Pazartesi'ye Git",
+        foodErrorTitle: 'Yemek Listesi Yüklenemedi',
+        foodErrorDesc: 'Canlı sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+        foodRetry: 'Tekrar Dene',
+        foodReserveLabel: 'Yemek Rezervasyonu ↗',
+        foodAnnouncementBadge: 'Yemekhane Duyurusu',
+        foodRefreshedToast: 'Yemek listesi güncellendi',
         months: MONTHS_TR,
         monthsShort: MONTHS_SHORT_TR,
         days: DAYS_TR,
@@ -2689,9 +2802,40 @@
         icsSavedToast: 'Calendar file downloaded',
         navDaily: 'Today',
         navWeekly: 'Weeks',
+        navFood: 'Dining',
         navSearch: 'Search',
         navInfo: 'Exams & Score',
         navInstall: 'Install',
+        foodMainMenu: "Today's Menu",
+        foodModeDaily: 'Daily',
+        foodModeWeekly: 'Weekly',
+        foodThisWeek: 'This Week',
+        foodNextWeek: 'Next Week',
+        foodPrevWeek: 'Last Week',
+        foodOtherWeek: 'Selected Week',
+        foodWeekSummary: (daysCount, dishesCount) => `${daysCount} Days • ${dishesCount} Live Weekly Dishes`,
+        foodWeekLoading: 'Loading live weekly menu...',
+        foodWeekEmptyTitle: 'Weekly Menu Not Published Yet',
+        foodWeekEmptyDesc: 'The cafeteria office may not have published the menu for this week yet.',
+        foodDayUnpublished: 'No menu published for this day',
+        foodSpecialC: 'Celiac Special Menu',
+        foodSpecialD: 'Diabetes Special Menu',
+        foodSpecialOther: (t) => `Special Menu (${t})`,
+        foodDishCount: (n) => `${n} Items`,
+        foodCalorieTotal: (kcal) => `Total ~${kcal} kcal`,
+        foodSourceSub: 'İnönü University Cafeteria Menu',
+        foodLoading: 'Loading live cafeteria menu...',
+        foodEmptyWeekendTitle: 'Closed on Weekends',
+        foodEmptyWeekendDesc: 'Cafeteria meal service is not available on Saturdays and Sundays.',
+        foodEmptyTitle: 'No Menu Found',
+        foodEmptyDesc: 'The menu for this date may not be published yet.',
+        foodGoMonday: 'Go to Monday',
+        foodErrorTitle: 'Could Not Load Menu',
+        foodErrorDesc: 'Unable to reach the live server. Check your connection and try again.',
+        foodRetry: 'Retry',
+        foodReserveLabel: 'Meal Reservation ↗',
+        foodAnnouncementBadge: 'Cafeteria Notice',
+        foodRefreshedToast: 'Menu refreshed',
         months: MONTHS_EN,
         monthsShort: MONTHS_SHORT_EN,
         days: DAYS_EN,
@@ -2719,6 +2863,8 @@
       notes: loadStore('notes', {}),
       activeTab: 'daily',
       selectedDate: '07.09.2026',
+      foodDateISO: '',
+      foodViewMode: 'daily',
       weeklyFilterKurul: 'all',
       weeklySelectedWeekKey: null,
       modalSlotKey: null,
@@ -2941,9 +3087,17 @@
 
       document.getElementById('navLabelDaily').textContent = loc.navDaily;
       document.getElementById('navLabelWeekly').textContent = loc.navWeekly;
+      document.getElementById('navLabelFood').textContent = loc.navFood;
       document.getElementById('navLabelSearch').textContent = loc.navSearch;
       document.getElementById('navLabelInfo').textContent = loc.navInfo;
       document.getElementById('navLabelInstall').textContent = loc.navInstall;
+
+      document.getElementById('btnFoodModeDaily').textContent = loc.foodModeDaily;
+      document.getElementById('btnFoodModeWeekly').textContent = loc.foodModeWeekly;
+      document.getElementById('btnFoodToday').textContent = state.foodViewMode === 'weekly' ? loc.foodThisWeek : loc.today;
+      document.getElementById('btnFoodPrevLabel').textContent = loc.prevDay;
+      document.getElementById('btnFoodNextLabel').textContent = loc.nextDay;
+      document.getElementById('foodReserveLink').textContent = loc.foodReserveLabel;
 
       updateHeaderClock();
       populateDateDropdown();
@@ -2957,13 +3111,14 @@
       applyLanguageUI();
       if (state.activeTab === 'daily') renderDailyView();
       if (state.activeTab === 'weekly') renderWeeklyView();
+      if (state.activeTab === 'food') renderFoodView();
       if (state.activeTab === 'search') renderSearchView();
       if (state.activeTab === 'info') renderInfoView();
       requestAnimationFrame(() => updateTabIndicator(state.activeTab, false));
     }
 
     // ==================== iOS 18 LIQUID GLASS DOCK INDICATOR ====================
-    const TAB_ORDER = ['daily', 'weekly', 'search', 'info', 'install'];
+    const TAB_ORDER = ['daily', 'weekly', 'search', 'info', 'food', 'install'];
 
     const PILL_SPRING = 'transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), width 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), background-color 0.2s ease, box-shadow 0.2s ease';
     let lastVisualActiveTab = null;
@@ -2998,7 +3153,7 @@
     function activateTabView(tabName) {
       const changed = state.activeTab !== tabName;
       state.activeTab = tabName;
-      ['daily', 'weekly', 'search', 'info', 'install'].forEach((tKey) => {
+      ['daily', 'weekly', 'food', 'search', 'info', 'install'].forEach((tKey) => {
         const el = document.getElementById('view' + tKey.charAt(0).toUpperCase() + tKey.slice(1));
         if (!el) return;
         const shouldHide = tKey !== tabName;
@@ -3012,6 +3167,7 @@
 
       if (tabName === 'daily') renderDailyView();
       if (tabName === 'weekly') renderWeeklyView();
+      if (tabName === 'food') renderFoodView();
       if (tabName === 'search') renderSearchView();
       if (tabName === 'info') renderInfoView();
     }
@@ -3667,6 +3823,625 @@
       }
     }
 
+    // ==================== FOOD / CAFETERIA VIEW (LIVE) ====================
+    const INONU_PANEL_BASE = 'https://panel.inonu.edu.tr/';
+    let foodFetchSeq = 0;
+    let foodAnnouncementsLoaded = false;
+
+    function formatISODate(dt) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const d = String(dt.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function parseISODate(iso) {
+      const [y, m, d] = iso.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function isoToDMY(iso) {
+      const [y, m, d] = iso.split('-');
+      return `${d}.${m}.${y}`;
+    }
+
+    function shiftISODate(iso, deltaDays) {
+      const dt = parseISODate(iso);
+      dt.setDate(dt.getDate() + deltaDays);
+      return formatISODate(dt);
+    }
+
+    function getFoodCacheMap() {
+      return loadStore('food_cache_v1', {});
+    }
+
+    function setFoodCacheForDate(iso, items) {
+      const cache = getFoodCacheMap();
+      cache[iso] = { items, ts: Date.now() };
+      const keys = Object.keys(cache);
+      if (keys.length > 35) {
+        keys.sort((a, b) => (cache[a].ts || 0) - (cache[b].ts || 0));
+        for (let i = 0; i < keys.length - 35; i++) {
+          delete cache[keys[i]];
+        }
+      }
+      saveStore('food_cache_v1', cache);
+    }
+
+    function getWeekdaysForISO(iso) {
+      const dt = parseISODate(iso);
+      const dayOfWeek = dt.getDay();
+      const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(dt);
+      monday.setDate(dt.getDate() + diffToMon);
+      const result = [];
+      for (let i = 0; i < 5; i++) {
+        const cur = new Date(monday);
+        cur.setDate(monday.getDate() + i);
+        result.push({ dateObj: cur, iso: formatISODate(cur) });
+      }
+      return result;
+    }
+
+    function formatFoodWeekRange(weekdays) {
+      const loc = I18N[state.lang];
+      const mon = weekdays[0].dateObj;
+      const fri = weekdays[4].dateObj;
+      if (mon.getMonth() === fri.getMonth()) {
+        return `${mon.getDate()} - ${fri.getDate()} ${loc.months[mon.getMonth()]} ${fri.getFullYear()}`;
+      }
+      return `${mon.getDate()} ${loc.monthsShort[mon.getMonth()]} - ${fri.getDate()} ${loc.monthsShort[fri.getMonth()]} ${fri.getFullYear()}`;
+    }
+
+    function getFoodWeekRelativeLabel(mondayDateObj) {
+      const loc = I18N[state.lang];
+      const todayMon = getWeekdaysForISO(formatISODate(getTodayDateObj()))[0].dateObj;
+      const diffWeeks = Math.round((mondayDateObj - todayMon) / (1000 * 60 * 60 * 24 * 7));
+      if (diffWeeks === 0) return loc.foodThisWeek;
+      if (diffWeeks === 1) return loc.foodNextWeek;
+      if (diffWeeks === -1) return loc.foodPrevWeek;
+      return loc.foodOtherWeek;
+    }
+
+    async function fetchFoodDay(iso) {
+      const res = await fetch(`${INONU_PANEL_BASE}servlet/food?type=list&date=${encodeURIComponent(iso)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : [];
+      setFoodCacheForDate(iso, items);
+      return items;
+    }
+
+    function getFoodImageUrl(item) {
+      if (item && item.type && item.path && item.name && item.extension) {
+        return `${INONU_PANEL_BASE}servlet/image/${item.path}/${item.name}_960x540.${item.extension}`;
+      }
+      return '';
+    }
+
+    function getFoodTypeLabel(typeCode) {
+      const loc = I18N[state.lang];
+      if (typeCode === 'C') return loc.foodSpecialC;
+      if (typeCode === 'D') return loc.foodSpecialD;
+      return loc.foodSpecialOther(typeCode);
+    }
+
+    function renderFoodWeekdayStrip(activeIso) {
+      const strip = document.getElementById('foodWeekdayStrip');
+      if (!strip) return;
+      const loc = I18N[state.lang];
+      const todayIso = formatISODate(getTodayDateObj());
+      const weekdays = getWeekdaysForISO(activeIso);
+
+      strip.innerHTML = '';
+      weekdays.forEach(({ dateObj: cur, iso: curIso }) => {
+        const isSel = state.foodViewMode === 'daily' && curIso === activeIso;
+        const isToday = curIso === todayIso;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = isSel
+          ? 'rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-600 text-white shadow-sm'
+          : isToday
+            ? 'rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-500/15 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/30'
+            : 'rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none ios-pill-control text-slate-700 dark:text-slate-200 hover:bg-slate-500/15';
+
+        const dShort = document.createElement('span');
+        dShort.className = 'text-[10px] font-semibold uppercase tracking-wide opacity-75 leading-tight';
+        dShort.textContent = loc.daysShort[cur.getDay()];
+
+        const dNum = document.createElement('span');
+        dNum.className = 'text-sm font-bold leading-tight mt-0.5 tabular-nums';
+        dNum.textContent = cur.getDate();
+
+        const mShort = document.createElement('span');
+        mShort.className = 'text-[9px] font-medium opacity-75 leading-tight';
+        mShort.textContent = loc.monthsShort[cur.getMonth()];
+
+        btn.appendChild(dShort);
+        btn.appendChild(dNum);
+        btn.appendChild(mShort);
+        btn.addEventListener('click', () => {
+          state.foodDateISO = curIso;
+          if (state.foodViewMode === 'weekly') {
+            const targetCard = document.getElementById(`foodWeekDay_${curIso}`);
+            if (targetCard) {
+              targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              return;
+            }
+          }
+          renderFoodView();
+        });
+        strip.appendChild(btn);
+      });
+    }
+
+    function createFoodDishCard(item) {
+      const card = document.createElement('div');
+      card.className = 'ios-glass rounded-2xl overflow-hidden flex flex-col';
+
+      const imgWrap = document.createElement('div');
+      imgWrap.className = 'relative w-full overflow-hidden bg-slate-200/60 dark:bg-slate-800/60';
+      imgWrap.style.aspectRatio = '16 / 10';
+
+      const placeholder = document.createElement('div');
+      placeholder.className = 'w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500';
+      placeholder.innerHTML = '<svg class="w-8 h-8 opacity-60" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>';
+
+      const imgUrl = getFoodImageUrl(item);
+      if (imgUrl) {
+        placeholder.style.display = 'none';
+        const img = document.createElement('img');
+        img.src = imgUrl;
+        img.alt = (item.food_name || '').trim();
+        img.loading = 'lazy';
+        img.className = 'w-full h-full object-cover';
+        img.addEventListener('error', () => {
+          img.style.display = 'none';
+          placeholder.style.display = 'flex';
+        });
+        imgWrap.appendChild(img);
+      }
+      imgWrap.appendChild(placeholder);
+
+      const body = document.createElement('div');
+      body.className = 'p-2.5 flex-1 flex flex-col justify-between gap-1';
+
+      const title = document.createElement('h4');
+      title.className = 'text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white leading-snug';
+      title.textContent = (item.food_name || '').trim();
+      body.appendChild(title);
+
+      const desc = (item.food_desc || '').trim();
+      if (desc) {
+        const badge = document.createElement('span');
+        badge.className = 'self-start inline-block px-2 py-0.5 rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-semibold tabular-nums';
+        badge.textContent = desc;
+        body.appendChild(badge);
+      }
+
+      card.appendChild(imgWrap);
+      card.appendChild(body);
+      return card;
+    }
+
+    function computeFoodDayStats(items) {
+      const regular = items.filter((x) => !x.food_type || x.food_type === 'G');
+      const grouped = {};
+      items.forEach((x) => {
+        if (x.food_type && x.food_type !== 'G') {
+          if (!grouped[x.food_type]) grouped[x.food_type] = [];
+          grouped[x.food_type].push(x);
+        }
+      });
+      const primaryList = regular.length > 0 ? regular : items;
+      let totalKcal = 0;
+      primaryList.forEach((x) => {
+        const m = String(x.food_desc || '').match(/(\d+)/);
+        if (m) totalKcal += parseInt(m[1], 10);
+      });
+      return { regular, grouped, primaryList, totalKcal };
+    }
+
+    function renderFoodItems(items, isoDate) {
+      const container = document.getElementById('foodMenuContainer');
+      const subInfo = document.getElementById('foodSubInfo');
+      const loc = I18N[state.lang];
+      container.innerHTML = '';
+
+      if (!Array.isArray(items) || items.length === 0) {
+        subInfo.textContent = loc.foodSourceSub;
+        const dt = parseISODate(isoDate);
+        const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
+
+        const emptyBox = document.createElement('div');
+        emptyBox.className = 'ios-glass rounded-3xl p-6 text-center space-y-2.5';
+        emptyBox.innerHTML = `
+          <div class="w-10 h-10 rounded-2xl ios-pill-control mx-auto flex items-center justify-center text-amber-600 dark:text-amber-300">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>
+          </div>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">${escapeHtml(isWeekend ? loc.foodEmptyWeekendTitle : loc.foodEmptyTitle)}</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(isWeekend ? loc.foodEmptyWeekendDesc : loc.foodEmptyDesc)}</p>
+        `;
+        if (isWeekend) {
+          const mondayBtn = document.createElement('button');
+          mondayBtn.type = 'button';
+          mondayBtn.className = 'inline-flex items-center px-3.5 py-1.5 rounded-full bg-blue-600 text-white text-xs font-semibold shadow-sm active:scale-95 transition';
+          mondayBtn.textContent = loc.foodGoMonday;
+          mondayBtn.addEventListener('click', () => {
+            const nextMon = new Date(dt);
+            nextMon.setDate(dt.getDate() + (dt.getDay() === 6 ? 2 : 1));
+            state.foodDateISO = formatISODate(nextMon);
+            renderFoodView();
+          });
+          emptyBox.appendChild(mondayBtn);
+        }
+        container.appendChild(emptyBox);
+        return;
+      }
+
+      const { regular, grouped, primaryList, totalKcal } = computeFoodDayStats(items);
+      const statsParts = [loc.foodDishCount(primaryList.length)];
+      if (totalKcal > 0) statsParts.push(loc.foodCalorieTotal(totalKcal));
+      subInfo.textContent = statsParts.join(' • ');
+
+      if (regular.length > 0) {
+        const sec = document.createElement('div');
+        sec.className = 'space-y-2';
+        const hdr = document.createElement('h3');
+        hdr.className = 'text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5';
+        hdr.textContent = loc.foodMainMenu;
+        sec.appendChild(hdr);
+
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2.5';
+        regular.forEach((item) => grid.appendChild(createFoodDishCard(item)));
+        sec.appendChild(grid);
+        container.appendChild(sec);
+      }
+
+      Object.keys(grouped).forEach((typeKey) => {
+        const sec = document.createElement('div');
+        sec.className = 'space-y-2 pt-1';
+        const hdr = document.createElement('h3');
+        hdr.className = 'text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5';
+        hdr.textContent = getFoodTypeLabel(typeKey);
+        sec.appendChild(hdr);
+
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2.5';
+        grouped[typeKey].forEach((item) => grid.appendChild(createFoodDishCard(item)));
+        sec.appendChild(grid);
+        container.appendChild(sec);
+      });
+    }
+
+    function renderFoodWeeklyItems(weekResults, weekdays) {
+      const container = document.getElementById('foodMenuContainer');
+      const subInfo = document.getElementById('foodSubInfo');
+      const loc = I18N[state.lang];
+      const todayIso = formatISODate(getTodayDateObj());
+      container.innerHTML = '';
+
+      let activeDaysCount = 0;
+      let totalPrimaryDishes = 0;
+
+      weekdays.forEach(({ iso }, idx) => {
+        const items = Array.isArray(weekResults[idx]) ? weekResults[idx] : [];
+        if (items.length > 0) {
+          activeDaysCount++;
+          const { primaryList } = computeFoodDayStats(items);
+          totalPrimaryDishes += primaryList.length;
+        }
+      });
+
+      if (activeDaysCount === 0) {
+        subInfo.textContent = loc.foodSourceSub;
+        const emptyBox = document.createElement('div');
+        emptyBox.className = 'ios-glass rounded-3xl p-6 text-center space-y-2.5';
+        emptyBox.innerHTML = `
+          <div class="w-10 h-10 rounded-2xl ios-pill-control mx-auto flex items-center justify-center text-amber-600 dark:text-amber-300">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>
+          </div>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">${escapeHtml(loc.foodWeekEmptyTitle)}</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(loc.foodWeekEmptyDesc)}</p>
+        `;
+        container.appendChild(emptyBox);
+        return;
+      }
+
+      subInfo.textContent = loc.foodWeekSummary(activeDaysCount, totalPrimaryDishes);
+
+      weekdays.forEach(({ iso }, idx) => {
+        const items = Array.isArray(weekResults[idx]) ? weekResults[idx] : [];
+        const dmy = isoToDMY(iso);
+        const isToday = iso === todayIso;
+
+        const daySection = document.createElement('div');
+        daySection.id = `foodWeekDay_${iso}`;
+        daySection.className = `ios-glass rounded-3xl p-3.5 space-y-2.5${isToday ? ' ring-1 ring-blue-500/40' : ''}`;
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between gap-2';
+
+        const titleWrap = document.createElement('div');
+        titleWrap.className = 'flex items-center gap-2 min-w-0 flex-wrap';
+
+        const h3 = document.createElement('h3');
+        h3.className = 'text-xs sm:text-sm font-bold text-slate-900 dark:text-white';
+        h3.textContent = formatDateLong(dmy);
+        titleWrap.appendChild(h3);
+
+        if (isToday) {
+          const todayBadge = document.createElement('span');
+          todayBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-300';
+          todayBadge.textContent = loc.today;
+          titleWrap.appendChild(todayBadge);
+        }
+
+        header.appendChild(titleWrap);
+
+        const rightMeta = document.createElement('div');
+        rightMeta.className = 'flex items-center gap-2 shrink-0';
+
+        if (items.length > 0) {
+          const { primaryList, totalKcal } = computeFoodDayStats(items);
+          if (totalKcal > 0) {
+            const kcalPill = document.createElement('span');
+            kcalPill.className = 'text-[10px] font-semibold text-amber-700 dark:text-amber-300 tabular-nums';
+            kcalPill.textContent = `~${totalKcal} kcal`;
+            rightMeta.appendChild(kcalPill);
+          } else {
+            const countPill = document.createElement('span');
+            countPill.className = 'text-[10px] font-semibold text-slate-500 dark:text-slate-400';
+            countPill.textContent = loc.foodDishCount(primaryList.length);
+            rightMeta.appendChild(countPill);
+          }
+
+          const openBtn = document.createElement('button');
+          openBtn.type = 'button';
+          openBtn.className = 'text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline';
+          openBtn.textContent = loc.openDayBtn;
+          openBtn.addEventListener('click', () => {
+            state.foodDateISO = iso;
+            state.foodViewMode = 'daily';
+            renderFoodView();
+          });
+          rightMeta.appendChild(openBtn);
+        }
+
+        header.appendChild(rightMeta);
+        daySection.appendChild(header);
+
+        if (items.length === 0) {
+          const emptyLine = document.createElement('p');
+          emptyLine.className = 'text-xs text-slate-500 dark:text-slate-400 py-1';
+          emptyLine.textContent = loc.foodDayUnpublished;
+          daySection.appendChild(emptyLine);
+        } else {
+          const { regular, grouped } = computeFoodDayStats(items);
+          const mainItems = regular.length > 0 ? regular : items;
+          const grid = document.createElement('div');
+          grid.className = 'grid grid-cols-2 sm:grid-cols-4 gap-2';
+          mainItems.forEach((item) => grid.appendChild(createFoodDishCard(item)));
+          daySection.appendChild(grid);
+
+          Object.keys(grouped).forEach((typeKey) => {
+            const spTitle = document.createElement('p');
+            spTitle.className = 'text-[11px] font-semibold text-slate-600 dark:text-slate-300 pt-1';
+            spTitle.textContent = getFoodTypeLabel(typeKey);
+            daySection.appendChild(spTitle);
+
+            const spGrid = document.createElement('div');
+            spGrid.className = 'grid grid-cols-2 sm:grid-cols-4 gap-2';
+            grouped[typeKey].forEach((item) => spGrid.appendChild(createFoodDishCard(item)));
+            daySection.appendChild(spGrid);
+          });
+        }
+
+        container.appendChild(daySection);
+      });
+    }
+
+    function renderFoodSkeleton(isWeekly = false) {
+      const container = document.getElementById('foodMenuContainer');
+      const subInfo = document.getElementById('foodSubInfo');
+      const loc = I18N[state.lang];
+      subInfo.textContent = isWeekly ? loc.foodWeekLoading : loc.foodLoading;
+      container.innerHTML = '';
+
+      if (isWeekly) {
+        for (let d = 0; d < 3; d++) {
+          const daySk = document.createElement('div');
+          daySk.className = 'ios-glass rounded-3xl p-3.5 space-y-2.5 animate-pulse';
+          daySk.innerHTML = `
+            <div class="h-4 rounded bg-slate-300/50 dark:bg-slate-700/50 w-44"></div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div class="h-24 rounded-2xl bg-slate-300/40 dark:bg-slate-700/40"></div>
+              <div class="h-24 rounded-2xl bg-slate-300/40 dark:bg-slate-700/40"></div>
+              <div class="h-24 rounded-2xl bg-slate-300/40 dark:bg-slate-700/40"></div>
+              <div class="h-24 rounded-2xl bg-slate-300/40 dark:bg-slate-700/40"></div>
+            </div>
+          `;
+          container.appendChild(daySk);
+        }
+        return;
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2.5';
+      for (let i = 0; i < 4; i++) {
+        const sk = document.createElement('div');
+        sk.className = 'ios-glass rounded-2xl overflow-hidden animate-pulse';
+        sk.innerHTML = `<div class="w-full bg-slate-300/40 dark:bg-slate-700/40" style="aspect-ratio: 16 / 10;"></div><div class="p-2.5 space-y-1.5"><div class="h-3.5 rounded bg-slate-300/50 dark:bg-slate-700/50 w-4/5"></div><div class="h-2.5 rounded bg-slate-300/40 dark:bg-slate-700/40 w-1/2"></div></div>`;
+        grid.appendChild(sk);
+      }
+      container.appendChild(grid);
+    }
+
+    function renderFoodErrorCard() {
+      const loc = I18N[state.lang];
+      const container = document.getElementById('foodMenuContainer');
+      document.getElementById('foodSubInfo').textContent = loc.foodSourceSub;
+      container.innerHTML = '';
+      const errBox = document.createElement('div');
+      errBox.className = 'ios-glass rounded-3xl p-6 text-center space-y-2.5';
+      errBox.innerHTML = `
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">${escapeHtml(loc.foodErrorTitle)}</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(loc.foodErrorDesc)}</p>
+      `;
+      const retryBtn = document.createElement('button');
+      retryBtn.type = 'button';
+      retryBtn.className = 'inline-flex items-center px-3.5 py-1.5 rounded-full bg-blue-600 text-white text-xs font-semibold shadow-sm active:scale-95 transition';
+      retryBtn.textContent = loc.foodRetry;
+      retryBtn.addEventListener('click', () => renderFoodView(true));
+      errBox.appendChild(retryBtn);
+      container.appendChild(errBox);
+    }
+
+    function renderFoodAnnouncements(list) {
+      const box = document.getElementById('foodAnnouncementsContainer');
+      if (!box) return;
+      if (!Array.isArray(list) || list.length === 0) {
+        box.classList.add('hidden');
+        box.innerHTML = '';
+        return;
+      }
+      const loc = I18N[state.lang];
+      box.innerHTML = '';
+      list.slice(0, 3).forEach((ann) => {
+        if (!ann || (!ann.title && !ann.content)) return;
+        const card = document.createElement('div');
+        card.className = 'ios-glass rounded-2xl px-3.5 py-2.5 space-y-1 border border-amber-500/25';
+        card.innerHTML = `
+          <span class="inline-block text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-300">${escapeHtml(loc.foodAnnouncementBadge)}</span>
+          ${ann.title ? `<p class="text-xs font-bold text-slate-900 dark:text-white">${escapeHtml(ann.title)}</p>` : ''}
+        `;
+        box.appendChild(card);
+      });
+      box.classList.toggle('hidden', box.children.length === 0);
+    }
+
+    async function loadFoodAnnouncementsOnce() {
+      if (foodAnnouncementsLoaded) return;
+      foodAnnouncementsLoaded = true;
+      try {
+        const res = await fetch(`${INONU_PANEL_BASE}servlet/food?type=announcements`);
+        if (res.ok) {
+          const data = await res.json();
+          renderFoodAnnouncements(data);
+        }
+      } catch (e) {}
+    }
+
+    async function renderFoodView(forceRefresh = false) {
+      const todayDate = getTodayDateObj();
+      const todayIso = formatISODate(todayDate);
+
+      if (!state.foodDateISO) {
+        state.foodDateISO = todayIso;
+      }
+      const targetIso = state.foodDateISO;
+      const dmy = isoToDMY(targetIso);
+      const loc = I18N[state.lang];
+      const isWeekly = state.foodViewMode === 'weekly';
+      const weekdays = getWeekdaysForISO(targetIso);
+
+      const activePill = 'px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition';
+      const inactivePill = 'px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition';
+      document.getElementById('btnFoodModeDaily').className = isWeekly ? inactivePill : activePill;
+      document.getElementById('btnFoodModeWeekly').className = isWeekly ? activePill : inactivePill;
+      document.getElementById('btnFoodToday').textContent = isWeekly ? loc.foodThisWeek : loc.today;
+      document.getElementById('foodDateInput').value = targetIso;
+
+      renderFoodWeekdayStrip(targetIso);
+      loadFoodAnnouncementsOnce();
+
+      const cache = getFoodCacheMap();
+      const seq = ++foodFetchSeq;
+      const refreshIcon = document.getElementById('iconFoodRefresh');
+      if (refreshIcon && forceRefresh) refreshIcon.classList.add('animate-pulse');
+
+      if (isWeekly) {
+        document.getElementById('foodHeaderTitle').textContent = formatFoodWeekRange(weekdays);
+        document.getElementById('foodRelativeBadge').textContent = getFoodWeekRelativeLabel(weekdays[0].dateObj);
+
+        const cachedWeek = weekdays.map((w) => {
+          const entry = cache[w.iso];
+          return entry && Array.isArray(entry.items) ? entry.items : null;
+        });
+        const hasFullWeekCached = cachedWeek.every((arr) => arr !== null);
+
+        if (hasFullWeekCached && !forceRefresh) {
+          renderFoodWeeklyItems(cachedWeek, weekdays);
+        } else {
+          renderFoodSkeleton(true);
+        }
+
+        try {
+          const liveWeek = await Promise.all(weekdays.map((w) => fetchFoodDay(w.iso)));
+          if (seq === foodFetchSeq && state.foodDateISO === targetIso && state.foodViewMode === 'weekly') {
+            if (!hasFullWeekCached || forceRefresh || JSON.stringify(cachedWeek) !== JSON.stringify(liveWeek)) {
+              renderFoodWeeklyItems(liveWeek, weekdays);
+            }
+            if (forceRefresh) showToast(loc.foodRefreshedToast);
+          }
+        } catch (err) {
+          if (seq === foodFetchSeq && state.foodDateISO === targetIso && state.foodViewMode === 'weekly' && (!hasFullWeekCached || forceRefresh)) {
+            if (hasFullWeekCached) {
+              renderFoodWeeklyItems(cachedWeek, weekdays);
+            } else {
+              renderFoodErrorCard();
+            }
+          }
+        } finally {
+          if (refreshIcon) refreshIcon.classList.remove('animate-pulse');
+        }
+        return;
+      }
+
+      document.getElementById('foodHeaderTitle').textContent = formatDateLong(dmy);
+      document.getElementById('foodRelativeBadge').textContent = formatRelativeDay(dmy);
+
+      const cachedEntry = cache[targetIso];
+      const hasCached = cachedEntry && Array.isArray(cachedEntry.items);
+
+      if (hasCached && !forceRefresh) {
+        renderFoodItems(cachedEntry.items, targetIso);
+      } else {
+        renderFoodSkeleton(false);
+      }
+
+      try {
+        const items = await fetchFoodDay(targetIso);
+        if (seq === foodFetchSeq && state.foodDateISO === targetIso && state.foodViewMode === 'daily') {
+          const prevStr = hasCached ? JSON.stringify(cachedEntry.items) : '';
+          const nextStr = JSON.stringify(items);
+          if (!hasCached || forceRefresh || prevStr !== nextStr) {
+            renderFoodItems(items, targetIso);
+          }
+          if (forceRefresh) showToast(loc.foodRefreshedToast);
+        }
+        // Silently warm remaining weekdays of this week in the background
+        const freshCache = getFoodCacheMap();
+        weekdays.forEach((w) => {
+          if (w.iso !== targetIso && !freshCache[w.iso]) {
+            fetchFoodDay(w.iso).catch(() => {});
+          }
+        });
+      } catch (err) {
+        if (seq === foodFetchSeq && state.foodDateISO === targetIso && state.foodViewMode === 'daily' && (!hasCached || forceRefresh)) {
+          if (hasCached) {
+            renderFoodItems(cachedEntry.items, targetIso);
+          } else {
+            renderFoodErrorCard();
+          }
+        }
+      } finally {
+        if (refreshIcon) refreshIcon.classList.remove('animate-pulse');
+      }
+    }
+
     // ==================== NOTE MODAL ====================
     function openNoteModal(slot) {
       state.modalSlotKey = `${slot.date}_${slot.slotNo}`;
@@ -3804,6 +4579,43 @@
       document.getElementById('btnFilterKurulAll').addEventListener('click', () => { state.weeklyFilterKurul = 'all'; renderWeeklyView(); });
       document.getElementById('btnFilterKurul1').addEventListener('click', () => { state.weeklyFilterKurul = '1'; renderWeeklyView(); });
       document.getElementById('btnFilterKurul2').addEventListener('click', () => { state.weeklyFilterKurul = '2'; renderWeeklyView(); });
+
+      document.getElementById('btnFoodModeDaily').addEventListener('click', () => {
+        if (state.foodViewMode !== 'daily') {
+          state.foodViewMode = 'daily';
+          renderFoodView();
+        }
+      });
+      document.getElementById('btnFoodModeWeekly').addEventListener('click', () => {
+        if (state.foodViewMode !== 'weekly') {
+          state.foodViewMode = 'weekly';
+          renderFoodView();
+        }
+      });
+      document.getElementById('btnFoodToday').addEventListener('click', () => {
+        state.foodDateISO = formatISODate(getTodayDateObj());
+        renderFoodView();
+      });
+      document.getElementById('btnFoodPrev').addEventListener('click', () => {
+        const cur = state.foodDateISO || formatISODate(getTodayDateObj());
+        state.foodDateISO = shiftISODate(cur, state.foodViewMode === 'weekly' ? -7 : -1);
+        renderFoodView();
+      });
+      document.getElementById('btnFoodNext').addEventListener('click', () => {
+        const cur = state.foodDateISO || formatISODate(getTodayDateObj());
+        state.foodDateISO = shiftISODate(cur, state.foodViewMode === 'weekly' ? 7 : 1);
+        renderFoodView();
+      });
+      document.getElementById('foodDateInput').addEventListener('change', (e) => {
+        if (e.target.value) {
+          state.foodDateISO = e.target.value;
+          renderFoodView();
+        }
+      });
+      document.getElementById('btnFoodRefresh').addEventListener('click', () => {
+        foodAnnouncementsLoaded = false;
+        renderFoodView(true);
+      });
 
       document.getElementById('inputSearchQuery').addEventListener('input', renderSearchView);
       document.getElementById('btnClearSearch').addEventListener('click', () => {

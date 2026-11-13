@@ -76,6 +76,35 @@ export default defineConfig(() => {
                 },
               },
             },
+            {
+              urlPattern: /^https:\/\/panel\.inonu\.edu\.tr\/servlet\/food.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'inonu-food-api-cache',
+                networkTimeoutSeconds: 6,
+                expiration: {
+                  maxEntries: 40,
+                  maxAgeSeconds: 60 * 60 * 24 * 7,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              urlPattern: /^https:\/\/panel\.inonu\.edu\.tr\/servlet\/image\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'inonu-food-images-cache',
+                expiration: {
+                  maxEntries: 150,
+                  maxAgeSeconds: 60 * 60 * 24 * 30,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
           ],
         },
         devOptions: {
