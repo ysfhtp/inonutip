@@ -3294,10 +3294,10 @@
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.setAttribute('data-date', d.date);
-            btn.className = 'week-day-btn rounded-2xl py-2 px-1 flex flex-col items-center justify-center transition-all select-none';
+            btn.className = 'week-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none';
 
             const dayShort = document.createElement('span');
-            dayShort.className = 'text-[10px] font-semibold uppercase tracking-wide opacity-75';
+            dayShort.className = 'text-[10px] font-semibold uppercase tracking-wide opacity-75 leading-tight';
             dayShort.textContent = loc.daysShort[dt.getDay()];
 
             const dayNum = document.createElement('span');
@@ -3305,7 +3305,7 @@
             dayNum.textContent = dt.getDate();
 
             const monthShort = document.createElement('span');
-            monthShort.className = 'text-[9px] font-medium opacity-75';
+            monthShort.className = 'text-[9px] font-medium opacity-75 leading-tight';
             monthShort.textContent = loc.monthsShort[dt.getMonth()];
 
             btn.appendChild(dayShort);
@@ -3330,11 +3330,11 @@
         const isToday = dStr === todayStr;
 
         if (isSelected) {
-          btn.className = 'week-day-btn rounded-2xl py-2 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-600 text-white shadow-sm';
+          btn.className = 'week-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-600 text-white shadow-sm';
         } else if (isToday) {
-          btn.className = 'week-day-btn rounded-2xl py-2 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-500/15 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/30';
+          btn.className = 'week-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-500/15 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/30';
         } else {
-          btn.className = 'week-day-btn rounded-2xl py-2 px-1 flex flex-col items-center justify-center transition-all select-none ios-pill-control text-slate-700 dark:text-slate-200 hover:bg-slate-500/15';
+          btn.className = 'week-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none ios-pill-control text-slate-700 dark:text-slate-200 hover:bg-slate-500/15';
         }
       });
 
