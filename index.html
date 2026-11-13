@@ -2349,6 +2349,9 @@
         <button id="btnJumpTodayTop" type="button" class="px-3 py-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-xs font-semibold text-blue-600 dark:text-blue-400 transition">
           Bugün
         </button>
+        <button id="btnOpenInstallModal" type="button" class="w-8 h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Uygulamayı Kur" title="Uygulamayı Kur">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        </button>
         <button id="btnToggleTheme" type="button" class="w-8 h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Tema Değiştir">
           <svg id="iconSun" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
           <svg id="iconMoon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
@@ -2547,30 +2550,51 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 5: KURULUM ==================== -->
-    <section id="viewInstall" class="space-y-3.5">
-      <div class="ios-glass rounded-3xl p-5 space-y-3">
+  </main>
+
+  <!-- Install App Modal (Accessible via unobtrusive header button; auto-hides when installed) -->
+  <div id="installModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="ios-glass rounded-3xl max-w-md w-full p-5 space-y-3">
+      <div class="flex items-center justify-between gap-2">
         <span id="installBadge" class="inline-block px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
           Uygulama Kurulumu
         </span>
-        <h2 id="installTitle" class="text-lg font-bold text-slate-900 dark:text-white">Ana Ekrana Ekleme Adımları</h2>
-        <p id="installDesc" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-          Ders programını telefonuna uygulama gibi kurarak tam ekran ve çevrimdışı erişimle kullanabilirsin.
-        </p>
-        <div id="pwaInstallActionWrap" class="hidden pt-0.5">
-          <button id="btnInstallApp" type="button" class="inline-flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-            <span id="btnInstallAppLabel">Uygulamayı Yükle</span>
-          </button>
-        </div>
-        <ol id="installStepsList" class="text-xs sm:text-sm text-slate-700 dark:text-slate-200 space-y-2.5 list-decimal list-inside leading-relaxed pt-1">
-          <li>Bu siteyi telefonundaki <strong>Chrome</strong>, <strong>Safari</strong> veya <strong>Samsung Internet</strong> tarayıcısında aç.</li>
-          <li>Tarayıcı menüsünü (<strong>⋮</strong> veya paylaş simgesi) açıp <strong>"Ana ekrana ekle"</strong> veya <strong>"Uygulamayı yükle"</strong> seçeneğine dokun.</li>
-          <li>Onayladıktan sonra ana ekranına eklenen simge üzerinden tam ekran uygulama olarak kullanmaya başla.</li>
-        </ol>
+        <button id="btnCloseInstallModal" type="button" class="w-7 h-7 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center" aria-label="Kapat">✕</button>
       </div>
-    </section>
-  </main>
+      <h2 id="installTitle" class="text-lg font-bold text-slate-900 dark:text-white">Ana Ekrana Ekleme Adımları</h2>
+      <p id="installDesc" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+        Ders programını telefonuna uygulama gibi kurarak tam ekran ve çevrimdışı erişimle kullanabilirsin.
+      </p>
+      <div id="pwaInstallActionWrap" class="hidden pt-0.5">
+        <button id="btnInstallApp" type="button" class="inline-flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          <span id="btnInstallAppLabel">Uygulamayı Yükle</span>
+        </button>
+      </div>
+      <ol id="installStepsList" class="text-xs sm:text-sm text-slate-700 dark:text-slate-200 space-y-2.5 list-decimal list-inside leading-relaxed pt-1">
+        <li>Bu siteyi telefonundaki <strong>Chrome</strong>, <strong>Safari</strong> veya <strong>Samsung Internet</strong> tarayıcısında aç.</li>
+        <li>Tarayıcı menüsünü (<strong>⋮</strong> veya paylaş simgesi) açıp <strong>"Ana ekrana ekle"</strong> veya <strong>"Uygulamayı yükle"</strong> seçeneğine dokun.</li>
+        <li>Onayladıktan sonra ana ekranına eklenen simge üzerinden tam ekran uygulama olarak kullanmaya başla.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Food Photo Lightbox Modal -->
+  <div id="foodPhotoModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="ios-glass rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl">
+      <div class="relative bg-slate-900/80">
+        <img id="foodPhotoModalImg" src="" alt="" class="w-full max-h-[65vh] object-contain mx-auto">
+        <button id="btnCloseFoodPhotoModal" type="button" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-sm transition active:scale-95" aria-label="Fotoğrafı Kapat">✕</button>
+      </div>
+      <div class="p-4 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="foodPhotoModalTitle" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug"></h3>
+          <p id="foodPhotoModalDate" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5"></p>
+        </div>
+        <span id="foodPhotoModalDesc" class="hidden shrink-0 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-semibold tabular-nums"></span>
+      </div>
+    </div>
+  </div>
 
   <!-- Note Modal -->
   <div id="noteModal" class="fixed inset-0 z-50 hidden bg-black/30 backdrop-blur-md flex items-center justify-center p-4">
@@ -2590,52 +2614,45 @@
 
   <div id="toastBanner" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded-full ios-glass text-slate-900 dark:text-white text-xs font-semibold shadow-lg"></div>
 
-  <!-- AUTHENTIC APPLE iOS 18 FLOATING ISLAND DOCK -->
-  <nav class="fixed inset-x-2.5 sm:inset-x-0 sm:mx-auto sm:w-[512px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
+  <!-- AUTHENTIC APPLE iOS 18 FLOATING ISLAND DOCK (5 TABS) -->
+  <nav class="fixed inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[440px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
     <div id="dockContainer" class="ios-floating-dock rounded-full p-1 flex items-center justify-between relative touch-none" style="touch-action: none;">
       <!-- Continuous Gliding Pill -->
-      <div id="tabIndicatorPill" style="transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform: translate3d(285.389px, 0px, 0px); width: 70.2556px;"></div>
+      <div id="tabIndicatorPill" style="transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform: translate3d(4px, 0px, 0px); width: 70px;"></div>
 
-      <button type="button" data-tab="daily" data-tab-index="0" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
-        <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+      <button type="button" data-tab="daily" data-tab-index="0" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-semibold relative z-10 transition-colors duration-200 select-none">
+        <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1.1);">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
         </div>
-        <span id="navLabelDaily" class="text-[9px] sm:text-[10px] tracking-tight whitespace-nowrap">Bugün</span>
+        <span id="navLabelDaily" class="text-[10px] sm:text-[10.5px] tracking-tight whitespace-nowrap">Bugün</span>
       </button>
 
       <button type="button" data-tab="weekly" data-tab-index="1" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </div>
-        <span id="navLabelWeekly" class="text-[9px] sm:text-[10px] tracking-tight whitespace-nowrap">Haftalar</span>
+        <span id="navLabelWeekly" class="text-[10px] sm:text-[10.5px] tracking-tight whitespace-nowrap">Haftalar</span>
       </button>
 
       <button type="button" data-tab="search" data-tab-index="2" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
-        <span id="navLabelSearch" class="text-[9px] sm:text-[10px] tracking-tight whitespace-nowrap">Arama</span>
+        <span id="navLabelSearch" class="text-[10px] sm:text-[10.5px] tracking-tight whitespace-nowrap">Arama</span>
       </button>
 
       <button type="button" data-tab="info" data-tab-index="3" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </div>
-        <span id="navLabelInfo" class="text-[9px] sm:text-[10px] tracking-tight whitespace-nowrap">Sınav &amp; Not</span>
+        <span id="navLabelInfo" class="text-[10px] sm:text-[10.5px] tracking-tight whitespace-nowrap">Sınav &amp; Not</span>
       </button>
 
       <button type="button" data-tab="food" data-tab-index="4" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>
         </div>
-        <span id="navLabelFood" class="text-[9px] sm:text-[10px] tracking-tight whitespace-nowrap">Yemekhane</span>
-      </button>
-
-      <button type="button" data-tab="install" data-tab-index="5" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-semibold relative z-10 transition-colors duration-200 select-none">
-        <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1.08);">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-        </div>
-        <span id="navLabelInstall" class="text-[9px] sm:text-[10px] tracking-tight whitespace-nowrap">Kurulum</span>
+        <span id="navLabelFood" class="text-[10px] sm:text-[10.5px] tracking-tight whitespace-nowrap">Yemekhane</span>
       </button>
     </div>
   </nav>
@@ -3093,12 +3110,17 @@
       document.getElementById('btnDeleteNote').textContent = loc.noteDelete;
       document.getElementById('btnSaveNote').textContent = loc.noteSave;
 
+      const openInstallBtn = document.getElementById('btnOpenInstallModal');
+      if (openInstallBtn) {
+        openInstallBtn.setAttribute('aria-label', loc.installBtn);
+        openInstallBtn.setAttribute('title', loc.installBtn);
+      }
+
       document.getElementById('navLabelDaily').textContent = loc.navDaily;
       document.getElementById('navLabelWeekly').textContent = loc.navWeekly;
       document.getElementById('navLabelFood').textContent = loc.navFood;
       document.getElementById('navLabelSearch').textContent = loc.navSearch;
       document.getElementById('navLabelInfo').textContent = loc.navInfo;
-      document.getElementById('navLabelInstall').textContent = loc.navInstall;
 
       document.getElementById('btnFoodModeDaily').textContent = loc.foodModeDaily;
       document.getElementById('btnFoodModeWeekly').textContent = loc.foodModeWeekly;
@@ -3126,7 +3148,7 @@
     }
 
     // ==================== iOS 18 LIQUID GLASS DOCK INDICATOR ====================
-    const TAB_ORDER = ['daily', 'weekly', 'search', 'info', 'food', 'install'];
+    const TAB_ORDER = ['daily', 'weekly', 'search', 'info', 'food'];
 
     const PILL_SPRING = 'transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), width 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), background-color 0.2s ease, box-shadow 0.2s ease';
     let lastVisualActiveTab = null;
@@ -3169,7 +3191,7 @@
     function activateTabView(tabName) {
       const changed = state.activeTab !== tabName;
       state.activeTab = tabName;
-      ['daily', 'weekly', 'food', 'search', 'info', 'install'].forEach((tKey) => {
+      ['daily', 'weekly', 'food', 'search', 'info'].forEach((tKey) => {
         const el = document.getElementById('view' + tKey.charAt(0).toUpperCase() + tKey.slice(1));
         if (!el) return;
         const shouldHide = tKey !== tabName;
@@ -4089,7 +4111,33 @@
       }, { passive: true });
     }
 
-    function createFoodDishCard(item) {
+    function openFoodPhotoModal(imgUrl, title, desc, isoDate) {
+      const modal = document.getElementById('foodPhotoModal');
+      const img = document.getElementById('foodPhotoModalImg');
+      const titleEl = document.getElementById('foodPhotoModalTitle');
+      const descEl = document.getElementById('foodPhotoModalDesc');
+      const dateEl = document.getElementById('foodPhotoModalDate');
+      if (!modal || !img) return;
+      img.src = imgUrl;
+      img.alt = title || '';
+      titleEl.textContent = title || '';
+      dateEl.textContent = isoDate ? formatDateLong(isoToDMY(isoDate)) : '';
+      if (desc) {
+        descEl.textContent = desc;
+        descEl.classList.remove('hidden');
+      } else {
+        descEl.textContent = '';
+        descEl.classList.add('hidden');
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeFoodPhotoModal() {
+      const modal = document.getElementById('foodPhotoModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function createFoodDishCard(item, isoDate = '') {
       const card = document.createElement('div');
       card.className = 'ios-glass rounded-2xl overflow-hidden flex flex-col';
 
@@ -4101,19 +4149,41 @@
       placeholder.className = 'w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500';
       placeholder.innerHTML = '<svg class="w-8 h-8 opacity-60" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>';
 
+      const titleStr = (item.food_name || '').trim();
+      const descStr = (item.food_desc || '').trim();
       const imgUrl = getFoodImageUrl(item);
+      let hasValidPhoto = Boolean(imgUrl);
+
       if (imgUrl) {
         placeholder.style.display = 'none';
         const img = document.createElement('img');
         img.src = imgUrl;
-        img.alt = (item.food_name || '').trim();
+        img.alt = titleStr;
         img.loading = 'lazy';
         img.className = 'w-full h-full object-cover';
         img.addEventListener('error', () => {
+          hasValidPhoto = false;
+          card.classList.remove('cursor-pointer', 'transition-transform', 'active:scale-[0.98]');
+          card.removeAttribute('role');
+          card.removeAttribute('tabindex');
           img.style.display = 'none';
           placeholder.style.display = 'flex';
         });
         imgWrap.appendChild(img);
+
+        card.className += ' cursor-pointer transition-transform active:scale-[0.98]';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        const handleOpen = () => {
+          if (hasValidPhoto) openFoodPhotoModal(imgUrl, titleStr, descStr, isoDate);
+        };
+        card.addEventListener('click', handleOpen);
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleOpen();
+          }
+        });
       }
       imgWrap.appendChild(placeholder);
 
@@ -4122,14 +4192,13 @@
 
       const title = document.createElement('h4');
       title.className = 'text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white leading-snug';
-      title.textContent = (item.food_name || '').trim();
+      title.textContent = titleStr;
       body.appendChild(title);
 
-      const desc = (item.food_desc || '').trim();
-      if (desc) {
+      if (descStr) {
         const badge = document.createElement('span');
         badge.className = 'self-start inline-block px-2 py-0.5 rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-semibold tabular-nums';
-        badge.textContent = desc;
+        badge.textContent = descStr;
         body.appendChild(badge);
       }
 
@@ -4208,7 +4277,7 @@
 
         const grid = document.createElement('div');
         grid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2.5';
-        regular.forEach((item) => grid.appendChild(createFoodDishCard(item)));
+        regular.forEach((item) => grid.appendChild(createFoodDishCard(item, isoDate)));
         sec.appendChild(grid);
         container.appendChild(sec);
       }
@@ -4223,7 +4292,7 @@
 
         const grid = document.createElement('div');
         grid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2.5';
-        grouped[typeKey].forEach((item) => grid.appendChild(createFoodDishCard(item)));
+        grouped[typeKey].forEach((item) => grid.appendChild(createFoodDishCard(item, isoDate)));
         sec.appendChild(grid);
         container.appendChild(sec);
       });
@@ -4336,7 +4405,7 @@
           const mainItems = regular.length > 0 ? regular : items;
           const grid = document.createElement('div');
           grid.className = 'grid grid-cols-2 sm:grid-cols-4 gap-2';
-          mainItems.forEach((item) => grid.appendChild(createFoodDishCard(item)));
+          mainItems.forEach((item) => grid.appendChild(createFoodDishCard(item, iso)));
           daySection.appendChild(grid);
 
           Object.keys(grouped).forEach((typeKey) => {
@@ -4347,7 +4416,7 @@
 
             const spGrid = document.createElement('div');
             spGrid.className = 'grid grid-cols-2 sm:grid-cols-4 gap-2';
-            grouped[typeKey].forEach((item) => spGrid.appendChild(createFoodDishCard(item)));
+            grouped[typeKey].forEach((item) => spGrid.appendChild(createFoodDishCard(item, iso)));
             daySection.appendChild(spGrid);
           });
         }
@@ -4766,6 +4835,48 @@
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       const installActionWrap = document.getElementById('pwaInstallActionWrap');
       const btnInstallApp = document.getElementById('btnInstallApp');
+      const btnOpenInstallModal = document.getElementById('btnOpenInstallModal');
+      const installModal = document.getElementById('installModal');
+      const btnCloseInstallModal = document.getElementById('btnCloseInstallModal');
+
+      if (isStandalone && btnOpenInstallModal) {
+        btnOpenInstallModal.classList.add('hidden');
+      }
+
+      if (btnOpenInstallModal && installModal) {
+        btnOpenInstallModal.addEventListener('click', () => {
+          installModal.classList.remove('hidden');
+        });
+      }
+      if (btnCloseInstallModal && installModal) {
+        btnCloseInstallModal.addEventListener('click', () => {
+          installModal.classList.add('hidden');
+        });
+      }
+      if (installModal) {
+        installModal.addEventListener('click', (e) => {
+          if (e.target.id === 'installModal') installModal.classList.add('hidden');
+        });
+      }
+
+      const btnCloseFoodPhotoModal = document.getElementById('btnCloseFoodPhotoModal');
+      const foodPhotoModal = document.getElementById('foodPhotoModal');
+      if (btnCloseFoodPhotoModal) {
+        btnCloseFoodPhotoModal.addEventListener('click', closeFoodPhotoModal);
+      }
+      if (foodPhotoModal) {
+        foodPhotoModal.addEventListener('click', (e) => {
+          if (e.target.id === 'foodPhotoModal') closeFoodPhotoModal();
+        });
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeFoodPhotoModal();
+          closeNoteModal();
+          if (installModal) installModal.classList.add('hidden');
+        }
+      });
 
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -4778,6 +4889,8 @@
       window.addEventListener('appinstalled', () => {
         deferredInstallPrompt = null;
         if (installActionWrap) installActionWrap.classList.add('hidden');
+        if (installModal) installModal.classList.add('hidden');
+        if (btnOpenInstallModal) btnOpenInstallModal.classList.add('hidden');
       });
 
       if (btnInstallApp) {
@@ -4788,6 +4901,8 @@
           if (outcome === 'accepted') {
             deferredInstallPrompt = null;
             if (installActionWrap) installActionWrap.classList.add('hidden');
+            if (installModal) installModal.classList.add('hidden');
+            if (btnOpenInstallModal) btnOpenInstallModal.classList.add('hidden');
           }
         });
       }
