@@ -2303,13 +2303,65 @@
       transition: transform 0.28s cubic-bezier(0.22, 1.25, 0.36, 1);
       will-change: transform;
     }
-    @keyframes tabFadeIn {
-      from { opacity: 0.78; }
+    @keyframes tabEnterRight {
+      from {
+        opacity: 0;
+        transform: translate3d(28px, 6px, 0) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    @keyframes tabEnterLeft {
+      from {
+        opacity: 0;
+        transform: translate3d(-28px, 6px, 0) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    .tab-enter-right {
+      animation: tabEnterRight 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .tab-enter-left {
+      animation: tabEnterLeft 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes modalBackdropIn {
+      from { opacity: 0; }
       to { opacity: 1; }
     }
-    .tab-fade-in {
-      animation: tabFadeIn 0.16s ease-out;
+    @keyframes modalBackdropOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
     }
+    @keyframes modalCardIn {
+      from {
+        opacity: 0;
+        transform: scale(0.92) translate3d(0, 10px, 0);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    @keyframes modalCardOut {
+      from {
+        opacity: 1;
+        transform: none;
+      }
+      to {
+        opacity: 0;
+        transform: scale(0.94) translate3d(0, 8px, 0);
+      }
+    }
+    .modal-backdrop-in { animation: modalBackdropIn 0.2s ease-out; }
+    .modal-backdrop-out { animation: modalBackdropOut 0.16s ease-in forwards; }
+    .modal-card-in { animation: modalCardIn 0.24s cubic-bezier(0.22, 1.12, 0.36, 1); }
+    .modal-card-out { animation: modalCardOut 0.16s ease-in forwards; }
 
     .ios-pill-control {
       background: rgba(118, 118, 128, 0.12);
@@ -2320,6 +2372,18 @@
       background: rgba(255, 255, 255, 0.10);
       -webkit-backdrop-filter: saturate(160%) blur(16px);
       backdrop-filter: saturate(160%) blur(16px);
+    }
+
+    #foodDateInput {
+      text-align: center;
+      padding-inline: 2px;
+    }
+    #foodDateInput::-webkit-date-and-time-value {
+      text-align: center;
+    }
+    #foodDateInput::-webkit-calendar-picker-indicator {
+      margin-inline-start: 2px;
+      cursor: pointer;
     }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -2462,9 +2526,16 @@
             <p id="foodSubInfo" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">İnönü Üniversitesi Yemekhane Menüsü</p>
           </div>
 
-          <div class="ios-pill-control p-0.5 rounded-full flex items-center shrink-0">
-            <button id="btnFoodModeDaily" type="button" class="px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">Günlük</button>
-            <button id="btnFoodModeWeekly" type="button" class="px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition">Haftalık</button>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="btnFoodRefresh" type="button" aria-label="Menüyü Yenile" title="Menüyü Yenile" class="ios-pill-control p-0.5 rounded-full flex items-center justify-center transition active:scale-90">
+              <span class="w-6 h-6 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-2xs flex items-center justify-center transition">
+                <svg id="iconFoodRefresh" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              </span>
+            </button>
+            <div class="ios-pill-control p-0.5 rounded-full flex items-center">
+              <button id="btnFoodModeDaily" type="button" class="px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">Günlük</button>
+              <button id="btnFoodModeWeekly" type="button" class="px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition">Haftalık</button>
+            </div>
           </div>
         </div>
 
@@ -2482,8 +2553,8 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-center gap-1.5 sm:gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
-          <button id="btnFoodPrev" type="button" class="px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-1 active:scale-95 shadow-2xs shrink-0">
+        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
+          <button id="btnFoodPrev" type="button" class="justify-self-end min-w-[82px] px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center justify-center gap-1 active:scale-95 shadow-2xs shrink-0">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
             <span id="btnFoodPrevLabel">Önceki</span>
           </button>
@@ -2492,13 +2563,9 @@
             <input id="foodDateInput" type="date" aria-label="Yemekhane Tarihi" class="bg-transparent text-slate-800 dark:text-slate-100 text-xs font-bold focus:outline-none text-center cursor-pointer">
           </div>
 
-          <button id="btnFoodNext" type="button" class="px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-1 active:scale-95 shadow-2xs shrink-0">
+          <button id="btnFoodNext" type="button" class="justify-self-start min-w-[82px] px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center justify-center gap-1 active:scale-95 shadow-2xs shrink-0">
             <span id="btnFoodNextLabel">Sonraki</span>
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
-          </button>
-
-          <button id="btnFoodRefresh" type="button" aria-label="Menüyü Yenile" class="w-7 h-7 rounded-full ios-pill-control hover:bg-slate-500/15 flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95 shrink-0">
-            <svg id="iconFoodRefresh" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
           </button>
         </div>
       </div>
@@ -2506,9 +2573,9 @@
       <div id="foodAnnouncementsContainer" class="hidden space-y-2"></div>
       <div id="foodMenuContainer" class="space-y-3.5"></div>
 
-      <div class="pt-1 pb-1 flex items-center justify-center gap-3 flex-wrap">
-        <a id="foodSourceLink" href="https://www.inonu.edu.tr/yemek" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-full text-[11px] font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition hover:bg-blue-500/10">inonu.edu.tr/yemek ↗</a>
-        <a id="foodReserveLink" href="https://yemek.inonu.edu.tr" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-full text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition">Yemek Rezervasyonu ↗</a>
+      <div class="pt-1 pb-1 flex items-center justify-center gap-2.5 flex-wrap">
+        <a id="foodSourceLink" href="https://www.inonu.edu.tr/yemek" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-full ios-pill-control text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/15 transition active:scale-95 inline-flex items-center justify-center">inonu.edu.tr/yemek ↗</a>
+        <a id="foodReserveLink" href="https://yemek.inonu.edu.tr" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-full ios-pill-control text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/15 transition active:scale-95 inline-flex items-center justify-center">Yemek Rezervasyonu ↗</a>
       </div>
     </section>
 
@@ -2581,7 +2648,7 @@
 
   <!-- Food Photo Lightbox Modal -->
   <div id="foodPhotoModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-    <div class="ios-glass rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl">
+    <div id="foodPhotoModalCard" class="ios-glass rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl">
       <div class="relative bg-slate-900/80">
         <img id="foodPhotoModalImg" src="" alt="" class="w-full max-h-[65vh] object-contain mx-auto">
         <button id="btnCloseFoodPhotoModal" type="button" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-sm transition active:scale-95" aria-label="Fotoğrafı Kapat">✕</button>
@@ -3189,17 +3256,22 @@
     }
 
     function activateTabView(tabName) {
-      const changed = state.activeTab !== tabName;
+      const prevTab = state.activeTab;
+      const changed = prevTab !== tabName;
+      const prevIdx = TAB_ORDER.indexOf(prevTab);
+      const nextIdx = TAB_ORDER.indexOf(tabName);
+      const enterCls = nextIdx < prevIdx ? 'tab-enter-left' : 'tab-enter-right';
+
       state.activeTab = tabName;
       ['daily', 'weekly', 'food', 'search', 'info'].forEach((tKey) => {
         const el = document.getElementById('view' + tKey.charAt(0).toUpperCase() + tKey.slice(1));
         if (!el) return;
         const shouldHide = tKey !== tabName;
         el.classList.toggle('hidden', shouldHide);
+        el.classList.remove('tab-enter-right', 'tab-enter-left');
         if (!shouldHide && changed) {
-          el.classList.remove('tab-fade-in');
           void el.offsetWidth;
-          el.classList.add('tab-fade-in');
+          el.classList.add(enterCls);
         }
       });
 
@@ -4111,13 +4183,17 @@
       }, { passive: true });
     }
 
+    let foodPhotoCloseTimer = null;
+
     function openFoodPhotoModal(imgUrl, title, desc, isoDate) {
       const modal = document.getElementById('foodPhotoModal');
+      const card = document.getElementById('foodPhotoModalCard');
       const img = document.getElementById('foodPhotoModalImg');
       const titleEl = document.getElementById('foodPhotoModalTitle');
       const descEl = document.getElementById('foodPhotoModalDesc');
       const dateEl = document.getElementById('foodPhotoModalDate');
       if (!modal || !img) return;
+      clearTimeout(foodPhotoCloseTimer);
       img.src = imgUrl;
       img.alt = title || '';
       titleEl.textContent = title || '';
@@ -4129,12 +4205,29 @@
         descEl.textContent = '';
         descEl.classList.add('hidden');
       }
-      modal.classList.remove('hidden');
+      modal.classList.remove('hidden', 'modal-backdrop-out', 'modal-backdrop-in');
+      if (card) card.classList.remove('modal-card-out', 'modal-card-in');
+      void modal.offsetWidth;
+      modal.classList.add('modal-backdrop-in');
+      if (card) card.classList.add('modal-card-in');
     }
 
     function closeFoodPhotoModal() {
       const modal = document.getElementById('foodPhotoModal');
-      if (modal) modal.classList.add('hidden');
+      const card = document.getElementById('foodPhotoModalCard');
+      if (!modal || modal.classList.contains('hidden')) return;
+      clearTimeout(foodPhotoCloseTimer);
+      modal.classList.remove('modal-backdrop-in');
+      modal.classList.add('modal-backdrop-out');
+      if (card) {
+        card.classList.remove('modal-card-in');
+        card.classList.add('modal-card-out');
+      }
+      foodPhotoCloseTimer = setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('modal-backdrop-out');
+        if (card) card.classList.remove('modal-card-out');
+      }, 160);
     }
 
     function createFoodDishCard(item, isoDate = '') {
