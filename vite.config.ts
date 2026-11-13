@@ -12,14 +12,14 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
+        includeAssets: ['favicon.png', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
         manifest: {
           id: './',
           name: 'İnönü Tıp Dönem I Ders Programı',
           short_name: 'İnönü Tıp D1',
           description: 'İnönü Üniversitesi Tıp Fakültesi Dönem I (2026-2027) Türkçe ve İngilizce Ders Programı',
           theme_color: '#000000',
-          background_color: '#000000',
+          background_color: '#ffffff',
           display: 'standalone',
           start_url: './',
           scope: './',

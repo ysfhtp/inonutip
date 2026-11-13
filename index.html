@@ -9,8 +9,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="İnönü Tıp D1">
   <meta name="description" content="İnönü Üniversitesi Tıp Fakültesi Dönem I (2026-2027) Türkçe ve İngilizce Ders Programı">
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./pwa-192x192.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png">
+  <link rel="shortcut icon" type="image/png" href="./favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
@@ -2269,6 +2271,25 @@
       background: rgba(255, 255, 255, 0.16);
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
     }
+    #tabIndicatorPill.is-dragging {
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.14);
+    }
+    .dark #tabIndicatorPill.is-dragging {
+      background: rgba(255, 255, 255, 0.24);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
+    }
+    .nav-icon-wrap {
+      transition: transform 0.28s cubic-bezier(0.22, 1.25, 0.36, 1);
+      will-change: transform;
+    }
+    @keyframes tabFadeIn {
+      from { opacity: 0.78; }
+      to { opacity: 1; }
+    }
+    .tab-fade-in {
+      animation: tabFadeIn 0.16s ease-out;
+    }
 
     .ios-pill-control {
       background: rgba(118, 118, 128, 0.12);
@@ -2446,15 +2467,9 @@
     <!-- ==================== TAB 5: KURULUM ==================== -->
     <section id="viewInstall" class="space-y-3.5">
       <div class="ios-glass rounded-3xl p-5 space-y-3">
-        <div class="flex items-center justify-between gap-2 flex-wrap">
-          <span id="installBadge" class="inline-block px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
-            Uygulama Kurulumu
-          </span>
-          <span id="offlineStatusPill" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span id="offlineStatusLabel">Çevrimdışı Hazır</span>
-          </span>
-        </div>
+        <span id="installBadge" class="inline-block px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
+          Uygulama Kurulumu
+        </span>
         <h2 id="installTitle" class="text-lg font-bold text-slate-900 dark:text-white">Ana Ekrana Ekleme Adımları</h2>
         <p id="installDesc" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           Ders programını telefonuna uygulama gibi kurarak tam ekran ve çevrimdışı erişimle kullanabilirsin.
@@ -2493,7 +2508,7 @@
   <div id="toastBanner" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded-full ios-glass text-slate-900 dark:text-white text-xs font-semibold shadow-lg"></div>
 
   <!-- AUTHENTIC APPLE iOS 18 FLOATING ISLAND DOCK -->
-  <nav class="fixed inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[460px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));">
+  <nav class="fixed inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[460px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
     <div id="dockContainer" class="ios-floating-dock rounded-full p-1 flex items-center justify-between relative touch-none" style="touch-action: none;">
       <!-- Continuous Gliding Pill -->
       <div id="tabIndicatorPill" style="transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform: translate3d(285.389px, 0px, 0px); width: 70.2556px;"></div>
@@ -2594,8 +2609,6 @@
         installTitle: 'Ana Ekrana Ekleme Adımları',
         installDesc: 'Ders programını telefonuna uygulama gibi kurarak tam ekran ve çevrimdışı erişimle kullanabilirsin.',
         installBtn: 'Uygulamayı Yükle',
-        offlineReady: 'Çevrimdışı Hazır',
-        offlineActive: 'Çevrimdışı Mod • Önbellekten Çalışıyor',
         offlineToast: 'Çevrimdışı mod — önbellekteki program kullanılıyor',
         onlineToast: 'Bağlantı yeniden sağlandı',
         installStepsHtml:
@@ -2660,8 +2673,6 @@
         installTitle: 'Add to Home Screen Steps',
         installDesc: 'Install the schedule on your phone like a native app for full-screen and offline access.',
         installBtn: 'Install App',
-        offlineReady: 'Offline Ready',
-        offlineActive: 'Offline Mode • Running from Cache',
         offlineToast: 'Offline mode — using cached schedule',
         onlineToast: 'Back online',
         installStepsHtml:
@@ -2877,24 +2888,6 @@
       document.getElementById('headerLiveClock').textContent = text;
     }
 
-    function updateOfflineStatusPill() {
-      const pill = document.getElementById('offlineStatusPill');
-      const label = document.getElementById('offlineStatusLabel');
-      if (!pill || !label) return;
-      const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
-      const loc = I18N[state.lang];
-      const dot = pill.querySelector('span');
-      if (isOnline) {
-        pill.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold';
-        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500';
-        label.textContent = loc.offlineReady;
-      } else {
-        pill.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[11px] font-semibold';
-        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse';
-        label.textContent = loc.offlineActive;
-      }
-    }
-
     // ==================== LANGUAGE SWITCHER ====================
     function applyLanguageUI() {
       const loc = I18N[state.lang];
@@ -2940,7 +2933,6 @@
       document.getElementById('installDesc').textContent = loc.installDesc;
       document.getElementById('btnInstallAppLabel').textContent = loc.installBtn;
       document.getElementById('installStepsList').innerHTML = loc.installStepsHtml;
-      updateOfflineStatusPill();
 
       document.getElementById('noteModalTitle').textContent = loc.noteModalTitle;
       document.getElementById('noteModalTextarea').placeholder = loc.notePlaceholder;
@@ -2973,50 +2965,49 @@
     // ==================== iOS 18 LIQUID GLASS DOCK INDICATOR ====================
     const TAB_ORDER = ['daily', 'weekly', 'search', 'info', 'install'];
 
+    const PILL_SPRING = 'transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), width 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), background-color 0.2s ease, box-shadow 0.2s ease';
+    let lastVisualActiveTab = null;
+
     function updateTabIndicator(tabName, animate = true) {
       const dock = document.getElementById('dockContainer');
       const pill = document.getElementById('tabIndicatorPill');
-      const btn = dock.querySelector(`.nav-tab-btn[data-tab="${tabName}"]`);
+      const btn = dock && dock.querySelector(`.nav-tab-btn[data-tab="${tabName}"]`);
       if (!btn || !pill) return;
 
       const left = btn.offsetLeft;
       const width = btn.offsetWidth;
 
+      pill.classList.remove('is-dragging');
       if (!animate) {
         pill.style.transition = 'none';
       } else {
-        pill.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1)';
+        pill.style.transition = PILL_SPRING;
       }
 
-      pill.style.transform = `translate3d(${left}px, 0, 0)`;
+      pill.style.transform = `translate3d(${left}px, 0, 0) scale(1)`;
       pill.style.width = `${width}px`;
 
       if (!animate) {
         pill.getBoundingClientRect();
-        pill.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1)';
+        pill.style.transition = PILL_SPRING;
       }
 
-      document.querySelectorAll('.nav-tab-btn').forEach((b) => {
-        const isAct = b.getAttribute('data-tab') === tabName;
-        const iconWrap = b.querySelector('.nav-icon-wrap');
-        const svg = b.querySelector('svg');
-        if (isAct) {
-          b.className = 'nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-bold relative z-10 transition-colors duration-200 select-none';
-          if (iconWrap) iconWrap.style.transform = 'scale(1.08)';
-          if (svg) svg.setAttribute('stroke-width', '2.2');
-        } else {
-          b.className = 'nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none';
-          if (iconWrap) iconWrap.style.transform = 'scale(1)';
-          if (svg) svg.setAttribute('stroke-width', '1.9');
-        }
-      });
+      setDockActiveVisual(tabName, true);
     }
 
     function activateTabView(tabName) {
+      const changed = state.activeTab !== tabName;
       state.activeTab = tabName;
       ['daily', 'weekly', 'search', 'info', 'install'].forEach((tKey) => {
         const el = document.getElementById('view' + tKey.charAt(0).toUpperCase() + tKey.slice(1));
-        if (el) el.classList.toggle('hidden', tKey !== tabName);
+        if (!el) return;
+        const shouldHide = tKey !== tabName;
+        el.classList.toggle('hidden', shouldHide);
+        if (!shouldHide && changed) {
+          el.classList.remove('tab-fade-in');
+          void el.offsetWidth;
+          el.classList.add('tab-fade-in');
+        }
       });
 
       if (tabName === 'daily') renderDailyView();
@@ -3025,20 +3016,20 @@
       if (tabName === 'info') renderInfoView();
     }
 
-    function setDockActiveVisual(tabName) {
+    function setDockActiveVisual(tabName, force = false) {
+      if (!force && lastVisualActiveTab === tabName) return;
+      lastVisualActiveTab = tabName;
+      const activeCls = 'nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-bold relative z-10 transition-colors duration-200 select-none';
+      const inactiveCls = 'nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none';
+
       document.querySelectorAll('.nav-tab-btn').forEach((b) => {
         const isAct = b.getAttribute('data-tab') === tabName;
         const iconWrap = b.querySelector('.nav-icon-wrap');
         const svg = b.querySelector('svg');
-        if (isAct) {
-          b.className = 'nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-bold relative z-10 transition-colors duration-200 select-none';
-          if (iconWrap) iconWrap.style.transform = 'scale(1.08)';
-          if (svg) svg.setAttribute('stroke-width', '2.2');
-        } else {
-          b.className = 'nav-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-medium relative z-10 transition-colors duration-200 select-none';
-          if (iconWrap) iconWrap.style.transform = 'scale(1)';
-          if (svg) svg.setAttribute('stroke-width', '1.9');
-        }
+        const targetCls = isAct ? activeCls : inactiveCls;
+        if (b.className !== targetCls) b.className = targetCls;
+        if (iconWrap) iconWrap.style.transform = isAct ? 'scale(1.1)' : 'scale(1)';
+        if (svg) svg.setAttribute('stroke-width', isAct ? '2.2' : '1.9');
       });
     }
 
@@ -3048,25 +3039,63 @@
       if (!dock || !pill) return;
 
       let isDragging = false;
-      let startX = 0;
       let didMove = false;
+      let startX = 0;
+      let startY = 0;
       let currentTargetTab = state.activeTab;
+      let renderedTab = state.activeTab;
+      let metrics = null;
+      let currentPillX = 0;
+      let targetPillX = 0;
+      let pillWidth = 0;
+      let rafId = null;
+      let viewSettleTimer = null;
 
-      function getTabAtClientX(clientX) {
+      function measureDock() {
         const rect = dock.getBoundingClientRect();
-        const relX = Math.max(4, Math.min(rect.width - 4, clientX - rect.left));
-        const buttons = Array.from(dock.querySelectorAll('.nav-tab-btn'));
-        let closest = buttons[0];
+        const btns = Array.from(dock.querySelectorAll('.nav-tab-btn')).map((btn) => ({
+          el: btn,
+          tab: btn.getAttribute('data-tab'),
+          left: btn.offsetLeft,
+          width: btn.offsetWidth,
+          center: btn.offsetLeft + btn.offsetWidth / 2
+        }));
+        return { rectLeft: rect.left, width: rect.width, btns };
+      }
+
+      function getClosestBtn(clientX) {
+        const relX = Math.max(4, Math.min(metrics.width - 4, clientX - metrics.rectLeft));
+        let closest = metrics.btns[0];
         let minDist = Infinity;
-        for (const btn of buttons) {
-          const btnCenter = btn.offsetLeft + btn.offsetWidth / 2;
-          const d = Math.abs(relX - btnCenter);
+        for (let i = 0; i < metrics.btns.length; i++) {
+          const d = Math.abs(relX - metrics.btns[i].center);
           if (d < minDist) {
             minDist = d;
-            closest = btn;
+            closest = metrics.btns[i];
           }
         }
         return closest;
+      }
+
+      function tickDrag() {
+        if (!isDragging || !didMove) {
+          rafId = null;
+          return;
+        }
+        const diff = targetPillX - currentPillX;
+        currentPillX += Math.abs(diff) < 0.25 ? diff : diff * 0.42;
+        pill.style.transform = `translate3d(${currentPillX.toFixed(2)}px, 0, 0) scale(1.04)`;
+        rafId = requestAnimationFrame(tickDrag);
+      }
+
+      function scheduleTabPreview(tabName) {
+        clearTimeout(viewSettleTimer);
+        viewSettleTimer = setTimeout(() => {
+          if (isDragging && currentTargetTab === tabName && renderedTab !== tabName) {
+            renderedTab = tabName;
+            activateTabView(tabName);
+          }
+        }, 120);
       }
 
       dock.addEventListener('pointerdown', (e) => {
@@ -3074,49 +3103,70 @@
         isDragging = true;
         didMove = false;
         startX = e.clientX;
+        startY = e.clientY;
         currentTargetTab = state.activeTab;
+        renderedTab = state.activeTab;
+        metrics = measureDock();
+
+        const activeInfo = metrics.btns.find((b) => b.tab === state.activeTab) || metrics.btns[0];
+        currentPillX = activeInfo.left;
+        targetPillX = activeInfo.left;
+        pillWidth = activeInfo.width;
+
         try { dock.setPointerCapture(e.pointerId); } catch (err) {}
       });
 
       dock.addEventListener('pointermove', (e) => {
-        if (!isDragging) return;
-        if (Math.abs(e.clientX - startX) > 4) {
+        if (!isDragging || !metrics) return;
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+
+        if (!didMove) {
+          if (dx <= 8 && dy <= 8) return;
           didMove = true;
+          pill.style.transition = 'none';
+          pill.classList.add('is-dragging');
+          if (!rafId) rafId = requestAnimationFrame(tickDrag);
         }
-        if (!didMove) return;
 
-        const rect = dock.getBoundingClientRect();
-        const hoverBtn = getTabAtClientX(e.clientX);
-        const btnW = hoverBtn ? hoverBtn.offsetWidth : rect.width / 5;
-        const clampedLeft = Math.max(4, Math.min(rect.width - btnW - 4, e.clientX - rect.left - btnW / 2));
-
-        pill.style.transition = 'none';
-        pill.style.transform = `translate3d(${clampedLeft}px, 0, 0)`;
+        const hoverBtn = getClosestBtn(e.clientX);
+        const btnW = hoverBtn ? hoverBtn.width : pillWidth;
+        pillWidth = btnW;
         pill.style.width = `${btnW}px`;
+        targetPillX = Math.max(4, Math.min(metrics.width - btnW - 4, e.clientX - metrics.rectLeft - btnW / 2));
 
-        if (hoverBtn) {
-          const hoverTab = hoverBtn.getAttribute('data-tab');
-          if (hoverTab && hoverTab !== currentTargetTab) {
-            currentTargetTab = hoverTab;
-            setDockActiveVisual(currentTargetTab);
-            activateTabView(currentTargetTab);
-          }
+        if (hoverBtn && hoverBtn.tab && hoverBtn.tab !== currentTargetTab) {
+          currentTargetTab = hoverBtn.tab;
+          setDockActiveVisual(currentTargetTab);
+          scheduleTabPreview(currentTargetTab);
         }
       });
 
       function endDrag(e) {
         if (!isDragging) return;
         isDragging = false;
+        clearTimeout(viewSettleTimer);
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
         try { dock.releasePointerCapture(e.pointerId); } catch (err) {}
 
+        pill.classList.remove('is-dragging');
+
         if (didMove) {
-          switchTab(currentTargetTab, true);
+          updateTabIndicator(currentTargetTab, true);
+          if (renderedTab !== currentTargetTab) {
+            activateTabView(currentTargetTab);
+          }
         } else if (e.type !== 'pointercancel') {
-          const clickedBtn = (e.target && e.target.closest && e.target.closest('.nav-tab-btn')) || getTabAtClientX(e.clientX);
-          if (clickedBtn) {
-            switchTab(clickedBtn.getAttribute('data-tab'), true);
+          const hit = (e.target && e.target.closest && e.target.closest('.nav-tab-btn'));
+          const clickedTab = (hit && hit.getAttribute('data-tab')) || (metrics && getClosestBtn(e.clientX).tab);
+          if (clickedTab) {
+            switchTab(clickedTab, true);
           }
         }
+        metrics = null;
       }
 
       dock.addEventListener('pointerup', endDrag);
@@ -3124,18 +3174,8 @@
     }
 
     function switchTab(tabName, animate = true) {
-      state.activeTab = tabName;
-      ['daily', 'weekly', 'search', 'info', 'install'].forEach((tKey) => {
-        const el = document.getElementById('view' + tKey.charAt(0).toUpperCase() + tKey.slice(1));
-        if (el) el.classList.toggle('hidden', tKey !== tabName);
-      });
-
       updateTabIndicator(tabName, animate);
-
-      if (tabName === 'daily') renderDailyView();
-      if (tabName === 'weekly') renderWeeklyView();
-      if (tabName === 'search') renderSearchView();
-      if (tabName === 'info') renderInfoView();
+      activateTabView(tabName);
     }
 
     // ==================== CLEAN SLOT CARD ====================
@@ -3832,16 +3872,11 @@
       }
 
       window.addEventListener('online', () => {
-        updateOfflineStatusPill();
         showToast(t('onlineToast'));
       });
       window.addEventListener('offline', () => {
-        updateOfflineStatusPill();
         showToast(t('offlineToast'));
       });
-      window.__onPwaOfflineReady = () => {
-        updateOfflineStatusPill();
-      };
 
       window.addEventListener('resize', () => {
         updateTabIndicator(state.activeTab, false);
