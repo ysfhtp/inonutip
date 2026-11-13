@@ -2477,6 +2477,9 @@
         </div>
       </div>
 
+      <!-- COMPACT LIVE / NEXT LESSON STATUS STRIP -->
+      <div id="dailyLiveStatusBar" class="hidden ios-glass rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer transition active:scale-[0.99]"></div>
+
       <!-- LESSON SLOTS CONTAINER -->
       <div id="dailySlotsContainer" class="space-y-2"></div>
 
@@ -2831,6 +2834,13 @@
         foodReserveLabel: 'Yemek Rezervasyonu ↗',
         foodAnnouncementBadge: 'Yemekhane Duyurusu',
         foodRefreshedToast: 'Yemek listesi güncellendi',
+        liveNowLabel: 'Şu An',
+        liveNextLabel: (t) => `Sıradaki (${t})`,
+        liveRemaining: (d) => `${d} kaldı`,
+        liveStartsIn: (d) => `${d} sonra`,
+        liveDoneToday: 'Bugünkü dersler tamamlandı',
+        liveMinUnit: 'dk',
+        liveHourUnit: 'sa',
         months: MONTHS_TR,
         monthsShort: MONTHS_SHORT_TR,
         days: DAYS_TR,
@@ -2926,6 +2936,13 @@
         foodReserveLabel: 'Meal Reservation ↗',
         foodAnnouncementBadge: 'Cafeteria Notice',
         foodRefreshedToast: 'Menu refreshed',
+        liveNowLabel: 'Now',
+        liveNextLabel: (t) => `Next (${t})`,
+        liveRemaining: (d) => `${d} left`,
+        liveStartsIn: (d) => `In ${d}`,
+        liveDoneToday: "Today's classes completed",
+        liveMinUnit: 'm',
+        liveHourUnit: 'h',
         months: MONTHS_EN,
         monthsShort: MONTHS_SHORT_EN,
         days: DAYS_EN,
@@ -3035,11 +3052,58 @@
       return `${hh}.${mm}`;
     }
 
+    function parseSlotTimeMins(hhmm) {
+      const [h, m] = String(hhmm || '0.0').split('.').map(Number);
+      return (h || 0) * 60 + (m || 0);
+    }
+
+    function formatLiveDuration(sec) {
+      const loc = I18N[state.lang];
+      const totalMins = Math.max(1, Math.ceil(sec / 60));
+      if (totalMins < 60) return `${totalMins} ${loc.liveMinUnit}`;
+      const hrs = Math.floor(totalMins / 60);
+      const mins = totalMins % 60;
+      return mins > 0 ? `${hrs} ${loc.liveHourUnit} ${mins} ${loc.liveMinUnit}` : `${hrs} ${loc.liveHourUnit}`;
+    }
+
+    function getTodayLiveLessonStatus(dayObj) {
+      if (!dayObj || dayObj.date !== formatDMY(getTodayDateObj())) return null;
+      const validSlots = (dayObj.slots || []).filter((s) => {
+        const code = (s.code || '').toUpperCase();
+        return code !== 'TATİL' && code !== 'HOLIDAY' && s.time && s.time.includes('-');
+      });
+      if (validSlots.length === 0) return null;
+
+      const now = new Date();
+      const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+      for (const slot of validSlots) {
+        const [startStr, endStr] = slot.time.split('-');
+        const startSec = parseSlotTimeMins(startStr) * 60;
+        const endSec = parseSlotTimeMins(endStr) * 60;
+        if (nowSec >= startSec && nowSec < endSec) {
+          return { mode: 'live', slot, remainingSec: endSec - nowSec };
+        }
+        if (nowSec < startSec) {
+          return { mode: 'next', slot, remainingSec: startSec - nowSec };
+        }
+      }
+      return { mode: 'done', slot: null, remainingSec: 0 };
+    }
+
+    function getLiveStatusCacheKey(status) {
+      if (!status) return '';
+      if (status.mode === 'done') return 'done';
+      return `${status.mode}:${status.slot.slotNo}:${Math.ceil(status.remainingSec / 60)}`;
+    }
+
     function isSlotCurrentlyLive(slot) {
       if (slot.date !== formatDMY(getTodayDateObj())) return false;
+      const code = (slot.code || '').toUpperCase();
+      if (code === 'TATİL' || code === 'HOLIDAY') return false;
       const nowStr = getCurrentActiveTimeString();
-      const [start, end] = slot.time.split('-');
-      return nowStr >= start && nowStr <= end;
+      const [start, end] = (slot.time || '').split('-');
+      return Boolean(start && end && nowStr >= start && nowStr < end);
     }
 
     function getCalmAccent(slot) {
@@ -3449,7 +3513,9 @@
     function createSlotCardElement(slot, options = {}) {
       const key = `${slot.date}_${slot.slotNo}`;
       const noteText = state.notes[key] || '';
-      const isLive = isSlotCurrentlyLive(slot);
+      const liveStatus = options.liveStatus || null;
+      const isLive = liveStatus ? (liveStatus.mode === 'live' && liveStatus.slot.slotNo === slot.slotNo) : isSlotCurrentlyLive(slot);
+      const isNext = Boolean(liveStatus && liveStatus.mode === 'next' && liveStatus.slot.slotNo === slot.slotNo);
       const accent = getCalmAccent(slot);
       const codeUpper = (slot.code || '').toUpperCase();
       const titleUpper = (slot.title || '').toUpperCase();
@@ -3457,7 +3523,9 @@
       const [startTime = '', endTime = ''] = (slot.time || '').split('-');
 
       const card = document.createElement('div');
-      card.className = `ios-glass rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} transition-colors`;
+      card.dataset.slotNo = String(slot.slotNo);
+      const ringCls = isLive ? 'ring-2 ring-blue-500/45' : (isNext ? 'ring-1 ring-emerald-500/45' : '');
+      card.className = `ios-glass rounded-[18px] px-3 py-2 ${ringCls} transition-colors`;
 
       const row = document.createElement('div');
       row.className = 'flex items-stretch gap-2.5';
@@ -3506,9 +3574,9 @@
       if (slot.code) metaParts.push(slot.code);
       if (slot.instructor) metaParts.push(slot.instructor);
 
-      if (metaParts.length > 0 || isLive) {
+      if (metaParts.length > 0 || isLive || isNext) {
         const metaRow = document.createElement('div');
-        metaRow.className = 'flex items-center gap-1.5 mt-0.5';
+        metaRow.className = 'flex items-center gap-1.5 mt-0.5 flex-wrap';
         if (metaParts.length > 0) {
           const metaText = document.createElement('p');
           metaText.className = 'text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate';
@@ -3516,9 +3584,16 @@
           metaRow.appendChild(metaText);
         }
         if (isLive) {
-          const liveDot = document.createElement('span');
-          liveDot.className = 'w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0';
-          metaRow.appendChild(liveDot);
+          const liveBadge = document.createElement('span');
+          liveBadge.className = 'inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0 tabular-nums';
+          const durText = liveStatus ? ` • ${I18N[state.lang].liveRemaining(formatLiveDuration(liveStatus.remainingSec))}` : '';
+          liveBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span><span>${escapeHtml(I18N[state.lang].liveNowLabel + durText)}</span>`;
+          metaRow.appendChild(liveBadge);
+        } else if (isNext) {
+          const nextBadge = document.createElement('span');
+          nextBadge.className = 'inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0 tabular-nums';
+          nextBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>${escapeHtml(I18N[state.lang].liveStartsIn(formatLiveDuration(liveStatus.remainingSec)))}</span>`;
+          metaRow.appendChild(nextBadge);
         }
         rightCol.appendChild(metaRow);
       }
@@ -3672,6 +3747,62 @@
       }, { passive: true });
     }
 
+    let lastLiveStatusKey = '';
+
+    function renderDailyLiveBar(liveStatus) {
+      const bar = document.getElementById('dailyLiveStatusBar');
+      if (!bar) return;
+      const loc = I18N[state.lang];
+      lastLiveStatusKey = getLiveStatusCacheKey(liveStatus);
+
+      if (!liveStatus) {
+        bar.classList.add('hidden');
+        bar.innerHTML = '';
+        bar.onclick = null;
+        return;
+      }
+
+      bar.classList.remove('hidden');
+
+      if (liveStatus.mode === 'done') {
+        bar.className = 'ios-glass rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2';
+        bar.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+            <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">${escapeHtml(loc.liveDoneToday)}</span>
+          </div>
+        `;
+        bar.onclick = null;
+        return;
+      }
+
+      const isLive = liveStatus.mode === 'live';
+      const [startStr = ''] = (liveStatus.slot.time || '').split('-');
+      const prefix = isLive ? loc.liveNowLabel : loc.liveNextLabel(startStr);
+      const dur = formatLiveDuration(liveStatus.remainingSec);
+      const rightLabel = isLive ? loc.liveRemaining(dur) : loc.liveStartsIn(dur);
+      const dotCls = isLive ? 'bg-blue-500 animate-pulse' : 'bg-emerald-500';
+      const prefixCls = isLive ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400';
+      const badgeCls = isLive
+        ? 'bg-blue-500/12 text-blue-600 dark:text-blue-400'
+        : 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300';
+
+      bar.className = 'ios-glass rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer transition active:scale-[0.99]';
+      bar.innerHTML = `
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-2 h-2 rounded-full shrink-0 ${dotCls}"></span>
+          <p class="text-[11px] font-medium text-slate-700 dark:text-slate-200 truncate">
+            <span class="font-bold ${prefixCls}">${escapeHtml(prefix)}</span> • ${escapeHtml(liveStatus.slot.title)}
+          </p>
+        </div>
+        <span class="shrink-0 px-2 py-0.5 rounded-full text-[10.5px] font-bold tabular-nums ${badgeCls}">${escapeHtml(rightLabel)}</span>
+      `;
+      bar.onclick = () => {
+        const target = document.querySelector(`#dailySlotsContainer [data-slot-no="${liveStatus.slot.slotNo}"]`);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      };
+    }
+
     // ==================== DAILY VIEW ====================
     function renderDailyView() {
       const days = getScheduleDays();
@@ -3700,6 +3831,9 @@
       document.getElementById('btnPrevDay').disabled = idx <= 0;
       document.getElementById('btnNextDay').disabled = idx >= days.length - 1;
 
+      const liveStatus = getTodayLiveLessonStatus(dayObj);
+      renderDailyLiveBar(liveStatus);
+
       const container = document.getElementById('dailySlotsContainer');
       container.innerHTML = '';
 
@@ -3713,7 +3847,7 @@
           lunch.innerHTML = `<div class="h-px flex-1 bg-slate-300/60 dark:bg-slate-800"></div><span class="text-[11px] font-medium text-slate-400 dark:text-slate-500 tabular-nums">${loc.lunchBreak} (${escapeHtml(lunchStart)} - ${escapeHtml(lunchEnd)})</span><div class="h-px flex-1 bg-slate-300/60 dark:bg-slate-800"></div>`;
           container.appendChild(lunch);
         }
-        container.appendChild(createSlotCardElement(slot));
+        container.appendChild(createSlotCardElement(slot, { liveStatus }));
       });
     }
 
@@ -4787,7 +4921,22 @@
       state.selectedDate = getBestDefaultDate();
       applyLanguageUI();
 
-      setInterval(updateHeaderClock, 60000);
+      function refreshLiveCountdownIfNeeded() {
+        updateHeaderClock();
+        if (state.activeTab !== 'daily') return;
+        const todayStr = formatDMY(getTodayDateObj());
+        if (state.selectedDate !== todayStr) return;
+        const dayObj = getScheduleDays().find((d) => d.date === todayStr);
+        const nextKey = getLiveStatusCacheKey(getTodayLiveLessonStatus(dayObj));
+        if (nextKey !== lastLiveStatusKey) {
+          renderDailyView();
+        }
+      }
+
+      setInterval(refreshLiveCountdownIfNeeded, 15000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshLiveCountdownIfNeeded();
+      });
 
       document.getElementById('btnLangTr').addEventListener('click', () => setLanguage('tr'));
       document.getElementById('btnLangEn').addEventListener('click', () => setLanguage('en'));
