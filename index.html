@@ -1727,21 +1727,16 @@
   }
 
   @media (min-width: 40rem) {
-    .sm\:inset-x-auto {
-      inset-inline: auto;
+    .sm\:inset-x-0 {
+      inset-inline: 0;
     }
 
-    .sm\:left-1\/2 {
-      left: 50%;
+    .sm\:mx-auto {
+      margin-inline: auto;
     }
 
     .sm\:w-\[460px\] {
       width: 460px;
-    }
-
-    .sm\:-translate-x-1\/2 {
-      --tw-translate-x: calc(calc(1 / 2 * 100%) * -1);
-      translate: var(--tw-translate-x) var(--tw-translate-y);
     }
 
     .sm\:grid-cols-3 {
@@ -2179,11 +2174,13 @@
 </style>
   <style>
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
       background-color: #f2f4f8;
       color: #1c1c1e;
-      overflow-x: hidden;
       min-height: 100vh;
     }
     .dark body {
@@ -2195,6 +2192,7 @@
       position: fixed;
       inset: 0;
       z-index: -1;
+      pointer-events: none;
       background:
         radial-gradient(circle at 15% 10%, rgba(0, 122, 255, 0.16), transparent 48%),
         radial-gradient(circle at 85% 25%, rgba(88, 86, 214, 0.13), transparent 48%),
@@ -2203,58 +2201,54 @@
     }
     .dark .ios-ambient-bg {
       background:
-        radial-gradient(circle at 18% 12%, rgba(10, 132, 255, 0.22), transparent 50%),
+        radial-gradient(circle at 18% 12%, rgba(10, 132, 255, 0.24), transparent 50%),
         radial-gradient(circle at 82% 28%, rgba(94, 92, 230, 0.18), transparent 50%),
-        radial-gradient(circle at 50% 88%, rgba(48, 209, 88, 0.10), transparent 55%),
+        radial-gradient(circle at 50% 88%, rgba(48, 209, 88, 0.12), transparent 55%),
         #000000;
     }
 
     .ios-glass {
-      background: rgba(255, 255, 255, 0.46);
-      backdrop-filter: blur(36px) saturate(210%);
-      -webkit-backdrop-filter: blur(36px) saturate(210%);
+      background: rgba(255, 255, 255, 0.56);
+      -webkit-backdrop-filter: saturate(185%) blur(20px);
+      backdrop-filter: saturate(185%) blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.72);
       box-shadow: 0 8px 28px -4px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6);
     }
     .dark .ios-glass {
-      background: rgba(30, 30, 36, 0.42);
-      backdrop-filter: blur(36px) saturate(210%);
-      -webkit-backdrop-filter: blur(36px) saturate(210%);
+      background: rgba(28, 30, 38, 0.48);
+      -webkit-backdrop-filter: saturate(185%) blur(20px);
+      backdrop-filter: saturate(185%) blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.14);
       box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     .ios-glass-bar {
-      background: rgba(242, 244, 248, 0.34);
-      backdrop-filter: blur(55px) saturate(220%);
-      -webkit-backdrop-filter: blur(55px) saturate(220%);
-      border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
-      transform: translateZ(0);
-      -webkit-transform: translateZ(0);
+      background: rgba(242, 244, 248, 0.52);
+      -webkit-backdrop-filter: saturate(190%) blur(20px);
+      backdrop-filter: saturate(190%) blur(20px);
+      border-bottom: 0.5px solid rgba(60, 60, 67, 0.16);
     }
     .dark .ios-glass-bar {
-      background: rgba(12, 12, 16, 0.32);
-      backdrop-filter: blur(55px) saturate(220%);
-      -webkit-backdrop-filter: blur(55px) saturate(220%);
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
-      transform: translateZ(0);
-      -webkit-transform: translateZ(0);
+      background: rgba(14, 16, 24, 0.45);
+      -webkit-backdrop-filter: saturate(190%) blur(20px);
+      backdrop-filter: saturate(190%) blur(20px);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.14);
     }
 
-    /* iOS 18 Authentic Liquid Glass Dock - Enhanced Translucency */
+    /* iOS 18 Authentic Liquid Glass Dock */
     .ios-floating-dock {
-      background: rgba(255, 255, 255, 0.42);
-      backdrop-filter: blur(65px) saturate(250%);
-      -webkit-backdrop-filter: blur(65px) saturate(250%);
-      border: 0.5px solid rgba(255, 255, 255, 0.85);
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.52);
+      -webkit-backdrop-filter: saturate(195%) blur(22px);
+      backdrop-filter: saturate(195%) blur(22px);
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.75);
     }
     .dark .ios-floating-dock {
-      background: rgba(24, 24, 30, 0.44);
-      backdrop-filter: blur(65px) saturate(250%);
-      -webkit-backdrop-filter: blur(65px) saturate(250%);
-      border: 0.5px solid rgba(255, 255, 255, 0.18);
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+      background: rgba(24, 26, 34, 0.48);
+      -webkit-backdrop-filter: saturate(195%) blur(22px);
+      backdrop-filter: saturate(195%) blur(22px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
 
     #tabIndicatorPill {
@@ -2263,7 +2257,9 @@
       bottom: 4px;
       left: 0;
       border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.82);
+      background: rgba(255, 255, 255, 0.84);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
       will-change: transform, width;
       pointer-events: none;
@@ -2275,14 +2271,14 @@
     }
 
     .ios-pill-control {
-      background: rgba(118, 118, 128, 0.10);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      background: rgba(118, 118, 128, 0.12);
+      -webkit-backdrop-filter: saturate(160%) blur(16px);
+      backdrop-filter: saturate(160%) blur(16px);
     }
     .dark .ios-pill-control {
-      background: rgba(255, 255, 255, 0.09);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      background: rgba(255, 255, 255, 0.10);
+      -webkit-backdrop-filter: saturate(160%) blur(16px);
+      backdrop-filter: saturate(160%) blur(16px);
     }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -2294,7 +2290,7 @@
   <div class="ios-ambient-bg"></div>
 
   <!-- Üst Başlık -->
-  <header class="sticky top-0 z-30 ios-glass-bar border-b transition-colors pt-[env(safe-area-inset-top,0px)]">
+  <header class="sticky top-0 z-30 ios-glass-bar pt-[env(safe-area-inset-top,0px)]">
     <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
       <div class="min-w-0">
         <p id="headerLiveClock" class="text-[11px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate">BUGÜN • 13 KASIM 2026 CUMA</p>
@@ -2497,8 +2493,8 @@
   <div id="toastBanner" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded-full ios-glass text-slate-900 dark:text-white text-xs font-semibold shadow-lg"></div>
 
   <!-- AUTHENTIC APPLE iOS 18 FLOATING ISLAND DOCK -->
-  <nav class="fixed inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-[460px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));">
-    <div id="dockContainer" class="ios-floating-dock rounded-full p-1 flex items-center justify-between relative transition-transform touch-none" style="touch-action: none;">
+  <nav class="fixed inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[460px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));">
+    <div id="dockContainer" class="ios-floating-dock rounded-full p-1 flex items-center justify-between relative touch-none" style="touch-action: none;">
       <!-- Continuous Gliding Pill -->
       <div id="tabIndicatorPill" style="transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform: translate3d(285.389px, 0px, 0px); width: 70.2556px;"></div>
 
