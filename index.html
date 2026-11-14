@@ -2363,6 +2363,21 @@
       animation-delay: var(--stagger-delay, 0ms);
     }
 
+    @keyframes iosLangSwap {
+      from {
+        opacity: 0.2;
+        transform: translate3d(0, 8px, 0) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    .ios-lang-swap {
+      animation: iosLangSwap 0.34s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+      animation-delay: var(--lang-delay, 0ms);
+    }
+
     @keyframes modalBackdropIn {
       from { opacity: 0; }
       to { opacity: 1; }
@@ -3851,6 +3866,35 @@
       updateHeaderClock();
     }
 
+    function animateActiveViewLanguageSwitch() {
+      const viewId = 'view' + state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1);
+      const viewEl = document.getElementById(viewId);
+      if (!viewEl) return;
+
+      const targets = Array.from(viewEl.children).filter((el) => {
+        if (el.classList.contains('hidden')) return false;
+        if (
+          el.id === 'dailySlotsContainer' ||
+          el.id === 'weeklyDaysContainer' ||
+          el.id === 'searchResultsContainer' ||
+          el.id === 'foodMenuContainer'
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+      targets.forEach((el, idx) => {
+        el.classList.remove('ios-lang-swap');
+        el.style.setProperty('--lang-delay', `${Math.min(idx, 5) * 32}ms`);
+        void el.offsetWidth;
+        el.classList.add('ios-lang-swap');
+        el.addEventListener('animationend', () => {
+          el.classList.remove('ios-lang-swap');
+        }, { once: true });
+      });
+    }
+
     function setLanguage(lang) {
       if (lang !== 'tr' && lang !== 'en') return;
       if (state.lang === lang) return;
@@ -3862,6 +3906,7 @@
       if (state.activeTab === 'food') renderFoodView();
       if (state.activeTab === 'search') renderSearchView();
       if (state.activeTab === 'info') renderInfoView();
+      animateActiveViewLanguageSwitch();
       requestAnimationFrame(() => updateTabIndicator(state.activeTab, false));
     }
 
@@ -5184,7 +5229,7 @@
         const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
 
         const emptyBox = document.createElement('div');
-        emptyBox.className = 'ios-glass rounded-3xl p-6 text-center space-y-2.5';
+        emptyBox.className = 'ios-glass ios-stagger-item rounded-3xl p-6 text-center space-y-2.5';
         emptyBox.innerHTML = `
           <div class="w-10 h-10 rounded-2xl ios-pill-control mx-auto flex items-center justify-center text-amber-600 dark:text-amber-300">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>
@@ -5218,7 +5263,7 @@
         const sec = document.createElement('div');
         sec.className = 'space-y-2';
         const hdr = document.createElement('h3');
-        hdr.className = 'text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5';
+        hdr.className = 'ios-stagger-item text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5';
         hdr.textContent = loc.foodMainMenu;
         sec.appendChild(hdr);
 
@@ -5233,7 +5278,7 @@
         const sec = document.createElement('div');
         sec.className = 'space-y-2 pt-1';
         const hdr = document.createElement('h3');
-        hdr.className = 'text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5';
+        hdr.className = 'ios-stagger-item text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5';
         hdr.textContent = getFoodTypeLabel(typeKey);
         sec.appendChild(hdr);
 
@@ -5267,7 +5312,7 @@
       if (activeDaysCount === 0) {
         subInfo.textContent = loc.foodSourceSub;
         const emptyBox = document.createElement('div');
-        emptyBox.className = 'ios-glass rounded-3xl p-6 text-center space-y-2.5';
+        emptyBox.className = 'ios-glass ios-stagger-item rounded-3xl p-6 text-center space-y-2.5';
         emptyBox.innerHTML = `
           <div class="w-10 h-10 rounded-2xl ios-pill-control mx-auto flex items-center justify-center text-amber-600 dark:text-amber-300">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>
@@ -5415,7 +5460,7 @@
       document.getElementById('foodSubInfo').textContent = loc.foodSourceSub;
       container.innerHTML = '';
       const errBox = document.createElement('div');
-      errBox.className = 'ios-glass rounded-3xl p-6 text-center space-y-2.5';
+      errBox.className = 'ios-glass ios-stagger-item rounded-3xl p-6 text-center space-y-2.5';
       errBox.innerHTML = `
         <h3 class="text-sm font-bold text-slate-900 dark:text-white">${escapeHtml(loc.foodErrorTitle)}</h3>
         <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(loc.foodErrorDesc)}</p>
