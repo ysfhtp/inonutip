@@ -2249,30 +2249,30 @@
     }
 
     .ios-glass-bar {
-      background: rgba(238, 242, 247, 0.86);
-      -webkit-backdrop-filter: saturate(135%) blur(20px);
-      backdrop-filter: saturate(135%) blur(20px);
+      background: rgba(244, 247, 252, 0.66);
+      -webkit-backdrop-filter: saturate(150%) blur(28px);
+      backdrop-filter: saturate(150%) blur(28px);
       border-bottom: 0.5px solid rgba(60, 60, 67, 0.14);
     }
     .dark .ios-glass-bar {
-      background: rgba(10, 14, 24, 0.86);
-      -webkit-backdrop-filter: saturate(135%) blur(20px);
-      backdrop-filter: saturate(135%) blur(20px);
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.11);
+      background: rgba(16, 20, 30, 0.66);
+      -webkit-backdrop-filter: saturate(150%) blur(28px);
+      backdrop-filter: saturate(150%) blur(28px);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
     }
 
     /* iOS 18 Authentic Liquid Glass Dock */
     .ios-floating-dock {
-      background: rgba(250, 251, 254, 0.88);
-      -webkit-backdrop-filter: saturate(140%) blur(22px);
-      backdrop-filter: saturate(140%) blur(22px);
-      border: 1px solid rgba(255, 255, 255, 0.85);
-      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      background: rgba(244, 247, 252, 0.66);
+      -webkit-backdrop-filter: saturate(150%) blur(28px);
+      backdrop-filter: saturate(150%) blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.82);
+      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.78);
     }
     .dark .ios-floating-dock {
-      background: rgba(18, 22, 32, 0.88);
-      -webkit-backdrop-filter: saturate(140%) blur(22px);
-      backdrop-filter: saturate(140%) blur(22px);
+      background: rgba(16, 20, 30, 0.66);
+      -webkit-backdrop-filter: saturate(150%) blur(28px);
+      backdrop-filter: saturate(150%) blur(28px);
       border: 1px solid rgba(255, 255, 255, 0.15);
       box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.10);
     }
@@ -2500,6 +2500,20 @@
       height: 4px;
       border-radius: 9999px;
       margin-top: 1px;
+    }
+    @keyframes foodCalLabelNext {
+      from { opacity: 0; transform: translate3d(10px, 0, 0); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes foodCalLabelPrev {
+      from { opacity: 0; transform: translate3d(-10px, 0, 0); }
+      to { opacity: 1; transform: none; }
+    }
+    .food-cal-label-next {
+      animation: foodCalLabelNext 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .food-cal-label-prev {
+      animation: foodCalLabelPrev 0.24s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -3007,13 +3021,9 @@
 
       <div class="space-y-1">
         <div id="foodCalWeekdays" class="food-cal-grid text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 py-1"></div>
-        <div id="foodCalGrid" class="food-cal-grid"></div>
-      </div>
-
-      <div class="flex items-center justify-center gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
-        <button id="btnFoodCalQuickYesterday" type="button" class="ios-press px-3 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200">Dün</button>
-        <button id="btnFoodCalQuickToday" type="button" class="ios-press px-3.5 py-1 rounded-full bg-blue-600 hover:bg-blue-700 text-[11px] font-semibold text-white shadow-2xs">Bugün</button>
-        <button id="btnFoodCalQuickTomorrow" type="button" class="ios-press px-3 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200">Yarın</button>
+        <div class="overflow-hidden rounded-2xl w-full">
+          <div id="foodCalCarousel" class="w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex select-none" style="touch-action: pan-x; overscroll-behavior-x: contain;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -3833,15 +3843,9 @@
       if (foodPrevMonthBtn) foodPrevMonthBtn.setAttribute('aria-label', loc.foodPrevMonthAria);
       const foodNextMonthBtn = document.getElementById('btnFoodCalNextMonth');
       if (foodNextMonthBtn) foodNextMonthBtn.setAttribute('aria-label', loc.foodNextMonthAria);
-      const foodCalYest = document.getElementById('btnFoodCalQuickYesterday');
-      if (foodCalYest) foodCalYest.textContent = loc.yesterday;
-      const foodCalToday = document.getElementById('btnFoodCalQuickToday');
-      if (foodCalToday) foodCalToday.textContent = loc.today;
-      const foodCalTom = document.getElementById('btnFoodCalQuickTomorrow');
-      if (foodCalTom) foodCalTom.textContent = loc.tomorrow;
       const foodDateModal = document.getElementById('foodDateModal');
       if (foodDateModal && !foodDateModal.classList.contains('hidden')) {
-        renderFoodDateModalGrid();
+        renderFoodDateModalCarousel(true);
       }
 
       updateHeaderClock();
@@ -5580,44 +5584,43 @@
     }
 
     // ==================== FOOD DATE PICKER MODAL ====================
+    const FOOD_CAL_RADIUS = 6;
     let foodPickerYear = 2026;
     let foodPickerMonth = 10;
+    let foodCalAnchorMonthNum = 2026 * 12 + 10;
+    let foodCalSuppressClick = false;
 
-    function renderFoodDateModalGrid() {
-      const loc = I18N[state.lang];
+    function updateFoodCalMonthLabel(direction = 0) {
       const monthLabel = document.getElementById('foodCalMonthLabel');
-      const weekdaysEl = document.getElementById('foodCalWeekdays');
-      const gridEl = document.getElementById('foodCalGrid');
-      if (!monthLabel || !weekdaysEl || !gridEl) return;
+      if (!monthLabel) return;
+      const loc = I18N[state.lang];
+      const nextText = `${loc.months[foodPickerMonth]} ${foodPickerYear}`;
+      if (monthLabel.textContent === nextText) return;
+      monthLabel.textContent = nextText;
+      monthLabel.classList.remove('food-cal-label-next', 'food-cal-label-prev');
+      if (direction !== 0) {
+        void monthLabel.offsetWidth;
+        monthLabel.classList.add(direction > 0 ? 'food-cal-label-next' : 'food-cal-label-prev');
+      }
+    }
 
-      monthLabel.textContent = `${loc.months[foodPickerMonth]} ${foodPickerYear}`;
+    function createFoodCalMonthSlide(year, month, selectedIso, todayIso, cache) {
+      const slide = document.createElement('div');
+      slide.className = 'w-full shrink-0 snap-center food-cal-grid box-border';
+      slide.setAttribute('data-month-num', String(year * 12 + month));
 
-      const mondayFirstOrder = [1, 2, 3, 4, 5, 6, 0];
-      weekdaysEl.innerHTML = '';
-      mondayFirstOrder.forEach((dow) => {
-        const sp = document.createElement('span');
-        sp.textContent = loc.daysShort[dow];
-        if (dow === 0 || dow === 6) sp.className = 'opacity-65';
-        weekdaysEl.appendChild(sp);
-      });
-
-      const selectedIso = state.foodDateISO || formatISODate(getTodayDateObj());
-      const todayIso = formatISODate(getTodayDateObj());
-      const cache = getFoodCacheMap();
-
-      const firstDay = new Date(foodPickerYear, foodPickerMonth, 1);
+      const firstDay = new Date(year, month, 1);
       const startOffset = (firstDay.getDay() + 6) % 7;
-      const daysInMonth = new Date(foodPickerYear, foodPickerMonth + 1, 0).getDate();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-      gridEl.innerHTML = '';
       for (let i = 0; i < startOffset; i++) {
         const spacer = document.createElement('div');
         spacer.setAttribute('aria-hidden', 'true');
-        gridEl.appendChild(spacer);
+        slide.appendChild(spacer);
       }
 
       for (let day = 1; day <= daysInMonth; day++) {
-        const dt = new Date(foodPickerYear, foodPickerMonth, day);
+        const dt = new Date(year, month, day);
         const iso = formatISODate(dt);
         const dow = dt.getDay();
         const isWeekend = dow === 0 || dow === 6;
@@ -5650,12 +5653,162 @@
         }
 
         btn.addEventListener('click', () => {
+          if (foodCalSuppressClick) return;
           state.foodDateISO = iso;
           closeFoodDateModal();
           renderFoodView();
         });
 
-        gridEl.appendChild(btn);
+        slide.appendChild(btn);
+      }
+
+      const trailingCount = 42 - (startOffset + daysInMonth);
+      for (let i = 0; i < trailingCount; i++) {
+        const spacer = document.createElement('div');
+        spacer.setAttribute('aria-hidden', 'true');
+        slide.appendChild(spacer);
+      }
+
+      return slide;
+    }
+
+    function renderFoodDateModalCarousel(instantSync = true) {
+      const loc = I18N[state.lang];
+      const weekdaysEl = document.getElementById('foodCalWeekdays');
+      const carousel = document.getElementById('foodCalCarousel');
+      if (!weekdaysEl || !carousel) return;
+
+      const mondayFirstOrder = [1, 2, 3, 4, 5, 6, 0];
+      weekdaysEl.innerHTML = '';
+      mondayFirstOrder.forEach((dow) => {
+        const sp = document.createElement('span');
+        sp.textContent = loc.daysShort[dow];
+        if (dow === 0 || dow === 6) sp.className = 'opacity-65';
+        weekdaysEl.appendChild(sp);
+      });
+
+      const activeMonthNum = foodPickerYear * 12 + foodPickerMonth;
+      foodCalAnchorMonthNum = activeMonthNum;
+      updateFoodCalMonthLabel(0);
+
+      const selectedIso = state.foodDateISO || formatISODate(getTodayDateObj());
+      const todayIso = formatISODate(getTodayDateObj());
+      const cache = getFoodCacheMap();
+
+      carousel.innerHTML = '';
+      for (let offset = -FOOD_CAL_RADIUS; offset <= FOOD_CAL_RADIUS; offset++) {
+        const mNum = foodCalAnchorMonthNum + offset;
+        const yr = Math.floor(mNum / 12);
+        const mo = ((mNum % 12) + 12) % 12;
+        carousel.appendChild(createFoodCalMonthSlide(yr, mo, selectedIso, todayIso, cache));
+      }
+
+      if (instantSync && carousel.clientWidth > 0) {
+        const prevSnap = carousel.style.scrollSnapType;
+        const prevBeh = carousel.style.scrollBehavior;
+        carousel.style.scrollSnapType = 'none';
+        carousel.style.scrollBehavior = 'auto';
+        carousel.scrollLeft = FOOD_CAL_RADIUS * carousel.clientWidth;
+        void carousel.offsetWidth;
+        carousel.style.scrollSnapType = prevSnap || '';
+        carousel.style.scrollBehavior = prevBeh || '';
+      }
+    }
+
+    let foodCalNavTargetMonthNum = null;
+
+    function setupFoodCalSwipe() {
+      const carousel = document.getElementById('foodCalCarousel');
+      if (!carousel) return;
+
+      let settleTimer = null;
+      const syncFromScroll = () => {
+        const width = carousel.clientWidth;
+        if (!width) return;
+        const idx = Math.max(0, Math.min(FOOD_CAL_RADIUS * 2, Math.round(carousel.scrollLeft / width)));
+        const newMonthNum = foodCalAnchorMonthNum - FOOD_CAL_RADIUS + idx;
+        const curMonthNum = foodPickerYear * 12 + foodPickerMonth;
+        if (newMonthNum !== curMonthNum) {
+          const dir = newMonthNum > curMonthNum ? 1 : -1;
+          foodPickerYear = Math.floor(newMonthNum / 12);
+          foodPickerMonth = ((newMonthNum % 12) + 12) % 12;
+          updateFoodCalMonthLabel(dir);
+        }
+
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+          foodCalNavTargetMonthNum = null;
+          const settledIdx = Math.max(0, Math.min(FOOD_CAL_RADIUS * 2, Math.round(carousel.scrollLeft / width)));
+          if (settledIdx <= 1 || settledIdx >= FOOD_CAL_RADIUS * 2 - 1) {
+            renderFoodDateModalCarousel(true);
+          }
+        }, 140);
+      };
+
+      carousel.addEventListener('scroll', syncFromScroll, { passive: true });
+
+      // Smooth mouse-drag support for desktop alongside native touch swipe
+      let isMouseDown = false;
+      let dragStartX = 0;
+      let dragStartScrollLeft = 0;
+      let didDrag = false;
+
+      carousel.addEventListener('pointerdown', (e) => {
+        foodCalNavTargetMonthNum = null;
+        if (e.pointerType !== 'mouse' || e.button !== 0) return;
+        isMouseDown = true;
+        didDrag = false;
+        dragStartX = e.clientX;
+        dragStartScrollLeft = carousel.scrollLeft;
+      });
+
+      carousel.addEventListener('pointermove', (e) => {
+        if (!isMouseDown) return;
+        const dx = e.clientX - dragStartX;
+        if (!didDrag && Math.abs(dx) > 6) {
+          didDrag = true;
+          carousel.style.scrollSnapType = 'none';
+          try { carousel.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+        if (didDrag) {
+          carousel.scrollLeft = dragStartScrollLeft - dx;
+        }
+      });
+
+      const endMouseDrag = (e) => {
+        if (!isMouseDown) return;
+        isMouseDown = false;
+        if (didDrag) {
+          foodCalSuppressClick = true;
+          setTimeout(() => { foodCalSuppressClick = false; }, 60);
+          try { carousel.releasePointerCapture(e.pointerId); } catch (err) {}
+          const width = carousel.clientWidth;
+          const targetIdx = width > 0 ? Math.max(0, Math.min(FOOD_CAL_RADIUS * 2, Math.round(carousel.scrollLeft / width))) : FOOD_CAL_RADIUS;
+          carousel.style.scrollSnapType = '';
+          if (width > 0) {
+            carousel.scrollTo({ left: targetIdx * width, behavior: 'smooth' });
+          }
+        }
+      };
+
+      carousel.addEventListener('pointerup', endMouseDrag);
+      carousel.addEventListener('pointercancel', endMouseDrag);
+    }
+
+    function stepFoodCalMonth(delta) {
+      const carousel = document.getElementById('foodCalCarousel');
+      const baseMonthNum = foodCalNavTargetMonthNum !== null ? foodCalNavTargetMonthNum : (foodPickerYear * 12 + foodPickerMonth);
+      const targetMonthNum = baseMonthNum + delta;
+      const targetIdx = targetMonthNum - (foodCalAnchorMonthNum - FOOD_CAL_RADIUS);
+
+      if (carousel && carousel.clientWidth > 0 && targetIdx >= 0 && targetIdx <= FOOD_CAL_RADIUS * 2) {
+        foodCalNavTargetMonthNum = targetMonthNum;
+        carousel.scrollTo({ left: targetIdx * carousel.clientWidth, behavior: 'smooth' });
+      } else {
+        foodCalNavTargetMonthNum = null;
+        foodPickerYear = Math.floor(targetMonthNum / 12);
+        foodPickerMonth = ((targetMonthNum % 12) + 12) % 12;
+        renderFoodDateModalCarousel(true);
       }
     }
 
@@ -5664,8 +5817,11 @@
       const dt = parseISODate(activeIso);
       foodPickerYear = dt.getFullYear();
       foodPickerMonth = dt.getMonth();
-      renderFoodDateModalGrid();
-      openAnimatedModal(document.getElementById('foodDateModal'), document.getElementById('foodDateModalCard'));
+      foodCalNavTargetMonthNum = null;
+      const modal = document.getElementById('foodDateModal');
+      const card = document.getElementById('foodDateModalCard');
+      openAnimatedModal(modal, card);
+      renderFoodDateModalCarousel(true);
     }
 
     function closeFoodDateModal() {
@@ -5842,37 +5998,14 @@
         state.foodDateISO = shiftISODate(cur, state.foodViewMode === 'weekly' ? 7 : 1);
         renderFoodView();
       });
+      setupFoodCalSwipe();
       document.getElementById('btnFoodDatePicker').addEventListener('click', openFoodDateModal);
       document.getElementById('btnCloseFoodDateModal').addEventListener('click', closeFoodDateModal);
       document.getElementById('foodDateModal').addEventListener('click', (e) => {
         if (e.target.id === 'foodDateModal') closeFoodDateModal();
       });
-      document.getElementById('btnFoodCalPrevMonth').addEventListener('click', () => {
-        foodPickerMonth--;
-        if (foodPickerMonth < 0) {
-          foodPickerMonth = 11;
-          foodPickerYear--;
-        }
-        renderFoodDateModalGrid();
-      });
-      document.getElementById('btnFoodCalNextMonth').addEventListener('click', () => {
-        foodPickerMonth++;
-        if (foodPickerMonth > 11) {
-          foodPickerMonth = 0;
-          foodPickerYear++;
-        }
-        renderFoodDateModalGrid();
-      });
-      const selectFoodQuickDelta = (deltaDays) => {
-        const dt = getTodayDateObj();
-        dt.setDate(dt.getDate() + deltaDays);
-        state.foodDateISO = formatISODate(dt);
-        closeFoodDateModal();
-        renderFoodView();
-      };
-      document.getElementById('btnFoodCalQuickYesterday').addEventListener('click', () => selectFoodQuickDelta(-1));
-      document.getElementById('btnFoodCalQuickToday').addEventListener('click', () => selectFoodQuickDelta(0));
-      document.getElementById('btnFoodCalQuickTomorrow').addEventListener('click', () => selectFoodQuickDelta(1));
+      document.getElementById('btnFoodCalPrevMonth').addEventListener('click', () => stepFoodCalMonth(-1));
+      document.getElementById('btnFoodCalNextMonth').addEventListener('click', () => stepFoodCalMonth(1));
       document.getElementById('btnFoodRefresh').addEventListener('click', () => {
         foodAnnouncementsLoaded = false;
         renderFoodView(true);
