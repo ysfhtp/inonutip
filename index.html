@@ -2208,7 +2208,7 @@
       background-color: #eef2f7;
     }
     html.dark {
-      background-color: #000000;
+      background-color: #070d19;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
@@ -4312,10 +4312,9 @@
 
     function syncSystemBarsThemeColor() {
       const color = getSystemThemeColor();
-      const meta = document.getElementById('themeColorMeta');
-      if (meta) {
+      document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
         meta.setAttribute('content', color);
-      }
+      });
     }
 
     function applyTheme() {
