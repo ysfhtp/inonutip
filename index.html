@@ -2231,111 +2231,155 @@
       transform: translate3d(0, 0, 0);
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
+      overflow: hidden;
       background:
-        radial-gradient(circle at 15% 10%, rgba(0, 122, 255, 0.14), transparent 50%),
-        radial-gradient(circle at 85% 25%, rgba(88, 86, 214, 0.11), transparent 50%),
-        radial-gradient(circle at 50% 82%, rgba(52, 199, 89, 0.10), transparent 56%),
+        radial-gradient(circle at 15% 10%, rgba(0, 122, 255, 0.10), transparent 50%),
+        radial-gradient(circle at 85% 25%, rgba(88, 86, 214, 0.07), transparent 50%),
         #eef2f7;
     }
     .dark .ios-ambient-bg {
       background:
-        radial-gradient(circle at 18% 12%, rgba(10, 132, 255, 0.22), transparent 52%),
-        radial-gradient(circle at 82% 28%, rgba(94, 92, 230, 0.16), transparent 52%),
-        radial-gradient(circle at 50% 80%, rgba(48, 209, 88, 0.12), transparent 58%),
+        radial-gradient(circle at 18% 12%, rgba(10, 132, 255, 0.14), transparent 50%),
+        radial-gradient(circle at 82% 28%, rgba(94, 92, 230, 0.10), transparent 50%),
         #000000;
     }
-    @keyframes iosAmbientSoftBloom {
+
+    /* İki odaklı ambiyans aydınlatması: Biri alttan, biri yukarılardan, yayvan ve akıcı */
+    .ios-ambient-aura {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .ambient-top {
+      position: absolute;
+      top: -12vh;
+      left: 50%;
+      transform: translate3d(-50%, 0, 0);
+      width: 150vw;
+      max-width: 1100px;
+      height: 52vh;
+      border-radius: 50% / 36%;
+      filter: blur(38px);
+      -webkit-filter: blur(38px);
+      will-change: transform, opacity;
+      animation: iosAuraTopBloom 0.58s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .ambient-bottom {
+      position: absolute;
+      bottom: -16vh;
+      left: 50%;
+      transform: translate3d(-50%, 0, 0);
+      width: 155vw;
+      max-width: 1150px;
+      height: 54vh;
+      border-radius: 50% / 36%;
+      filter: blur(38px);
+      -webkit-filter: blur(38px);
+      will-change: transform, opacity;
+      animation: iosAuraBottomBloom 0.58s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes iosAuraTopBloom {
       0% {
-        opacity: 0;
-        transform: scale(0.94) translate3d(0, 8px, 0);
+        opacity: 0.26;
+        transform: translate3d(-50%, -18px, 0) scaleX(1.05) scaleY(0.92);
       }
       100% {
-        opacity: 1;
-        transform: scale(1) translate3d(0, 0, 0);
+        opacity: 0.95;
+        transform: translate3d(-50%, 0, 0) scale(1);
       }
     }
-    .ios-ambient-bg::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      opacity: 1;
-      pointer-events: none;
-      will-change: opacity, transform;
-      animation: iosAmbientSoftBloom 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
-      background:
-        radial-gradient(circle at 20% 14%, rgba(0, 122, 255, 0.20), transparent 52%),
-        radial-gradient(circle at 82% 26%, rgba(56, 189, 248, 0.15), transparent 50%),
-        radial-gradient(circle at 48% 82%, rgba(52, 199, 89, 0.13), transparent 56%);
+
+    @keyframes iosAuraBottomBloom {
+      0% {
+        opacity: 0.28;
+        transform: translate3d(-50%, 22px, 0) scaleX(1.05) scaleY(0.92);
+      }
+      100% {
+        opacity: 0.98;
+        transform: translate3d(-50%, 0, 0) scale(1);
+      }
     }
-    .ios-ambient-bg.ambient-bloom-reset::after {
+
+    .ios-ambient-aura.ambient-bloom-reset .ambient-top,
+    .ios-ambient-aura.ambient-bloom-reset .ambient-bottom {
       animation: none !important;
-      opacity: 0 !important;
+      opacity: 0.26 !important;
     }
-    .dark .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 20% 14%, rgba(10, 132, 255, 0.28), transparent 54%),
-        radial-gradient(circle at 82% 26%, rgba(56, 189, 248, 0.20), transparent 50%),
-        radial-gradient(circle at 48% 82%, rgba(48, 209, 88, 0.16), transparent 58%);
+
+    /* Tab colors: Biri yukarılardan, biri alttan yayılan yayvan eliptik auralar */
+    /* Daily / Bugün */
+    body[data-active-tab="daily"] .ambient-top {
+      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(0, 122, 255, 0.14), rgba(56, 189, 248, 0.08) 55%, transparent 75%);
     }
-    body[data-active-tab="daily"] .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 18% 12%, rgba(0, 122, 255, 0.20), transparent 52%),
-        radial-gradient(circle at 84% 26%, rgba(56, 189, 248, 0.15), transparent 50%),
-        radial-gradient(circle at 50% 82%, rgba(52, 199, 89, 0.13), transparent 56%);
+    body[data-active-tab="daily"] .ambient-bottom {
+      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(0, 122, 255, 0.15), rgba(56, 189, 248, 0.09) 55%, transparent 75%);
     }
-    .dark body[data-active-tab="daily"] .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 18% 12%, rgba(10, 132, 255, 0.28), transparent 54%),
-        radial-gradient(circle at 84% 26%, rgba(56, 189, 248, 0.20), transparent 50%),
-        radial-gradient(circle at 50% 82%, rgba(48, 209, 88, 0.16), transparent 58%);
+    .dark body[data-active-tab="daily"] .ambient-top {
+      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(10, 132, 255, 0.20), rgba(56, 189, 248, 0.12) 55%, transparent 75%);
     }
-    body[data-active-tab="weekly"] .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 18% 14%, rgba(14, 165, 233, 0.20), transparent 52%),
-        radial-gradient(circle at 82% 24%, rgba(59, 130, 246, 0.15), transparent 50%),
-        radial-gradient(circle at 52% 84%, rgba(20, 184, 166, 0.13), transparent 56%);
+    .dark body[data-active-tab="daily"] .ambient-bottom {
+      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(10, 132, 255, 0.22), rgba(56, 189, 248, 0.14) 55%, transparent 75%);
     }
-    .dark body[data-active-tab="weekly"] .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 18% 14%, rgba(56, 189, 248, 0.26), transparent 54%),
-        radial-gradient(circle at 82% 24%, rgba(59, 130, 246, 0.20), transparent 50%),
-        radial-gradient(circle at 52% 84%, rgba(45, 212, 191, 0.15), transparent 58%);
+
+    /* Weekly / Hafta */
+    body[data-active-tab="weekly"] .ambient-top {
+      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(14, 165, 233, 0.14), rgba(59, 130, 246, 0.08) 55%, transparent 75%);
     }
-    body[data-active-tab="search"] .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 20% 12%, rgba(99, 102, 241, 0.19), transparent 52%),
-        radial-gradient(circle at 82% 28%, rgba(14, 165, 233, 0.15), transparent 50%),
-        radial-gradient(circle at 48% 84%, rgba(139, 92, 246, 0.12), transparent 56%);
+    body[data-active-tab="weekly"] .ambient-bottom {
+      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(14, 165, 233, 0.15), rgba(34, 211, 238, 0.09) 55%, transparent 75%);
     }
-    .dark body[data-active-tab="search"] .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 20% 12%, rgba(129, 140, 248, 0.26), transparent 54%),
-        radial-gradient(circle at 82% 28%, rgba(56, 189, 248, 0.18), transparent 50%),
-        radial-gradient(circle at 48% 84%, rgba(167, 139, 250, 0.15), transparent 58%);
+    .dark body[data-active-tab="weekly"] .ambient-top {
+      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(56, 189, 248, 0.19), rgba(59, 130, 246, 0.12) 55%, transparent 75%);
     }
-    body[data-active-tab="info"] .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 16% 14%, rgba(79, 70, 229, 0.19), transparent 52%),
-        radial-gradient(circle at 84% 26%, rgba(59, 130, 246, 0.15), transparent 50%),
-        radial-gradient(circle at 50% 84%, rgba(56, 189, 248, 0.12), transparent 56%);
+    .dark body[data-active-tab="weekly"] .ambient-bottom {
+      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(34, 211, 238, 0.21), rgba(56, 189, 248, 0.13) 55%, transparent 75%);
     }
-    .dark body[data-active-tab="info"] .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 16% 14%, rgba(99, 102, 241, 0.27), transparent 54%),
-        radial-gradient(circle at 84% 26%, rgba(59, 130, 246, 0.21), transparent 50%),
-        radial-gradient(circle at 50% 84%, rgba(56, 189, 248, 0.14), transparent 58%);
+
+    /* Search / Arama */
+    body[data-active-tab="search"] .ambient-top {
+      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(99, 102, 241, 0.14), rgba(139, 92, 246, 0.08) 55%, transparent 75%);
     }
-    body[data-active-tab="food"] .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 18% 12%, rgba(245, 158, 11, 0.17), transparent 52%),
-        radial-gradient(circle at 82% 28%, rgba(234, 88, 12, 0.12), transparent 50%),
-        radial-gradient(circle at 50% 82%, rgba(59, 130, 246, 0.11), transparent 56%);
+    body[data-active-tab="search"] .ambient-bottom {
+      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(99, 102, 241, 0.15), rgba(167, 139, 250, 0.09) 55%, transparent 75%);
     }
-    .dark body[data-active-tab="food"] .ios-ambient-bg::after {
-      background:
-        radial-gradient(circle at 18% 12%, rgba(245, 158, 11, 0.23), transparent 54%),
-        radial-gradient(circle at 82% 28%, rgba(217, 119, 6, 0.16), transparent 50%),
-        radial-gradient(circle at 50% 82%, rgba(56, 189, 248, 0.13), transparent 58%);
+    .dark body[data-active-tab="search"] .ambient-top {
+      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(129, 140, 248, 0.19), rgba(139, 92, 246, 0.12) 55%, transparent 75%);
+    }
+    .dark body[data-active-tab="search"] .ambient-bottom {
+      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(167, 139, 250, 0.21), rgba(129, 140, 248, 0.13) 55%, transparent 75%);
+    }
+
+    /* Info / Sınav */
+    body[data-active-tab="info"] .ambient-top {
+      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(79, 70, 229, 0.14), rgba(99, 102, 241, 0.08) 55%, transparent 75%);
+    }
+    body[data-active-tab="info"] .ambient-bottom {
+      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(79, 70, 229, 0.15), rgba(129, 140, 248, 0.09) 55%, transparent 75%);
+    }
+    .dark body[data-active-tab="info"] .ambient-top {
+      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(99, 102, 241, 0.19), rgba(79, 70, 229, 0.12) 55%, transparent 75%);
+    }
+    .dark body[data-active-tab="info"] .ambient-bottom {
+      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(129, 140, 248, 0.21), rgba(99, 102, 241, 0.13) 55%, transparent 75%);
+    }
+
+    /* Food / Yemekhane */
+    body[data-active-tab="food"] .ambient-top {
+      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(245, 158, 11, 0.14), rgba(251, 191, 36, 0.08) 55%, transparent 75%);
+    }
+    body[data-active-tab="food"] .ambient-bottom {
+      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(245, 158, 11, 0.16), rgba(217, 119, 6, 0.09) 55%, transparent 75%);
+    }
+    .dark body[data-active-tab="food"] .ambient-top {
+      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(245, 158, 11, 0.20), rgba(251, 191, 36, 0.12) 55%, transparent 75%);
+    }
+    .dark body[data-active-tab="food"] .ambient-bottom {
+      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.13) 55%, transparent 75%);
     }
 
     .ios-glass {
@@ -2349,7 +2393,7 @@
       backface-visibility: hidden;
     }
     .dark .ios-glass {
-      background: rgba(22, 27, 38, 0.54);
+      background: rgba(28, 28, 32, 0.56);
       -webkit-backdrop-filter: saturate(180%) blur(20px);
       backdrop-filter: saturate(180%) blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.11);
@@ -2371,22 +2415,22 @@
       inset: 0;
       z-index: -1;
       pointer-events: none;
-      background: rgba(244, 247, 252, 0.66);
-      -webkit-backdrop-filter: saturate(150%) blur(28px);
-      backdrop-filter: saturate(150%) blur(28px);
-      border-bottom: 0.5px solid rgba(60, 60, 67, 0.14);
-      opacity: 0;
+      background: rgba(244, 247, 252, 0.72);
+      -webkit-backdrop-filter: saturate(150%) blur(24px);
+      backdrop-filter: saturate(150%) blur(24px);
+      border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
+      opacity: var(--header-scroll-ratio, 0);
       transform: translate3d(0, 0, 0);
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
-      transition: opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.28s ease, border-color 0.28s ease;
+      transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.28s ease, border-color 0.28s ease;
     }
     .dark .ios-glass-bar::before {
-      background: rgba(16, 20, 30, 0.66);
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
+      background: rgba(16, 20, 30, 0.72);
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.10);
     }
     .ios-glass-bar.is-scrolled::before {
-      opacity: 1;
+      opacity: var(--header-scroll-ratio, 1);
     }
 
     /* iOS 18 Authentic Liquid Glass Dock */
@@ -2415,47 +2459,23 @@
       bottom: 4px;
       left: 0;
       border-radius: 9999px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.64) 0%, rgba(255, 255, 255, 0.30) 52%, rgba(255, 255, 255, 0.52) 100%);
-      -webkit-backdrop-filter: saturate(200%) blur(18px);
-      backdrop-filter: saturate(200%) blur(18px);
-      border: 0.5px solid rgba(255, 255, 255, 0.86);
-      box-shadow:
-        0 4px 14px rgba(15, 23, 42, 0.08),
-        inset 0 1px 1px rgba(255, 255, 255, 0.92),
-        inset 0 -1px 1px rgba(255, 255, 255, 0.38);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
       will-change: transform, width;
       pointer-events: none;
       z-index: 0;
     }
     .dark #tabIndicatorPill {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.07) 52%, rgba(255, 255, 255, 0.14) 100%);
-      -webkit-backdrop-filter: saturate(200%) blur(18px);
-      backdrop-filter: saturate(200%) blur(18px);
-      border: 0.5px solid rgba(255, 255, 255, 0.24);
-      box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.44),
-        inset 0 1px 1px rgba(255, 255, 255, 0.32),
-        inset 0 -1px 1px rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.14);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.42);
     }
     #tabIndicatorPill.is-dragging {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.76) 0%, rgba(255, 255, 255, 0.38) 52%, rgba(255, 255, 255, 0.64) 100%);
-      -webkit-backdrop-filter: saturate(220%) blur(22px);
-      backdrop-filter: saturate(220%) blur(22px);
-      border: 0.5px solid rgba(255, 255, 255, 0.95);
-      box-shadow:
-        0 6px 20px rgba(15, 23, 42, 0.14),
-        inset 0 1.5px 1.5px rgba(255, 255, 255, 0.98),
-        inset 0 -1px 1px rgba(255, 255, 255, 0.45);
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.14);
     }
     .dark #tabIndicatorPill.is-dragging {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.10) 52%, rgba(255, 255, 255, 0.19) 100%);
-      -webkit-backdrop-filter: saturate(220%) blur(22px);
-      backdrop-filter: saturate(220%) blur(22px);
-      border: 0.5px solid rgba(255, 255, 255, 0.34);
-      box-shadow:
-        0 6px 22px rgba(0, 0, 0, 0.56),
-        inset 0 1.5px 1.5px rgba(255, 255, 255, 0.42),
-        inset 0 -1px 1px rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.22);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
     }
     .masked-id-dots {
       display: inline-block;
@@ -2956,7 +2976,12 @@
   </style>
 </head>
 <body class="safe-bottom antialiased selection:bg-blue-500/20">
-  <div class="ios-ambient-bg"></div>
+  <div class="ios-ambient-bg">
+    <div id="ambientAura" class="ios-ambient-aura">
+      <div class="ambient-top"></div>
+      <div class="ambient-bottom"></div>
+    </div>
+  </div>
 
   <!-- İsteğe Bağlı Öğrenci Giriş Penceresi -->
   <div id="authGate" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md overflow-hidden px-3 min-[360px]:px-4 py-3 min-[360px]:py-4 flex items-center justify-center" style="padding-top: max(0.75rem, env(safe-area-inset-top, 0px)); padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));">
@@ -4424,15 +4449,18 @@
       const header = document.getElementById('appHeader');
       if (!header) return;
       const y = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
-      header.classList.toggle('is-scrolled', y > 6);
+      const ratio = Math.min(1, Math.max(0, y / 50));
+      const eased = 1 - Math.pow(1 - ratio, 2.5);
+      header.style.setProperty('--header-scroll-ratio', eased.toFixed(3));
+      header.classList.toggle('is-scrolled', y > 4);
     }
 
     function triggerAmbientBloom() {
-      const ambientEl = document.querySelector('.ios-ambient-bg');
-      if (!ambientEl) return;
-      ambientEl.classList.add('ambient-bloom-reset');
-      void ambientEl.offsetWidth;
-      ambientEl.classList.remove('ambient-bloom-reset');
+      const aura = document.getElementById('ambientAura');
+      if (!aura) return;
+      aura.classList.add('ambient-bloom-reset');
+      void aura.offsetWidth;
+      aura.classList.remove('ambient-bloom-reset');
     }
 
     function activateTabView(tabName) {
