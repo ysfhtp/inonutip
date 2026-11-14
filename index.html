@@ -3307,12 +3307,28 @@
       }
     }
 
-    function activateTabView(tabName) {
+    let lastHapticAt = 0;
+    function triggerTabHaptic(ms = 10) {
+      const now = Date.now();
+      if (now - lastHapticAt < 45) return;
+      lastHapticAt = now;
+      try {
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+          navigator.vibrate(ms);
+        }
+      } catch (err) {}
+    }
+
+    function activateTabView(tabName, options = {}) {
       const prevTab = state.activeTab;
       const changed = prevTab !== tabName;
       const prevIdx = TAB_ORDER.indexOf(prevTab);
       const nextIdx = TAB_ORDER.indexOf(tabName);
       const enterCls = nextIdx < prevIdx ? 'tab-enter-left' : 'tab-enter-right';
+
+      if (changed && !options.skipHaptic) {
+        triggerTabHaptic(10);
+      }
 
       state.activeTab = tabName;
       ['daily', 'weekly', 'food', 'search', 'info'].forEach((tKey) => {
@@ -3414,7 +3430,7 @@
         viewSettleTimer = setTimeout(() => {
           if (isDragging && currentTargetTab === tabName && renderedTab !== tabName) {
             renderedTab = tabName;
-            activateTabView(tabName);
+            activateTabView(tabName, { skipHaptic: true });
           }
         }, 120);
       }
@@ -3459,6 +3475,7 @@
         if (hoverBtn && hoverBtn.tab && hoverBtn.tab !== currentTargetTab) {
           currentTargetTab = hoverBtn.tab;
           setDockActiveVisual(currentTargetTab);
+          triggerTabHaptic(8);
           scheduleTabPreview(currentTargetTab);
         }
       });
@@ -3478,7 +3495,7 @@
         if (didMove) {
           updateTabIndicator(currentTargetTab, true);
           if (renderedTab !== currentTargetTab) {
-            activateTabView(currentTargetTab);
+            activateTabView(currentTargetTab, { skipHaptic: true });
           }
         } else if (e.type !== 'pointercancel') {
           const hit = (e.target && e.target.closest && e.target.closest('.nav-tab-btn'));
