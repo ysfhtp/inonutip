@@ -2340,6 +2340,15 @@
       background: rgba(255, 255, 255, 0.22);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
     }
+    .masked-id-dots {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      letter-spacing: 0.16em;
+      line-height: 1;
+      vertical-align: 0.05em;
+      font-weight: 700;
+      opacity: 0.75;
+    }
     .ios-ambient-bg,
     .ios-glass,
     .ios-glass-bar,
@@ -2387,6 +2396,34 @@
     .tab-enter-left {
       animation: tabEnterLeft 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
       animation-delay: var(--tab-delay, 0ms);
+    }
+    .tab-view-enter-right {
+      animation: tabViewEnterRight 0.20s cubic-bezier(0.16, 1, 0.3, 1) both;
+      will-change: transform, opacity;
+    }
+    .tab-view-enter-left {
+      animation: tabViewEnterLeft 0.20s cubic-bezier(0.16, 1, 0.3, 1) both;
+      will-change: transform, opacity;
+    }
+    @keyframes tabViewEnterRight {
+      from {
+        opacity: 0.75;
+        transform: translate3d(14px, 0, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+    @keyframes tabViewEnterLeft {
+      from {
+        opacity: 0.75;
+        transform: translate3d(-14px, 0, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
     }
 
     @keyframes iosCardIn {
@@ -2633,8 +2670,14 @@
 
     .calc-grid-3 {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.625rem;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+    @media (min-width: 21.5rem) {
+      .calc-grid-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.625rem;
+      }
     }
     @media (min-width: 40rem) {
       .calc-grid-3 {
@@ -2701,8 +2744,8 @@
   <div class="ios-ambient-bg"></div>
 
   <!-- İsteğe Bağlı Öğrenci Giriş Penceresi -->
-  <div id="authGate" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md overflow-hidden px-4 py-4 flex items-center justify-center" style="padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));">
-    <div id="authGateCard" class="ios-glass rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl">
+  <div id="authGate" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md overflow-hidden px-3 min-[360px]:px-4 py-3 min-[360px]:py-4 flex items-center justify-center" style="padding-top: max(0.75rem, env(safe-area-inset-top, 0px)); padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));">
+    <div id="authGateCard" class="ios-glass rounded-3xl max-w-md w-full p-4 min-[360px]:p-5 sm:p-6 space-y-3.5 min-[360px]:space-y-4 shadow-2xl">
       <div class="flex items-center justify-between gap-2">
         <span id="authFacultyBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
           İnönü Tıp • Dönem I
@@ -2745,40 +2788,40 @@
 
   <!-- Üst Başlık -->
   <header id="appHeader" class="fixed top-0 left-0 right-0 z-30 ios-glass-bar pt-[env(safe-area-inset-top,0px)]">
-    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+    <div class="max-w-2xl mx-auto px-2.5 min-[360px]:px-3.5 sm:px-4 py-2.5 min-[360px]:py-3 flex items-center justify-between gap-2 min-[360px]:gap-3">
       <div class="min-w-0">
-        <p id="headerLiveClock" class="text-[11px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate">BUGÜN • 13 KASIM 2026 CUMA</p>
-        <h1 id="headerAppTitle" class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
+        <p id="headerLiveClock" class="text-[10px] min-[360px]:text-[11px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 truncate">BUGÜN • 13 KASIM 2026 CUMA</p>
+        <h1 id="headerAppTitle" class="text-sm min-[360px]:text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
           İnönü Tıp Dönem I
         </h1>
       </div>
 
-      <div class="flex items-center gap-2 shrink-0">
-        <div class="ios-pill-control p-0.5 rounded-full flex items-center text-[11px]" role="group" aria-label="Dil Seçimi">
-          <button id="btnLangTr" type="button" class="px-2 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">TR</button>
-          <button id="btnLangEn" type="button" class="px-2 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition">EN</button>
+      <div class="flex items-center gap-1.5 min-[360px]:gap-2 shrink-0">
+        <div class="ios-pill-control p-0.5 rounded-full flex items-center text-[10.5px] min-[360px]:text-[11px]" role="group" aria-label="Dil Seçimi">
+          <button id="btnLangTr" type="button" class="px-1.5 min-[360px]:px-2 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">TR</button>
+          <button id="btnLangEn" type="button" class="px-1.5 min-[360px]:px-2 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition">EN</button>
         </div>
-        <button id="btnJumpTodayTop" type="button" class="px-3 py-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-xs font-semibold text-blue-600 dark:text-blue-400 transition">
+        <button id="btnJumpTodayTop" type="button" class="hidden min-[420px]:inline-flex px-3 py-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-xs font-semibold text-blue-600 dark:text-blue-400 transition">
           Bugün
         </button>
-        <button id="btnOpenInstallModal" type="button" class="w-8 h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Uygulamayı Kur" title="Uygulamayı Kur">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        <button id="btnOpenInstallModal" type="button" class="hidden min-[360px]:flex w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Uygulamayı Kur" title="Uygulamayı Kur">
+          <svg class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
         </button>
-        <button id="btnToggleTheme" type="button" class="w-8 h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Tema Değiştir">
-          <svg id="iconSun" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
-          <svg id="iconMoon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        <button id="btnToggleTheme" type="button" class="w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Tema Değiştir">
+          <svg id="iconSun" class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
+          <svg id="iconMoon" class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
         </button>
       </div>
     </div>
   </header>
   <div id="headerSpacer" aria-hidden="true" style="height: calc(66px + env(safe-area-inset-top, 0px));"></div>
 
-  <main id="appMain" class="max-w-2xl mx-auto px-4 pt-3.5 pb-6">
+  <main id="appMain" class="max-w-2xl mx-auto px-2.5 min-[360px]:px-3.5 sm:px-4 pt-3.5 pb-6">
 
     <!-- ==================== TAB 1: GÜNLÜK ==================== -->
-    <section id="viewDaily" class="space-y-3.5 hidden">
+    <section id="viewDaily" class="space-y-2.5 hidden">
       <!-- DATE CARD -->
-      <div class="ios-glass rounded-3xl p-4 pb-0 space-y-3">
+      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 pb-0 space-y-3">
         <div id="dailyWelcomeBar" class="hidden flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200/60 dark:border-slate-800/80">
           <div class="flex items-center gap-2 min-w-0">
             <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
@@ -2786,19 +2829,19 @@
           </div>
           <span id="dailyWelcomeGroupPill" class="shrink-0 px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300 whitespace-nowrap"></span>
         </div>
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <h2 id="selectedDayHeaderTitle" class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight whitespace-nowrap">13 Kasım 2026</h2>
-            <p id="selectedDayHeaderWeekday" class="text-sm sm:text-base font-bold text-slate-700 dark:text-slate-200 leading-tight mt-0.5">Cuma</p>
-            <p id="selectedDaySubInfo" class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">Kurul 2 • 4. Hafta • 8 Ayrı Ders Saati</p>
+        <div class="flex items-center justify-between gap-2.5">
+          <div class="min-w-0 flex-1">
+            <h2 id="selectedDayHeaderTitle" class="text-base sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight truncate">13 Kasım 2026</h2>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <p id="selectedDayHeaderWeekday" class="text-xs sm:text-base font-bold text-slate-700 dark:text-slate-200 leading-tight">Cuma</p>
+              <span id="selectedDayRelativeBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300 whitespace-nowrap">Bugün</span>
+            </div>
+            <p id="selectedDaySubInfo" class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">Kurul 2 • 4. Hafta • 8 Ayrı Ders Saati</p>
           </div>
 
-          <div class="flex flex-col items-end gap-1.5 shrink-0">
-            <div class="ios-pill-control p-1 rounded-full flex items-center gap-1.5 shadow-2xs">
-              <button id="btnBannerToday" type="button" class="px-3.5 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">Bugün</button>
-              <button id="btnBannerTomorrow" type="button" class="px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">Yarın</button>
-            </div>
-            <span id="selectedDayRelativeBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300 whitespace-nowrap">Bugün</span>
+          <div class="hidden min-[360px]:flex ios-pill-control p-1 rounded-full items-center gap-1 shadow-2xs shrink-0">
+            <button id="btnBannerToday" type="button" class="px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition whitespace-nowrap">Bugün</button>
+            <button id="btnBannerTomorrow" type="button" class="px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition whitespace-nowrap">Yarın</button>
           </div>
         </div>
 
@@ -2817,12 +2860,12 @@
         </div>
 
         <!-- Kişisel Grup Seçici (MBU & LAB) ve Giriş/Çıkış Butonu -->
-        <div class="flex items-center justify-center gap-2 py-2.5 border-t border-slate-200/60 dark:border-slate-800/80 flex-wrap">
-          <button id="btnOpenGroupModal" type="button" class="px-3 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5 active:scale-95">
+        <div class="flex items-center justify-center gap-2 pt-2.5 pb-2 border-t border-slate-200/60 dark:border-slate-800/80 flex-wrap">
+          <button id="btnOpenGroupModal" type="button" class="w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5 active:scale-95">
             <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             <span id="btnGroupFilterLabel">Grubunu Seç (MBU / LAB)</span>
           </button>
-          <button id="btnAuthActionDaily" type="button" class="px-3 py-1 rounded-full ios-pill-control hover:bg-blue-500/15 text-[11px] font-semibold text-blue-600 dark:text-blue-400 transition flex items-center gap-1.5 active:scale-95">
+          <button id="btnAuthActionDaily" type="button" class="w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-blue-500/15 text-[11px] font-semibold text-blue-600 dark:text-blue-400 transition flex items-center gap-1.5 active:scale-95">
             <svg id="authActionDailyIcon" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
             <span id="btnAuthActionDailyLabel">Öğrenci Girişi</span>
           </button>
@@ -2843,16 +2886,16 @@
 
     <!-- ==================== TAB 2: HAFTALAR ==================== -->
     <section id="viewWeekly" class="hidden space-y-3.5">
-      <div class="ios-glass rounded-3xl p-4 space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <div>
-            <h2 id="weeklyViewTitle" class="text-base font-bold text-slate-900 dark:text-white">Haftalık Program</h2>
-            <p id="weeklyViewSubtitle" class="text-xs text-slate-500 dark:text-slate-400">13 Hafta • 65 Gün</p>
+      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-3">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="min-w-0">
+            <h2 id="weeklyViewTitle" class="text-base font-bold text-slate-900 dark:text-white truncate">Haftalık Program</h2>
+            <p id="weeklyViewSubtitle" class="text-xs text-slate-500 dark:text-slate-400 truncate">13 Hafta • 65 Gün</p>
           </div>
-          <div class="ios-pill-control p-0.5 rounded-full flex items-center text-xs">
-            <button id="btnFilterKurulAll" type="button" class="px-2.5 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs">Tümü</button>
-            <button id="btnFilterKurul1" type="button" class="px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300">Kurul I</button>
-            <button id="btnFilterKurul2" type="button" class="px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300">Kurul II</button>
+          <div class="ios-pill-control p-0.5 rounded-full flex items-center text-[11px] sm:text-xs shrink-0">
+            <button id="btnFilterKurulAll" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs">Tümü</button>
+            <button id="btnFilterKurul1" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300">Kurul I</button>
+            <button id="btnFilterKurul2" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300">Kurul II</button>
           </div>
         </div>
         <div id="weekSelectorPills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5"></div>
@@ -2868,25 +2911,25 @@
 
     <!-- ==================== TAB 3: YEMEKHANE ==================== -->
     <section id="viewFood" class="hidden space-y-3.5">
-      <div class="ios-glass rounded-3xl p-4 space-y-3">
-        <div class="space-y-1">
-          <div class="flex items-start justify-between gap-2">
-            <div class="min-w-0 flex items-center gap-2 flex-wrap">
-              <h2 id="foodHeaderTitle" class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">13 Kasım 2026 Cuma</h2>
-              <span id="foodRelativeBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300">Bugün</span>
+      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-3">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0 flex items-center gap-1.5 flex-1">
+              <h2 id="foodHeaderTitle" class="text-base min-[360px]:text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white truncate">13 Kasım 2026 Cuma</h2>
+              <span id="foodRelativeBadge" class="px-2 py-0.5 rounded-full text-[10.5px] sm:text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0">Bugün</span>
             </div>
+            <button id="btnFoodRefresh" type="button" aria-label="Menüyü Yenile" title="Menüyü Yenile" class="w-7 h-7 rounded-full ios-pill-control hover:bg-slate-500/15 flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-90 shrink-0">
+              <svg id="iconFoodRefresh" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </button>
+          </div>
 
-            <div class="flex items-center gap-1.5 shrink-0">
-              <button id="btnFoodRefresh" type="button" aria-label="Menüyü Yenile" title="Menüyü Yenile" class="w-7 h-7 rounded-full ios-pill-control hover:bg-slate-500/15 flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-90">
-                <svg id="iconFoodRefresh" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-              </button>
-              <div class="ios-pill-control p-0.5 rounded-full flex items-center">
-                <button id="btnFoodModeDaily" type="button" class="px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">Günlük</button>
-                <button id="btnFoodModeWeekly" type="button" class="px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition">Haftalık</button>
-              </div>
+          <div class="flex items-center justify-between gap-2">
+            <p id="foodSubInfo" class="text-xs text-slate-500 dark:text-slate-400 leading-snug truncate">İnönü Üniversitesi Yemekhane Menüsü</p>
+            <div class="ios-pill-control p-0.5 rounded-full flex items-center text-xs shrink-0">
+              <button id="btnFoodModeDaily" type="button" class="px-2.5 min-[360px]:px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">Günlük</button>
+              <button id="btnFoodModeWeekly" type="button" class="px-2.5 min-[360px]:px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition">Haftalık</button>
             </div>
           </div>
-          <p id="foodSubInfo" class="text-xs text-slate-500 dark:text-slate-400 leading-snug">İnönü Üniversitesi Yemekhane Menüsü</p>
         </div>
 
         <!-- 5 Günlük Kaydırma (Bugün Menüsüyle Birebir Aynı) -->
@@ -2903,20 +2946,20 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
-          <button id="btnFoodPrev" type="button" class="justify-self-end min-w-[82px] px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center justify-center gap-1 active:scale-95 shadow-2xs shrink-0">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
-            <span id="btnFoodPrevLabel">Önceki</span>
+        <div class="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
+          <button id="btnFoodPrev" type="button" class="px-2 sm:px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[10.5px] sm:text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center justify-center gap-1 active:scale-95 shadow-2xs shrink-0">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+            <span id="btnFoodPrevLabel" class="hidden min-[340px]:inline">Önceki</span>
           </button>
 
-          <button id="btnFoodDatePicker" type="button" aria-label="Tarih Seç" class="ios-press ios-pill-control hover:bg-slate-500/15 px-3 py-1 rounded-full flex items-center justify-center gap-1.5 text-slate-800 dark:text-slate-100 text-xs font-bold shadow-2xs shrink-0">
+          <button id="btnFoodDatePicker" type="button" aria-label="Tarih Seç" class="ios-press ios-pill-control hover:bg-slate-500/15 px-2.5 sm:px-3 py-1 rounded-full flex items-center justify-center gap-1.5 text-slate-800 dark:text-slate-100 text-[11px] sm:text-xs font-bold shadow-2xs flex-1 max-w-[200px] min-w-0">
             <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            <span id="foodDateBtnLabel" class="tabular-nums whitespace-nowrap">13 Kas 2026</span>
+            <span id="foodDateBtnLabel" class="tabular-nums truncate">13 Kas 2026</span>
           </button>
 
-          <button id="btnFoodNext" type="button" class="justify-self-start min-w-[82px] px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center justify-center gap-1 active:scale-95 shadow-2xs shrink-0">
-            <span id="btnFoodNextLabel">Sonraki</span>
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+          <button id="btnFoodNext" type="button" class="px-2 sm:px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[10.5px] sm:text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center justify-center gap-1 active:scale-95 shadow-2xs shrink-0">
+            <span id="btnFoodNextLabel" class="hidden min-[340px]:inline">Sonraki</span>
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
           </button>
         </div>
       </div>
@@ -2945,44 +2988,44 @@
 
     <!-- ==================== TAB 4: SINAV & NOT ==================== -->
     <section id="viewInfo" class="hidden space-y-3.5">
-      <div class="ios-glass rounded-3xl p-4 space-y-3">
+      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-3">
         <div class="flex items-center justify-between gap-2">
           <h2 id="infoCalcTitle" class="text-base font-bold text-slate-900 dark:text-white">Kurul &amp; Geçme Hesaplayıcı</h2>
         </div>
 
         <div class="calc-grid-3 pt-0.5">
-          <div class="ios-pill-control rounded-2xl p-3">
-            <label id="lblAraSinav" for="inpAraSinav" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Ara Sınav (%15)</label>
-            <input id="inpAraSinav" type="number" min="0" max="100" step="0.5" value="80" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
+          <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3">
+            <label id="lblAraSinav" for="inpAraSinav" class="block text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400">Ara Sınav (%15)</label>
+            <input id="inpAraSinav" type="number" min="0" max="100" step="0.5" value="80" class="w-full bg-transparent text-base min-[360px]:text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
           </div>
-          <div class="ios-pill-control rounded-2xl p-3">
-            <label id="lblKurulSonu" for="inpKurulSonu" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Kurul Sonu (%85)</label>
-            <input id="inpKurulSonu" type="number" min="0" max="100" step="0.5" value="75" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
+          <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3">
+            <label id="lblKurulSonu" for="inpKurulSonu" class="block text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400">Kurul Sonu (%85)</label>
+            <input id="inpKurulSonu" type="number" min="0" max="100" step="0.5" value="75" class="w-full bg-transparent text-base min-[360px]:text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
           </div>
-          <div class="ios-pill-control rounded-2xl p-3">
-            <label id="lblPratikSinav" for="inpPratikSinav" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Pratik Sınav</label>
-            <input id="inpPratikSinav" type="number" min="0" max="100" step="0.5" value="85" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
+          <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3">
+            <label id="lblPratikSinav" for="inpPratikSinav" class="block text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400">Pratik Sınav</label>
+            <input id="inpPratikSinav" type="number" min="0" max="100" step="0.5" value="85" class="w-full bg-transparent text-base min-[360px]:text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
           </div>
         </div>
 
         <div class="flex items-center justify-between gap-2 flex-wrap px-0.5">
-          <span id="lblPratikAgirlik" class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Pratik Sınav Katkısı</span>
-          <div id="pratikWeightPills" class="ios-pill-control p-0.5 rounded-full flex items-center gap-0.5 text-[11px]">
-            <button type="button" data-pweight="0" class="pratik-weight-btn px-2.5 py-0.5 rounded-full font-semibold transition">%0</button>
-            <button type="button" data-pweight="10" class="pratik-weight-btn px-2.5 py-0.5 rounded-full font-semibold transition">%10</button>
-            <button type="button" data-pweight="15" class="pratik-weight-btn px-2.5 py-0.5 rounded-full font-semibold transition">%15</button>
-            <button type="button" data-pweight="20" class="pratik-weight-btn px-2.5 py-0.5 rounded-full font-semibold transition">%20</button>
+          <span id="lblPratikAgirlik" class="text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400">Pratik Sınav Katkısı</span>
+          <div id="pratikWeightPills" class="ios-pill-control p-0.5 rounded-full flex items-center gap-0.5 text-[10.5px] min-[360px]:text-[11px]">
+            <button type="button" data-pweight="0" class="pratik-weight-btn px-2 min-[360px]:px-2.5 py-0.5 rounded-full font-semibold transition">%0</button>
+            <button type="button" data-pweight="10" class="pratik-weight-btn px-2 min-[360px]:px-2.5 py-0.5 rounded-full font-semibold transition">%10</button>
+            <button type="button" data-pweight="15" class="pratik-weight-btn px-2 min-[360px]:px-2.5 py-0.5 rounded-full font-semibold transition">%15</button>
+            <button type="button" data-pweight="20" class="pratik-weight-btn px-2 min-[360px]:px-2.5 py-0.5 rounded-full font-semibold transition">%20</button>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-2.5">
-          <div class="ios-pill-control rounded-2xl p-3 flex flex-col justify-center">
-            <span id="lblTeorikOrt" class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Teorik Ortalamanız</span>
-            <span id="outTeorikNotu" class="text-lg font-bold text-slate-900 dark:text-white mt-0.5 tabular-nums">75.75</span>
+        <div class="grid grid-cols-2 gap-2 min-[360px]:gap-2.5">
+          <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3 flex flex-col justify-center">
+            <span id="lblTeorikOrt" class="text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Teorik Ortalamanız</span>
+            <span id="outTeorikNotu" class="text-base min-[360px]:text-lg font-bold text-slate-900 dark:text-white mt-0.5 tabular-nums">75.75</span>
           </div>
-          <div class="rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 p-3 flex flex-col justify-center">
-            <span id="lblKurulPuan" class="text-[11px] font-medium text-blue-600 dark:text-blue-300">Toplam Kurul Puanı</span>
-            <span id="outKurulNotu" class="text-xl font-bold text-blue-700 dark:text-blue-200 mt-0.5 tabular-nums">77.14</span>
+          <div class="rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 p-2.5 min-[360px]:p-3 flex flex-col justify-center">
+            <span id="lblKurulPuan" class="text-[10.5px] min-[360px]:text-[11px] font-medium text-blue-600 dark:text-blue-300 truncate">Toplam Kurul Puanı</span>
+            <span id="outKurulNotu" class="text-lg min-[360px]:text-xl font-bold text-blue-700 dark:text-blue-200 mt-0.5 tabular-nums">77.14</span>
           </div>
         </div>
 
@@ -2993,29 +3036,29 @@
             <h3 id="lblFinalSectionTitle" class="text-xs font-bold text-slate-800 dark:text-slate-100">Yıl Sonu &amp; Final Geçme Hesabı</h3>
             <button id="btnSyncKurulOrt" type="button" class="hidden text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">Bu Kurulu Kullan</button>
           </div>
-          <div class="grid grid-cols-2 gap-2.5">
-            <div class="ios-pill-control rounded-2xl p-3">
-              <label id="lblKurullarOrt" for="inpKurulOrt" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Kurullar Ort. (%60)</label>
-              <input id="inpKurulOrt" type="number" min="0" max="100" step="0.1" value="77.14" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
+          <div class="grid grid-cols-2 gap-2 min-[360px]:gap-2.5">
+            <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3">
+              <label id="lblKurullarOrt" for="inpKurulOrt" class="block text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Kurullar Ort. (%60)</label>
+              <input id="inpKurulOrt" type="number" min="0" max="100" step="0.1" value="77.14" class="w-full bg-transparent text-base min-[360px]:text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
             </div>
-            <div class="ios-pill-control rounded-2xl p-3">
-              <label id="lblHedefYil" for="inpHedefYil" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Hedef Yıl Sonu</label>
-              <input id="inpHedefYil" type="number" min="0" max="100" step="1" value="60" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
+            <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3">
+              <label id="lblHedefYil" for="inpHedefYil" class="block text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Hedef Yıl Sonu</label>
+              <input id="inpHedefYil" type="number" min="0" max="100" step="1" value="60" class="w-full bg-transparent text-base min-[360px]:text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
             </div>
           </div>
           <div id="finalNeedBox" class="rounded-2xl px-3.5 py-2.5 text-xs font-semibold leading-snug calc-status-pass"></div>
         </div>
       </div>
-      <div class="ios-glass rounded-3xl p-4 space-y-2.5">
+      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-2.5">
         <h2 id="infoExamsTitle" class="text-base font-bold text-slate-900 dark:text-white">Sınav Saatleri</h2>
         <div id="examsListContainer" class="space-y-2"></div>
       </div>
-      <div id="authSessionCard" class="ios-glass rounded-3xl p-4 flex items-center justify-between gap-3">
-        <div class="min-w-0">
+      <div id="authSessionCard" class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3 flex-wrap">
+        <div class="min-w-0 flex-1">
           <p id="authSessionTitle" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Öğrenci Girişi</p>
           <p id="authSessionDesc" class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mt-0.5 truncate tabular-nums">Misafir modu • Otomatik grup için giriş yap</p>
         </div>
-        <button id="btnAuthActionInfo" type="button" class="ios-press shrink-0 px-3.5 py-2 rounded-full bg-blue-500/12 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold transition">
+        <button id="btnAuthActionInfo" type="button" class="ios-press w-full min-[360px]:w-auto justify-center px-3.5 py-2 rounded-full bg-blue-500/12 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold transition text-center">
           Giriş Yap
         </button>
       </div>
@@ -3024,15 +3067,15 @@
   </main>
 
   <!-- Install App Modal (Accessible via unobtrusive header button; auto-hides when installed) -->
-  <div id="installModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md flex items-center justify-center p-4">
-    <div id="installModalCard" class="ios-glass rounded-3xl max-w-md w-full p-5 space-y-3">
+  <div id="installModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+    <div id="installModalCard" class="ios-glass rounded-3xl max-w-md w-full p-4 min-[360px]:p-5 space-y-3">
       <div class="flex items-center justify-between gap-2">
         <span id="installBadge" class="inline-block px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
           Uygulama Kurulumu
         </span>
         <button id="btnCloseInstallModal" type="button" class="w-7 h-7 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center" aria-label="Kapat">✕</button>
       </div>
-      <h2 id="installTitle" class="text-lg font-bold text-slate-900 dark:text-white">Ana Ekrana Ekleme Adımları</h2>
+      <h2 id="installTitle" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Ana Ekrana Ekleme Adımları</h2>
       <p id="installDesc" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
         Ders programını telefonuna uygulama gibi kurarak tam ekran ve çevrimdışı erişimle kullanabilirsin.
       </p>
@@ -3051,13 +3094,13 @@
   </div>
 
   <!-- Food Photo Lightbox Modal -->
-  <div id="foodPhotoModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+  <div id="foodPhotoModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
     <div id="foodPhotoModalCard" class="ios-glass rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl">
       <div class="relative bg-slate-900/80">
         <img id="foodPhotoModalImg" src="" alt="" class="w-full max-h-[65vh] object-contain mx-auto">
         <button id="btnCloseFoodPhotoModal" type="button" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-sm transition active:scale-95" aria-label="Fotoğrafı Kapat">✕</button>
       </div>
-      <div class="p-4 flex items-center justify-between gap-3">
+      <div class="p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3">
         <div class="min-w-0">
           <h3 id="foodPhotoModalTitle" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug"></h3>
           <p id="foodPhotoModalDate" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5"></p>
@@ -3068,8 +3111,8 @@
   </div>
 
   <!-- Group Selection Modal -->
-  <div id="groupModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md flex items-center justify-center p-4">
-    <div id="groupModalCard" class="ios-glass rounded-3xl max-w-md w-full p-5 space-y-3.5">
+  <div id="groupModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+    <div id="groupModalCard" class="ios-glass rounded-3xl max-w-md w-full p-4 min-[360px]:p-5 space-y-3 min-[360px]:space-y-3.5">
       <div class="flex items-center justify-between gap-2">
         <h3 id="groupModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Gruplarını Seç</h3>
         <button id="btnCloseGroupModal" type="button" class="w-7 h-7 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center" aria-label="Kapat">✕</button>
@@ -3113,8 +3156,8 @@
   </div>
 
   <!-- Note Modal -->
-  <div id="noteModal" class="fixed inset-0 z-50 hidden bg-black/30 backdrop-blur-md flex items-center justify-center p-4">
-    <div id="noteModalCard" class="ios-glass rounded-3xl max-w-md w-full p-4 space-y-3">
+  <div id="noteModal" class="fixed inset-0 z-50 hidden bg-black/30 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+    <div id="noteModalCard" class="ios-glass rounded-3xl max-w-md w-full p-3.5 min-[360px]:p-4 space-y-3">
       <div class="flex items-center justify-between">
         <h3 id="noteModalTitle" class="text-sm font-bold text-slate-900 dark:text-white">Ders Notu</h3>
         <button id="btnCloseNoteModal" type="button" class="ios-press w-7 h-7 rounded-full ios-pill-control text-slate-500 flex items-center justify-center">✕</button>
@@ -3129,8 +3172,8 @@
   </div>
 
   <!-- Food Date Picker Modal (Custom In-Site iOS Calendar) -->
-  <div id="foodDateModal" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md flex items-center justify-center p-4">
-    <div id="foodDateModalCard" class="ios-glass rounded-3xl max-w-sm w-full p-4 space-y-3 shadow-2xl">
+  <div id="foodDateModal" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+    <div id="foodDateModalCard" class="ios-glass rounded-3xl max-w-sm w-full p-3.5 min-[360px]:p-4 space-y-3 shadow-2xl">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
           <span class="w-7 h-7 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -3162,45 +3205,44 @@
 
   <div id="toastBanner" class="ios-toast pointer-events-none fixed bottom-24 left-1/2 z-50 hidden px-4 py-2 rounded-full ios-glass text-slate-900 dark:text-white text-xs font-semibold shadow-lg"></div>
 
-  <!-- AUTHENTIC APPLE iOS 18 FLOATING ISLAND DOCK (5 TABS) -->
-  <nav id="appNav" class="fixed inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[440px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
-    <div id="dockContainer" class="ios-floating-dock rounded-full p-1 flex items-center justify-between relative touch-none" style="touch-action: none;">
+  <nav id="appNav" class="fixed inset-x-2 min-[360px]:inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[440px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
+    <div id="dockContainer" class="ios-floating-dock rounded-full p-1 grid grid-cols-5 relative touch-none" style="touch-action: none;">
       <!-- Continuous Gliding Pill -->
       <div id="tabIndicatorPill" style="transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform: translate3d(4px, 0px, 0px); width: 70px;"></div>
 
-      <button type="button" data-tab="daily" data-tab-index="0" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-semibold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="daily" data-tab-index="0" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-semibold relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1.1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
         </div>
-        <span id="navLabelDaily" class="text-[10px] sm:text-[10.5px] tracking-tight whitespace-nowrap">Bugün</span>
+        <span id="navLabelDaily" class="text-[9.5px] sm:text-[10.5px] tracking-tight whitespace-nowrap truncate max-w-full">Bugün</span>
       </button>
 
-      <button type="button" data-tab="weekly" data-tab-index="1" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="weekly" data-tab-index="1" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </div>
-        <span id="navLabelWeekly" class="text-[10px] sm:text-[10.5px] tracking-tight whitespace-nowrap">Haftalar</span>
+        <span id="navLabelWeekly" class="text-[9.5px] sm:text-[10.5px] tracking-tight whitespace-nowrap truncate max-w-full">Hafta</span>
       </button>
 
-      <button type="button" data-tab="search" data-tab-index="2" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="search" data-tab-index="2" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
-        <span id="navLabelSearch" class="text-[10px] sm:text-[10.5px] tracking-tight whitespace-nowrap">Arama</span>
+        <span id="navLabelSearch" class="text-[9.5px] sm:text-[10.5px] tracking-tight whitespace-nowrap truncate max-w-full">Arama</span>
       </button>
 
-      <button type="button" data-tab="info" data-tab-index="3" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="info" data-tab-index="3" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"></path></svg>
         </div>
-        <span id="navLabelInfo" class="text-[10px] sm:text-[10.5px] tracking-tight whitespace-nowrap">Sınav &amp; Not</span>
+        <span id="navLabelInfo" class="text-[9.5px] sm:text-[10.5px] tracking-tight whitespace-nowrap truncate max-w-full">Sınav</span>
       </button>
 
-      <button type="button" data-tab="food" data-tab-index="4" class="nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="food" data-tab-index="4" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>
         </div>
-        <span id="navLabelFood" class="text-[10px] sm:text-[10.5px] tracking-tight whitespace-nowrap">Yemekhane</span>
+        <span id="navLabelFood" class="text-[9.5px] sm:text-[10.5px] tracking-tight whitespace-nowrap truncate max-w-full">Yemekhane</span>
       </button>
     </div>
   </nav>
@@ -3319,10 +3361,10 @@
         noteDeletedToast: 'Not silindi',
         icsSavedToast: 'Takvim dosyası indirildi',
         navDaily: 'Bugün',
-        navWeekly: 'Haftalar',
+        navWeekly: 'Hafta',
         navFood: 'Yemekhane',
         navSearch: 'Arama',
-        navInfo: 'Sınav & Not',
+        navInfo: 'Sınav',
         navInstall: 'Kurulum',
         foodMainMenu: 'Günün Menüsü',
         foodModeDaily: 'Günlük',
@@ -3473,7 +3515,7 @@
         navWeekly: 'Weeks',
         navFood: 'Dining',
         navSearch: 'Search',
-        navInfo: 'Exams & Score',
+        navInfo: 'Exams',
         navInstall: 'Install',
         foodMainMenu: "Today's Menu",
         foodModeDaily: 'Daily',
@@ -4074,62 +4116,6 @@
       updateHeaderClock();
     }
 
-    function getTabLeafAnimTargets(viewEl) {
-      const targets = [];
-      const wrapperIds = new Set([
-        'dailySlotsContainer',
-        'weeklyDaysContainer',
-        'searchResultsContainer',
-        'foodMenuContainer',
-        'foodAnnouncementsContainer'
-      ]);
-      Array.from(viewEl.children).forEach((el) => {
-        if (el.classList.contains('hidden')) return;
-        if (!wrapperIds.has(el.id)) {
-          targets.push(el);
-          return;
-        }
-        if (el.id === 'weeklyDaysContainer') {
-          Array.from(el.children).forEach((sec) => {
-            if (sec.classList.contains('hidden')) return;
-            Array.from(sec.children).forEach((sub) => {
-              if (sub.classList.contains('space-y-2')) {
-                Array.from(sub.children).forEach((leaf) => {
-                  if (!leaf.classList.contains('hidden')) targets.push(leaf);
-                });
-              } else if (!sub.classList.contains('hidden')) {
-                targets.push(sub);
-              }
-            });
-          });
-          return;
-        }
-        if (el.id === 'foodMenuContainer') {
-          Array.from(el.children).forEach((child) => {
-            if (child.classList.contains('hidden')) return;
-            if (child.classList.contains('ios-glass')) {
-              targets.push(child);
-            } else {
-              Array.from(child.children).forEach((sub) => {
-                if (sub.classList.contains('grid')) {
-                  Array.from(sub.children).forEach((card) => {
-                    if (!card.classList.contains('hidden')) targets.push(card);
-                  });
-                } else if (!sub.classList.contains('hidden')) {
-                  targets.push(sub);
-                }
-              });
-            }
-          });
-          return;
-        }
-        Array.from(el.children).forEach((leaf) => {
-          if (!leaf.classList.contains('hidden')) targets.push(leaf);
-        });
-      });
-      return targets;
-    }
-
     function animateActiveViewLanguageSwitch() {
       const viewId = 'view' + state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1);
       const viewEl = document.getElementById(viewId);
@@ -4188,12 +4174,8 @@
     let lastVisualActiveTab = null;
 
     function getDockPillBounds(dock, btn) {
-      const dockWidth = dock.clientWidth;
-      const span = btn.querySelector('span');
-      const textWidth = span ? Math.ceil(span.getBoundingClientRect().width) + 12 : 0;
-      const width = Math.min(dockWidth - 8, Math.max(btn.offsetWidth, textWidth));
-      const rawLeft = btn.offsetLeft - (width - btn.offsetWidth) / 2;
-      const left = Math.max(4, Math.min(dockWidth - width - 4, rawLeft));
+      const left = btn.offsetLeft;
+      const width = btn.offsetWidth;
       return { left, width, center: left + width / 2 };
     }
 
@@ -4265,15 +4247,12 @@
       forceInstantCarouselSync = false;
 
       if (changed && activeViewEl) {
-        const leafTargets = getTabLeafAnimTargets(activeViewEl);
-        leafTargets.forEach((leaf, idx) => {
-          leaf.classList.remove('ios-stagger-item', 'tab-enter-right', 'tab-enter-left');
-          leaf.style.setProperty('--tab-delay', `${Math.min(idx, 6) * 20}ms`);
-          void leaf.offsetWidth;
-          leaf.classList.add(enterCls);
-          leaf.addEventListener('animationend', () => {
-            leaf.classList.remove('tab-enter-right', 'tab-enter-left');
-            leaf.style.removeProperty('--tab-delay');
+        activeViewEl.classList.remove('tab-view-enter-right', 'tab-view-enter-left');
+        const viewEnterCls = nextIdx < prevIdx ? 'tab-view-enter-left' : 'tab-view-enter-right';
+        requestAnimationFrame(() => {
+          activeViewEl.classList.add(viewEnterCls);
+          activeViewEl.addEventListener('animationend', () => {
+            activeViewEl.classList.remove('tab-view-enter-right', 'tab-view-enter-left');
           }, { once: true });
         });
       }
@@ -4283,8 +4262,8 @@
     function setDockActiveVisual(tabName, force = false) {
       if (!force && lastVisualActiveTab === tabName) return;
       lastVisualActiveTab = tabName;
-      const activeCls = 'nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-semibold relative z-10 transition-colors duration-200 select-none';
-      const inactiveCls = 'nav-tab-btn flex-1 py-1.5 px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none';
+      const activeCls = 'nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-semibold relative z-10 transition-colors duration-200 select-none';
+      const inactiveCls = 'nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none';
 
       document.querySelectorAll('.nav-tab-btn').forEach((b) => {
         const isAct = b.getAttribute('data-tab') === tabName;
@@ -4307,13 +4286,11 @@
       let startX = 0;
       let startY = 0;
       let currentTargetTab = state.activeTab;
-      let renderedTab = state.activeTab;
       let metrics = null;
       let currentPillX = 0;
       let targetPillX = 0;
       let pillWidth = 0;
       let rafId = null;
-      let viewSettleTimer = null;
 
       function measureDock() {
         const rect = dock.getBoundingClientRect();
@@ -4331,6 +4308,7 @@
       }
 
       function getClosestBtn(clientX) {
+        if (!metrics || !metrics.btns || metrics.btns.length === 0) return null;
         const relX = Math.max(4, Math.min(metrics.width - 4, clientX - metrics.rectLeft));
         let closest = metrics.btns[0];
         let minDist = Infinity;
@@ -4350,19 +4328,9 @@
           return;
         }
         const diff = targetPillX - currentPillX;
-        currentPillX += Math.abs(diff) < 0.25 ? diff : diff * 0.42;
-        pill.style.transform = `translate3d(${currentPillX.toFixed(2)}px, 0, 0) scale(1.04)`;
+        currentPillX += Math.abs(diff) < 0.2 ? diff : diff * 0.45;
+        pill.style.transform = `translate3d(${currentPillX.toFixed(2)}px, 0, 0) scale(1.03)`;
         rafId = requestAnimationFrame(tickDrag);
-      }
-
-      function scheduleTabPreview(tabName) {
-        clearTimeout(viewSettleTimer);
-        viewSettleTimer = setTimeout(() => {
-          if (isDragging && currentTargetTab === tabName && renderedTab !== tabName) {
-            renderedTab = tabName;
-            activateTabView(tabName);
-          }
-        }, 120);
       }
 
       dock.addEventListener('pointerdown', (e) => {
@@ -4372,7 +4340,6 @@
         startX = e.clientX;
         startY = e.clientY;
         currentTargetTab = state.activeTab;
-        renderedTab = state.activeTab;
         metrics = measureDock();
 
         const activeInfo = metrics.btns.find((b) => b.tab === state.activeTab) || metrics.btns[0];
@@ -4381,7 +4348,7 @@
         pillWidth = activeInfo.width;
 
         try { dock.setPointerCapture(e.pointerId); } catch (err) {}
-      });
+      }, { passive: true });
 
       dock.addEventListener('pointermove', (e) => {
         if (!isDragging || !metrics) return;
@@ -4389,7 +4356,7 @@
         const dy = Math.abs(e.clientY - startY);
 
         if (!didMove) {
-          if (dx <= 8 && dy <= 8) return;
+          if (dx <= 6 && dy <= 6) return;
           didMove = true;
           pill.style.transition = 'none';
           pill.classList.add('is-dragging');
@@ -4397,22 +4364,18 @@
         }
 
         const hoverBtn = getClosestBtn(e.clientX);
-        const btnW = hoverBtn ? hoverBtn.width : pillWidth;
-        pillWidth = btnW;
-        pill.style.width = `${btnW}px`;
-        targetPillX = Math.max(4, Math.min(metrics.width - btnW - 4, e.clientX - metrics.rectLeft - btnW / 2));
-
-        if (hoverBtn && hoverBtn.tab && hoverBtn.tab !== currentTargetTab) {
-          currentTargetTab = hoverBtn.tab;
-          setDockActiveVisual(currentTargetTab);
-          scheduleTabPreview(currentTargetTab);
+        if (hoverBtn) {
+          targetPillX = Math.max(4, Math.min(metrics.width - pillWidth - 4, e.clientX - metrics.rectLeft - pillWidth / 2));
+          if (hoverBtn.tab && hoverBtn.tab !== currentTargetTab) {
+            currentTargetTab = hoverBtn.tab;
+            setDockActiveVisual(currentTargetTab);
+          }
         }
-      });
+      }, { passive: true });
 
       function endDrag(e) {
         if (!isDragging) return;
         isDragging = false;
-        clearTimeout(viewSettleTimer);
         if (rafId) {
           cancelAnimationFrame(rafId);
           rafId = null;
@@ -4422,13 +4385,11 @@
         pill.classList.remove('is-dragging');
 
         if (didMove) {
-          updateTabIndicator(currentTargetTab, true);
-          if (renderedTab !== currentTargetTab) {
-            activateTabView(currentTargetTab);
-          }
+          switchTab(currentTargetTab, true);
         } else if (e.type !== 'pointercancel') {
           const hit = (e.target && e.target.closest && e.target.closest('.nav-tab-btn'));
-          const clickedTab = (hit && hit.getAttribute('data-tab')) || (metrics && getClosestBtn(e.clientX).tab);
+          const closestBtn = metrics && getClosestBtn(e.clientX);
+          const clickedTab = (hit && hit.getAttribute('data-tab')) || (closestBtn && closestBtn.tab);
           if (clickedTab) {
             switchTab(clickedTab, true);
           }
@@ -4685,18 +4646,26 @@
 
       document.getElementById('selectedDayHeaderTitle').textContent = formatDateDayMonthYear(dayObj.date);
       document.getElementById('selectedDayHeaderWeekday').textContent = formatDateWeekday(dayObj.date);
-      document.getElementById('selectedDayRelativeBadge').textContent = formatRelativeDay(dayObj.date);
       document.getElementById('selectedDaySubInfo').textContent = `${loc.committeeShort(dayObj.kurulNo)} • ${loc.weekLabel(dayObj.haftaNo)} • ${loc.slotCount(dayObj.slots.length)}`;
 
       const tomTarget = getTomorrowTargetDate();
       const todayTarget = getBestDefaultDate();
+      const isToday = state.selectedDate === todayTarget;
+      const isTomorrow = state.selectedDate === tomTarget;
+
+      const relBadge = document.getElementById('selectedDayRelativeBadge');
+      if (relBadge) {
+        relBadge.textContent = formatRelativeDay(dayObj.date);
+        relBadge.classList.toggle('hidden', isToday || isTomorrow);
+      }
+
       const btnToday = document.getElementById('btnBannerToday');
       const btnTom = document.getElementById('btnBannerTomorrow');
 
-      const activePill = 'px-3.5 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition';
-      const inactivePill = 'px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition';
-      btnToday.className = state.selectedDate === todayTarget ? activePill : inactivePill;
-      btnTom.className = state.selectedDate === tomTarget ? activePill : inactivePill;
+      const activePill = 'px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition whitespace-nowrap';
+      const inactivePill = 'px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition whitespace-nowrap';
+      btnToday.className = isToday ? activePill : inactivePill;
+      btnTom.className = isTomorrow ? activePill : inactivePill;
 
       renderWeekCarousel(dayObj);
 
@@ -6305,7 +6274,13 @@
       }
 
       if (titleEl) titleEl.textContent = loc.authSessionTitle;
-      if (descEl) descEl.textContent = loc.authSessionLabel(session.last4, session.group, session.name);
+      if (descEl) {
+        const maskedHtml = `<span class="masked-id-dots">•••••••</span><span class="font-mono font-bold">${escapeHtml(session.last4)}</span>`;
+        const groupText = loc.authWelcomeGroupBadge ? loc.authWelcomeGroupBadge(session.group) : `Grup ${session.group}`;
+        descEl.innerHTML = session.name
+          ? `${escapeHtml(session.name)} • ${maskedHtml} • ${escapeHtml(groupText)}`
+          : `${maskedHtml} • ${escapeHtml(groupText)}`;
+      }
       if (infoBtn) {
         infoBtn.textContent = loc.authLogoutBtn;
         infoBtn.className = 'ios-press shrink-0 px-3.5 py-2 rounded-full bg-rose-500/12 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold transition';
