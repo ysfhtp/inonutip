@@ -2390,6 +2390,24 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .safe-bottom { padding-bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px)); }
     .dark input[type="date"] { color-scheme: dark; }
+
+    .slot-mbu-bar { background-color: var(--color-amber-500, #f59e0b); }
+    .slot-mbu-text { color: #d97706; }
+    .dark .slot-mbu-text { color: var(--color-amber-400, #fbbf24); }
+    .slot-mbu-badge {
+      background-color: #f99c0026;
+      background-color: color-mix(in oklab, var(--color-amber-500, #f59e0b) 15%, transparent);
+      color: var(--color-amber-700, #b45309);
+      border-color: #f99c004d;
+      border-color: color-mix(in oklab, var(--color-amber-500, #f59e0b) 30%, transparent);
+    }
+    .dark .slot-mbu-badge {
+      background-color: #f99c0026;
+      background-color: color-mix(in oklab, var(--color-amber-500, #f59e0b) 15%, transparent);
+      color: var(--color-amber-300, #fcd34d);
+      border-color: #fbbf244d;
+      border-color: color-mix(in oklab, var(--color-amber-400, #fbbf24) 30%, transparent);
+    }
   </style>
 </head>
 <body class="safe-bottom antialiased selection:bg-blue-500/20">
@@ -3042,9 +3060,14 @@
       return nowStr >= start && nowStr <= end;
     }
 
-    function getCalmAccent(slot) {
-      const c = (slot.code || '').toUpperCase();
-      const titleUpper = (slot.title || '').toUpperCase();
+    function isActualLabSlot(codeUpper, titleUpper) {
+      if (codeUpper.startsWith('LAB')) return true;
+      return /(?:^|[\s(/])LAB(?=$|[\s():/])/i.test(titleUpper);
+    }
+
+    function getSlotCategory(slot) {
+      const c = (slot.code || '').toUpperCase().trim();
+      const titleUpper = (slot.title || '').toLocaleUpperCase('tr-TR').trim();
       if (
         c === 'SINAV' ||
         c === 'EXAM' ||
@@ -3053,32 +3076,63 @@
         titleUpper.includes('QUIZ') ||
         titleUpper.includes('EVALUATION')
       ) {
-        return {
-          barBg: 'bg-rose-500',
-          slotText: 'text-rose-500 dark:text-rose-400'
-        };
+        return 'exam';
       }
-      if (c.startsWith('MBU') || c.startsWith('PSP') || titleUpper.includes('LAB')) {
-        return {
-          barBg: 'bg-emerald-500',
-          slotText: 'text-emerald-600 dark:text-emerald-400'
-        };
+      if (c.startsWith('MBU') || c.startsWith('PSP')) {
+        return 'mbu';
+      }
+      if (isActualLabSlot(c, titleUpper)) {
+        return 'lab';
       }
       if (c === 'BÇ' || titleUpper.includes('SELF STUDY') || titleUpper.includes('BAĞIMSIZ ÇALIŞMA')) {
-        return {
-          barBg: 'bg-slate-400 dark:bg-slate-600',
-          slotText: 'text-slate-500 dark:text-slate-400'
-        };
+        return 'self';
       }
       if (c === 'UYUM' || c.includes('ORIENTATION')) {
+        return 'orientation';
+      }
+      return 'lecture';
+    }
+
+    function getCalmAccent(slot, category = getSlotCategory(slot)) {
+      if (category === 'exam') {
+        return {
+          barBg: 'bg-rose-500',
+          slotText: 'text-rose-500 dark:text-rose-400',
+          groupBadge: ''
+        };
+      }
+      if (category === 'mbu') {
+        return {
+          barBg: 'slot-mbu-bar',
+          slotText: 'slot-mbu-text',
+          groupBadge: 'slot-mbu-badge'
+        };
+      }
+      if (category === 'lab') {
+        return {
+          barBg: 'bg-emerald-500',
+          slotText: 'text-emerald-600 dark:text-emerald-400',
+          groupBadge: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+        };
+      }
+      if (category === 'self') {
+        return {
+          barBg: 'bg-slate-400 dark:bg-slate-600',
+          slotText: 'text-slate-500 dark:text-slate-400',
+          groupBadge: ''
+        };
+      }
+      if (category === 'orientation') {
         return {
           barBg: 'bg-indigo-500',
-          slotText: 'text-indigo-600 dark:text-indigo-400'
+          slotText: 'text-indigo-600 dark:text-indigo-400',
+          groupBadge: ''
         };
       }
       return {
         barBg: 'bg-blue-500',
-        slotText: 'text-blue-600 dark:text-blue-400'
+        slotText: 'text-blue-600 dark:text-blue-400',
+        groupBadge: ''
       };
     }
 
@@ -3450,10 +3504,9 @@
       const key = `${slot.date}_${slot.slotNo}`;
       const noteText = state.notes[key] || '';
       const isLive = isSlotCurrentlyLive(slot);
-      const accent = getCalmAccent(slot);
-      const codeUpper = (slot.code || '').toUpperCase();
-      const titleUpper = (slot.title || '').toUpperCase();
-      const isMbuOrLab = codeUpper.startsWith('MBU') || codeUpper.startsWith('PSP') || titleUpper.includes('LAB');
+      const category = getSlotCategory(slot);
+      const accent = getCalmAccent(slot, category);
+      const isMbuOrLab = category === 'mbu' || category === 'lab';
       const [startTime = '', endTime = ''] = (slot.time || '').split('-');
 
       const card = document.createElement('div');
@@ -3496,7 +3549,7 @@
         const groupWrap = document.createElement('div');
         groupWrap.className = 'mt-1';
         const groupSpan = document.createElement('span');
-        groupSpan.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
+        groupSpan.className = `inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${accent.groupBadge}`;
         groupSpan.innerHTML = `<svg class="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg><span>${escapeHtml(slot.group.toUpperCase())}</span>`;
         groupWrap.appendChild(groupSpan);
         rightCol.appendChild(groupWrap);
