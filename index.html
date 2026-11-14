@@ -2433,6 +2433,12 @@
       opacity: var(--header-scroll-ratio, 1);
     }
 
+    /* PWA Install Button Visibility Control (Auto-hidden when installed or in standalone mode) */
+    #btnOpenInstallModal.is-installed-hidden,
+    .is-app-installed #btnOpenInstallModal {
+      display: none !important;
+    }
+
     /* iOS 18 Authentic Liquid Glass Dock */
     .ios-floating-dock {
       background: rgba(244, 247, 252, 0.66);
@@ -3091,7 +3097,7 @@
         <button id="btnJumpTodayTop" type="button" class="hidden min-[420px]:inline-flex px-3 py-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-xs font-semibold text-blue-600 dark:text-blue-400 transition">
           Bugün
         </button>
-        <button id="btnOpenInstallModal" type="button" class="hidden min-[360px]:flex w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Uygulamayı Kur" title="Uygulamayı Kur">
+        <button id="btnOpenInstallModal" type="button" class="flex w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Uygulamayı Kur" title="Uygulamayı Kur">
           <svg class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
         </button>
         <button id="btnToggleTheme" type="button" class="w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Tema Değiştir">
@@ -7126,15 +7132,69 @@
       });
 
       let deferredInstallPrompt = null;
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       const installActionWrap = document.getElementById('pwaInstallActionWrap');
       const btnInstallApp = document.getElementById('btnInstallApp');
       const btnOpenInstallModal = document.getElementById('btnOpenInstallModal');
       const installModal = document.getElementById('installModal');
       const btnCloseInstallModal = document.getElementById('btnCloseInstallModal');
 
-      if (isStandalone && btnOpenInstallModal) {
-        btnOpenInstallModal.classList.add('hidden');
+      function checkIsStandalone() {
+        return Boolean(
+          window.matchMedia('(display-mode: standalone)').matches ||
+          window.matchMedia('(display-mode: fullscreen)').matches ||
+          window.matchMedia('(display-mode: minimal-ui)').matches ||
+          window.navigator.standalone === true ||
+          (document.referrer && document.referrer.includes('android-app://'))
+        );
+      }
+
+      function isAppInstalled() {
+        if (checkIsStandalone()) return true;
+        try {
+          return localStorage.getItem('inonu_pwa_installed') === 'true';
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function hideInstallUI() {
+        document.body.classList.add('is-app-installed');
+        if (btnOpenInstallModal) {
+          btnOpenInstallModal.classList.add('is-installed-hidden');
+          btnOpenInstallModal.style.setProperty('display', 'none', 'important');
+        }
+        if (installActionWrap) {
+          installActionWrap.classList.add('hidden');
+        }
+        closeInstallModal();
+      }
+
+      function showInstallUI() {
+        if (isAppInstalled()) {
+          hideInstallUI();
+          return;
+        }
+        document.body.classList.remove('is-app-installed');
+        if (btnOpenInstallModal) {
+          btnOpenInstallModal.classList.remove('is-installed-hidden');
+          btnOpenInstallModal.style.removeProperty('display');
+        }
+      }
+
+      // Initial check on page load: show on web, hide when installed/standalone
+      if (isAppInstalled()) {
+        hideInstallUI();
+      } else {
+        showInstallUI();
+      }
+
+      // Dynamically react to display-mode changes
+      const standaloneMql = window.matchMedia('(display-mode: standalone)');
+      if (standaloneMql && standaloneMql.addEventListener) {
+        standaloneMql.addEventListener('change', (e) => {
+          if (e.matches) hideInstallUI();
+          else if (!isAppInstalled()) showInstallUI();
+        });
       }
 
       if (btnOpenInstallModal && installModal) {
@@ -7174,16 +7234,19 @@
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredInstallPrompt = e;
-        if (!isStandalone && installActionWrap) {
-          installActionWrap.classList.remove('hidden');
+        if (!checkIsStandalone()) {
+          try { localStorage.removeItem('inonu_pwa_installed'); } catch (err) {}
+          showInstallUI();
+          if (installActionWrap) {
+            installActionWrap.classList.remove('hidden');
+          }
         }
       });
 
       window.addEventListener('appinstalled', () => {
         deferredInstallPrompt = null;
-        if (installActionWrap) installActionWrap.classList.add('hidden');
-        closeInstallModal();
-        if (btnOpenInstallModal) btnOpenInstallModal.classList.add('hidden');
+        try { localStorage.setItem('inonu_pwa_installed', 'true'); } catch (err) {}
+        hideInstallUI();
       });
 
       if (btnInstallApp) {
@@ -7193,9 +7256,8 @@
           const { outcome } = await deferredInstallPrompt.userChoice;
           if (outcome === 'accepted') {
             deferredInstallPrompt = null;
-            if (installActionWrap) installActionWrap.classList.add('hidden');
-            closeInstallModal();
-            if (btnOpenInstallModal) btnOpenInstallModal.classList.add('hidden');
+            try { localStorage.setItem('inonu_pwa_installed', 'true'); } catch (err) {}
+            hideInstallUI();
           }
         });
       }
