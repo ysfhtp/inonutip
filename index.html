@@ -2551,25 +2551,8 @@
           </div>
         </div>
 
-        <!-- Eşit Boyutlu Kompakt Gün Değiştirici -->
-        <div class="flex items-center justify-center gap-1.5 sm:gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
-          <button id="btnPrevDay" type="button" class="px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-1 active:scale-95 shadow-2xs">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
-            <span id="btnPrevDayLabel">Önceki</span>
-          </button>
-
-          <div class="ios-pill-control px-2.5 py-1 rounded-full flex items-center justify-center">
-            <select id="selectDateDropdown" aria-label="Tarih Seçin" class="bg-transparent text-slate-800 dark:text-slate-100 text-xs font-bold focus:outline-none text-center cursor-pointer max-w-[135px] truncate"></select>
-          </div>
-
-          <button id="btnNextDay" type="button" class="px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-1 active:scale-95 shadow-2xs">
-            <span id="btnNextDayLabel">Sonraki</span>
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
-          </button>
-        </div>
-
         <!-- Kişisel Grup Seçici (MBU & LAB) -->
-        <div class="flex items-center justify-center">
+        <div class="flex items-center justify-center pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
           <button id="btnOpenGroupModal" type="button" class="px-3 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5 active:scale-95">
             <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             <span id="btnGroupFilterLabel">Grubunu Seç (MBU / LAB)</span>
@@ -3537,8 +3520,6 @@
       document.getElementById('btnBannerToday').textContent = loc.today;
       document.getElementById('btnBannerTomorrow').textContent = loc.tomorrow;
       document.getElementById('carouselSwipeHint').textContent = loc.swipeHint;
-      document.getElementById('btnPrevDayLabel').textContent = loc.prevDay;
-      document.getElementById('btnNextDayLabel').textContent = loc.nextDay;
       document.getElementById('btnExportDayIcsLabel').textContent = loc.exportDayIcs;
       document.getElementById('btnExportWeekIcsLabel').textContent = loc.exportWeekIcs;
 
@@ -3605,7 +3586,6 @@
       document.getElementById('foodReserveLink').textContent = loc.foodReserveLabel;
 
       updateHeaderClock();
-      populateDateDropdown();
     }
 
     function setLanguage(lang) {
@@ -4094,7 +4074,6 @@
       document.getElementById('selectedDayHeaderWeekday').textContent = formatDateWeekday(dayObj.date);
       document.getElementById('selectedDayRelativeBadge').textContent = formatRelativeDay(dayObj.date);
       document.getElementById('selectedDaySubInfo').textContent = `${loc.committeeShort(dayObj.kurulNo)} • ${loc.weekLabel(dayObj.haftaNo)} • ${loc.slotCount(dayObj.slots.length)}`;
-      document.getElementById('selectDateDropdown').value = dayObj.date;
 
       const tomTarget = getTomorrowTargetDate();
       const todayTarget = getBestDefaultDate();
@@ -4107,9 +4086,6 @@
       btnTom.className = state.selectedDate === tomTarget ? activePill : inactivePill;
 
       renderWeekCarousel(dayObj);
-
-      document.getElementById('btnPrevDay').disabled = idx <= 0;
-      document.getElementById('btnNextDay').disabled = idx >= days.length - 1;
 
       const container = document.getElementById('dailySlotsContainer');
       container.innerHTML = '';
@@ -5309,25 +5285,6 @@
       showToast(t('icsSavedToast'));
     }
 
-    function populateDateDropdown() {
-      const days = getScheduleDays();
-      const loc = I18N[state.lang];
-      const sel = document.getElementById('selectDateDropdown');
-      const prevVal = state.selectedDate;
-      sel.innerHTML = '';
-      for (const day of days) {
-        const dt = parseDMY(day.date);
-        const opt = document.createElement('option');
-        opt.value = day.date;
-        opt.textContent = `${dt.getDate()} ${loc.monthsShort[dt.getMonth()]} (${loc.daysShort[dt.getDay()]})`;
-        opt.className = 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white';
-        sel.appendChild(opt);
-      }
-      if (days.some((d) => d.date === prevVal)) {
-        sel.value = prevVal;
-      }
-    }
-
     // ==================== BOOTSTRAP ====================
     document.addEventListener('DOMContentLoaded', () => {
       applyTheme();
@@ -5358,29 +5315,6 @@
       document.getElementById('btnBannerTomorrow').addEventListener('click', () => {
         state.selectedDate = getTomorrowTargetDate();
         switchTab('daily');
-      });
-
-      document.getElementById('btnPrevDay').addEventListener('click', () => {
-        const days = getScheduleDays();
-        const idx = days.findIndex((d) => d.date === state.selectedDate);
-        if (idx > 0) {
-          state.selectedDate = days[idx - 1].date;
-          renderDailyView();
-        }
-      });
-
-      document.getElementById('btnNextDay').addEventListener('click', () => {
-        const days = getScheduleDays();
-        const idx = days.findIndex((d) => d.date === state.selectedDate);
-        if (idx >= 0 && idx < days.length - 1) {
-          state.selectedDate = days[idx + 1].date;
-          renderDailyView();
-        }
-      });
-
-      document.getElementById('selectDateDropdown').addEventListener('change', (e) => {
-        state.selectedDate = e.target.value;
-        renderDailyView();
       });
 
       document.getElementById('btnExportDayIcs').addEventListener('click', () => {
