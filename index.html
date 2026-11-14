@@ -4427,7 +4427,7 @@
         carousel.setAttribute('data-lang', state.lang);
         for (const week of weeks) {
           const slide = document.createElement('div');
-          slide.className = 'week-slide w-full shrink-0 snap-center grid grid-cols-5 gap-1.5 box-border';
+          slide.className = 'week-slide w-full shrink-0 snap-center grid grid-cols-5 gap-1.5 px-[3px] box-border';
           slide.setAttribute('data-week-key', week.key);
 
           for (const d of week.days) {
@@ -5126,7 +5126,7 @@
 
         weeks.forEach((week) => {
           const slide = document.createElement('div');
-          slide.className = 'week-slide w-full shrink-0 snap-center grid grid-cols-5 gap-1.5 box-border';
+          slide.className = 'week-slide w-full shrink-0 snap-center grid grid-cols-5 gap-1.5 px-[3px] box-border';
           slide.setAttribute('data-week-key', week[0].iso);
 
           week.forEach(({ dateObj: cur, iso: curIso }) => {
