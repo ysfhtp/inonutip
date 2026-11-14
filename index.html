@@ -2418,9 +2418,9 @@
       inset: 0;
       z-index: -1;
       pointer-events: none;
-      background: rgba(244, 247, 252, 0.72);
-      -webkit-backdrop-filter: saturate(150%) blur(24px);
-      backdrop-filter: saturate(150%) blur(24px);
+      background: rgba(244, 247, 252, 0.78);
+      -webkit-backdrop-filter: saturate(180%) blur(32px);
+      backdrop-filter: saturate(180%) blur(32px);
       border-bottom: none !important;
       opacity: var(--header-scroll-ratio, 0);
       transform: translate3d(0, 0, 0);
@@ -2429,8 +2429,10 @@
       transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.28s ease;
     }
     .dark .ios-glass-bar::before {
-      background: rgba(16, 20, 30, 0.72);
+      background: rgba(16, 20, 30, 0.78);
       border-bottom: none !important;
+      -webkit-backdrop-filter: saturate(180%) blur(32px);
+      backdrop-filter: saturate(180%) blur(32px);
     }
     .ios-glass-bar.is-scrolled::before {
       opacity: var(--header-scroll-ratio, 1);
@@ -3375,7 +3377,7 @@
         </button>
       </div>
       <div class="text-center pt-2 pb-1">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.4.0</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.4.2</span>
       </div>
     </section>
 
