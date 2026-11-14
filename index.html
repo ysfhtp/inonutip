@@ -2232,51 +2232,110 @@
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
       background:
-        radial-gradient(circle at 15% 10%, rgba(0, 122, 255, 0.16), transparent 48%),
-        radial-gradient(circle at 85% 25%, rgba(88, 86, 214, 0.13), transparent 48%),
-        radial-gradient(circle at 50% 82%, rgba(52, 199, 89, 0.12), transparent 54%),
+        radial-gradient(circle at 15% 10%, rgba(0, 122, 255, 0.14), transparent 50%),
+        radial-gradient(circle at 85% 25%, rgba(88, 86, 214, 0.11), transparent 50%),
+        radial-gradient(circle at 50% 82%, rgba(52, 199, 89, 0.10), transparent 56%),
         #eef2f7;
     }
     .dark .ios-ambient-bg {
       background:
-        radial-gradient(circle at 18% 12%, rgba(10, 132, 255, 0.25), transparent 50%),
-        radial-gradient(circle at 82% 28%, rgba(94, 92, 230, 0.18), transparent 50%),
-        radial-gradient(circle at 50% 80%, rgba(48, 209, 88, 0.15), transparent 56%),
+        radial-gradient(circle at 18% 12%, rgba(10, 132, 255, 0.22), transparent 52%),
+        radial-gradient(circle at 82% 28%, rgba(94, 92, 230, 0.16), transparent 52%),
+        radial-gradient(circle at 50% 80%, rgba(48, 209, 88, 0.12), transparent 58%),
         #000000;
+    }
+    @keyframes iosAmbientSoftBloom {
+      0% {
+        opacity: 0;
+        transform: scale(0.94) translate3d(0, 8px, 0);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translate3d(0, 0, 0);
+      }
     }
     .ios-ambient-bg::after {
       content: '';
       position: absolute;
       inset: 0;
-      opacity: 0;
-      transition: opacity 0.4s ease;
+      opacity: 1;
       pointer-events: none;
+      will-change: opacity, transform;
+      animation: iosAmbientSoftBloom 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+      background:
+        radial-gradient(circle at 20% 14%, rgba(0, 122, 255, 0.20), transparent 52%),
+        radial-gradient(circle at 82% 26%, rgba(56, 189, 248, 0.15), transparent 50%),
+        radial-gradient(circle at 48% 82%, rgba(52, 199, 89, 0.13), transparent 56%);
+    }
+    .ios-ambient-bg.ambient-bloom-reset::after {
+      animation: none !important;
+      opacity: 0 !important;
+    }
+    .dark .ios-ambient-bg::after {
+      background:
+        radial-gradient(circle at 20% 14%, rgba(10, 132, 255, 0.28), transparent 54%),
+        radial-gradient(circle at 82% 26%, rgba(56, 189, 248, 0.20), transparent 50%),
+        radial-gradient(circle at 48% 82%, rgba(48, 209, 88, 0.16), transparent 58%);
+    }
+    body[data-active-tab="daily"] .ios-ambient-bg::after {
+      background:
+        radial-gradient(circle at 18% 12%, rgba(0, 122, 255, 0.20), transparent 52%),
+        radial-gradient(circle at 84% 26%, rgba(56, 189, 248, 0.15), transparent 50%),
+        radial-gradient(circle at 50% 82%, rgba(52, 199, 89, 0.13), transparent 56%);
+    }
+    .dark body[data-active-tab="daily"] .ios-ambient-bg::after {
+      background:
+        radial-gradient(circle at 18% 12%, rgba(10, 132, 255, 0.28), transparent 54%),
+        radial-gradient(circle at 84% 26%, rgba(56, 189, 248, 0.20), transparent 50%),
+        radial-gradient(circle at 50% 82%, rgba(48, 209, 88, 0.16), transparent 58%);
+    }
+    body[data-active-tab="weekly"] .ios-ambient-bg::after {
+      background:
+        radial-gradient(circle at 18% 14%, rgba(14, 165, 233, 0.20), transparent 52%),
+        radial-gradient(circle at 82% 24%, rgba(59, 130, 246, 0.15), transparent 50%),
+        radial-gradient(circle at 52% 84%, rgba(20, 184, 166, 0.13), transparent 56%);
+    }
+    .dark body[data-active-tab="weekly"] .ios-ambient-bg::after {
+      background:
+        radial-gradient(circle at 18% 14%, rgba(56, 189, 248, 0.26), transparent 54%),
+        radial-gradient(circle at 82% 24%, rgba(59, 130, 246, 0.20), transparent 50%),
+        radial-gradient(circle at 52% 84%, rgba(45, 212, 191, 0.15), transparent 58%);
+    }
+    body[data-active-tab="search"] .ios-ambient-bg::after {
+      background:
+        radial-gradient(circle at 20% 12%, rgba(99, 102, 241, 0.19), transparent 52%),
+        radial-gradient(circle at 82% 28%, rgba(14, 165, 233, 0.15), transparent 50%),
+        radial-gradient(circle at 48% 84%, rgba(139, 92, 246, 0.12), transparent 56%);
+    }
+    .dark body[data-active-tab="search"] .ios-ambient-bg::after {
+      background:
+        radial-gradient(circle at 20% 12%, rgba(129, 140, 248, 0.26), transparent 54%),
+        radial-gradient(circle at 82% 28%, rgba(56, 189, 248, 0.18), transparent 50%),
+        radial-gradient(circle at 48% 84%, rgba(167, 139, 250, 0.15), transparent 58%);
     }
     body[data-active-tab="info"] .ios-ambient-bg::after {
-      opacity: 1;
       background:
-        radial-gradient(circle at 16% 14%, rgba(79, 70, 229, 0.18), transparent 52%),
-        radial-gradient(circle at 84% 26%, rgba(99, 102, 241, 0.14), transparent 48%),
-        radial-gradient(circle at 50% 84%, rgba(59, 130, 246, 0.10), transparent 54%);
+        radial-gradient(circle at 16% 14%, rgba(79, 70, 229, 0.19), transparent 52%),
+        radial-gradient(circle at 84% 26%, rgba(59, 130, 246, 0.15), transparent 50%),
+        radial-gradient(circle at 50% 84%, rgba(56, 189, 248, 0.12), transparent 56%);
     }
     .dark body[data-active-tab="info"] .ios-ambient-bg::after {
-      opacity: 1;
       background:
-        radial-gradient(circle at 16% 14%, rgba(99, 102, 241, 0.26), transparent 52%),
-        radial-gradient(circle at 84% 26%, rgba(79, 70, 229, 0.20), transparent 48%),
-        radial-gradient(circle at 50% 84%, rgba(56, 189, 248, 0.10), transparent 54%);
+        radial-gradient(circle at 16% 14%, rgba(99, 102, 241, 0.27), transparent 54%),
+        radial-gradient(circle at 84% 26%, rgba(59, 130, 246, 0.21), transparent 50%),
+        radial-gradient(circle at 50% 84%, rgba(56, 189, 248, 0.14), transparent 58%);
     }
     body[data-active-tab="food"] .ios-ambient-bg::after {
-      opacity: 1;
       background:
-        radial-gradient(circle at 18% 12%, rgba(245, 158, 11, 0.15), transparent 50%),
-        radial-gradient(circle at 82% 28%, rgba(234, 88, 12, 0.10), transparent 48%);
+        radial-gradient(circle at 18% 12%, rgba(245, 158, 11, 0.17), transparent 52%),
+        radial-gradient(circle at 82% 28%, rgba(234, 88, 12, 0.12), transparent 50%),
+        radial-gradient(circle at 50% 82%, rgba(59, 130, 246, 0.11), transparent 56%);
     }
     .dark body[data-active-tab="food"] .ios-ambient-bg::after {
-      opacity: 1;
       background:
-        radial-gradient(circle at 18% 12%, rgba(245, 158, 11, 0.20), transparent 50%),
-        radial-gradient(circle at 82% 28%, rgba(217, 119, 6, 0.14), transparent 48%);
+        radial-gradient(circle at 18% 12%, rgba(245, 158, 11, 0.23), transparent 54%),
+        radial-gradient(circle at 82% 28%, rgba(217, 119, 6, 0.16), transparent 50%),
+        radial-gradient(circle at 50% 82%, rgba(56, 189, 248, 0.13), transparent 58%);
     }
 
     .ios-glass {
@@ -2290,7 +2349,7 @@
       backface-visibility: hidden;
     }
     .dark .ios-glass {
-      background: rgba(28, 28, 32, 0.56);
+      background: rgba(22, 27, 38, 0.54);
       -webkit-backdrop-filter: saturate(180%) blur(20px);
       backdrop-filter: saturate(180%) blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.11);
@@ -2356,23 +2415,47 @@
       bottom: 4px;
       left: 0;
       border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.92);
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.64) 0%, rgba(255, 255, 255, 0.30) 52%, rgba(255, 255, 255, 0.52) 100%);
+      -webkit-backdrop-filter: saturate(200%) blur(18px);
+      backdrop-filter: saturate(200%) blur(18px);
+      border: 0.5px solid rgba(255, 255, 255, 0.86);
+      box-shadow:
+        0 4px 14px rgba(15, 23, 42, 0.08),
+        inset 0 1px 1px rgba(255, 255, 255, 0.92),
+        inset 0 -1px 1px rgba(255, 255, 255, 0.38);
       will-change: transform, width;
       pointer-events: none;
       z-index: 0;
     }
     .dark #tabIndicatorPill {
-      background: rgba(255, 255, 255, 0.14);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.42);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.07) 52%, rgba(255, 255, 255, 0.14) 100%);
+      -webkit-backdrop-filter: saturate(200%) blur(18px);
+      backdrop-filter: saturate(200%) blur(18px);
+      border: 0.5px solid rgba(255, 255, 255, 0.24);
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.44),
+        inset 0 1px 1px rgba(255, 255, 255, 0.32),
+        inset 0 -1px 1px rgba(255, 255, 255, 0.10);
     }
     #tabIndicatorPill.is-dragging {
-      background: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.14);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.76) 0%, rgba(255, 255, 255, 0.38) 52%, rgba(255, 255, 255, 0.64) 100%);
+      -webkit-backdrop-filter: saturate(220%) blur(22px);
+      backdrop-filter: saturate(220%) blur(22px);
+      border: 0.5px solid rgba(255, 255, 255, 0.95);
+      box-shadow:
+        0 6px 20px rgba(15, 23, 42, 0.14),
+        inset 0 1.5px 1.5px rgba(255, 255, 255, 0.98),
+        inset 0 -1px 1px rgba(255, 255, 255, 0.45);
     }
     .dark #tabIndicatorPill.is-dragging {
-      background: rgba(255, 255, 255, 0.22);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.10) 52%, rgba(255, 255, 255, 0.19) 100%);
+      -webkit-backdrop-filter: saturate(220%) blur(22px);
+      backdrop-filter: saturate(220%) blur(22px);
+      border: 0.5px solid rgba(255, 255, 255, 0.34);
+      box-shadow:
+        0 6px 22px rgba(0, 0, 0, 0.56),
+        inset 0 1.5px 1.5px rgba(255, 255, 255, 0.42),
+        inset 0 -1px 1px rgba(255, 255, 255, 0.14);
     }
     .masked-id-dots {
       display: inline-block;
@@ -2384,39 +2467,11 @@
       opacity: 0.75;
     }
     .ios-ambient-bg,
-    .ios-glass,
     .ios-glass-bar,
     .ios-floating-dock,
     .ios-pill-control,
     body {
       transition: background-color 0.28s ease, border-color 0.28s ease, color 0.22s ease, box-shadow 0.28s ease;
-    }
-
-    .exam-paper-card {
-      background:
-        repeating-linear-gradient(
-          to bottom,
-          transparent 0px,
-          transparent 27px,
-          rgba(79, 70, 229, 0.045) 27px,
-          rgba(79, 70, 229, 0.045) 28px
-        ),
-        rgba(255, 255, 255, 0.78);
-      border: 1px solid rgba(99, 102, 241, 0.18);
-      box-shadow: 0 10px 32px -6px rgba(79, 70, 229, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-    }
-    .dark .exam-paper-card {
-      background:
-        repeating-linear-gradient(
-          to bottom,
-          transparent 0px,
-          transparent 27px,
-          rgba(129, 140, 248, 0.055) 27px,
-          rgba(129, 140, 248, 0.055) 28px
-        ),
-        rgba(24, 26, 40, 0.64);
-      border: 1px solid rgba(129, 140, 248, 0.18);
-      box-shadow: 0 10px 32px -6px rgba(0, 0, 0, 0.50), inset 0 1px 0 rgba(165, 180, 252, 0.09);
     }
 
     .nav-tab-btn {
@@ -2429,56 +2484,11 @@
     .dark .nav-tab-btn:not(.is-active):hover {
       color: #e2e8f0;
     }
-    .nav-tab-btn[data-tab="daily"].is-active { color: #2563eb; }
-    .dark .nav-tab-btn[data-tab="daily"].is-active { color: #60a5fa; }
-    .nav-tab-btn[data-tab="weekly"].is-active { color: #0891b2; }
-    .dark .nav-tab-btn[data-tab="weekly"].is-active { color: #22d3ee; }
-    .nav-tab-btn[data-tab="search"].is-active { color: #7c3aed; }
-    .dark .nav-tab-btn[data-tab="search"].is-active { color: #a78bfa; }
-    .nav-tab-btn[data-tab="info"].is-active { color: #4f46e5; }
-    .dark .nav-tab-btn[data-tab="info"].is-active { color: #818cf8; }
-    .nav-tab-btn[data-tab="food"].is-active { color: #d97706; }
-    .dark .nav-tab-btn[data-tab="food"].is-active { color: #fbbf24; }
-
-    #tabIndicatorPill[data-active-tab="daily"] {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.92));
-      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.14);
+    .nav-tab-btn.is-active {
+      color: #007aff;
     }
-    .dark #tabIndicatorPill[data-active-tab="daily"] {
-      background: rgba(59, 130, 246, 0.20);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(96, 165, 250, 0.22);
-    }
-    #tabIndicatorPill[data-active-tab="weekly"] {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(236, 254, 255, 0.92));
-      box-shadow: 0 2px 10px rgba(8, 145, 178, 0.14);
-    }
-    .dark #tabIndicatorPill[data-active-tab="weekly"] {
-      background: rgba(34, 211, 238, 0.18);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(34, 211, 238, 0.22);
-    }
-    #tabIndicatorPill[data-active-tab="search"] {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 243, 255, 0.92));
-      box-shadow: 0 2px 10px rgba(124, 58, 237, 0.14);
-    }
-    .dark #tabIndicatorPill[data-active-tab="search"] {
-      background: rgba(167, 139, 250, 0.20);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(167, 139, 250, 0.24);
-    }
-    #tabIndicatorPill[data-active-tab="info"] {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 242, 255, 0.94));
-      box-shadow: 0 2px 10px rgba(79, 70, 229, 0.16);
-    }
-    .dark #tabIndicatorPill[data-active-tab="info"] {
-      background: rgba(129, 140, 248, 0.22);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(129, 140, 248, 0.28);
-    }
-    #tabIndicatorPill[data-active-tab="food"] {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 251, 235, 0.94));
-      box-shadow: 0 2px 10px rgba(217, 119, 6, 0.16);
-    }
-    .dark #tabIndicatorPill[data-active-tab="food"] {
-      background: rgba(251, 191, 36, 0.18);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(251, 191, 36, 0.26);
+    .dark .nav-tab-btn.is-active {
+      color: #38bdf8;
     }
 
     .nav-tab-btn:active .nav-icon-wrap {
@@ -3193,7 +3203,7 @@
 
     <!-- ==================== TAB 4: SINAV & NOT ==================== -->
     <section id="viewInfo" class="hidden space-y-3.5">
-      <div class="ios-glass exam-paper-card rounded-3xl p-3.5 min-[360px]:p-4 space-y-3">
+      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-3">
         <div class="flex items-center justify-between gap-2.5 pb-2 border-b border-indigo-500/15 dark:border-indigo-400/15">
           <div class="flex items-center gap-2.5 min-w-0">
             <span class="w-8 h-8 rounded-2xl bg-indigo-500/12 dark:bg-indigo-400/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
@@ -3263,7 +3273,7 @@
           <div id="finalNeedBox" class="rounded-2xl px-3.5 py-2.5 text-xs font-semibold leading-snug calc-status-pass"></div>
         </div>
       </div>
-      <div class="ios-glass exam-paper-card rounded-3xl p-3.5 min-[360px]:p-4 space-y-2.5">
+      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-2.5">
         <div class="flex items-center gap-2.5 pb-2 border-b border-indigo-500/15 dark:border-indigo-400/15">
           <span class="w-7 h-7 rounded-xl bg-indigo-500/12 dark:bg-indigo-400/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -3274,7 +3284,7 @@
         </div>
         <div id="examsListContainer" class="space-y-2"></div>
       </div>
-      <div id="authSessionCard" class="ios-glass exam-paper-card rounded-3xl p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3 flex-wrap">
+      <div id="authSessionCard" class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3 flex-wrap">
         <div class="min-w-0 flex-1">
           <p id="authSessionTitle" class="text-[11px] font-bold uppercase tracking-wider text-indigo-600/80 dark:text-indigo-300/80">Öğrenci Girişi</p>
           <p id="authSessionDesc" class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mt-0.5 truncate tabular-nums">Misafir modu • Otomatik grup için giriş yap</p>
@@ -4352,39 +4362,7 @@
     }
 
     function animateActiveViewLanguageSwitch() {
-      const viewId = 'view' + state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1);
-      const viewEl = document.getElementById(viewId);
-      if (!viewEl) return;
-
-      const targets = Array.from(viewEl.children).filter((el) => {
-        if (el.classList.contains('hidden')) return false;
-        if (
-          el.id === 'dailySlotsContainer' ||
-          el.id === 'weeklyDaysContainer' ||
-          el.id === 'searchResultsContainer' ||
-          el.id === 'foodMenuContainer' ||
-          el.id === 'foodAnnouncementsContainer'
-        ) {
-          return false;
-        }
-        return true;
-      });
-      const annEl = document.getElementById('foodAnnouncementsContainer');
-      if (state.activeTab === 'food' && annEl && !annEl.classList.contains('hidden')) {
-        Array.from(annEl.children).forEach((c) => {
-          if (!c.classList.contains('hidden')) targets.push(c);
-        });
-      }
-
-      targets.forEach((el, idx) => {
-        el.classList.remove('ios-lang-swap');
-        el.style.setProperty('--lang-delay', `${Math.min(idx, 5) * 32}ms`);
-        void el.offsetWidth;
-        el.classList.add('ios-lang-swap');
-        el.addEventListener('animationend', () => {
-          el.classList.remove('ios-lang-swap');
-        }, { once: true });
-      });
+      triggerAmbientBloom();
     }
 
     function setLanguage(lang) {
@@ -4449,12 +4427,17 @@
       header.classList.toggle('is-scrolled', y > 6);
     }
 
+    function triggerAmbientBloom() {
+      const ambientEl = document.querySelector('.ios-ambient-bg');
+      if (!ambientEl) return;
+      ambientEl.classList.add('ambient-bloom-reset');
+      void ambientEl.offsetWidth;
+      ambientEl.classList.remove('ambient-bloom-reset');
+    }
+
     function activateTabView(tabName) {
       const prevTab = state.activeTab;
       const changed = prevTab !== tabName;
-      const prevIdx = TAB_ORDER.indexOf(prevTab);
-      const nextIdx = TAB_ORDER.indexOf(tabName);
-      const enterCls = nextIdx < prevIdx ? 'tab-enter-left' : 'tab-enter-right';
 
       if (changed) {
         window.scrollTo({ top: 0, behavior: 'auto' });
@@ -4466,14 +4449,15 @@
 
       state.activeTab = tabName;
       document.body.setAttribute('data-active-tab', tabName);
-      let activeViewEl = null;
+      if (changed) {
+        triggerAmbientBloom();
+      }
       ['daily', 'weekly', 'food', 'search', 'info'].forEach((tKey) => {
         const el = document.getElementById('view' + tKey.charAt(0).toUpperCase() + tKey.slice(1));
         if (!el) return;
         const shouldHide = tKey !== tabName;
         el.classList.toggle('hidden', shouldHide);
-        el.classList.remove('tab-enter-right', 'tab-enter-left');
-        if (!shouldHide) activeViewEl = el;
+        el.classList.remove('tab-enter-right', 'tab-enter-left', 'tab-view-enter-right', 'tab-view-enter-left');
       });
 
       if (tabName === 'daily') renderDailyView();
@@ -4483,16 +4467,6 @@
       if (tabName === 'info') renderInfoView();
       forceInstantCarouselSync = false;
 
-      if (changed && activeViewEl) {
-        activeViewEl.classList.remove('tab-view-enter-right', 'tab-view-enter-left');
-        const viewEnterCls = nextIdx < prevIdx ? 'tab-view-enter-left' : 'tab-view-enter-right';
-        requestAnimationFrame(() => {
-          activeViewEl.classList.add(viewEnterCls);
-          activeViewEl.addEventListener('animationend', () => {
-            activeViewEl.classList.remove('tab-view-enter-right', 'tab-view-enter-left');
-          }, { once: true });
-        });
-      }
       requestAnimationFrame(updateHeaderScrollState);
     }
 
