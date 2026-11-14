@@ -4296,7 +4296,18 @@
       if (!state.darkMode) {
         return y > 15 ? '#f4f7fc' : '#eef2f7';
       }
-      return y > 15 ? '#0b111e' : '#070d19';
+      if (y > 20) {
+        return '#0e1422';
+      }
+      const tab = state.activeTab || 'daily';
+      switch (tab) {
+        case 'daily': return '#071022';
+        case 'weekly': return '#061326';
+        case 'search': return '#0a0d24';
+        case 'info': return '#080e22';
+        case 'food': return '#141008';
+        default: return '#070d19';
+      }
     }
 
     function syncSystemBarsThemeColor() {
