@@ -4291,6 +4291,22 @@
       }, 2200);
     }
 
+    function getSystemThemeColor() {
+      const y = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      if (!state.darkMode) {
+        return y > 15 ? '#f4f7fc' : '#eef2f7';
+      }
+      return y > 15 ? '#0b111e' : '#070d19';
+    }
+
+    function syncSystemBarsThemeColor() {
+      const color = getSystemThemeColor();
+      const meta = document.getElementById('themeColorMeta');
+      if (meta) {
+        meta.setAttribute('content', color);
+      }
+    }
+
     function applyTheme() {
       const html = document.documentElement;
       const sun = document.getElementById('iconSun');
@@ -4300,13 +4316,14 @@
         html.classList.add('dark');
         sun.classList.remove('hidden');
         moon.classList.add('hidden');
-        if (meta) meta.setAttribute('content', '#000000');
+        if (meta) meta.setAttribute('content', '#070d19');
       } else {
         html.classList.remove('dark');
         sun.classList.add('hidden');
         moon.classList.remove('hidden');
         if (meta) meta.setAttribute('content', '#eef2f7');
       }
+      syncSystemBarsThemeColor();
       saveStore('darkMode', state.darkMode);
     }
 
@@ -4509,6 +4526,7 @@
       const eased = 1 - Math.pow(1 - ratio, 2.5);
       header.style.setProperty('--header-scroll-ratio', eased.toFixed(3));
       header.classList.toggle('is-scrolled', y > 4);
+      syncSystemBarsThemeColor();
     }
 
     function triggerAmbientBloom() {
@@ -4533,6 +4551,7 @@
 
       state.activeTab = tabName;
       document.body.setAttribute('data-active-tab', tabName);
+      syncSystemBarsThemeColor();
       if (changed) {
         triggerAmbientBloom();
       }
