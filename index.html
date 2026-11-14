@@ -781,6 +781,10 @@
     align-items: flex-start;
   }
 
+  .items-end {
+    align-items: flex-end;
+  }
+
   .items-stretch {
     align-items: stretch;
   }
@@ -2408,6 +2412,75 @@
       border-color: #fbbf244d;
       border-color: color-mix(in oklab, var(--color-amber-400, #fbbf24) 30%, transparent);
     }
+
+    .slot-card-dimmed {
+      opacity: 0.42;
+      transition: opacity 0.2s ease;
+    }
+    @media (hover: hover) {
+      .slot-card-dimmed:hover { opacity: 0.85; }
+    }
+
+    .group-chip {
+      padding: 6px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(118, 118, 128, 0.12);
+      color: #334155;
+      transition: all 0.16s ease;
+      cursor: pointer;
+    }
+    .dark .group-chip {
+      background: rgba(255, 255, 255, 0.10);
+      color: #cbd5e1;
+    }
+    .group-chip-active {
+      background: #2563eb !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+    }
+
+    .calc-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.625rem;
+    }
+    @media (min-width: 40rem) {
+      .calc-grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+    .calc-status-pass {
+      background-color: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      color: #047857;
+    }
+    .dark .calc-status-pass {
+      background-color: rgba(16, 185, 129, 0.15);
+      border-color: rgba(52, 211, 153, 0.28);
+      color: #6ee7b7;
+    }
+    .calc-status-warn {
+      background-color: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      color: #b45309;
+    }
+    .dark .calc-status-warn {
+      background-color: rgba(245, 158, 11, 0.15);
+      border-color: rgba(251, 191, 36, 0.28);
+      color: #fcd34d;
+    }
+    .calc-status-fail {
+      background-color: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.28);
+      color: #be123c;
+    }
+    .dark .calc-status-fail {
+      background-color: rgba(244, 63, 94, 0.16);
+      border-color: rgba(251, 113, 133, 0.30);
+      color: #fda4af;
+    }
   </style>
 </head>
 <body class="safe-bottom antialiased selection:bg-blue-500/20">
@@ -2450,16 +2523,17 @@
       <div class="ios-glass rounded-3xl p-4 space-y-3">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <h2 id="selectedDayHeaderTitle" class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">13 Kasım 2026 Cuma</h2>
-              <span id="selectedDayRelativeBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300">Bugün</span>
-            </div>
-            <p id="selectedDaySubInfo" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">Kurul 2 • 4. Hafta • 8 Ayrı Ders Saati</p>
+            <h2 id="selectedDayHeaderTitle" class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight whitespace-nowrap">13 Kasım 2026</h2>
+            <p id="selectedDayHeaderWeekday" class="text-sm sm:text-base font-bold text-slate-700 dark:text-slate-200 leading-tight mt-0.5">Cuma</p>
+            <p id="selectedDaySubInfo" class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">Kurul 2 • 4. Hafta • 8 Ayrı Ders Saati</p>
           </div>
 
-          <div class="ios-pill-control p-0.5 rounded-full flex items-center shrink-0">
-            <button id="btnBannerToday" type="button" class="px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">Bugün</button>
-            <button id="btnBannerTomorrow" type="button" class="px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition">Yarın</button>
+          <div class="flex flex-col items-end gap-1.5 shrink-0">
+            <div class="ios-pill-control p-0.5 rounded-full flex items-center">
+              <button id="btnBannerToday" type="button" class="px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">Bugün</button>
+              <button id="btnBannerTomorrow" type="button" class="px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition">Yarın</button>
+            </div>
+            <span id="selectedDayRelativeBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300 whitespace-nowrap">Bugün</span>
           </div>
         </div>
 
@@ -2491,6 +2565,14 @@
           <button id="btnNextDay" type="button" class="px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-1 active:scale-95 shadow-2xs">
             <span id="btnNextDayLabel">Sonraki</span>
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+
+        <!-- Kişisel Grup Seçici (MBU & LAB) -->
+        <div class="flex items-center justify-center">
+          <button id="btnOpenGroupModal" type="button" class="px-3 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5 active:scale-95">
+            <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span id="btnGroupFilterLabel">Grubunu Seç (MBU / LAB)</span>
           </button>
         </div>
       </div>
@@ -2611,20 +2693,64 @@
     <!-- ==================== TAB 4: SINAV & NOT ==================== -->
     <section id="viewInfo" class="hidden space-y-3.5">
       <div class="ios-glass rounded-3xl p-4 space-y-3">
-        <h2 id="infoCalcTitle" class="text-base font-bold text-slate-900 dark:text-white">Kurul Notu Hesaplayıcı</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+        <div class="flex items-center justify-between gap-2">
+          <h2 id="infoCalcTitle" class="text-base font-bold text-slate-900 dark:text-white">Kurul &amp; Geçme Hesaplayıcı</h2>
+        </div>
+
+        <div class="calc-grid-3 pt-0.5">
           <div class="ios-pill-control rounded-2xl p-3">
             <label id="lblAraSinav" for="inpAraSinav" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Ara Sınav (%15)</label>
-            <input id="inpAraSinav" type="number" min="0" max="100" value="80" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5">
+            <input id="inpAraSinav" type="number" min="0" max="100" step="0.5" value="80" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
           </div>
           <div class="ios-pill-control rounded-2xl p-3">
             <label id="lblKurulSonu" for="inpKurulSonu" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Kurul Sonu (%85)</label>
-            <input id="inpKurulSonu" type="number" min="0" max="100" value="75" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5">
+            <input id="inpKurulSonu" type="number" min="0" max="100" step="0.5" value="75" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
+          </div>
+          <div class="ios-pill-control rounded-2xl p-3">
+            <label id="lblPratikSinav" for="inpPratikSinav" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Pratik Sınav</label>
+            <input id="inpPratikSinav" type="number" min="0" max="100" step="0.5" value="85" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 flex-wrap px-0.5">
+          <span id="lblPratikAgirlik" class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Pratik Sınav Katkısı</span>
+          <div id="pratikWeightPills" class="ios-pill-control p-0.5 rounded-full flex items-center gap-0.5 text-[11px]">
+            <button type="button" data-pweight="0" class="pratik-weight-btn px-2.5 py-0.5 rounded-full font-semibold transition">%0</button>
+            <button type="button" data-pweight="10" class="pratik-weight-btn px-2.5 py-0.5 rounded-full font-semibold transition">%10</button>
+            <button type="button" data-pweight="15" class="pratik-weight-btn px-2.5 py-0.5 rounded-full font-semibold transition">%15</button>
+            <button type="button" data-pweight="20" class="pratik-weight-btn px-2.5 py-0.5 rounded-full font-semibold transition">%20</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="ios-pill-control rounded-2xl p-3 flex flex-col justify-center">
+            <span id="lblTeorikOrt" class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Teorik Ortalamanız</span>
+            <span id="outTeorikNotu" class="text-lg font-bold text-slate-900 dark:text-white mt-0.5 tabular-nums">75.75</span>
           </div>
           <div class="rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 p-3 flex flex-col justify-center">
-            <span id="lblTeorikOrt" class="text-[11px] font-medium text-blue-600 dark:text-blue-300">Teorik Ortalamanız</span>
-            <span id="outKurulNotu" class="text-xl font-bold text-blue-700 dark:text-blue-200 mt-0.5">75.75</span>
+            <span id="lblKurulPuan" class="text-[11px] font-medium text-blue-600 dark:text-blue-300">Toplam Kurul Puanı</span>
+            <span id="outKurulNotu" class="text-xl font-bold text-blue-700 dark:text-blue-200 mt-0.5 tabular-nums">77.14</span>
           </div>
+        </div>
+
+        <p id="calcKurulHint" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 px-0.5"></p>
+
+        <div class="pt-3 border-t border-slate-200/60 dark:border-slate-800/80 space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <h3 id="lblFinalSectionTitle" class="text-xs font-bold text-slate-800 dark:text-slate-100">Yıl Sonu &amp; Final Geçme Hesabı</h3>
+            <button id="btnSyncKurulOrt" type="button" class="hidden text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">Bu Kurulu Kullan</button>
+          </div>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="ios-pill-control rounded-2xl p-3">
+              <label id="lblKurullarOrt" for="inpKurulOrt" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Kurullar Ort. (%60)</label>
+              <input id="inpKurulOrt" type="number" min="0" max="100" step="0.1" value="77.14" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
+            </div>
+            <div class="ios-pill-control rounded-2xl p-3">
+              <label id="lblHedefYil" for="inpHedefYil" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Hedef Yıl Sonu</label>
+              <input id="inpHedefYil" type="number" min="0" max="100" step="1" value="60" class="w-full bg-transparent text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
+            </div>
+          </div>
+          <div id="finalNeedBox" class="rounded-2xl px-3.5 py-2.5 text-xs font-semibold leading-snug calc-status-pass"></div>
         </div>
       </div>
       <div class="ios-glass rounded-3xl p-4 space-y-2.5">
@@ -2675,6 +2801,51 @@
           <p id="foodPhotoModalDate" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5"></p>
         </div>
         <span id="foodPhotoModalDesc" class="hidden shrink-0 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-semibold tabular-nums"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Group Selection Modal -->
+  <div id="groupModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md flex items-center justify-center p-4">
+    <div id="groupModalCard" class="ios-glass rounded-3xl max-w-md w-full p-5 space-y-3.5">
+      <div class="flex items-center justify-between gap-2">
+        <h3 id="groupModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Gruplarını Seç</h3>
+        <button id="btnCloseGroupModal" type="button" class="w-7 h-7 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center" aria-label="Kapat">✕</button>
+      </div>
+      <p id="groupModalDesc" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Kendi MBU ve LAB gruplarını seçerek programda derslerini öne çıkarabilir veya diğer grupları gizleyebilirsin.</p>
+
+      <div class="space-y-1.5">
+        <span id="lblMyMbuGroup" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">MBU Grubu</span>
+        <div id="mbuGroupChips" class="flex items-center gap-1.5 flex-wrap">
+          <button type="button" data-mbu-group="" class="group-chip">Tümü</button>
+          <button type="button" data-mbu-group="I" class="group-chip">Grup I</button>
+          <button type="button" data-mbu-group="II" class="group-chip">Grup II</button>
+          <button type="button" data-mbu-group="III" class="group-chip">Grup III</button>
+          <button type="button" data-mbu-group="IV" class="group-chip">Grup IV</button>
+          <button type="button" data-mbu-group="V" class="group-chip">Grup V</button>
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <span id="lblMyLabGroup" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">LAB Grubu</span>
+        <div id="labGroupChips" class="flex items-center gap-1.5 flex-wrap">
+          <button type="button" data-lab-group="" class="group-chip">Tümü</button>
+          <button type="button" data-lab-group="1" class="group-chip">Grup 1 (I)</button>
+          <button type="button" data-lab-group="2" class="group-chip">Grup 2 (II)</button>
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <span id="lblOtherGroupMode" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Diğer Gruplar</span>
+        <div id="otherGroupModeChips" class="flex items-center gap-1.5 flex-wrap">
+          <button type="button" data-other-mode="dim" class="group-chip">Soluklaştır</button>
+          <button type="button" data-other-mode="hide" class="group-chip">Gizle</button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-1">
+        <button id="btnResetGroupFilter" type="button" class="px-3 py-1.5 rounded-full text-xs font-semibold text-rose-600 dark:text-rose-400">Sıfırla</button>
+        <button id="btnDoneGroupModal" type="button" class="px-4 py-1.5 rounded-full bg-blue-600 text-white text-xs font-semibold shadow-sm">Tamam</button>
       </div>
     </div>
   </div>
@@ -2789,10 +2960,36 @@
         searchAllStats: (c) => `Toplam ${c} ders gösteriliyor`,
         searchStats: (q, c) => `"${q}" için ${c} sonuç bulundu`,
         searchNoResults: 'Eşleşen ders bulunamadı.',
-        infoCalcTitle: 'Kurul Notu Hesaplayıcı',
+        infoCalcTitle: 'Kurul & Geçme Hesaplayıcı',
         lblAraSinav: 'Ara Sınav (%15)',
         lblKurulSonu: 'Kurul Sonu (%85)',
+        lblPratikSinav: 'Pratik Sınav',
+        lblPratikAgirlik: 'Pratik Sınav Katkısı',
         lblTeorikOrt: 'Teorik Ortalamanız',
+        lblKurulPuan: 'Toplam Kurul Puanı',
+        lblFinalSectionTitle: 'Yıl Sonu & Final Geçme Hesabı',
+        btnSyncKurulOrt: 'Bu Kurulu Kullan',
+        lblKurullarOrt: 'Kurullar Ort. (%60)',
+        lblHedefYil: 'Hedef Yıl Sonu',
+        calcKurulHintNeeded: (req) => `Kurulda 60.0 ortalama için Kurul Sonu en az ${req} olmalı.`,
+        calcKurulHintPassed: 'Mevcut Ara Sınav ve Pratik ile kurulda 60 barajı aşılıyor.',
+        calcKurulHintImpossible: 'Mevcut Ara Sınav ve Pratik ile kurulda 60 için Kurul Sonu 100’ü aşıyor.',
+        finalStatusEasy: (req, proj50) => `Final barajı (50) yeterli — Finalden 50 alsan bile yıl sonu ${proj50} oluyor (hedef için gereken: ${req}).`,
+        finalStatusNeed: (req, target) => `${target} yıl sonu ortalaması için Finalden en az ${req} alman gerekiyor.`,
+        finalStatusHard: (req, target) => `${target} hedefi için Finalden ${req} gerekiyor; 100 üzerinden mümkün görünmüyor.`,
+        groupSelectDefault: 'Grubunu Seç (MBU / LAB)',
+        groupAllLabel: 'Tümü',
+        groupModalTitle: 'Gruplarını Seç',
+        groupModalDesc: 'Kendi MBU ve LAB gruplarını seçerek programda derslerini öne çıkarabilir veya diğer grupları gizleyebilirsin.',
+        lblMyMbuGroup: 'MBU Grubu',
+        lblMyLabGroup: 'LAB Grubu',
+        lblOtherGroupMode: 'Diğer Gruplar',
+        otherModeDim: 'Soluklaştır',
+        otherModeHide: 'Gizle',
+        groupReset: 'Sıfırla',
+        groupDone: 'Tamam',
+        hiddenGroupsBanner: (n) => `Diğer gruplara ait ${n} ders gizlendi`,
+        hiddenGroupsShowBtn: 'Ayarla',
         infoExamsTitle: 'Sınav Saatleri',
         openBtn: 'Aç →',
         installBadge: 'Uygulama Kurulumu',
@@ -2884,10 +3081,36 @@
         searchAllStats: (c) => `Showing all ${c} classes`,
         searchStats: (q, c) => `${c} results found for "${q}"`,
         searchNoResults: 'No matching classes found.',
-        infoCalcTitle: 'Committee Score Calculator',
+        infoCalcTitle: 'Committee & Passing Calculator',
         lblAraSinav: 'Midterm (%15)',
         lblKurulSonu: 'Committee Final (%85)',
+        lblPratikSinav: 'Practical Exam',
+        lblPratikAgirlik: 'Practical Weight',
         lblTeorikOrt: 'Theoretical Average',
+        lblKurulPuan: 'Total Committee Score',
+        lblFinalSectionTitle: 'Year-End & Final Requirement',
+        btnSyncKurulOrt: 'Use This Committee',
+        lblKurullarOrt: 'Committees Avg. (%60)',
+        lblHedefYil: 'Target Year-End',
+        calcKurulHintNeeded: (req) => `Need at least ${req} on Committee Final to reach 60.0 overall.`,
+        calcKurulHintPassed: 'Already above 60.0 with current Midterm and Practical scores.',
+        calcKurulHintImpossible: 'Reaching 60.0 requires over 100 on Committee Final.',
+        finalStatusEasy: (req, proj50) => `Final minimum (50) is enough — scoring 50 yields ${proj50} year-end (needed for target: ${req}).`,
+        finalStatusNeed: (req, target) => `You need at least ${req} on the Final exam to reach ${target} year-end.`,
+        finalStatusHard: (req, target) => `Reaching ${target} requires ${req} on the Final exam (above 100).`,
+        groupSelectDefault: 'Select Your Group (PSP / LAB)',
+        groupAllLabel: 'All',
+        groupModalTitle: 'Select Your Groups',
+        groupModalDesc: 'Pick your PSP/MBU and LAB groups to highlight your own sessions or hide other groups.',
+        lblMyMbuGroup: 'PSP / MBU Group',
+        lblMyLabGroup: 'LAB Group',
+        lblOtherGroupMode: 'Other Groups',
+        otherModeDim: 'Dim',
+        otherModeHide: 'Hide',
+        groupReset: 'Reset',
+        groupDone: 'Done',
+        hiddenGroupsBanner: (n) => `${n} other-group slots hidden`,
+        hiddenGroupsShowBtn: 'Adjust',
         infoExamsTitle: 'Exam Schedule',
         openBtn: 'Open →',
         installBadge: 'App Installation',
@@ -2976,7 +3199,16 @@
       weeklyFilterKurul: 'all',
       weeklySelectedWeekKey: null,
       modalSlotKey: null,
-      darkMode: loadStore('darkMode', true)
+      darkMode: loadStore('darkMode', true),
+      myMbuGroup: loadStore('myMbuGroup', ''),
+      myLabGroup: loadStore('myLabGroup', ''),
+      otherGroupMode: loadStore('otherGroupMode', 'dim') === 'hide' ? 'hide' : 'dim',
+      calcAra: loadStore('calcAra', 80),
+      calcSonu: loadStore('calcSonu', 75),
+      calcPratik: loadStore('calcPratik', 85),
+      calcPratikWeight: loadStore('calcPratikWeight', 15),
+      calcKurulOrt: loadStore('calcKurulOrt', null),
+      calcHedefYil: loadStore('calcHedefYil', 60)
     };
 
     function getScheduleDays() {
@@ -3003,6 +3235,18 @@
       const dt = parseDMY(dateStr);
       const loc = I18N[state.lang];
       return `${dt.getDate()} ${loc.months[dt.getMonth()]} ${dt.getFullYear()} ${loc.days[dt.getDay()]}`;
+    }
+
+    function formatDateDayMonthYear(dateStr) {
+      const dt = parseDMY(dateStr);
+      const loc = I18N[state.lang];
+      return `${dt.getDate()} ${loc.months[dt.getMonth()]} ${dt.getFullYear()}`;
+    }
+
+    function formatDateWeekday(dateStr) {
+      const dt = parseDMY(dateStr);
+      const loc = I18N[state.lang];
+      return loc.days[dt.getDay()];
     }
 
     function getTodayDateObj() {
@@ -3136,6 +3380,101 @@
       };
     }
 
+    function normalizeMbuGroup(raw) {
+      const cleaned = String(raw || '').toUpperCase().replace(/GROUP|GRUP|[-_\s]/g, '');
+      if (cleaned === 'I' || cleaned === '1') return 'I';
+      if (cleaned === 'II' || cleaned === '2') return 'II';
+      if (cleaned === 'III' || cleaned === '3') return 'III';
+      if (cleaned === 'IV' || cleaned === '4') return 'IV';
+      if (cleaned === 'V' || cleaned === '5') return 'V';
+      return '';
+    }
+
+    function normalizeLabGroup(raw) {
+      const cleaned = String(raw || '').toUpperCase().replace(/GROUP|GRUP|[-_\s]/g, '');
+      if (cleaned === '1' || cleaned === 'I') return '1';
+      if (cleaned === '2' || cleaned === 'II') return '2';
+      return '';
+    }
+
+    function getSlotGroupStatus(slot, category = getSlotCategory(slot)) {
+      if (!slot || !slot.group) return 'neutral';
+      if (category === 'mbu' && state.myMbuGroup) {
+        const g = normalizeMbuGroup(slot.group);
+        if (!g) return 'neutral';
+        return g === state.myMbuGroup ? 'match' : 'other';
+      }
+      if (category === 'lab' && state.myLabGroup) {
+        const g = normalizeLabGroup(slot.group);
+        if (!g) return 'neutral';
+        return g === state.myLabGroup ? 'match' : 'other';
+      }
+      return 'neutral';
+    }
+
+    function filterSlotsForGroupPreference(slots) {
+      if (state.otherGroupMode !== 'hide' || (!state.myMbuGroup && !state.myLabGroup)) {
+        return { visibleSlots: slots, hiddenCount: 0 };
+      }
+      const visibleSlots = [];
+      let hiddenCount = 0;
+      for (const s of slots) {
+        if (getSlotGroupStatus(s) === 'other') {
+          hiddenCount++;
+        } else {
+          visibleSlots.push(s);
+        }
+      }
+      return { visibleSlots, hiddenCount };
+    }
+
+    function updateGroupFilterButtonUI() {
+      const lbl = document.getElementById('btnGroupFilterLabel');
+      const btn = document.getElementById('btnOpenGroupModal');
+      if (!lbl || !btn) return;
+      const loc = I18N[state.lang];
+      const parts = [];
+      if (state.myMbuGroup) parts.push(`${state.lang === 'en' ? 'PSP' : 'MBU'}: ${state.myMbuGroup}`);
+      if (state.myLabGroup) parts.push(`LAB: ${state.myLabGroup}`);
+      if (parts.length > 0) {
+        lbl.textContent = parts.join(' • ');
+        btn.classList.add('text-blue-600', 'dark:text-blue-400');
+      } else {
+        lbl.textContent = loc.groupSelectDefault;
+        btn.classList.remove('text-blue-600', 'dark:text-blue-400');
+      }
+    }
+
+    function syncGroupModalUI() {
+      const loc = I18N[state.lang];
+      document.querySelectorAll('[data-mbu-group]').forEach((b) => {
+        const val = b.getAttribute('data-mbu-group');
+        if (val === '') b.textContent = loc.groupAllLabel;
+        b.classList.toggle('group-chip-active', val === state.myMbuGroup);
+      });
+      document.querySelectorAll('[data-lab-group]').forEach((b) => {
+        const val = b.getAttribute('data-lab-group');
+        if (val === '') b.textContent = loc.groupAllLabel;
+        b.classList.toggle('group-chip-active', val === state.myLabGroup);
+      });
+      document.querySelectorAll('[data-other-mode]').forEach((b) => {
+        const val = b.getAttribute('data-other-mode');
+        b.textContent = val === 'hide' ? loc.otherModeHide : loc.otherModeDim;
+        b.classList.toggle('group-chip-active', val === state.otherGroupMode);
+      });
+    }
+
+    function openGroupModal() {
+      syncGroupModalUI();
+      const modal = document.getElementById('groupModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeGroupModal() {
+      const modal = document.getElementById('groupModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
     function escapeHtml(text) {
       return String(text || '')
         .replace(/&/g, '&amp;')
@@ -3215,8 +3554,25 @@
       document.getElementById('infoCalcTitle').textContent = loc.infoCalcTitle;
       document.getElementById('lblAraSinav').textContent = loc.lblAraSinav;
       document.getElementById('lblKurulSonu').textContent = loc.lblKurulSonu;
+      document.getElementById('lblPratikSinav').textContent = loc.lblPratikSinav;
+      document.getElementById('lblPratikAgirlik').textContent = loc.lblPratikAgirlik;
       document.getElementById('lblTeorikOrt').textContent = loc.lblTeorikOrt;
+      document.getElementById('lblKurulPuan').textContent = loc.lblKurulPuan;
+      document.getElementById('lblFinalSectionTitle').textContent = loc.lblFinalSectionTitle;
+      document.getElementById('btnSyncKurulOrt').textContent = loc.btnSyncKurulOrt;
+      document.getElementById('lblKurullarOrt').textContent = loc.lblKurullarOrt;
+      document.getElementById('lblHedefYil').textContent = loc.lblHedefYil;
       document.getElementById('infoExamsTitle').textContent = loc.infoExamsTitle;
+
+      document.getElementById('groupModalTitle').textContent = loc.groupModalTitle;
+      document.getElementById('groupModalDesc').textContent = loc.groupModalDesc;
+      document.getElementById('lblMyMbuGroup').textContent = loc.lblMyMbuGroup;
+      document.getElementById('lblMyLabGroup').textContent = loc.lblMyLabGroup;
+      document.getElementById('lblOtherGroupMode').textContent = loc.lblOtherGroupMode;
+      document.getElementById('btnResetGroupFilter').textContent = loc.groupReset;
+      document.getElementById('btnDoneGroupModal').textContent = loc.groupDone;
+      updateGroupFilterButtonUI();
+      syncGroupModalUI();
 
       document.getElementById('installBadge').textContent = loc.installBadge;
       document.getElementById('installTitle').textContent = loc.installTitle;
@@ -3507,10 +3863,11 @@
       const category = getSlotCategory(slot);
       const accent = getCalmAccent(slot, category);
       const isMbuOrLab = category === 'mbu' || category === 'lab';
+      const groupStatus = getSlotGroupStatus(slot, category);
       const [startTime = '', endTime = ''] = (slot.time || '').split('-');
 
       const card = document.createElement('div');
-      card.className = `ios-glass rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} transition-colors`;
+      card.className = `ios-glass rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} ${groupStatus === 'other' ? 'slot-card-dimmed' : ''} transition-colors`;
 
       const row = document.createElement('div');
       row.className = 'flex items-stretch gap-2.5';
@@ -3733,7 +4090,8 @@
       const dayObj = idx >= 0 ? days[idx] : days[0];
       state.selectedDate = dayObj.date;
 
-      document.getElementById('selectedDayHeaderTitle').textContent = formatDateLong(dayObj.date);
+      document.getElementById('selectedDayHeaderTitle').textContent = formatDateDayMonthYear(dayObj.date);
+      document.getElementById('selectedDayHeaderWeekday').textContent = formatDateWeekday(dayObj.date);
       document.getElementById('selectedDayRelativeBadge').textContent = formatRelativeDay(dayObj.date);
       document.getElementById('selectedDaySubInfo').textContent = `${loc.committeeShort(dayObj.kurulNo)} • ${loc.weekLabel(dayObj.haftaNo)} • ${loc.slotCount(dayObj.slots.length)}`;
       document.getElementById('selectDateDropdown').value = dayObj.date;
@@ -3756,11 +4114,17 @@
       const container = document.getElementById('dailySlotsContainer');
       container.innerHTML = '';
 
-      dayObj.slots.forEach((slot, sIdx) => {
-        if (slot.slotNo === 5) {
-          const prevSlot = dayObj.slots[sIdx - 1];
+      const { visibleSlots, hiddenCount } = filterSlotsForGroupPreference(dayObj.slots);
+      const hasMorning = visibleSlots.some((s) => s.slotNo <= 4);
+      let lunchInserted = false;
+
+      visibleSlots.forEach((slot) => {
+        if (!lunchInserted && hasMorning && slot.slotNo >= 5) {
+          lunchInserted = true;
+          const prevSlot = dayObj.slots.find((s) => s.slotNo === 4);
+          const slot5 = dayObj.slots.find((s) => s.slotNo === 5) || slot;
           const lunchStart = prevSlot && prevSlot.time ? prevSlot.time.split('-')[1] : '12.00';
-          const lunchEnd = slot.time ? slot.time.split('-')[0] : '13.10';
+          const lunchEnd = slot5 && slot5.time ? slot5.time.split('-')[0] : '13.10';
           const lunch = document.createElement('div');
           lunch.className = 'flex items-center gap-3 py-1 px-2';
           lunch.innerHTML = `<div class="h-px flex-1 bg-slate-300/60 dark:bg-slate-800"></div><span class="text-[11px] font-medium text-slate-400 dark:text-slate-500 tabular-nums">${loc.lunchBreak} (${escapeHtml(lunchStart)} - ${escapeHtml(lunchEnd)})</span><div class="h-px flex-1 bg-slate-300/60 dark:bg-slate-800"></div>`;
@@ -3768,6 +4132,19 @@
         }
         container.appendChild(createSlotCardElement(slot));
       });
+
+      if (hiddenCount > 0) {
+        const hiddenNote = document.createElement('div');
+        hiddenNote.className = 'flex items-center justify-center pt-1';
+        const hiddenBtn = document.createElement('button');
+        hiddenBtn.type = 'button';
+        hiddenBtn.className = 'px-3 py-1 rounded-full ios-pill-control text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition';
+        hiddenBtn.textContent = `${loc.hiddenGroupsBanner(hiddenCount)} • ${loc.hiddenGroupsShowBtn}`;
+        hiddenBtn.addEventListener('click', openGroupModal);
+        hiddenNote.appendChild(hiddenBtn);
+        container.appendChild(hiddenNote);
+      }
+      updateGroupFilterButtonUI();
     }
 
     // ==================== WEEKLY VIEW ====================
@@ -3839,8 +4216,17 @@
 
         const list = document.createElement('div');
         list.className = 'space-y-2';
-        for (const slot of day.slots) {
+        const { visibleSlots, hiddenCount } = filterSlotsForGroupPreference(day.slots);
+        for (const slot of visibleSlots) {
           list.appendChild(createSlotCardElement(slot, { hideNotePreview: true }));
+        }
+        if (hiddenCount > 0) {
+          const hiddenEl = document.createElement('button');
+          hiddenEl.type = 'button';
+          hiddenEl.className = 'text-[11px] font-medium text-slate-400 dark:text-slate-500 px-1.5 hover:text-blue-600 dark:hover:text-blue-400 transition text-left';
+          hiddenEl.textContent = `${loc.hiddenGroupsBanner(hiddenCount)} • ${loc.hiddenGroupsShowBtn}`;
+          hiddenEl.addEventListener('click', openGroupModal);
+          list.appendChild(hiddenEl);
         }
         sec.appendChild(list);
         container.appendChild(sec);
@@ -3936,16 +4322,124 @@
       const loc = I18N[state.lang];
       const inpAra = document.getElementById('inpAraSinav');
       const inpSonu = document.getElementById('inpKurulSonu');
+      const inpPratik = document.getElementById('inpPratikSinav');
+      const outTeorik = document.getElementById('outTeorikNotu');
       const out = document.getElementById('outKurulNotu');
+      const hintEl = document.getElementById('calcKurulHint');
+      const inpKurulOrt = document.getElementById('inpKurulOrt');
+      const inpHedefYil = document.getElementById('inpHedefYil');
+      const btnSyncKurulOrt = document.getElementById('btnSyncKurulOrt');
+      const finalNeedBox = document.getElementById('finalNeedBox');
 
-      const updateCalc = () => {
-        const a = Math.max(0, Math.min(100, parseFloat(inpAra.value) || 0));
-        const s = Math.max(0, Math.min(100, parseFloat(inpSonu.value) || 0));
-        out.textContent = (a * 0.15 + s * 0.85).toFixed(2);
+      inpAra.value = state.calcAra;
+      inpSonu.value = state.calcSonu;
+      inpPratik.value = state.calcPratik;
+      inpHedefYil.value = state.calcHedefYil;
+
+      const syncWeightButtons = () => {
+        document.querySelectorAll('.pratik-weight-btn').forEach((btn) => {
+          const w = Number(btn.getAttribute('data-pweight'));
+          const isAct = w === Number(state.calcPratikWeight);
+          btn.className = isAct
+            ? 'pratik-weight-btn px-2.5 py-0.5 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition'
+            : 'pratik-weight-btn px-2.5 py-0.5 rounded-full font-medium text-slate-600 dark:text-slate-300 transition';
+        });
       };
-      inpAra.oninput = updateCalc;
-      inpSonu.oninput = updateCalc;
-      updateCalc();
+
+      const clampScore = (v) => Math.max(0, Math.min(100, Number.isFinite(v) ? v : 0));
+
+      const updateCalc = (fromManualKurulOrt = false) => {
+        const a = clampScore(parseFloat(inpAra.value));
+        const s = clampScore(parseFloat(inpSonu.value));
+        const p = clampScore(parseFloat(inpPratik.value));
+        const wPct = Math.max(0, Math.min(50, Number(state.calcPratikWeight) || 0));
+        const w = wPct / 100;
+
+        state.calcAra = a;
+        state.calcSonu = s;
+        state.calcPratik = p;
+        saveStore('calcAra', a);
+        saveStore('calcSonu', s);
+        saveStore('calcPratik', p);
+        saveStore('calcPratikWeight', wPct);
+
+        const teorik = a * 0.15 + s * 0.85;
+        const kurulScore = teorik * (1 - w) + p * w;
+        outTeorik.textContent = teorik.toFixed(2);
+        out.textContent = kurulScore.toFixed(2);
+
+        // Required Committee Final score for 60.0 overall committee score
+        const teorikNeeded = w < 1 ? (60 - p * w) / (1 - w) : 60;
+        const reqKurulSonu = (teorikNeeded - a * 0.15) / 0.85;
+        if (reqKurulSonu <= 0) {
+          hintEl.textContent = loc.calcKurulHintPassed;
+        } else if (reqKurulSonu > 100) {
+          hintEl.textContent = loc.calcKurulHintImpossible;
+        } else {
+          hintEl.textContent = loc.calcKurulHintNeeded(reqKurulSonu.toFixed(1));
+        }
+
+        if (!fromManualKurulOrt && state.calcKurulOrt === null) {
+          inpKurulOrt.value = kurulScore.toFixed(2);
+        } else if (!fromManualKurulOrt && inpKurulOrt.value === '') {
+          inpKurulOrt.value = Number(state.calcKurulOrt).toFixed(2);
+        }
+
+        const kurulOrt = clampScore(parseFloat(inpKurulOrt.value));
+        const hedef = clampScore(parseFloat(inpHedefYil.value));
+        state.calcHedefYil = hedef;
+        saveStore('calcHedefYil', hedef);
+
+        if (state.calcKurulOrt !== null) {
+          btnSyncKurulOrt.classList.remove('hidden');
+        } else {
+          btnSyncKurulOrt.classList.add('hidden');
+        }
+
+        const reqFinal = (hedef - kurulOrt * 0.6) / 0.4;
+        const projAt50 = (kurulOrt * 0.6 + 50 * 0.4).toFixed(2);
+
+        finalNeedBox.classList.remove('calc-status-pass', 'calc-status-warn', 'calc-status-fail');
+        if (reqFinal <= 50) {
+          finalNeedBox.classList.add('calc-status-pass');
+          finalNeedBox.textContent = loc.finalStatusEasy(Math.max(0, reqFinal).toFixed(1), projAt50);
+        } else if (reqFinal <= 100) {
+          finalNeedBox.classList.add(reqFinal <= 75 ? 'calc-status-pass' : 'calc-status-warn');
+          finalNeedBox.textContent = loc.finalStatusNeed(reqFinal.toFixed(1), hedef.toFixed(0));
+        } else {
+          finalNeedBox.classList.add('calc-status-fail');
+          finalNeedBox.textContent = loc.finalStatusHard(reqFinal.toFixed(1), hedef.toFixed(0));
+        }
+      };
+
+      if (state.calcKurulOrt !== null) {
+        inpKurulOrt.value = Number(state.calcKurulOrt).toFixed(2);
+      }
+      syncWeightButtons();
+      updateCalc(false);
+
+      inpAra.oninput = () => updateCalc(false);
+      inpSonu.oninput = () => updateCalc(false);
+      inpPratik.oninput = () => updateCalc(false);
+      inpHedefYil.oninput = () => updateCalc(true);
+      inpKurulOrt.oninput = () => {
+        const v = clampScore(parseFloat(inpKurulOrt.value));
+        state.calcKurulOrt = v;
+        saveStore('calcKurulOrt', v);
+        updateCalc(true);
+      };
+      btnSyncKurulOrt.onclick = () => {
+        state.calcKurulOrt = null;
+        saveStore('calcKurulOrt', null);
+        updateCalc(false);
+      };
+      document.querySelectorAll('.pratik-weight-btn').forEach((btn) => {
+        btn.onclick = () => {
+          state.calcPratikWeight = Number(btn.getAttribute('data-pweight')) || 0;
+          syncWeightButtons();
+          updateCalc(false);
+        };
+      });
 
       const examsContainer = document.getElementById('examsListContainer');
       examsContainer.innerHTML = '';
@@ -4891,15 +5385,63 @@
 
       document.getElementById('btnExportDayIcs').addEventListener('click', () => {
         const dayObj = getScheduleDays().find((d) => d.date === state.selectedDate);
-        if (dayObj) exportSlotsToIcs(dayObj.slots, `inonu-tip-${dayObj.date}-${state.lang}.ics`);
+        if (dayObj) {
+          const { visibleSlots } = filterSlotsForGroupPreference(dayObj.slots);
+          exportSlotsToIcs(visibleSlots, `inonu-tip-${dayObj.date}-${state.lang}.ics`);
+        }
       });
 
       document.getElementById('btnExportWeekIcs').addEventListener('click', () => {
         const weekDays = getScheduleDays().filter((d) => `${d.kurulNo}-${d.haftaNo}` === state.weeklySelectedWeekKey);
-        const weekSlots = weekDays.flatMap((d) => d.slots);
+        const weekSlots = filterSlotsForGroupPreference(weekDays.flatMap((d) => d.slots)).visibleSlots;
         if (weekSlots.length > 0) {
           exportSlotsToIcs(weekSlots, `inonu-tip-hafta-${state.weeklySelectedWeekKey}-${state.lang}.ics`);
         }
+      });
+
+      const refreshActiveScheduleViews = () => {
+        updateGroupFilterButtonUI();
+        syncGroupModalUI();
+        if (state.activeTab === 'daily') renderDailyView();
+        if (state.activeTab === 'weekly') renderWeeklyView();
+        if (state.activeTab === 'search') renderSearchView();
+      };
+
+      document.getElementById('btnOpenGroupModal').addEventListener('click', openGroupModal);
+      document.getElementById('btnCloseGroupModal').addEventListener('click', closeGroupModal);
+      document.getElementById('btnDoneGroupModal').addEventListener('click', closeGroupModal);
+      document.getElementById('groupModal').addEventListener('click', (e) => {
+        if (e.target.id === 'groupModal') closeGroupModal();
+      });
+      document.querySelectorAll('[data-mbu-group]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.myMbuGroup = btn.getAttribute('data-mbu-group') || '';
+          saveStore('myMbuGroup', state.myMbuGroup);
+          refreshActiveScheduleViews();
+        });
+      });
+      document.querySelectorAll('[data-lab-group]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.myLabGroup = btn.getAttribute('data-lab-group') || '';
+          saveStore('myLabGroup', state.myLabGroup);
+          refreshActiveScheduleViews();
+        });
+      });
+      document.querySelectorAll('[data-other-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.otherGroupMode = btn.getAttribute('data-other-mode') === 'hide' ? 'hide' : 'dim';
+          saveStore('otherGroupMode', state.otherGroupMode);
+          refreshActiveScheduleViews();
+        });
+      });
+      document.getElementById('btnResetGroupFilter').addEventListener('click', () => {
+        state.myMbuGroup = '';
+        state.myLabGroup = '';
+        state.otherGroupMode = 'dim';
+        saveStore('myMbuGroup', '');
+        saveStore('myLabGroup', '');
+        saveStore('otherGroupMode', 'dim');
+        refreshActiveScheduleViews();
       });
 
       document.getElementById('btnFilterKurulAll').addEventListener('click', () => { state.weeklyFilterKurul = 'all'; renderWeeklyView(); });
@@ -5018,6 +5560,7 @@
         if (e.key === 'Escape') {
           closeFoodPhotoModal();
           closeNoteModal();
+          closeGroupModal();
           if (installModal) installModal.classList.add('hidden');
         }
       });
