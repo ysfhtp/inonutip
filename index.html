@@ -2809,7 +2809,7 @@
         </div>
       </div>
 
-      <div class="space-y-1.5">
+      <div id="labGroupSection" class="space-y-1.5">
         <span id="lblMyLabGroup" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">LAB Grubu</span>
         <div id="labGroupChips" class="flex items-center gap-1.5 flex-wrap">
           <button type="button" data-lab-group="" class="group-chip">Tümü</button>
@@ -3081,10 +3081,10 @@
         finalStatusEasy: (req, proj50) => `Final minimum (50) is enough — scoring 50 yields ${proj50} year-end (needed for target: ${req}).`,
         finalStatusNeed: (req, target) => `You need at least ${req} on the Final exam to reach ${target} year-end.`,
         finalStatusHard: (req, target) => `Reaching ${target} requires ${req} on the Final exam (above 100).`,
-        groupSelectDefault: 'Select Your Group (PSP / LAB)',
+        groupSelectDefault: 'Select Your Group (PSP)',
         groupAllLabel: 'All',
-        groupModalTitle: 'Select Your Groups',
-        groupModalDesc: 'Pick your PSP/MBU and LAB groups to highlight your own sessions or hide other groups.',
+        groupModalTitle: 'Select Your Group',
+        groupModalDesc: 'Pick your PSP/MBU group to highlight your own sessions or hide other groups.',
         lblMyMbuGroup: 'PSP / MBU Group',
         lblMyLabGroup: 'LAB Group',
         lblOtherGroupMode: 'Other Groups',
@@ -3387,7 +3387,7 @@
         if (!g) return 'neutral';
         return g === state.myMbuGroup ? 'match' : 'other';
       }
-      if (category === 'lab' && state.myLabGroup) {
+      if (category === 'lab' && state.lang !== 'en' && state.myLabGroup) {
         const g = normalizeLabGroup(slot.group);
         if (!g) return 'neutral';
         return g === state.myLabGroup ? 'match' : 'other';
@@ -3396,7 +3396,8 @@
     }
 
     function filterSlotsForGroupPreference(slots) {
-      if (state.otherGroupMode !== 'hide' || (!state.myMbuGroup && !state.myLabGroup)) {
+      const activeLabGroup = state.lang === 'en' ? '' : state.myLabGroup;
+      if (state.otherGroupMode !== 'hide' || (!state.myMbuGroup && !activeLabGroup)) {
         return { visibleSlots: slots, hiddenCount: 0 };
       }
       const visibleSlots = [];
@@ -3418,7 +3419,7 @@
       const loc = I18N[state.lang];
       const parts = [];
       if (state.myMbuGroup) parts.push(`${state.lang === 'en' ? 'PSP' : 'MBU'}: ${state.myMbuGroup}`);
-      if (state.myLabGroup) parts.push(`LAB: ${state.myLabGroup}`);
+      if (state.lang !== 'en' && state.myLabGroup) parts.push(`LAB: ${state.myLabGroup}`);
       if (parts.length > 0) {
         lbl.textContent = parts.join(' • ');
         btn.classList.add('text-blue-600', 'dark:text-blue-400');
@@ -3430,6 +3431,8 @@
 
     function syncGroupModalUI() {
       const loc = I18N[state.lang];
+      const labSection = document.getElementById('labGroupSection');
+      if (labSection) labSection.classList.toggle('hidden', state.lang === 'en');
       document.querySelectorAll('[data-mbu-group]').forEach((b) => {
         const val = b.getAttribute('data-mbu-group');
         if (val === '') b.textContent = loc.groupAllLabel;
@@ -4420,7 +4423,12 @@
       const examsContainer = document.getElementById('examsListContainer');
       examsContainer.innerHTML = '';
 
-      const examSlots = [];
+      const toMinutes = (t) => {
+        const m = String(t || '').match(/(\d{1,2})[.:](\d{2})/);
+        return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+      };
+
+      const mergedExams = [];
       for (const day of days) {
         for (const slot of day.slots) {
           const codeUpper = (slot.code || '').toUpperCase();
@@ -4430,18 +4438,50 @@
             codeUpper === 'EXAM' ||
             /SINAV|EXAM|QUIZ|DEĞERLENDİRME|EVALUATION/i.test(slot.title || '')
           ) {
-            examSlots.push({ day, slot });
+            const titleText = String(slot.title || '').trim();
+            const titleKey = titleText.toLocaleUpperCase(state.lang === 'en' ? 'en-US' : 'tr-TR');
+            const parts = String(slot.time || '').split('-').map((p) => p.trim());
+            const startTime = parts[0] || '';
+            const endTime = parts[1] || '';
+
+            const existing = mergedExams.find(
+              (item) => item.day.date === day.date && item.titleKey === titleKey
+            );
+
+            if (existing) {
+              const sMin = toMinutes(startTime);
+              const eMin = toMinutes(endTime);
+              const curSMin = toMinutes(existing.startTime);
+              const curEMin = toMinutes(existing.endTime);
+              if (sMin !== null && (curSMin === null || sMin < curSMin)) {
+                existing.startTime = startTime;
+              }
+              if (eMin !== null && (curEMin === null || eMin > curEMin)) {
+                existing.endTime = endTime;
+              }
+            } else {
+              mergedExams.push({
+                day,
+                title: titleText,
+                titleKey,
+                startTime,
+                endTime,
+                rawTime: String(slot.time || '').trim(),
+              });
+            }
           }
         }
       }
 
-      for (const { day, slot } of examSlots) {
+      for (const item of mergedExams) {
+        const displayTime =
+          item.startTime && item.endTime ? `${item.startTime}-${item.endTime}` : item.rawTime;
         const row = document.createElement('div');
         row.className = 'ios-pill-control rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2';
         row.innerHTML = `
           <div class="min-w-0">
-            <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400">${escapeHtml(formatDateLong(day.date))} • ${escapeHtml(slot.time)}</p>
-            <p class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate">${escapeHtml(slot.title)}</p>
+            <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400">${escapeHtml(formatDateLong(item.day.date))} • ${escapeHtml(displayTime)}</p>
+            <p class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate">${escapeHtml(item.title)}</p>
           </div>
         `;
         const goBtn = document.createElement('button');
@@ -4449,7 +4489,7 @@
         goBtn.className = 'shrink-0 px-2.5 py-1 rounded-full bg-blue-500/12 text-blue-600 dark:text-blue-400 text-xs font-semibold';
         goBtn.textContent = loc.openBtn;
         goBtn.addEventListener('click', () => {
-          state.selectedDate = day.date;
+          state.selectedDate = item.day.date;
           switchTab('daily');
         });
         row.appendChild(goBtn);
