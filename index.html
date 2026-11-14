@@ -2244,6 +2244,40 @@
         radial-gradient(circle at 50% 80%, rgba(48, 209, 88, 0.15), transparent 56%),
         #000000;
     }
+    .ios-ambient-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+    body[data-active-tab="info"] .ios-ambient-bg::after {
+      opacity: 1;
+      background:
+        radial-gradient(circle at 16% 14%, rgba(79, 70, 229, 0.18), transparent 52%),
+        radial-gradient(circle at 84% 26%, rgba(99, 102, 241, 0.14), transparent 48%),
+        radial-gradient(circle at 50% 84%, rgba(59, 130, 246, 0.10), transparent 54%);
+    }
+    .dark body[data-active-tab="info"] .ios-ambient-bg::after {
+      opacity: 1;
+      background:
+        radial-gradient(circle at 16% 14%, rgba(99, 102, 241, 0.26), transparent 52%),
+        radial-gradient(circle at 84% 26%, rgba(79, 70, 229, 0.20), transparent 48%),
+        radial-gradient(circle at 50% 84%, rgba(56, 189, 248, 0.10), transparent 54%);
+    }
+    body[data-active-tab="food"] .ios-ambient-bg::after {
+      opacity: 1;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(245, 158, 11, 0.15), transparent 50%),
+        radial-gradient(circle at 82% 28%, rgba(234, 88, 12, 0.10), transparent 48%);
+    }
+    .dark body[data-active-tab="food"] .ios-ambient-bg::after {
+      opacity: 1;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(245, 158, 11, 0.20), transparent 50%),
+        radial-gradient(circle at 82% 28%, rgba(217, 119, 6, 0.14), transparent 48%);
+    }
 
     .ios-glass {
       background: rgba(255, 255, 255, 0.68);
@@ -2358,15 +2392,186 @@
       transition: background-color 0.28s ease, border-color 0.28s ease, color 0.22s ease, box-shadow 0.28s ease;
     }
 
+    .exam-paper-card {
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent 27px,
+          rgba(79, 70, 229, 0.045) 27px,
+          rgba(79, 70, 229, 0.045) 28px
+        ),
+        rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(99, 102, 241, 0.18);
+      box-shadow: 0 10px 32px -6px rgba(79, 70, 229, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    }
+    .dark .exam-paper-card {
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent 27px,
+          rgba(129, 140, 248, 0.055) 27px,
+          rgba(129, 140, 248, 0.055) 28px
+        ),
+        rgba(24, 26, 40, 0.64);
+      border: 1px solid rgba(129, 140, 248, 0.18);
+      box-shadow: 0 10px 32px -6px rgba(0, 0, 0, 0.50), inset 0 1px 0 rgba(165, 180, 252, 0.09);
+    }
+
     .nav-tab-btn {
+      color: #8e8e93;
       transition: color 0.22s ease, opacity 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     }
+    .nav-tab-btn:not(.is-active):hover {
+      color: #334155;
+    }
+    .dark .nav-tab-btn:not(.is-active):hover {
+      color: #e2e8f0;
+    }
+    .nav-tab-btn[data-tab="daily"].is-active { color: #2563eb; }
+    .dark .nav-tab-btn[data-tab="daily"].is-active { color: #60a5fa; }
+    .nav-tab-btn[data-tab="weekly"].is-active { color: #0891b2; }
+    .dark .nav-tab-btn[data-tab="weekly"].is-active { color: #22d3ee; }
+    .nav-tab-btn[data-tab="search"].is-active { color: #7c3aed; }
+    .dark .nav-tab-btn[data-tab="search"].is-active { color: #a78bfa; }
+    .nav-tab-btn[data-tab="info"].is-active { color: #4f46e5; }
+    .dark .nav-tab-btn[data-tab="info"].is-active { color: #818cf8; }
+    .nav-tab-btn[data-tab="food"].is-active { color: #d97706; }
+    .dark .nav-tab-btn[data-tab="food"].is-active { color: #fbbf24; }
+
+    #tabIndicatorPill[data-active-tab="daily"] {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.92));
+      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.14);
+    }
+    .dark #tabIndicatorPill[data-active-tab="daily"] {
+      background: rgba(59, 130, 246, 0.20);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(96, 165, 250, 0.22);
+    }
+    #tabIndicatorPill[data-active-tab="weekly"] {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(236, 254, 255, 0.92));
+      box-shadow: 0 2px 10px rgba(8, 145, 178, 0.14);
+    }
+    .dark #tabIndicatorPill[data-active-tab="weekly"] {
+      background: rgba(34, 211, 238, 0.18);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(34, 211, 238, 0.22);
+    }
+    #tabIndicatorPill[data-active-tab="search"] {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 243, 255, 0.92));
+      box-shadow: 0 2px 10px rgba(124, 58, 237, 0.14);
+    }
+    .dark #tabIndicatorPill[data-active-tab="search"] {
+      background: rgba(167, 139, 250, 0.20);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(167, 139, 250, 0.24);
+    }
+    #tabIndicatorPill[data-active-tab="info"] {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 242, 255, 0.94));
+      box-shadow: 0 2px 10px rgba(79, 70, 229, 0.16);
+    }
+    .dark #tabIndicatorPill[data-active-tab="info"] {
+      background: rgba(129, 140, 248, 0.22);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(129, 140, 248, 0.28);
+    }
+    #tabIndicatorPill[data-active-tab="food"] {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 251, 235, 0.94));
+      box-shadow: 0 2px 10px rgba(217, 119, 6, 0.16);
+    }
+    .dark #tabIndicatorPill[data-active-tab="food"] {
+      background: rgba(251, 191, 36, 0.18);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(251, 191, 36, 0.26);
+    }
+
     .nav-tab-btn:active .nav-icon-wrap {
-      transform: scale(0.92) !important;
+      transform: scale(0.90) !important;
     }
     .nav-icon-wrap {
       transition: transform 0.34s cubic-bezier(0.22, 1.35, 0.36, 1);
       will-change: transform;
+    }
+
+    /* Distinct per-tab dock animations when selected */
+    @keyframes dockDailyBounce {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-2.2px) rotate(-5deg); }
+      55% { transform: translateY(0.5px) rotate(3deg); }
+      80% { transform: translateY(-0.6px) rotate(0deg); }
+    }
+    @keyframes dockDailyIdle {
+      0%, 72%, 100% { transform: translateY(0) scale(1); }
+      84% { transform: translateY(-1.5px) scale(1.04); }
+    }
+    .nav-tab-btn[data-tab="daily"].is-active svg {
+      animation: dockDailyBounce 0.65s cubic-bezier(0.22, 1.3, 0.36, 1) 1, dockDailyIdle 4.2s ease-in-out 1s infinite;
+    }
+
+    @keyframes dockWeeklyLine {
+      0%, 100% { transform: translateX(0); opacity: 1; }
+      35% { transform: translateX(2.4px); opacity: 0.72; }
+      70% { transform: translateX(-1px); opacity: 1; }
+    }
+    .nav-tab-btn[data-tab="weekly"].is-active .nav-week-line-1 {
+      animation: dockWeeklyLine 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0ms 1, dockWeeklyLine 3.8s ease-in-out 1.1s infinite;
+    }
+    .nav-tab-btn[data-tab="weekly"].is-active .nav-week-line-2 {
+      animation: dockWeeklyLine 0.7s cubic-bezier(0.22, 1, 0.36, 1) 80ms 1, dockWeeklyLine 3.8s ease-in-out 1.24s infinite;
+    }
+    .nav-tab-btn[data-tab="weekly"].is-active .nav-week-line-3 {
+      animation: dockWeeklyLine 0.7s cubic-bezier(0.22, 1, 0.36, 1) 160ms 1, dockWeeklyLine 3.8s ease-in-out 1.38s infinite;
+    }
+
+    @keyframes dockSearchScan {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      28% { transform: rotate(-16deg) scale(1.07); }
+      62% { transform: rotate(12deg) scale(1.05); }
+      84% { transform: rotate(-3deg) scale(1); }
+    }
+    @keyframes dockSearchIdle {
+      0%, 70%, 100% { transform: rotate(0deg); }
+      80% { transform: rotate(-10deg); }
+      90% { transform: rotate(8deg); }
+    }
+    .nav-tab-btn[data-tab="search"].is-active svg {
+      transform-origin: 45% 45%;
+      animation: dockSearchScan 0.72s cubic-bezier(0.22, 1.2, 0.36, 1) 1, dockSearchIdle 4.4s ease-in-out 1.1s infinite;
+    }
+
+    @keyframes dockExamWrite {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      22% { transform: translate(-1.6px, 1.1px) rotate(-7deg); }
+      46% { transform: translate(0.7px, -0.5px) rotate(4deg); }
+      70% { transform: translate(-1.2px, 0.8px) rotate(-5deg); }
+    }
+    @keyframes dockExamWriteIdle {
+      0%, 68%, 100% { transform: translate(0, 0) rotate(0deg); }
+      77% { transform: translate(-1.4px, 0.9px) rotate(-6deg); }
+      86% { transform: translate(0.5px, -0.4px) rotate(3deg); }
+      93% { transform: translate(-0.8px, 0.5px) rotate(-3deg); }
+    }
+    @keyframes dockExamLinesPulse {
+      0%, 100% { opacity: 1; }
+      45% { opacity: 0.62; }
+    }
+    .nav-tab-btn[data-tab="info"].is-active .nav-exam-pencil {
+      transform-origin: 15px 15px;
+      animation: dockExamWrite 0.78s cubic-bezier(0.22, 1, 0.36, 1) 1, dockExamWriteIdle 3.8s ease-in-out 1.1s infinite;
+    }
+    .nav-tab-btn[data-tab="info"].is-active .nav-exam-lines {
+      animation: dockExamLinesPulse 0.78s ease 1;
+    }
+
+    @keyframes dockFoodDomeLift {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      35% { transform: translateY(-2.8px) rotate(-5deg); }
+      68% { transform: translateY(-0.8px) rotate(2deg); }
+    }
+    @keyframes dockFoodDomeIdle {
+      0%, 70%, 100% { transform: translateY(0) rotate(0deg); }
+      82% { transform: translateY(-2.2px) rotate(-4deg); }
+      92% { transform: translateY(0) rotate(1deg); }
+    }
+    .nav-tab-btn[data-tab="food"].is-active .nav-food-dome {
+      transform-origin: 12px 13px;
+      animation: dockFoodDomeLift 0.76s cubic-bezier(0.22, 1.35, 0.36, 1) 1, dockFoodDomeIdle 4s ease-in-out 1.1s infinite;
     }
 
     @keyframes tabEnterRight {
@@ -2821,7 +3026,7 @@
     <!-- ==================== TAB 1: GÜNLÜK ==================== -->
     <section id="viewDaily" class="space-y-2.5 hidden">
       <!-- DATE CARD -->
-      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 pb-0 space-y-3">
+      <div class="ios-glass rounded-3xl px-3.5 pt-3.5 min-[360px]:px-4 min-[360px]:pt-4 pb-0 space-y-3">
         <div id="dailyWelcomeBar" class="hidden flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200/60 dark:border-slate-800/80">
           <div class="flex items-center gap-2 min-w-0">
             <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
@@ -2860,7 +3065,7 @@
         </div>
 
         <!-- Kişisel Grup Seçici (MBU & LAB) ve Giriş/Çıkış Butonu -->
-        <div class="flex items-center justify-center gap-2 pt-2.5 pb-2 border-t border-slate-200/60 dark:border-slate-800/80 flex-wrap">
+        <div class="flex items-center justify-center gap-2 py-2.5 border-t border-slate-200/60 dark:border-slate-800/80 flex-wrap">
           <button id="btnOpenGroupModal" type="button" class="w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5 active:scale-95">
             <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             <span id="btnGroupFilterLabel">Grubunu Seç (MBU / LAB)</span>
@@ -2911,7 +3116,7 @@
 
     <!-- ==================== TAB 3: YEMEKHANE ==================== -->
     <section id="viewFood" class="hidden space-y-3.5">
-      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-3">
+      <div class="ios-glass rounded-3xl px-3.5 pt-3.5 min-[360px]:px-4 min-[360px]:pt-4 pb-0 space-y-3">
         <div class="space-y-2">
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0 flex items-center gap-1.5 flex-1">
@@ -2946,7 +3151,7 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
+        <div class="flex items-center justify-between gap-1.5 py-2 border-t border-slate-200/60 dark:border-slate-800/80">
           <button id="btnFoodPrev" type="button" class="px-2 sm:px-2.5 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[10.5px] sm:text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition flex items-center justify-center gap-1 active:scale-95 shadow-2xs shrink-0">
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
             <span id="btnFoodPrevLabel" class="hidden min-[340px]:inline">Önceki</span>
@@ -2988,21 +3193,30 @@
 
     <!-- ==================== TAB 4: SINAV & NOT ==================== -->
     <section id="viewInfo" class="hidden space-y-3.5">
-      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <h2 id="infoCalcTitle" class="text-base font-bold text-slate-900 dark:text-white">Kurul &amp; Geçme Hesaplayıcı</h2>
+      <div class="ios-glass exam-paper-card rounded-3xl p-3.5 min-[360px]:p-4 space-y-3">
+        <div class="flex items-center justify-between gap-2.5 pb-2 border-b border-indigo-500/15 dark:border-indigo-400/15">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-8 h-8 rounded-2xl bg-indigo-500/12 dark:bg-indigo-400/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 20.5H5.5a2 2 0 01-2-2v-13a2 2 0 012-2h9a2 2 0 012 2V9"></path>
+                <path stroke-linecap="round" d="M7 7.5h6M7 10.5h6M7 13.5h4.2M7 16.5h2.5"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.8 7.6a1.4 1.4 0 012 2l-6.6 6.6-2.9.9.9-2.9 6.6-6.6zM18.3 9.1l2 2"></path>
+              </svg>
+            </span>
+            <h2 id="infoCalcTitle" class="text-base font-bold text-slate-900 dark:text-white truncate">Kurul &amp; Geçme Hesaplayıcı</h2>
+          </div>
         </div>
 
         <div class="calc-grid-3 pt-0.5">
-          <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3">
+          <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3 border border-indigo-500/10 dark:border-indigo-400/10">
             <label id="lblAraSinav" for="inpAraSinav" class="block text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400">Ara Sınav (%15)</label>
             <input id="inpAraSinav" type="number" min="0" max="100" step="0.5" value="80" class="w-full bg-transparent text-base min-[360px]:text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
           </div>
-          <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3">
+          <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3 border border-indigo-500/10 dark:border-indigo-400/10">
             <label id="lblKurulSonu" for="inpKurulSonu" class="block text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400">Kurul Sonu (%85)</label>
             <input id="inpKurulSonu" type="number" min="0" max="100" step="0.5" value="75" class="w-full bg-transparent text-base min-[360px]:text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
           </div>
-          <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3">
+          <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3 border border-indigo-500/10 dark:border-indigo-400/10">
             <label id="lblPratikSinav" for="inpPratikSinav" class="block text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400">Pratik Sınav</label>
             <input id="inpPratikSinav" type="number" min="0" max="100" step="0.5" value="85" class="w-full bg-transparent text-base min-[360px]:text-lg font-bold text-slate-900 dark:text-white focus:outline-none mt-0.5 tabular-nums">
           </div>
@@ -3023,18 +3237,18 @@
             <span id="lblTeorikOrt" class="text-[10.5px] min-[360px]:text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Teorik Ortalamanız</span>
             <span id="outTeorikNotu" class="text-base min-[360px]:text-lg font-bold text-slate-900 dark:text-white mt-0.5 tabular-nums">75.75</span>
           </div>
-          <div class="rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 p-2.5 min-[360px]:p-3 flex flex-col justify-center">
-            <span id="lblKurulPuan" class="text-[10.5px] min-[360px]:text-[11px] font-medium text-blue-600 dark:text-blue-300 truncate">Toplam Kurul Puanı</span>
-            <span id="outKurulNotu" class="text-lg min-[360px]:text-xl font-bold text-blue-700 dark:text-blue-200 mt-0.5 tabular-nums">77.14</span>
+          <div class="rounded-2xl bg-indigo-500/12 dark:bg-indigo-500/18 border border-indigo-500/25 p-2.5 min-[360px]:p-3 flex flex-col justify-center">
+            <span id="lblKurulPuan" class="text-[10.5px] min-[360px]:text-[11px] font-medium text-indigo-600 dark:text-indigo-300 truncate">Toplam Kurul Puanı</span>
+            <span id="outKurulNotu" class="text-lg min-[360px]:text-xl font-bold text-indigo-700 dark:text-indigo-200 mt-0.5 tabular-nums">77.14</span>
           </div>
         </div>
 
         <p id="calcKurulHint" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 px-0.5"></p>
 
-        <div class="pt-3 border-t border-slate-200/60 dark:border-slate-800/80 space-y-2.5">
+        <div class="pt-3 border-t border-indigo-500/15 dark:border-indigo-400/15 space-y-2.5">
           <div class="flex items-center justify-between gap-2">
             <h3 id="lblFinalSectionTitle" class="text-xs font-bold text-slate-800 dark:text-slate-100">Yıl Sonu &amp; Final Geçme Hesabı</h3>
-            <button id="btnSyncKurulOrt" type="button" class="hidden text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">Bu Kurulu Kullan</button>
+            <button id="btnSyncKurulOrt" type="button" class="hidden text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Bu Kurulu Kullan</button>
           </div>
           <div class="grid grid-cols-2 gap-2 min-[360px]:gap-2.5">
             <div class="ios-pill-control rounded-2xl p-2.5 min-[360px]:p-3">
@@ -3049,16 +3263,23 @@
           <div id="finalNeedBox" class="rounded-2xl px-3.5 py-2.5 text-xs font-semibold leading-snug calc-status-pass"></div>
         </div>
       </div>
-      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-2.5">
-        <h2 id="infoExamsTitle" class="text-base font-bold text-slate-900 dark:text-white">Sınav Saatleri</h2>
+      <div class="ios-glass exam-paper-card rounded-3xl p-3.5 min-[360px]:p-4 space-y-2.5">
+        <div class="flex items-center gap-2.5 pb-2 border-b border-indigo-500/15 dark:border-indigo-400/15">
+          <span class="w-7 h-7 rounded-xl bg-indigo-500/12 dark:bg-indigo-400/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+          </span>
+          <h2 id="infoExamsTitle" class="text-base font-bold text-slate-900 dark:text-white">Sınav Saatleri</h2>
+        </div>
         <div id="examsListContainer" class="space-y-2"></div>
       </div>
-      <div id="authSessionCard" class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3 flex-wrap">
+      <div id="authSessionCard" class="ios-glass exam-paper-card rounded-3xl p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3 flex-wrap">
         <div class="min-w-0 flex-1">
-          <p id="authSessionTitle" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Öğrenci Girişi</p>
+          <p id="authSessionTitle" class="text-[11px] font-bold uppercase tracking-wider text-indigo-600/80 dark:text-indigo-300/80">Öğrenci Girişi</p>
           <p id="authSessionDesc" class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mt-0.5 truncate tabular-nums">Misafir modu • Otomatik grup için giriş yap</p>
         </div>
-        <button id="btnAuthActionInfo" type="button" class="ios-press w-full min-[360px]:w-auto justify-center px-3.5 py-2 rounded-full bg-blue-500/12 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold transition text-center">
+        <button id="btnAuthActionInfo" type="button" class="ios-press w-full min-[360px]:w-auto justify-center px-3.5 py-2 rounded-full bg-indigo-500/12 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-semibold transition text-center">
           Giriş Yap
         </button>
       </div>
@@ -3208,39 +3429,53 @@
   <nav id="appNav" class="fixed inset-x-2 min-[360px]:inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[440px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
     <div id="dockContainer" class="ios-floating-dock rounded-full p-1 grid grid-cols-5 relative touch-none" style="touch-action: none;">
       <!-- Continuous Gliding Pill -->
-      <div id="tabIndicatorPill" style="transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform: translate3d(4px, 0px, 0px); width: 70px;"></div>
+      <div id="tabIndicatorPill" data-active-tab="daily" style="transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform: translate3d(4px, 0px, 0px); width: 70px;"></div>
 
-      <button type="button" data-tab="daily" data-tab-index="0" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-semibold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="daily" data-tab-index="0" class="nav-tab-btn is-active w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 font-semibold relative z-10 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1.1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
         </div>
         <span id="navLabelDaily" class="text-[9.5px] sm:text-[10.5px] tracking-tight whitespace-nowrap truncate max-w-full">Bugün</span>
       </button>
 
-      <button type="button" data-tab="weekly" data-tab-index="1" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="weekly" data-tab-index="1" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 font-semibold relative z-10 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
+            <path class="nav-week-line-1" stroke-linecap="round" stroke-linejoin="round" d="M4 6h16"></path>
+            <path class="nav-week-line-2" stroke-linecap="round" stroke-linejoin="round" d="M4 12h16"></path>
+            <path class="nav-week-line-3" stroke-linecap="round" stroke-linejoin="round" d="M4 18h16"></path>
+          </svg>
         </div>
         <span id="navLabelWeekly" class="text-[9.5px] sm:text-[10.5px] tracking-tight whitespace-nowrap truncate max-w-full">Hafta</span>
       </button>
 
-      <button type="button" data-tab="search" data-tab-index="2" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="search" data-tab-index="2" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 font-semibold relative z-10 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
         <span id="navLabelSearch" class="text-[9.5px] sm:text-[10.5px] tracking-tight whitespace-nowrap truncate max-w-full">Arama</span>
       </button>
 
-      <button type="button" data-tab="info" data-tab-index="3" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="info" data-tab-index="3" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 font-semibold relative z-10 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"></path></svg>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 20.5H5.5a2 2 0 01-2-2v-13a2 2 0 012-2h9a2 2 0 012 2V9"></path>
+            <path class="nav-exam-lines" stroke-linecap="round" d="M7 7.5h6M7 10.5h6M7 13.5h4.2M7 16.5h2.5"></path>
+            <g class="nav-exam-pencil">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.8 7.6a1.4 1.4 0 012 2l-6.6 6.6-2.9.9.9-2.9 6.6-6.6z"></path>
+              <path stroke-linecap="round" d="M18.3 9.1l2 2"></path>
+            </g>
+          </svg>
         </div>
         <span id="navLabelInfo" class="text-[9.5px] sm:text-[10.5px] tracking-tight whitespace-nowrap truncate max-w-full">Sınav</span>
       </button>
 
-      <button type="button" data-tab="food" data-tab-index="4" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none">
+      <button type="button" data-tab="food" data-tab-index="4" class="nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 font-semibold relative z-10 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1);">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
+            <path class="nav-food-dome" stroke-linecap="round" stroke-linejoin="round" d="M4.5 14h15M5 14a7 7 0 0114 0M12 4.5V7"></path>
+            <path class="nav-food-tray" stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M6 14v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path>
+          </svg>
         </div>
         <span id="navLabelFood" class="text-[9.5px] sm:text-[10.5px] tracking-tight whitespace-nowrap truncate max-w-full">Yemekhane</span>
       </button>
@@ -4188,6 +4423,7 @@
       setDockActiveVisual(tabName, true);
       const bounds = getDockPillBounds(dock, btn);
 
+      pill.setAttribute('data-active-tab', tabName);
       pill.classList.remove('is-dragging');
       if (!animate) {
         pill.style.transition = 'none';
@@ -4229,6 +4465,7 @@
       }
 
       state.activeTab = tabName;
+      document.body.setAttribute('data-active-tab', tabName);
       let activeViewEl = null;
       ['daily', 'weekly', 'food', 'search', 'info'].forEach((tKey) => {
         const el = document.getElementById('view' + tKey.charAt(0).toUpperCase() + tKey.slice(1));
@@ -4262,15 +4499,18 @@
     function setDockActiveVisual(tabName, force = false) {
       if (!force && lastVisualActiveTab === tabName) return;
       lastVisualActiveTab = tabName;
-      const activeCls = 'nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 font-semibold relative z-10 transition-colors duration-200 select-none';
-      const inactiveCls = 'nav-tab-btn w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 text-[#8e8e93] hover:text-slate-700 dark:hover:text-slate-200 font-semibold relative z-10 transition-colors duration-200 select-none';
+      const pill = document.getElementById('tabIndicatorPill');
+      if (pill) pill.setAttribute('data-active-tab', tabName);
 
       document.querySelectorAll('.nav-tab-btn').forEach((b) => {
         const isAct = b.getAttribute('data-tab') === tabName;
         const iconWrap = b.querySelector('.nav-icon-wrap');
         const svg = b.querySelector('svg');
-        const targetCls = isAct ? activeCls : inactiveCls;
-        if (b.className !== targetCls) b.className = targetCls;
+        if (isAct && force) {
+          b.classList.remove('is-active');
+          void b.offsetWidth;
+        }
+        b.classList.toggle('is-active', isAct);
         if (iconWrap) iconWrap.style.transform = isAct ? 'scale(1.1)' : 'scale(1)';
         if (svg) svg.setAttribute('stroke-width', isAct ? '2.2' : '1.9');
       });
@@ -5101,7 +5341,7 @@
         `;
         const goBtn = document.createElement('button');
         goBtn.type = 'button';
-        goBtn.className = 'ios-press shrink-0 px-2.5 py-1 rounded-full bg-blue-500/12 text-blue-600 dark:text-blue-400 text-xs font-semibold';
+        goBtn.className = 'ios-press shrink-0 px-2.5 py-1 rounded-full bg-indigo-500/12 text-indigo-600 dark:text-indigo-300 text-xs font-semibold';
         goBtn.textContent = loc.openBtn;
         goBtn.addEventListener('click', () => {
           state.selectedDate = item.day.date;
@@ -6258,10 +6498,10 @@
         if (descEl) descEl.textContent = loc.authGuestDesc;
         if (infoBtn) {
           infoBtn.textContent = loc.authLoginShortBtn;
-          infoBtn.className = 'ios-press shrink-0 px-3.5 py-2 rounded-full bg-blue-500/12 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold transition';
+          infoBtn.className = 'ios-press w-full min-[360px]:w-auto justify-center px-3.5 py-2 rounded-full bg-indigo-500/12 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-semibold transition text-center';
         }
         if (dailyBtn) {
-          dailyBtn.className = 'px-3 py-1 rounded-full ios-pill-control hover:bg-blue-500/15 text-[11px] font-semibold text-blue-600 dark:text-blue-400 transition flex items-center gap-1.5 active:scale-95';
+          dailyBtn.className = 'w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-blue-500/15 text-[11px] font-semibold text-blue-600 dark:text-blue-400 transition flex items-center gap-1.5 active:scale-95';
         }
         if (dailyIcon) {
           dailyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>';
@@ -6283,10 +6523,10 @@
       }
       if (infoBtn) {
         infoBtn.textContent = loc.authLogoutBtn;
-        infoBtn.className = 'ios-press shrink-0 px-3.5 py-2 rounded-full bg-rose-500/12 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold transition';
+        infoBtn.className = 'ios-press w-full min-[360px]:w-auto justify-center px-3.5 py-2 rounded-full bg-rose-500/12 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold transition text-center';
       }
       if (dailyBtn) {
-        dailyBtn.className = 'px-3 py-1 rounded-full ios-pill-control hover:bg-rose-500/15 text-[11px] font-semibold text-rose-600 dark:text-rose-400 transition flex items-center gap-1.5 active:scale-95';
+        dailyBtn.className = 'w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-rose-500/15 text-[11px] font-semibold text-rose-600 dark:text-rose-400 transition flex items-center gap-1.5 active:scale-95';
       }
       if (dailyIcon) {
         dailyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>';
