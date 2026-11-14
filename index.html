@@ -2265,7 +2265,7 @@
       filter: blur(38px);
       -webkit-filter: blur(38px);
       will-change: transform, opacity;
-      animation: iosAuraTopBloom 1.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: iosAuraTopBloom 1.77s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
     .ambient-bottom {
@@ -2280,7 +2280,7 @@
       filter: blur(38px);
       -webkit-filter: blur(38px);
       will-change: transform, opacity;
-      animation: iosAuraBottomBloom 1.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: iosAuraBottomBloom 1.77s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
     @keyframes iosAuraTopBloom {
@@ -2495,20 +2495,67 @@
     }
 
     .nav-tab-btn {
-      color: #8e8e93;
-      transition: color 0.22s ease, opacity 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+      color: #8e8e93 !important;
+      outline: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      -webkit-tap-highlight-color: transparent !important;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: color 0.14s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .nav-tab-btn:not(.is-active):hover {
-      color: #334155;
+    .nav-tab-btn:focus,
+    .nav-tab-btn:focus-visible,
+    .nav-tab-btn:focus-within {
+      outline: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
     }
-    .dark .nav-tab-btn:not(.is-active):hover {
-      color: #e2e8f0;
+
+    /* All inactive tabs strictly share the exact same muted tone (#8e8e93) with zero whitish tint on touch, drag, focus or hover */
+    .nav-tab-btn:not(.is-active),
+    .nav-tab-btn:not(.is-active):hover,
+    .nav-tab-btn:not(.is-active):focus,
+    .nav-tab-btn:not(.is-active):focus-visible,
+    .nav-tab-btn:not(.is-active):focus-within,
+    .nav-tab-btn:not(.is-active):active,
+    .dark .nav-tab-btn:not(.is-active),
+    .dark .nav-tab-btn:not(.is-active):hover,
+    .dark .nav-tab-btn:not(.is-active):focus,
+    .dark .nav-tab-btn:not(.is-active):focus-visible,
+    .dark .nav-tab-btn:not(.is-active):focus-within,
+    .dark .nav-tab-btn:not(.is-active):active {
+      color: #8e8e93 !important;
+      opacity: 1 !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      box-shadow: none !important;
+      outline: none !important;
+      text-shadow: none !important;
+      filter: none !important;
     }
+    .nav-tab-btn:not(.is-active) * {
+      animation: none !important;
+    }
+    .nav-tab-btn:not(.is-active) svg {
+      stroke-width: 1.9px !important;
+    }
+    .nav-tab-btn:not(.is-active) .nav-icon-wrap {
+      transform: scale(1) !important;
+    }
+
     .nav-tab-btn.is-active {
-      color: #007aff;
+      color: #007aff !important;
     }
     .dark .nav-tab-btn.is-active {
-      color: #38bdf8;
+      color: #38bdf8 !important;
+    }
+
+    #dockContainer.is-dock-dragging .nav-tab-btn,
+    #dockContainer.is-dock-dragging .nav-icon-wrap {
+      transition: none !important;
     }
 
     .nav-tab-btn:active .nav-icon-wrap {
@@ -4515,6 +4562,9 @@
         b.classList.toggle('is-active', isAct);
         if (iconWrap) iconWrap.style.transform = isAct ? 'scale(1.1)' : 'scale(1)';
         if (svg) svg.setAttribute('stroke-width', isAct ? '2.2' : '1.9');
+        if (!isAct && typeof b.blur === 'function') {
+          b.blur();
+        }
       });
     }
 
@@ -4522,6 +4572,14 @@
       const dock = document.getElementById('dockContainer');
       const pill = document.getElementById('tabIndicatorPill');
       if (!dock || !pill) return;
+
+      // Prevent sticky focus or outline on dock buttons
+      dock.querySelectorAll('.nav-tab-btn').forEach((btn) => {
+        btn.setAttribute('tabindex', '-1');
+        btn.addEventListener('focus', () => {
+          if (document.activeElement === btn) btn.blur();
+        });
+      });
 
       let isDragging = false;
       let didMove = false;
@@ -4577,6 +4635,9 @@
 
       dock.addEventListener('pointerdown', (e) => {
         if (e.button && e.button !== 0) return;
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
         isDragging = true;
         didMove = false;
         startX = e.clientX;
@@ -4600,6 +4661,7 @@
         if (!didMove) {
           if (dx <= 6 && dy <= 6) return;
           didMove = true;
+          dock.classList.add('is-dock-dragging');
           pill.style.transition = 'none';
           pill.classList.add('is-dragging');
           if (!rafId) rafId = requestAnimationFrame(tickDrag);
@@ -4624,7 +4686,17 @@
         }
         try { dock.releasePointerCapture(e.pointerId); } catch (err) {}
 
+        dock.classList.remove('is-dock-dragging');
         pill.classList.remove('is-dragging');
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
+        document.querySelectorAll('.nav-tab-btn').forEach((b) => {
+          if (b.getAttribute('data-tab') !== currentTargetTab) {
+            b.classList.remove('is-active');
+          }
+          if (typeof b.blur === 'function') b.blur();
+        });
 
         if (didMove) {
           switchTab(currentTargetTab, true);
