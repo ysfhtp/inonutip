@@ -2250,6 +2250,9 @@
       backdrop-filter: saturate(180%) blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.72);
       box-shadow: 0 8px 32px -4px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+      transform: translate3d(0, 0, 0);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
     }
     .dark .ios-glass {
       background: rgba(28, 28, 32, 0.56);
@@ -2260,21 +2263,36 @@
     }
 
     .ios-glass-bar {
-      background: rgba(244, 247, 252, 0.66);
-      -webkit-backdrop-filter: saturate(150%) blur(28px);
-      backdrop-filter: saturate(150%) blur(28px);
-      border-bottom: 0.5px solid rgba(60, 60, 67, 0.14);
+      background: transparent;
+      border-bottom: 0.5px solid transparent;
       isolation: isolate;
       transform: translate3d(0, 0, 0);
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
       will-change: transform;
     }
-    .dark .ios-glass-bar {
-      background: rgba(16, 20, 30, 0.66);
+    .ios-glass-bar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background: rgba(244, 247, 252, 0.66);
       -webkit-backdrop-filter: saturate(150%) blur(28px);
       backdrop-filter: saturate(150%) blur(28px);
+      border-bottom: 0.5px solid rgba(60, 60, 67, 0.14);
+      opacity: 0;
+      transform: translate3d(0, 0, 0);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      transition: opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.28s ease, border-color 0.28s ease;
+    }
+    .dark .ios-glass-bar::before {
+      background: rgba(16, 20, 30, 0.66);
       border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
+    }
+    .ios-glass-bar.is-scrolled::before {
+      opacity: 1;
     }
 
     /* iOS 18 Authentic Liquid Glass Dock */
@@ -2344,28 +2362,30 @@
     @keyframes tabEnterRight {
       from {
         opacity: 0;
-        transform: translate3d(22px, 0, 0) scale(0.99);
+        transform: translate3d(22px, 12px, 0) scale(0.988);
       }
       to {
         opacity: 1;
-        transform: none;
+        transform: translate3d(0, 0, 0) scale(1);
       }
     }
     @keyframes tabEnterLeft {
       from {
         opacity: 0;
-        transform: translate3d(-22px, 0, 0) scale(0.99);
+        transform: translate3d(-22px, 12px, 0) scale(0.988);
       }
       to {
         opacity: 1;
-        transform: none;
+        transform: translate3d(0, 0, 0) scale(1);
       }
     }
     .tab-enter-right {
-      animation: tabEnterRight 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation: tabEnterRight 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation-delay: var(--tab-delay, 0ms);
     }
     .tab-enter-left {
-      animation: tabEnterLeft 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation: tabEnterLeft 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation-delay: var(--tab-delay, 0ms);
     }
 
     @keyframes iosCardIn {
@@ -2375,7 +2395,7 @@
       }
       to {
         opacity: 1;
-        transform: none;
+        transform: translate3d(0, 0, 0) scale(1);
       }
     }
     .ios-stagger-item {
@@ -2390,7 +2410,7 @@
       }
       to {
         opacity: 1;
-        transform: none;
+        transform: translate3d(0, 0, 0) scale(1);
       }
     }
     .ios-lang-swap {
@@ -3887,6 +3907,62 @@
       updateHeaderClock();
     }
 
+    function getTabLeafAnimTargets(viewEl) {
+      const targets = [];
+      const wrapperIds = new Set([
+        'dailySlotsContainer',
+        'weeklyDaysContainer',
+        'searchResultsContainer',
+        'foodMenuContainer',
+        'foodAnnouncementsContainer'
+      ]);
+      Array.from(viewEl.children).forEach((el) => {
+        if (el.classList.contains('hidden')) return;
+        if (!wrapperIds.has(el.id)) {
+          targets.push(el);
+          return;
+        }
+        if (el.id === 'weeklyDaysContainer') {
+          Array.from(el.children).forEach((sec) => {
+            if (sec.classList.contains('hidden')) return;
+            Array.from(sec.children).forEach((sub) => {
+              if (sub.classList.contains('space-y-2')) {
+                Array.from(sub.children).forEach((leaf) => {
+                  if (!leaf.classList.contains('hidden')) targets.push(leaf);
+                });
+              } else if (!sub.classList.contains('hidden')) {
+                targets.push(sub);
+              }
+            });
+          });
+          return;
+        }
+        if (el.id === 'foodMenuContainer') {
+          Array.from(el.children).forEach((child) => {
+            if (child.classList.contains('hidden')) return;
+            if (child.classList.contains('ios-glass')) {
+              targets.push(child);
+            } else {
+              Array.from(child.children).forEach((sub) => {
+                if (sub.classList.contains('grid')) {
+                  Array.from(sub.children).forEach((card) => {
+                    if (!card.classList.contains('hidden')) targets.push(card);
+                  });
+                } else if (!sub.classList.contains('hidden')) {
+                  targets.push(sub);
+                }
+              });
+            }
+          });
+          return;
+        }
+        Array.from(el.children).forEach((leaf) => {
+          if (!leaf.classList.contains('hidden')) targets.push(leaf);
+        });
+      });
+      return targets;
+    }
+
     function animateActiveViewLanguageSwitch() {
       const viewId = 'view' + state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1);
       const viewEl = document.getElementById(viewId);
@@ -3898,12 +3974,19 @@
           el.id === 'dailySlotsContainer' ||
           el.id === 'weeklyDaysContainer' ||
           el.id === 'searchResultsContainer' ||
-          el.id === 'foodMenuContainer'
+          el.id === 'foodMenuContainer' ||
+          el.id === 'foodAnnouncementsContainer'
         ) {
           return false;
         }
         return true;
       });
+      const annEl = document.getElementById('foodAnnouncementsContainer');
+      if (state.activeTab === 'food' && annEl && !annEl.classList.contains('hidden')) {
+        Array.from(annEl.children).forEach((c) => {
+          if (!c.classList.contains('hidden')) targets.push(c);
+        });
+      }
 
       targets.forEach((el, idx) => {
         el.classList.remove('ios-lang-swap');
@@ -3974,6 +4057,13 @@
 
     let forceInstantCarouselSync = false;
 
+    function updateHeaderScrollState() {
+      const header = document.getElementById('appHeader');
+      if (!header) return;
+      const y = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      header.classList.toggle('is-scrolled', y > 6);
+    }
+
     function activateTabView(tabName) {
       const prevTab = state.activeTab;
       const changed = prevTab !== tabName;
@@ -3983,25 +4073,21 @@
 
       if (changed) {
         window.scrollTo({ top: 0, behavior: 'auto' });
+        updateHeaderScrollState();
         if (tabName === 'daily' || tabName === 'food') {
           forceInstantCarouselSync = true;
         }
       }
 
       state.activeTab = tabName;
+      let activeViewEl = null;
       ['daily', 'weekly', 'food', 'search', 'info'].forEach((tKey) => {
         const el = document.getElementById('view' + tKey.charAt(0).toUpperCase() + tKey.slice(1));
         if (!el) return;
         const shouldHide = tKey !== tabName;
         el.classList.toggle('hidden', shouldHide);
         el.classList.remove('tab-enter-right', 'tab-enter-left');
-        if (!shouldHide && changed) {
-          void el.offsetWidth;
-          el.classList.add(enterCls);
-          el.addEventListener('animationend', () => {
-            el.classList.remove('tab-enter-right', 'tab-enter-left');
-          }, { once: true });
-        }
+        if (!shouldHide) activeViewEl = el;
       });
 
       if (tabName === 'daily') renderDailyView();
@@ -4010,6 +4096,21 @@
       if (tabName === 'search') renderSearchView();
       if (tabName === 'info') renderInfoView();
       forceInstantCarouselSync = false;
+
+      if (changed && activeViewEl) {
+        const leafTargets = getTabLeafAnimTargets(activeViewEl);
+        leafTargets.forEach((leaf, idx) => {
+          leaf.classList.remove('ios-stagger-item', 'tab-enter-right', 'tab-enter-left');
+          leaf.style.setProperty('--tab-delay', `${Math.min(idx, 6) * 20}ms`);
+          void leaf.offsetWidth;
+          leaf.classList.add(enterCls);
+          leaf.addEventListener('animationend', () => {
+            leaf.classList.remove('tab-enter-right', 'tab-enter-left');
+            leaf.style.removeProperty('--tab-delay');
+          }, { once: true });
+        });
+      }
+      requestAnimationFrame(updateHeaderScrollState);
     }
 
     function setDockActiveVisual(tabName, force = false) {
@@ -4522,11 +4623,12 @@
 
       weekDays.forEach((day, dayIdx) => {
         const sec = document.createElement('div');
-        sec.className = 'ios-stagger-item space-y-2';
-        sec.style.setProperty('--stagger-delay', `${Math.min(dayIdx, 5) * 36}ms`);
+        sec.className = 'space-y-2';
+        const baseDelay = Math.min(dayIdx, 5) * 32;
 
         const header = document.createElement('div');
-        header.className = 'flex items-center justify-between px-1.5 pt-0.5';
+        header.className = 'ios-stagger-item flex items-center justify-between px-1.5 pt-0.5';
+        header.style.setProperty('--stagger-delay', `${baseDelay}ms`);
         header.innerHTML = `<h3 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">${escapeHtml(formatDateLong(day.date))}</h3>`;
 
         const openBtn = document.createElement('button');
@@ -4543,13 +4645,17 @@
         const list = document.createElement('div');
         list.className = 'space-y-2';
         const { visibleSlots, hiddenCount } = filterSlotsForGroupPreference(day.slots);
-        for (const slot of visibleSlots) {
-          list.appendChild(createSlotCardElement(slot, { hideNotePreview: true }));
-        }
+        visibleSlots.forEach((slot, sIdx) => {
+          const cardEl = createSlotCardElement(slot, { hideNotePreview: true });
+          cardEl.classList.add('ios-stagger-item');
+          cardEl.style.setProperty('--stagger-delay', `${Math.min(baseDelay + sIdx * 18, 180)}ms`);
+          list.appendChild(cardEl);
+        });
         if (hiddenCount > 0) {
           const hiddenEl = document.createElement('button');
           hiddenEl.type = 'button';
-          hiddenEl.className = 'text-[11px] font-medium text-slate-400 dark:text-slate-500 px-1.5 hover:text-blue-600 dark:hover:text-blue-400 transition text-left';
+          hiddenEl.className = 'ios-stagger-item text-[11px] font-medium text-slate-400 dark:text-slate-500 px-1.5 hover:text-blue-600 dark:hover:text-blue-400 transition text-left';
+          hiddenEl.style.setProperty('--stagger-delay', `${Math.min(baseDelay + 60, 180)}ms`);
           hiddenEl.textContent = `${loc.hiddenGroupsBanner(hiddenCount)} • ${loc.hiddenGroupsShowBtn}`;
           hiddenEl.addEventListener('click', openGroupModal);
           list.appendChild(hiddenEl);
@@ -5959,10 +6065,15 @@
         }
       };
       syncHeaderSpacer();
+      updateHeaderScrollState();
       if (typeof ResizeObserver !== 'undefined' && appHeaderEl) {
         new ResizeObserver(syncHeaderSpacer).observe(appHeaderEl);
       }
-      window.addEventListener('resize', syncHeaderSpacer);
+      window.addEventListener('scroll', updateHeaderScrollState, { passive: true });
+      window.addEventListener('resize', () => {
+        syncHeaderSpacer();
+        updateHeaderScrollState();
+      });
       if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(syncHeaderSpacer);
       }
