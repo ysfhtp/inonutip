@@ -3374,6 +3374,9 @@
           Giriş Yap
         </button>
       </div>
+      <div class="text-center pt-2 pb-1">
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.4.0 • İnönü Tıp D1</span>
+      </div>
     </section>
 
   </main>
@@ -4536,6 +4539,7 @@
       const eased = 1 - Math.pow(1 - ratio, 2.5);
       header.style.setProperty('--header-scroll-ratio', eased.toFixed(3));
       header.classList.toggle('is-scrolled', y > 4);
+      header.style.backgroundColor = y <= 4 ? getSystemThemeColor() : 'transparent';
       syncSystemBarsThemeColor();
     }
 
