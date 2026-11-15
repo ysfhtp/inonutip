@@ -117,7 +117,7 @@ service cloud.firestore {
 
     function isValidCustomStudent(data) {
       return data.keys().hasAll(['group', 'labGroup', 'prog', 'encName', 'last4', 'cloudKey', 'active', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['group', 'labGroup', 'prog', 'encName', 'last4', 'cloudKey', 'active', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['group', 'labGroup', 'prog', 'encName', 'encSid', 'last4', 'cloudKey', 'active', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
         && data.group is string
         && data.group.size() >= 1
         && data.group.size() <= 3
@@ -130,6 +130,7 @@ service cloud.firestore {
         && data.prog in ['tr', 'en']
         && data.encName is string
         && data.encName.size() <= 256
+        && (!('encSid' in data) || (data.encSid is string && data.encSid.size() <= 128))
         && data.last4 is string
         && data.last4.size() == 4
         && data.last4.matches('^[0-9]{4}$')
@@ -145,7 +146,7 @@ service cloud.firestore {
 
     function isValidAdminStudentRecord(data) {
       return data.keys().hasAll(['authHash', 'cloudKey', 'last4', 'encFullName', 'group', 'labGroup', 'prog', 'source', 'active', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['authHash', 'cloudKey', 'last4', 'encFullName', 'group', 'labGroup', 'prog', 'source', 'active', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['authHash', 'cloudKey', 'last4', 'encFullName', 'encSid', 'group', 'labGroup', 'prog', 'source', 'active', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
         && data.authHash is string
         && data.authHash.size() == 32
         && data.authHash.matches('^[a-f0-9]{32}$')
@@ -158,6 +159,7 @@ service cloud.firestore {
         && data.encFullName is string
         && data.encFullName.size() >= 1
         && data.encFullName.size() <= 256
+        && (!('encSid' in data) || (data.encSid is string && data.encSid.size() <= 128))
         && data.group is string
         && data.group.size() >= 1
         && data.group.size() <= 3
@@ -180,12 +182,13 @@ service cloud.firestore {
 
     function isValidAdminSecurityConfig(data) {
       return data.keys().hasAll(['passwordHash', 'proofDigestB64', 'proofOpId', 'updatedAt'])
-        && data.keys().hasOnly(['passwordHash', 'proofDigestB64', 'proofOpId', 'updatedAt'])
+        && data.keys().hasOnly(['passwordHash', 'proofDigestB64', 'wrappedRosterKey', 'proofOpId', 'updatedAt'])
         && data.passwordHash is string
         && data.passwordHash.size() == 64
         && data.passwordHash.matches('^[a-f0-9]{64}$')
         && data.proofDigestB64 is string
         && data.proofDigestB64.size() == 44
+        && (!('wrappedRosterKey' in data) || (data.wrappedRosterKey is string && data.wrappedRosterKey.size() >= 64 && data.wrappedRosterKey.size() <= 128 && data.wrappedRosterKey.matches('^[a-f0-9]{64,128}$')))
         && isValidId(data.proofOpId)
         && data.updatedAt is timestamp;
     }
@@ -214,9 +217,9 @@ service cloud.firestore {
       allow delete: if isAdmin() && isValidStudentHash(studentHash);
     }
 
-    // Announcements readable when not soft-deleted; writes require atomic admin proof batch.
+    // Announcements readable when not soft-deleted (or missing); writes require atomic admin proof batch.
     match /announcements/{announcementId} {
-      allow get: if isValidId(announcementId) && (!('deleted' in existing()) || existing().deleted != true);
+      allow get: if isValidId(announcementId) && (resource == null || !('deleted' in existing()) || existing().deleted != true);
       allow list: if request.query.limit <= 200;
       allow create: if isValidId(announcementId)
         && isValidAnnouncement(incoming())
@@ -225,7 +228,7 @@ service cloud.firestore {
         && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'announcements/' + announcementId));
       allow update: if isValidId(announcementId)
         && isValidAnnouncement(incoming())
-        && incoming().createdAt == existing().createdAt
+        && (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
         && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'message', 'tone', 'active', 'deleted', 'proofOpId', 'updatedAt'])
         && incoming().updatedAt == request.time
         && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'announcements/' + announcementId));
@@ -244,13 +247,13 @@ service cloud.firestore {
       allow update: if isValidAuthHash(authHash)
         && isValidCustomStudent(incoming())
         && incoming().createdAt == existing().createdAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['group', 'labGroup', 'prog', 'encName', 'last4', 'cloudKey', 'active', 'deleted', 'proofOpId', 'updatedAt'])
+        && incoming().diff(existing()).affectedKeys().hasOnly(['group', 'labGroup', 'prog', 'encName', 'encSid', 'last4', 'cloudKey', 'active', 'deleted', 'proofOpId', 'updatedAt'])
         && incoming().updatedAt == request.time
         && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'student/' + authHash));
       allow delete: if isAdmin() && isValidAuthHash(authHash);
     }
 
-    // Encrypted student directory storing obfuscated names; writes require atomic admin proof batch.
+    // Encrypted student directory storing obfuscated names & IDs; writes require atomic admin proof batch.
     match /admin_student_directory/{authHash} {
       allow get: if isValidAuthHash(authHash);
       allow list: if request.query.limit <= 1000;
@@ -264,7 +267,7 @@ service cloud.firestore {
         && isValidAdminStudentRecord(incoming())
         && incoming().authHash == existing().authHash
         && incoming().createdAt == existing().createdAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['cloudKey', 'last4', 'encFullName', 'fullName', 'group', 'labGroup', 'prog', 'source', 'active', 'deleted', 'proofOpId', 'updatedAt'])
+        && incoming().diff(existing()).affectedKeys().hasOnly(['cloudKey', 'last4', 'encFullName', 'fullName', 'encSid', 'group', 'labGroup', 'prog', 'source', 'active', 'deleted', 'proofOpId', 'updatedAt'])
         && incoming().updatedAt == request.time
         && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'student/' + authHash));
       allow delete: if isAdmin() && isValidAuthHash(authHash);
@@ -282,7 +285,7 @@ service cloud.firestore {
       allow update: if isValidId(configId)
         && configId == 'security'
         && isValidAdminSecurityConfig(incoming())
-        && incoming().diff(existing()).affectedKeys().hasOnly(['passwordHash', 'proofDigestB64', 'proofOpId', 'updatedAt'])
+        && incoming().diff(existing()).affectedKeys().hasOnly(['passwordHash', 'proofDigestB64', 'wrappedRosterKey', 'proofOpId', 'updatedAt'])
         && incoming().updatedAt == request.time
         && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'admin_config/security'));
       allow delete: if false;

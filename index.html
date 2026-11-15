@@ -2986,6 +2986,88 @@
       animation: iosShake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
     }
 
+    /* Admin Modal Cohesive Animations & Gliding Pill */
+    #adminTabsBar {
+      position: relative;
+      isolation: isolate;
+    }
+    #adminTabIndicator {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 0;
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+      will-change: transform, width;
+      pointer-events: none;
+      z-index: 0;
+      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease;
+    }
+    .dark #adminTabIndicator {
+      background: rgba(30, 41, 59, 0.94);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.42);
+    }
+    .admin-tab-btn {
+      position: relative;
+      z-index: 1;
+      transition: color 0.22s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .admin-tab-btn:active {
+      transform: scale(0.97);
+    }
+    @keyframes adminPaneIn {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 12px, 0) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
+    .admin-pane-enter {
+      animation: adminPaneIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    @keyframes adminItemIn {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 10px, 0) scale(0.988);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
+    .admin-stagger-item {
+      animation: adminItemIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+      animation-delay: var(--admin-delay, 0ms);
+    }
+    .admin-card-reveal {
+      animation: adminItemIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .admin-lab-collapse {
+      display: grid;
+      grid-template-rows: 1fr;
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+      transition:
+        grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.24s ease,
+        transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      margin-top: 0 !important;
+    }
+    .admin-lab-collapse > .admin-lab-inner {
+      overflow: hidden;
+      min-height: 0;
+    }
+    .admin-lab-collapse.is-collapsed {
+      grid-template-rows: 0fr;
+      opacity: 0;
+      transform: translate3d(0, -6px, 0);
+      pointer-events: none;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -3376,7 +3458,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.5.0</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.5.1</span>
       </div>
     </section>
 
@@ -3547,15 +3629,16 @@
 
       <!-- 3-Tab Segmented Control -->
       <div class="px-4 sm:px-5 pt-3 pb-2 shrink-0">
-        <div id="adminTabsBar" class="ios-pill-control p-1 rounded-2xl grid grid-cols-3 gap-1">
-          <button type="button" data-admin-tab="announcements" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold transition truncate">Duyurular</button>
-          <button type="button" data-admin-tab="add-student" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold transition truncate">Öğrenci Ekle</button>
-          <button type="button" data-admin-tab="students" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold transition truncate">Öğrenci Ayarları</button>
+        <div id="adminTabsBar" class="ios-pill-control p-1 rounded-2xl grid grid-cols-3 gap-1 relative">
+          <div id="adminTabIndicator" style="transform: translate3d(4px, 0, 0); width: 96px;"></div>
+          <button type="button" data-admin-tab="announcements" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold truncate">Duyurular</button>
+          <button type="button" data-admin-tab="add-student" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold truncate">Öğrenci Ekle</button>
+          <button type="button" data-admin-tab="students" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold truncate">Öğrenci Ayarları</button>
         </div>
       </div>
 
       <!-- Scrollable Body -->
-      <div class="flex-1 overflow-y-auto px-4 sm:px-5 pb-5 pt-1 space-y-4">
+      <div id="adminModalScrollBody" class="flex-1 overflow-y-auto px-4 sm:px-5 pb-5 pt-1 space-y-4">
         <!-- PANE 1: DUYURULAR -->
         <div id="adminPaneAnnouncements" class="space-y-3.5">
           <form id="adminAnnForm" class="ios-pill-control rounded-2xl p-3.5 space-y-3" novalidate>
@@ -3607,20 +3690,21 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="space-y-1.5">
+            <div class="space-y-1.5">
+              <span id="lblAdminAddLang" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Program Dili</span>
+              <div id="adminAddLangChips" class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" data-add-lang="tr" class="group-chip min-h-[44px] px-3.5">Türkçe (TR)</button>
+                <button type="button" data-add-lang="en" class="group-chip min-h-[44px] px-3.5">English (EN)</button>
+              </div>
+            </div>
+
+            <div id="adminAddLabSection" class="admin-lab-collapse">
+              <div class="admin-lab-inner pt-3.5 space-y-1.5">
                 <span id="lblAdminAddLab" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">LAB Grubu (Opsiyonel)</span>
                 <div id="adminAddLabChips" class="flex items-center gap-1.5 flex-wrap">
                   <button type="button" data-add-lab="" class="group-chip min-h-[44px] px-3">Tümü</button>
                   <button type="button" data-add-lab="1" class="group-chip min-h-[44px] px-3">LAB 1</button>
                   <button type="button" data-add-lab="2" class="group-chip min-h-[44px] px-3">LAB 2</button>
-                </div>
-              </div>
-              <div class="space-y-1.5">
-                <span id="lblAdminAddLang" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Program Dili</span>
-                <div id="adminAddLangChips" class="flex items-center gap-1.5 flex-wrap">
-                  <button type="button" data-add-lang="tr" class="group-chip min-h-[44px] px-3.5">Türkçe (TR)</button>
-                  <button type="button" data-add-lang="en" class="group-chip min-h-[44px] px-3.5">English (EN)</button>
                 </div>
               </div>
             </div>
@@ -3631,20 +3715,11 @@
 
         <!-- PANE 3: TÜM ÖĞRENCİLERİN AYARLARINI KONTROL ETME -->
         <div id="adminPaneStudents" class="hidden space-y-3.5">
-          <!-- Öğrenci No ile Doğrudan Ara & Düzenle -->
-          <div class="ios-pill-control rounded-2xl p-3 space-y-2">
-            <label id="lblAdminLookupSid" for="adminLookupSid" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Numara ile Öğrenci Bul ve Düzenle</label>
-            <div class="flex items-center gap-2">
-              <input id="adminLookupSid" type="text" inputmode="numeric" maxlength="11" placeholder="11 haneli numara (01...)" class="flex-1 min-w-0 ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-              <button id="btnAdminLookupStudent" type="button" class="ios-press min-h-[44px] px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shrink-0 transition">Getir</button>
-            </div>
-          </div>
-
           <!-- Seçili Öğrenci Ayar Düzenleyici -->
           <div id="adminStudentEditorCard" class="hidden ios-glass rounded-2xl p-3.5 space-y-3 border border-blue-500/30">
             <div class="flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <p id="adminEditStudentBadge" class="text-[10.5px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400"></p>
+                <p id="adminEditStudentBadge" class="text-[10.5px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 tabular-nums"></p>
                 <h4 id="adminEditStudentTitle" class="text-sm font-bold text-slate-900 dark:text-white truncate"></h4>
               </div>
               <button id="btnAdminCancelStudentEdit" type="button" class="ios-press min-h-[44px] px-3 py-1 rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-300">Kapat</button>
@@ -3664,13 +3739,12 @@
                 <button type="button" data-edit-mbu="V" class="group-chip min-h-[44px] px-3">V</button>
               </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div class="space-y-1.5">
-                <span id="lblAdminEditLab" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">LAB</span>
-                <div id="adminEditLabChips" class="flex items-center gap-1 flex-wrap">
-                  <button type="button" data-edit-lab="" class="group-chip min-h-[44px] px-2.5">Tümü</button>
-                  <button type="button" data-edit-lab="1" class="group-chip min-h-[44px] px-2.5">1</button>
-                  <button type="button" data-edit-lab="2" class="group-chip min-h-[44px] px-2.5">2</button>
+                <span id="lblAdminEditLang" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Dil</span>
+                <div id="adminEditLangChips" class="flex items-center gap-1 flex-wrap">
+                  <button type="button" data-edit-lang="tr" class="group-chip min-h-[44px] px-3">TR</button>
+                  <button type="button" data-edit-lang="en" class="group-chip min-h-[44px] px-3">EN</button>
                 </div>
               </div>
               <div class="space-y-1.5">
@@ -3680,11 +3754,14 @@
                   <button type="button" data-edit-mode="hide" class="group-chip min-h-[44px] px-2.5">Gizle</button>
                 </div>
               </div>
-              <div class="space-y-1.5">
-                <span id="lblAdminEditLang" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Dil</span>
-                <div id="adminEditLangChips" class="flex items-center gap-1 flex-wrap">
-                  <button type="button" data-edit-lang="tr" class="group-chip min-h-[44px] px-2.5">TR</button>
-                  <button type="button" data-edit-lang="en" class="group-chip min-h-[44px] px-2.5">EN</button>
+            </div>
+            <div id="adminEditLabSection" class="admin-lab-collapse">
+              <div class="admin-lab-inner pt-2.5 space-y-1.5">
+                <span id="lblAdminEditLab" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">LAB Grubu</span>
+                <div id="adminEditLabChips" class="flex items-center gap-1 flex-wrap">
+                  <button type="button" data-edit-lab="" class="group-chip min-h-[44px] px-3">Tümü</button>
+                  <button type="button" data-edit-lab="1" class="group-chip min-h-[44px] px-3">LAB 1</button>
+                  <button type="button" data-edit-lab="2" class="group-chip min-h-[44px] px-3">LAB 2</button>
                 </div>
               </div>
             </div>
@@ -3697,10 +3774,10 @@
             </div>
           </div>
 
-          <!-- Kayıtlı Öğrenci Listesi & Filtre -->
+          <!-- Kayıtlı Tüm Öğrenciler Listesi & Hızlı Filtre -->
           <div class="space-y-2.5">
             <div class="flex items-center gap-2">
-              <input id="adminStudentFilterInput" type="text" placeholder="İsim, son 4 hane veya grup filtrele..." class="flex-1 min-w-0 ios-pill-control rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              <input id="adminStudentFilterInput" type="text" placeholder="İsim, 11 haneli numara veya grup ara..." class="flex-1 min-w-0 ios-pill-control rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </div>
             <div id="adminStudentGroupFilterChips" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
               <button type="button" data-filter-sgroup="" class="group-chip min-h-[44px] px-3 shrink-0">Tümü</button>
@@ -4025,9 +4102,10 @@
         adminEditInactiveText: 'Hesap Pasif',
         adminEditDeleteBtn: 'Öğrenciyi Sil',
         adminEditSaveBtn: 'Ayarları Kaydet',
-        adminStudentFilterPlaceholder: 'İsim, son 4 hane veya grup filtrele...',
-        adminStudentsCountLabel: (n) => `${n} öğrenci kaydı gösteriliyor (Numara ile aratarak 349 öğrencinin tamamına ulaşabilirsiniz)`,
-        adminStudentsEmpty: 'Eşleşen bulut öğrenci kaydı bulunamadı. Yukarıdan 11 haneli numara ile doğrudan öğrenci bulabilirsiniz.',
+        adminStudentFilterPlaceholder: 'İsim, 11 haneli öğrenci no veya grup ara...',
+        adminStudentsCountLabel: (n, total) => total && n !== total ? `${n} / ${total} öğrenci gösteriliyor` : `${n} öğrenci listeleniyor (tam ad ve numara açık)`,
+        adminStudentsEmpty: 'Eşleşen öğrenci bulunamadı.',
+        adminStudentsLookupFallbackBtn: (sid) => `${sid} numarasını bulutta sorgula`,
         adminPwdChangeTitle: 'Yönetici Giriş Şifresini Güncelle',
         adminPwdChangePlaceholder: 'Yeni şifre (en az 4 karakter)',
         adminPwdSaveBtn: 'Şifreyi Kaydet',
@@ -4250,9 +4328,10 @@
         adminEditInactiveText: 'Account Inactive',
         adminEditDeleteBtn: 'Delete Student',
         adminEditSaveBtn: 'Save Settings',
-        adminStudentFilterPlaceholder: 'Filter by name, last 4 digits, or group...',
-        adminStudentsCountLabel: (n) => `Showing ${n} student records (Search by ID above to reach all 349 students)`,
-        adminStudentsEmpty: 'No matching cloud student records. Use the 11-digit ID lookup above to find any student.',
+        adminStudentFilterPlaceholder: 'Search by name, 11-digit ID, or group...',
+        adminStudentsCountLabel: (n, total) => total && n !== total ? `Showing ${n} of ${total} students` : `Showing all ${n} students (unmasked)`,
+        adminStudentsEmpty: 'No matching students found.',
+        adminStudentsLookupFallbackBtn: (sid) => `Fetch ${sid} from cloud`,
         adminPwdChangeTitle: 'Update Admin Login Password',
         adminPwdChangePlaceholder: 'New password (min 4 characters)',
         adminPwdSaveBtn: 'Save Password',
@@ -7492,9 +7571,6 @@
       setTxt('lblAdminAddLang', loc.adminAddLangLabel);
       setTxt('btnAdminSaveNewStudent', loc.adminAddSaveBtn);
 
-      setTxt('lblAdminLookupSid', loc.adminLookupSidLabel);
-      setPh('adminLookupSid', loc.adminLookupSidPlaceholder);
-      setTxt('btnAdminLookupStudent', loc.adminLookupBtn);
       setTxt('btnAdminCancelStudentEdit', loc.adminEditCloseBtn);
       setTxt('lblAdminEditName', loc.adminAddNameLabel);
       const editMbuAll = document.querySelector('[data-edit-mbu=""]');
@@ -7523,26 +7599,67 @@
 
       const modalEl = document.getElementById('adminModal');
       if (modalEl && !modalEl.classList.contains('hidden')) {
+        updateAdminTabIndicator(adminState.activeTab || 'announcements', false);
         renderAdminAnnouncementsList();
         renderAdminStudentsList();
         syncAdminStudentEditorUI();
       }
     }
 
-    function switchAdminTab(tabKey) {
+    const ADMIN_PILL_SPRING = 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease';
+
+    function updateAdminTabIndicator(tabKey, animate = true) {
+      const bar = document.getElementById('adminTabsBar');
+      const pill = document.getElementById('adminTabIndicator');
+      const btn = bar && bar.querySelector(`.admin-tab-btn[data-admin-tab="${tabKey}"]`);
+      if (!bar || !pill || !btn || btn.offsetWidth === 0) return;
+
+      if (!animate) {
+        pill.style.transition = 'none';
+      } else {
+        pill.style.transition = ADMIN_PILL_SPRING;
+      }
+      pill.style.transform = `translate3d(${btn.offsetLeft}px, 0, 0)`;
+      pill.style.width = `${btn.offsetWidth}px`;
+      if (!animate) {
+        pill.getBoundingClientRect();
+        pill.style.transition = ADMIN_PILL_SPRING;
+      }
+    }
+
+    function replayAdminPaneEnter(paneEl) {
+      if (!paneEl) return;
+      paneEl.classList.remove('admin-pane-enter');
+      void paneEl.offsetWidth;
+      paneEl.classList.add('admin-pane-enter');
+    }
+
+    function switchAdminTab(tabKey, animate = true) {
       adminState.activeTab = tabKey;
       document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
         const isAct = btn.getAttribute('data-admin-tab') === tabKey;
         btn.className = isAct
-          ? 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition truncate'
-          : 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 transition truncate';
+          ? 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold text-slate-900 dark:text-white truncate'
+          : 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 truncate';
       });
       const pAnn = document.getElementById('adminPaneAnnouncements');
       const pAdd = document.getElementById('adminPaneAddStudent');
       const pStu = document.getElementById('adminPaneStudents');
-      if (pAnn) pAnn.classList.toggle('hidden', tabKey !== 'announcements');
-      if (pAdd) pAdd.classList.toggle('hidden', tabKey !== 'add-student');
-      if (pStu) pStu.classList.toggle('hidden', tabKey !== 'students');
+      if (pAnn) {
+        pAnn.classList.toggle('hidden', tabKey !== 'announcements');
+        if (tabKey === 'announcements') replayAdminPaneEnter(pAnn);
+      }
+      if (pAdd) {
+        pAdd.classList.toggle('hidden', tabKey !== 'add-student');
+        if (tabKey === 'add-student') replayAdminPaneEnter(pAdd);
+      }
+      if (pStu) {
+        pStu.classList.toggle('hidden', tabKey !== 'students');
+        if (tabKey === 'students') replayAdminPaneEnter(pStu);
+      }
+      const scrollBody = document.getElementById('adminModalScrollBody');
+      if (scrollBody) scrollBody.scrollTop = 0;
+      requestAnimationFrame(() => updateAdminTabIndicator(tabKey, animate));
     }
 
     function syncAdminAnnFormUI() {
@@ -7567,15 +7684,26 @@
     }
 
     function syncAdminAddStudentChips() {
+      const isEnglish = adminState.addLang === 'en';
+      if (isEnglish) {
+        adminState.addLab = '';
+      }
       document.querySelectorAll('[data-add-group]').forEach((b) => {
         b.classList.toggle('group-chip-active', b.getAttribute('data-add-group') === adminState.addGroup);
       });
       document.querySelectorAll('[data-add-lab]').forEach((b) => {
         b.classList.toggle('group-chip-active', b.getAttribute('data-add-lab') === adminState.addLab);
+        b.disabled = isEnglish;
+        b.tabIndex = isEnglish ? -1 : 0;
       });
       document.querySelectorAll('[data-add-lang]').forEach((b) => {
         b.classList.toggle('group-chip-active', b.getAttribute('data-add-lang') === adminState.addLang);
       });
+      const labSection = document.getElementById('adminAddLabSection');
+      if (labSection) {
+        labSection.classList.toggle('is-collapsed', isEnglish);
+        labSection.setAttribute('aria-hidden', isEnglish ? 'true' : 'false');
+      }
     }
 
     function renderAdminAnnouncementsList() {
@@ -7585,13 +7713,14 @@
       listEl.innerHTML = '';
 
       if (!adminState.announcements || adminState.announcements.length === 0) {
-        listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">${escapeHtml(loc.adminAnnEmpty)}</div>`;
+        listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400 admin-card-reveal">${escapeHtml(loc.adminAnnEmpty)}</div>`;
         return;
       }
 
-      adminState.announcements.forEach((ann) => {
+      adminState.announcements.forEach((ann, idx) => {
         const row = document.createElement('div');
-        row.className = 'ios-pill-control rounded-2xl p-3 space-y-2';
+        row.className = 'ios-pill-control rounded-2xl p-3 space-y-2 admin-stagger-item';
+        row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 28}ms`);
         const toneBadge =
           ann.tone === 'urgent'
             ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300">${escapeHtml(loc.adminAnnBadgeUrgent)}</span>`
@@ -7632,6 +7761,7 @@
             await refreshDailyAnnouncements(true);
             showToast(loc.adminAnnSavedToast);
           } catch (err) {
+            console.warn('Announcement toggle error:', err);
             showToast(loc.adminSaveErrorToast);
           }
         });
@@ -7647,6 +7777,10 @@
           document.getElementById('adminAnnTitleInput').value = ann.title;
           document.getElementById('adminAnnMsgInput').value = ann.message;
           syncAdminAnnFormUI();
+          const formEl = document.getElementById('adminAnnForm');
+          if (formEl && typeof formEl.scrollIntoView === 'function') {
+            formEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
         });
 
         const delBtn = document.createElement('button');
@@ -7672,6 +7806,7 @@
             await refreshDailyAnnouncements(true);
             showToast(loc.adminAnnDeletedToast);
           } catch (err) {
+            console.warn('Announcement delete error:', err);
             showToast(loc.adminSaveErrorToast);
           }
         });
@@ -7689,39 +7824,56 @@
 
     function openStudentEditorInAdmin(item) {
       if (!item) return;
+      const effLang = item.lang === 'en' ? 'en' : item.prog === 'en' ? 'en' : 'tr';
       adminState.editingStudent = {
         ...item,
         myMbuGroup: item.myMbuGroup || '',
-        myLabGroup: item.myLabGroup || '',
+        myLabGroup: effLang === 'en' ? '' : (item.myLabGroup || ''),
         otherGroupMode: item.otherGroupMode === 'hide' ? 'hide' : 'dim',
-        lang: item.lang === 'en' ? 'en' : item.prog === 'en' ? 'en' : 'tr',
+        lang: effLang,
         active: item.active !== false
       };
       adminState.deleteConfirmStudentHash = '';
-      syncAdminStudentEditorUI();
+      syncAdminStudentEditorUI(true);
+      const card = document.getElementById('adminStudentEditorCard');
+      if (card && typeof card.scrollIntoView === 'function') {
+        requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+      }
     }
 
-    function syncAdminStudentEditorUI() {
+    function syncAdminStudentEditorUI(animateOpen = false) {
       const card = document.getElementById('adminStudentEditorCard');
       if (!card) return;
       const loc = I18N[state.lang];
       const item = adminState.editingStudent;
       if (!item) {
         card.classList.add('hidden');
+        card.classList.remove('admin-card-reveal');
         return;
       }
+      const isEnglish = item.lang === 'en';
+      if (isEnglish) item.myLabGroup = '';
+
       card.classList.remove('hidden');
+      if (animateOpen) {
+        card.classList.remove('admin-card-reveal');
+        void card.offsetWidth;
+        card.classList.add('admin-card-reveal');
+      }
+
       const badgeEl = document.getElementById('adminEditStudentBadge');
       const titleEl = document.getElementById('adminEditStudentTitle');
       const nameInp = document.getElementById('adminEditNameInput');
       const activeToggle = document.getElementById('btnAdminEditActiveToggle');
       const delBtn = document.getElementById('btnAdminDeleteCustomStudent');
+      const editLabSec = document.getElementById('adminEditLabSection');
 
       const srcLabel = item.source === 'custom'
         ? (state.lang === 'en' ? 'Custom' : 'Özel Kayıt')
         : (state.lang === 'en' ? 'Term I' : 'Dönem I');
-      if (badgeEl) badgeEl.textContent = `${srcLabel} • •••••••${item.last4 || '••••'}`;
-      if (titleEl) titleEl.textContent = item.fullName || `Öğrenci •••${item.last4}`;
+      const idLabel = item.studentId ? item.studentId : `•••••••${item.last4 || '••••'}`;
+      if (badgeEl) badgeEl.textContent = `${srcLabel} • ${idLabel}`;
+      if (titleEl) titleEl.textContent = item.fullName || `Öğrenci ${idLabel}`;
       if (nameInp) nameInp.value = item.fullName || '';
 
       document.querySelectorAll('[data-edit-mbu]').forEach((b) => {
@@ -7729,7 +7881,13 @@
       });
       document.querySelectorAll('[data-edit-lab]').forEach((b) => {
         b.classList.toggle('group-chip-active', (b.getAttribute('data-edit-lab') || '') === item.myLabGroup);
+        b.disabled = isEnglish;
+        b.tabIndex = isEnglish ? -1 : 0;
       });
+      if (editLabSec) {
+        editLabSec.classList.toggle('is-collapsed', isEnglish);
+        editLabSec.setAttribute('aria-hidden', isEnglish ? 'true' : 'false');
+      }
       document.querySelectorAll('[data-edit-mode]').forEach((b) => {
         b.classList.toggle('group-chip-active', b.getAttribute('data-edit-mode') === item.otherGroupMode);
       });
@@ -7761,31 +7919,71 @@
         b.classList.toggle('group-chip-active', (b.getAttribute('data-filter-sgroup') || '') === adminState.studentFilterGroup);
       });
 
-      const q = (filterInp ? filterInp.value : '').trim().toLocaleLowerCase('tr-TR');
-      const filtered = (adminState.students || []).filter((st) => {
+      const allStudents = adminState.students || [];
+      const rawQuery = (filterInp ? filterInp.value : '').trim();
+      const q = rawQuery.toLocaleLowerCase('tr-TR');
+      const filtered = allStudents.filter((st) => {
         const effGroup = st.myMbuGroup || st.group || '';
         if (adminState.studentFilterGroup && effGroup !== adminState.studentFilterGroup) return false;
         if (!q) return true;
-        const hay = `${st.fullName} ${st.last4} ${effGroup} ${st.lang} ${st.source}`.toLocaleLowerCase('tr-TR');
+        const hay = `${st.fullName} ${st.studentId || ''} ${st.last4} ${effGroup} ${st.lang} ${st.source}`.toLocaleLowerCase('tr-TR');
         return hay.includes(q);
       });
 
       if (countEl) {
-        countEl.textContent = loc.adminStudentsCountLabel(filtered.length);
+        countEl.textContent = loc.adminStudentsCountLabel(filtered.length, allStudents.length);
       }
 
       listEl.innerHTML = '';
       if (filtered.length === 0) {
-        listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">${escapeHtml(loc.adminStudentsEmpty)}</div>`;
+        const emptyWrap = document.createElement('div');
+        emptyWrap.className = 'ios-pill-control rounded-2xl p-4 text-center space-y-2.5 admin-card-reveal';
+        const emptyMsg = document.createElement('p');
+        emptyMsg.className = 'text-xs text-slate-500 dark:text-slate-400';
+        emptyMsg.textContent = loc.adminStudentsEmpty;
+        emptyWrap.appendChild(emptyMsg);
+
+        const cleanNumeric = rawQuery.replace(/\D+/g, '');
+        if (/^01\d{9}$/.test(cleanNumeric) && typeof loc.adminStudentsLookupFallbackBtn === 'function') {
+          const fallbackBtn = document.createElement('button');
+          fallbackBtn.type = 'button';
+          fallbackBtn.className = 'ios-press min-h-[44px] px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition';
+          fallbackBtn.textContent = loc.adminStudentsLookupFallbackBtn(cleanNumeric);
+          fallbackBtn.addEventListener('click', async () => {
+            const api = window.__INONU_AUTH__;
+            if (!api || typeof api.lookupStudentForAdmin !== 'function') return;
+            fallbackBtn.disabled = true;
+            try {
+              const found = await api.lookupStudentForAdmin(cleanNumeric);
+              if (!found) {
+                showToast(loc.adminStudentNotFound);
+                return;
+              }
+              openStudentEditorInAdmin(found);
+            } finally {
+              fallbackBtn.disabled = false;
+            }
+          });
+          emptyWrap.appendChild(fallbackBtn);
+        }
+        listEl.appendChild(emptyWrap);
         return;
       }
 
-      filtered.forEach((st) => {
+      const frag = document.createDocumentFragment();
+      filtered.forEach((st, idx) => {
         const card = document.createElement('div');
-        card.className = 'ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-2.5 flex-wrap';
+        card.className = idx < 18
+          ? 'ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item'
+          : 'ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-2.5 flex-wrap';
+        if (idx < 18) {
+          card.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 18}ms`);
+        }
         const effGroup = st.myMbuGroup || st.group || loc.groupAllLabel;
-        const effLab = st.myLabGroup ? `LAB ${st.myLabGroup}` : `LAB ${loc.groupAllLabel}`;
         const effLang = (st.lang || st.prog || 'tr').toUpperCase();
+        const effLab = effLang === 'EN'
+          ? ''
+          : (st.myLabGroup ? `LAB ${st.myLabGroup}` : `LAB ${loc.groupAllLabel}`);
         const effMode = st.otherGroupMode === 'hide' ? loc.otherModeHide : loc.otherModeDim;
         const groupWord = state.lang === 'en' ? 'Group' : 'Grup';
         const customBadgeText = state.lang === 'en' ? 'Custom' : 'Özel';
@@ -7799,6 +7997,14 @@
           ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300">${inactiveText}</span>`
           : '';
 
+        const sidDisplay = st.studentId ? st.studentId : `•••••••${st.last4}`;
+        const metaParts = [
+          `<span class="font-mono font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(sidDisplay)}</span>`,
+          `${escapeHtml(groupWord)} ${escapeHtml(effGroup)}`,
+        ];
+        if (effLab) metaParts.push(escapeHtml(effLab));
+        metaParts.push(escapeHtml(effLang), escapeHtml(effMode));
+
         const left = document.createElement('div');
         left.className = 'min-w-0 flex-1 space-y-0.5';
         left.innerHTML = `
@@ -7806,7 +8012,7 @@
             ${srcBadge}${inactiveBadge}
             <p class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(st.fullName)}</p>
           </div>
-          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">•••••••${escapeHtml(st.last4)} • ${groupWord} ${escapeHtml(effGroup)} • ${escapeHtml(effLab)} • ${escapeHtml(effLang)} • ${escapeHtml(effMode)}</p>
+          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">${metaParts.join(' • ')}</p>
         `;
 
         const editBtn = document.createElement('button');
@@ -7817,8 +8023,9 @@
 
         card.appendChild(left);
         card.appendChild(editBtn);
-        listEl.appendChild(card);
+        frag.appendChild(card);
       });
+      listEl.appendChild(frag);
     }
 
     async function refreshAdminCloudData() {
@@ -7830,11 +8037,14 @@
         renderAdminStudentsList();
         return;
       }
+      if (session.adminSecret && typeof api.setAdminWriteSecret === 'function') {
+        api.setAdminWriteSecret(session.adminSecret);
+      }
       if (icon) icon.classList.add('animate-spin-ios');
       try {
         const [anns, students] = await Promise.all([
-          api.listAllAnnouncements().catch(() => []),
-          api.loadAllAdminStudents().catch(() => [])
+          api.listAllAnnouncements().catch((err) => { console.warn('Admin announcements load failed:', err); return []; }),
+          api.loadAllAdminStudents(session.adminSecret || undefined).catch((err) => { console.warn('Admin students load failed:', err); return []; })
         ]);
         adminState.announcements = anns;
         adminState.students = students;
@@ -7848,10 +8058,16 @@
     function openAdminModal() {
       const session = getActiveAuthSession();
       if (!session || !session.isAdmin) return;
+      if (session.adminSecret && window.__INONU_AUTH__ && typeof window.__INONU_AUTH__.setAdminWriteSecret === 'function') {
+        window.__INONU_AUTH__.setAdminWriteSecret(session.adminSecret);
+      }
       syncAdminModalLanguageUI();
       syncAdminAddStudentChips();
-      switchAdminTab(adminState.activeTab || 'announcements');
-      openAnimatedModal(document.getElementById('adminModal'), document.getElementById('adminModalCard'));
+      switchAdminTab(adminState.activeTab || 'announcements', false);
+      openAnimatedModal(document.getElementById('adminModal'), document.getElementById('adminModalCard'), () => {
+        updateAdminTabIndicator(adminState.activeTab || 'announcements', false);
+      });
+      requestAnimationFrame(() => updateAdminTabIndicator(adminState.activeTab || 'announcements', false));
       refreshAdminCloudData();
     }
 
@@ -8523,6 +8739,7 @@
             await refreshDailyAnnouncements(true);
             showToast(loc.adminAnnSavedToast);
           } catch (err) {
+            console.warn('Announcement save error:', err);
             showToast(loc.adminSaveErrorToast);
           } finally {
             if (btn) btn.disabled = false;
@@ -8545,6 +8762,9 @@
       document.querySelectorAll('[data-add-lang]').forEach((btn) => {
         btn.addEventListener('click', () => {
           adminState.addLang = btn.getAttribute('data-add-lang') === 'en' ? 'en' : 'tr';
+          if (adminState.addLang === 'en') {
+            adminState.addLab = '';
+          }
           syncAdminAddStudentChips();
         });
       });
@@ -8580,7 +8800,7 @@
               studentId: sid,
               fullName,
               group: adminState.addGroup,
-              labGroup: adminState.addLab,
+              labGroup: adminState.addLang === 'en' ? '' : adminState.addLab,
               prog: adminState.addLang,
               active: true
             }, secret === 'active' ? undefined : secret);
@@ -8589,40 +8809,10 @@
             await refreshAdminCloudData();
             showToast(loc.adminStudentSavedToast);
           } catch (err) {
+            console.warn('Add student error:', err);
             showToast(loc.adminSaveErrorToast);
           } finally {
             if (btn) btn.disabled = false;
-          }
-        });
-      }
-
-      const adminLookupSidEl = document.getElementById('adminLookupSid');
-      if (adminLookupSidEl) {
-        adminLookupSidEl.addEventListener('input', () => {
-          adminLookupSidEl.value = adminLookupSidEl.value.replace(/\D+/g, '').slice(0, 11);
-        });
-      }
-      const btnAdminLookupStudent = document.getElementById('btnAdminLookupStudent');
-      if (btnAdminLookupStudent) {
-        btnAdminLookupStudent.addEventListener('click', async () => {
-          const loc = I18N[state.lang];
-          const api = window.__INONU_AUTH__;
-          if (!api || typeof api.lookupStudentForAdmin !== 'function') return;
-          const sid = api.normalizeStudentId(adminLookupSidEl ? adminLookupSidEl.value : '');
-          if (!/^01\d{9}$/.test(sid)) {
-            showToast(loc.authErrFormat);
-            return;
-          }
-          btnAdminLookupStudent.disabled = true;
-          try {
-            const found = await api.lookupStudentForAdmin(sid);
-            if (!found) {
-              showToast(loc.adminStudentNotFound);
-              return;
-            }
-            openStudentEditorInAdmin(found);
-          } finally {
-            btnAdminLookupStudent.disabled = false;
           }
         });
       }
@@ -8659,7 +8849,11 @@
       document.querySelectorAll('[data-edit-lang]').forEach((btn) => {
         btn.addEventListener('click', () => {
           if (!adminState.editingStudent) return;
-          adminState.editingStudent.lang = btn.getAttribute('data-edit-lang') === 'en' ? 'en' : 'tr';
+          const nextLang = btn.getAttribute('data-edit-lang') === 'en' ? 'en' : 'tr';
+          adminState.editingStudent.lang = nextLang;
+          if (nextLang === 'en') {
+            adminState.editingStudent.myLabGroup = '';
+          }
           syncAdminStudentEditorUI();
         });
       });
@@ -8680,17 +8874,19 @@
           if (!api || !secret) return;
           if (!adminState.editingStudent) return;
           const editedName = document.getElementById('adminEditNameInput').value.trim();
+          const effLang = adminState.editingStudent.lang === 'en' ? 'en' : 'tr';
           btnAdminSaveStudentEdit.disabled = true;
           try {
             await api.adminSaveStudentSettings({
               cloudKey: adminState.editingStudent.cloudKey,
               authHash: adminState.editingStudent.authHash,
+              studentId: adminState.editingStudent.studentId,
               last4: adminState.editingStudent.last4,
               fullName: editedName || adminState.editingStudent.fullName,
               myMbuGroup: adminState.editingStudent.myMbuGroup,
-              myLabGroup: adminState.editingStudent.myLabGroup,
+              myLabGroup: effLang === 'en' ? '' : adminState.editingStudent.myLabGroup,
               otherGroupMode: adminState.editingStudent.otherGroupMode,
-              lang: adminState.editingStudent.lang,
+              lang: effLang,
               source: adminState.editingStudent.source,
               active: adminState.editingStudent.active
             }, secret === 'active' ? undefined : secret);
@@ -8699,6 +8895,7 @@
             await refreshAdminCloudData();
             showToast(loc.adminStudentUpdatedToast);
           } catch (err) {
+            console.warn('Student save error:', err);
             showToast(loc.adminSaveErrorToast);
           } finally {
             btnAdminSaveStudentEdit.disabled = false;
@@ -8833,6 +9030,10 @@
 
       window.addEventListener('resize', () => {
         updateTabIndicator(state.activeTab, false);
+        const adminModalEl = document.getElementById('adminModal');
+        if (adminModalEl && !adminModalEl.classList.contains('hidden')) {
+          updateAdminTabIndicator(adminState.activeTab || 'announcements', false);
+        }
         const days = getScheduleDays();
         const carousel = document.getElementById('weekCarousel');
         const curDay = days.find((d) => d.date === state.selectedDate);

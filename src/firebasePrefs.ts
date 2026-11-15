@@ -18,6 +18,11 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import {
+  ADMIN_ROSTER_CIPHERTEXT_B64,
+  ADMIN_ROSTER_IV_B64,
+  WRAPPED_DEFAULT_ROSTER_KEY,
+} from './adminRosterData.ts';
+import {
   DEFAULT_ADMIN_PASSWORD_HASH,
   decryptDirectoryName,
   decryptStudentName,
@@ -61,6 +66,7 @@ export interface CloudAnnouncement {
 export interface AdminStudentListItem {
   authHash: string;
   cloudKey: string;
+  studentId?: string;
   last4: string;
   fullName: string;
   group: '' | 'I' | 'II' | 'III' | 'IV' | 'V';
@@ -110,15 +116,37 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 
+interface DecryptedRosterEntry {
+  sid: string;
+  fullName: string;
+  group: 'I' | 'II' | 'III' | 'IV' | 'V';
+  prog: 'tr' | 'en';
+  authHash: string;
+  cloudKey: string;
+}
+
+interface UnlockedRosterCache {
+  secret: string;
+  masterKeyBytes: Uint8Array;
+  aesKey: CryptoKey;
+  entries: DecryptedRosterEntry[];
+}
+
 let activeAdminWriteSecret = '';
+let unlockedRosterCache: UnlockedRosterCache | null = null;
 
 export function setAdminWriteSecret(secret: string): void {
   const clean = typeof secret === 'string' ? secret.trim().toLowerCase() : '';
-  activeAdminWriteSecret = ADMIN_SECRET_RE.test(clean) ? clean : '';
+  const next = ADMIN_SECRET_RE.test(clean) ? clean : '';
+  if (next !== activeAdminWriteSecret) {
+    unlockedRosterCache = null;
+  }
+  activeAdminWriteSecret = next;
 }
 
 export function clearAdminWriteSecret(): void {
   activeAdminWriteSecret = '';
+  unlockedRosterCache = null;
 }
 
 export function hasAdminWriteSecret(): boolean {
@@ -130,6 +158,153 @@ function resolveAdminWriteSecret(explicitSecret?: string): string {
   if (ADMIN_SECRET_RE.test(candidate)) return candidate;
   if (ADMIN_SECRET_RE.test(activeAdminWriteSecret)) return activeAdminWriteSecret;
   throw new Error('ADMIN_SECRET_REQUIRED');
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const clean = hex.trim().toLowerCase();
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function b64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) {
+    out[i] = bin.charCodeAt(i);
+  }
+  return out;
+}
+
+function bytesToB64(bytes: Uint8Array): string {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) {
+    bin += String.fromCharCode(bytes[i]);
+  }
+  return btoa(bin);
+}
+
+async function deriveRosterWrapMask(writeSecret: string): Promise<Uint8Array> {
+  const input = new TextEncoder().encode(`inonu-tip-roster-wrap-v1|${writeSecret}`);
+  const digest = await crypto.subtle.digest('SHA-256', input);
+  return new Uint8Array(digest);
+}
+
+async function unwrapMasterKey(wrappedHex: string, writeSecret: string): Promise<Uint8Array> {
+  const wrapped = hexToBytes(wrappedHex);
+  const mask = await deriveRosterWrapMask(writeSecret);
+  const out = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    out[i] = wrapped[i] ^ mask[i];
+  }
+  return out;
+}
+
+async function wrapMasterKey(masterKeyBytes: Uint8Array, writeSecret: string): Promise<string> {
+  const mask = await deriveRosterWrapMask(writeSecret);
+  const out = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    out[i] = masterKeyBytes[i] ^ mask[i];
+  }
+  return bytesToHex(out);
+}
+
+async function tryDecryptRosterWithWrappedHex(wrappedHex: string, writeSecret: string): Promise<UnlockedRosterCache> {
+  const masterKeyBytes = await unwrapMasterKey(wrappedHex, writeSecret);
+  const keyBuf = masterKeyBytes.buffer.slice(masterKeyBytes.byteOffset, masterKeyBytes.byteOffset + masterKeyBytes.byteLength) as ArrayBuffer;
+  const aesKey = await crypto.subtle.importKey('raw', keyBuf, { name: 'AES-GCM' }, false, ['decrypt', 'encrypt']);
+  const iv = b64ToBytes(ADMIN_ROSTER_IV_B64);
+  const ivBuf = iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength) as ArrayBuffer;
+  const cipherBytes = b64ToBytes(ADMIN_ROSTER_CIPHERTEXT_B64);
+  const cipherBuf = cipherBytes.buffer.slice(cipherBytes.byteOffset, cipherBytes.byteOffset + cipherBytes.byteLength) as ArrayBuffer;
+  const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ivBuf }, aesKey, cipherBuf);
+  const rawList = JSON.parse(new TextDecoder('utf-8').decode(plainBuf)) as [string, string, string, 'tr' | 'en'][];
+
+  const entries: DecryptedRosterEntry[] = await Promise.all(
+    rawList.map(async ([sid, fullName, group, prog]) => ({
+      sid,
+      fullName,
+      group: normalizeAssignedGroup(group),
+      prog: prog === 'en' ? 'en' : 'tr',
+      authHash: hashStudentId(sid),
+      cloudKey: await deriveCloudDocId(sid),
+    })),
+  );
+
+  return {
+    secret: writeSecret,
+    masterKeyBytes,
+    aesKey,
+    entries,
+  };
+}
+
+async function resolveUnlockedRosterData(explicitSecret?: string): Promise<UnlockedRosterCache | null> {
+  const secret =
+    typeof explicitSecret === 'string' && ADMIN_SECRET_RE.test(explicitSecret.trim().toLowerCase())
+      ? explicitSecret.trim().toLowerCase()
+      : activeAdminWriteSecret;
+  if (!ADMIN_SECRET_RE.test(secret)) return null;
+  if (unlockedRosterCache && unlockedRosterCache.secret === secret) {
+    return unlockedRosterCache;
+  }
+
+  let wrappedFromCloud = '';
+  try {
+    const snap = await getDoc(doc(db, 'admin_config', 'security'));
+    const raw = snap.exists() ? snap.data()?.wrappedRosterKey : '';
+    if (typeof raw === 'string' && /^[a-f0-9]{64}$/.test(raw)) {
+      wrappedFromCloud = raw;
+    }
+  } catch {
+    // Ignore offline error and try default wrapped key
+  }
+
+  const candidates = wrappedFromCloud ? [wrappedFromCloud, WRAPPED_DEFAULT_ROSTER_KEY] : [WRAPPED_DEFAULT_ROSTER_KEY];
+  for (const cand of candidates) {
+    try {
+      const unlocked = await tryDecryptRosterWithWrappedHex(cand, secret);
+      unlockedRosterCache = unlocked;
+      return unlocked;
+    } catch {
+      // Try next candidate
+    }
+  }
+  return null;
+}
+
+async function encryptAdminSid(aesKey: CryptoKey, sid: string): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(sid);
+  const buf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, encoded);
+  const cipherArr = new Uint8Array(buf);
+  const combined = new Uint8Array(12 + cipherArr.length);
+  combined.set(iv, 0);
+  combined.set(cipherArr, 12);
+  return bytesToB64(combined);
+}
+
+async function decryptAdminSid(aesKey: CryptoKey, b64: string): Promise<string> {
+  if (!b64) return '';
+  try {
+    const combined = b64ToBytes(b64);
+    if (combined.length <= 12) return '';
+    const iv = combined.slice(0, 12);
+    const cipherBytes = combined.slice(12);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, aesKey, cipherBytes);
+    const sid = new TextDecoder('utf-8').decode(plain).trim();
+    return /^01\d{9}$/.test(sid) ? sid : '';
+  } catch {
+    return '';
+  }
 }
 
 function appendAdminProofToBatch(batch: WriteBatch, writeSecret: string, targetPath: string): string {
@@ -252,15 +427,29 @@ export async function updateAdminPassword(
   const proofDigestB64 = await deriveAdminProofDigestB64(newWriteSecret);
   const path = 'admin_config/security';
 
+  let wrappedRosterKey = '';
+  try {
+    const unlocked = await resolveUnlockedRosterData(secret);
+    if (unlocked) {
+      wrappedRosterKey = await wrapMasterKey(unlocked.masterKeyBytes, newWriteSecret);
+    }
+  } catch {
+    // Keep going even if roster key wasn't unlocked yet
+  }
+
   try {
     const batch = writeBatch(db);
     const opId = appendAdminProofToBatch(batch, secret, path);
-    batch.set(doc(db, 'admin_config', 'security'), {
+    const payload: Record<string, unknown> = {
       passwordHash: digest,
       proofDigestB64,
       proofOpId: opId,
       updatedAt: serverTimestamp(),
-    });
+    };
+    if (wrappedRosterKey) {
+      payload.wrappedRosterKey = wrappedRosterKey;
+    }
+    batch.set(doc(db, 'admin_config', 'security'), payload);
     await batch.commit();
     setAdminWriteSecret(newWriteSecret);
     return { ok: true, newWriteSecret };
@@ -442,18 +631,19 @@ export async function saveAnnouncement(
     throw new Error('Title and message are required.');
   }
 
-  const rawId = typeof input.id === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(input.id.trim())
-    ? input.id.trim()
+  const hasExplicitId = typeof input.id === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(input.id.trim());
+  const rawId = hasExplicitId
+    ? input.id!.trim()
     : `ann_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const docRef = doc(db, 'announcements', rawId);
   const path = `announcements/${rawId}`;
 
   try {
-    const existingSnap = await getDoc(docRef);
+    const existingSnap = hasExplicitId ? await getDoc(docRef) : null;
     const batch = writeBatch(db);
     const opId = appendAdminProofToBatch(batch, secret, path);
 
-    if (existingSnap.exists()) {
+    if (existingSnap && existingSnap.exists() && existingSnap.data()?.createdAt) {
       batch.update(docRef, {
         title: cleanTitle,
         message: cleanMessage,
@@ -477,8 +667,23 @@ export async function saveAnnouncement(
     }
     await batch.commit();
 
-    const freshSnap = await getDoc(docRef);
-    return mapAnnouncementDoc(rawId, (freshSnap.data() || {}) as Record<string, unknown>);
+    try {
+      const freshSnap = await getDoc(docRef);
+      if (freshSnap.exists()) {
+        return mapAnnouncementDoc(rawId, (freshSnap.data() || {}) as Record<string, unknown>);
+      }
+    } catch {
+      // Fall back to optimistic returned doc if read after commit fails transiently
+    }
+    return {
+      id: rawId,
+      title: cleanTitle,
+      message: cleanMessage,
+      tone: cleanTone,
+      active: isActive,
+      createdAtMs: Date.now(),
+      updatedAtMs: Date.now(),
+    };
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -532,8 +737,8 @@ export async function addOrUpdateCustomStudent(
     throw new Error('Student full name is required.');
   }
   const group = normalizeAssignedGroup(input.group);
-  const labGroup = normalizeLabGroupPref(input.labGroup);
   const prog: 'tr' | 'en' = input.prog === 'en' ? 'en' : 'tr';
+  const labGroup = prog === 'en' ? '' : normalizeLabGroupPref(input.labGroup);
   const otherGroupMode = normalizeOtherGroupModePref(input.otherGroupMode);
   const active = input.active !== false;
 
@@ -544,6 +749,16 @@ export async function addOrUpdateCustomStudent(
   const encFullName = encryptDirectoryName(authHash, cleanName);
   const source: 'allowlist' | 'custom' = verifyStudentHash(authHash) ? 'allowlist' : 'custom';
 
+  let encSid = '';
+  try {
+    const unlocked = await resolveUnlockedRosterData(secret);
+    if (unlocked) {
+      encSid = await encryptAdminSid(unlocked.aesKey, sid);
+    }
+  } catch {
+    // Optional encSid if roster key unavailable
+  }
+
   const customRef = doc(db, 'custom_students', authHash);
   const dirRef = doc(db, 'admin_student_directory', authHash);
   const prefsRef = doc(db, 'student_prefs', cloudKey);
@@ -553,36 +768,30 @@ export async function addOrUpdateCustomStudent(
     const batch = writeBatch(db);
     const opId = appendAdminProofToBatch(batch, secret, `student/${authHash}`);
 
+    const customPayload: Record<string, unknown> = {
+      group,
+      labGroup,
+      prog,
+      encName,
+      last4,
+      cloudKey,
+      active,
+      deleted: false,
+      proofOpId: opId,
+      updatedAt: serverTimestamp(),
+    };
+    if (encSid) customPayload.encSid = encSid;
+
     if (existingCustom.exists()) {
-      batch.update(customRef, {
-        group,
-        labGroup,
-        prog,
-        encName,
-        last4,
-        cloudKey,
-        active,
-        deleted: false,
-        proofOpId: opId,
-        updatedAt: serverTimestamp(),
-      });
+      batch.update(customRef, customPayload);
     } else {
       batch.set(customRef, {
-        group,
-        labGroup,
-        prog,
-        encName,
-        last4,
-        cloudKey,
-        active,
-        deleted: false,
-        proofOpId: opId,
+        ...customPayload,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
       });
     }
 
-    batch.set(dirRef, {
+    const dirPayload: Record<string, unknown> = {
       authHash,
       cloudKey,
       last4,
@@ -596,7 +805,9 @@ export async function addOrUpdateCustomStudent(
       proofOpId: opId,
       createdAt: existingDir.exists() && existingDir.data()?.createdAt ? existingDir.data()?.createdAt : serverTimestamp(),
       updatedAt: serverTimestamp(),
-    });
+    };
+    if (encSid) dirPayload.encSid = encSid;
+    batch.set(dirRef, dirPayload);
 
     batch.set(prefsRef, {
       myMbuGroup: group,
@@ -613,6 +824,7 @@ export async function addOrUpdateCustomStudent(
     return {
       authHash,
       cloudKey,
+      studentId: sid,
       last4,
       fullName: cleanName,
       group,
@@ -756,12 +968,13 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
   return {
     authHash,
     cloudKey,
+    studentId: sid,
     last4,
     fullName,
     group: baseGroup,
     prog: baseProg,
     myMbuGroup: prefsData ? normalizeMbuGroupPref(prefsData.myMbuGroup) : baseGroup,
-    myLabGroup: prefsData ? normalizeLabGroupPref(prefsData.myLabGroup) : normalizeLabGroupPref(customData?.labGroup),
+    myLabGroup: baseProg === 'en' ? '' : (prefsData ? normalizeLabGroupPref(prefsData.myLabGroup) : normalizeLabGroupPref(customData?.labGroup)),
     otherGroupMode: prefsData ? normalizeOtherGroupModePref(prefsData.otherGroupMode) : 'dim',
     lang: prefsData ? (normalizeLangPref(prefsData.lang) || baseProg) : baseProg,
     source: allowMatch ? 'allowlist' : 'custom',
@@ -770,12 +983,13 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
   };
 }
 
-export async function loadAllAdminStudents(): Promise<AdminStudentListItem[]> {
+export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminStudentListItem[]> {
   try {
-    const [dirSnap, customSnap, prefsSnap] = await Promise.all([
+    const [dirSnap, customSnap, prefsSnap, unlockedRoster] = await Promise.all([
       getDocs(query(collection(db, 'admin_student_directory'), limit(1000))),
       getDocs(query(collection(db, 'custom_students'), limit(1000))),
       getDocs(query(collection(db, 'student_prefs'), limit(1000))),
+      resolveUnlockedRosterData(adminSecret).catch(() => null),
     ]);
 
     const dirByHash = new Map<string, Record<string, unknown>>();
@@ -787,11 +1001,93 @@ export async function loadAllAdminStudents(): Promise<AdminStudentListItem[]> {
     const prefsByCloud = new Map<string, Record<string, unknown>>();
     prefsSnap.forEach((d) => prefsByCloud.set(d.id, d.data() as Record<string, unknown>));
 
+    const rosterByHash = new Map<string, DecryptedRosterEntry>();
+    const rosterByCloud = new Map<string, DecryptedRosterEntry>();
+    if (unlockedRoster) {
+      unlockedRoster.entries.forEach((entry) => {
+        rosterByHash.set(entry.authHash, entry);
+        rosterByCloud.set(entry.cloudKey, entry);
+      });
+    }
+
+    const seenHashes = new Set<string>();
     const seenCloudKeys = new Set<string>();
     const results: AdminStudentListItem[] = [];
 
-    const allHashes = new Set<string>([...dirByHash.keys(), ...customByHash.keys()]);
-    allHashes.forEach((authHash) => {
+    // 1. All 349 built-in Term I students merged with any cloud overrides/prefs
+    if (unlockedRoster) {
+      for (const entry of unlockedRoster.entries) {
+        const { authHash, cloudKey } = entry;
+        seenHashes.add(authHash);
+        seenCloudKeys.add(cloudKey);
+
+        const dir = dirByHash.get(authHash);
+        const custom = customByHash.get(authHash);
+        const prefs = prefsByCloud.get(cloudKey);
+
+        const isDeletedOverride = Boolean(dir?.deleted === true && custom?.deleted === true);
+        if (isDeletedOverride && !verifyStudentHash(authHash)) continue;
+
+        const baseGroup = normalizeAssignedGroup(
+          (custom && custom.deleted !== true ? custom.group : undefined) ??
+            (dir && dir.deleted !== true ? dir.group : undefined) ??
+            entry.group,
+        );
+        const baseProg: 'tr' | 'en' =
+          custom && custom.deleted !== true && (custom.prog === 'en' || custom.prog === 'tr')
+            ? custom.prog
+            : dir && dir.deleted !== true && (dir.prog === 'en' || dir.prog === 'tr')
+              ? dir.prog
+              : entry.prog;
+
+        const effectiveLang: 'tr' | 'en' =
+          prefs && (prefs.lang === 'en' || prefs.lang === 'tr') ? prefs.lang : baseProg;
+
+        const resolvedName =
+          (dir && dir.deleted !== true ? readAdminDirFullName(authHash, dir) : '') ||
+          (custom && custom.deleted !== true && typeof custom.encName === 'string'
+            ? decryptStudentName(entry.sid, custom.encName)
+            : '') ||
+          entry.fullName;
+
+        results.push({
+          authHash,
+          cloudKey,
+          studentId: entry.sid,
+          last4: entry.sid.slice(-4),
+          fullName: resolvedName,
+          group: baseGroup,
+          prog: baseProg,
+          myMbuGroup: prefs ? normalizeMbuGroupPref(prefs.myMbuGroup) || baseGroup : baseGroup,
+          myLabGroup:
+            effectiveLang === 'en'
+              ? ''
+              : prefs
+                ? normalizeLabGroupPref(prefs.myLabGroup)
+                : normalizeLabGroupPref(
+                    (custom && custom.deleted !== true ? custom.labGroup : undefined) ??
+                      (dir && dir.deleted !== true ? dir.labGroup : undefined),
+                  ),
+          otherGroupMode: prefs ? normalizeOtherGroupModePref(prefs.otherGroupMode) : 'dim',
+          lang: effectiveLang,
+          source: 'allowlist',
+          active:
+            custom && custom.deleted !== true
+              ? custom.active !== false
+              : dir && dir.deleted !== true
+                ? dir.active !== false
+                : true,
+          updatedAtMs: Math.max(tsToMillis(prefs?.updatedAt), tsToMillis(dir?.updatedAt), tsToMillis(custom?.updatedAt)),
+        });
+      }
+    }
+
+    // 2. Custom / cloud-only student directory entries
+    const allCloudHashes = new Set<string>([...dirByHash.keys(), ...customByHash.keys()]);
+    for (const authHash of allCloudHashes) {
+      if (seenHashes.has(authHash)) continue;
+      seenHashes.add(authHash);
+
       const dir = dirByHash.get(authHash);
       const custom = customByHash.get(authHash);
       const cloudKey =
@@ -801,13 +1097,25 @@ export async function loadAllAdminStudents(): Promise<AdminStudentListItem[]> {
       if (cloudKey) seenCloudKeys.add(cloudKey);
 
       if (dir?.deleted === true || custom?.deleted === true) {
-        return;
+        continue;
       }
 
       const allowMeta = verifyStudentHash(authHash);
       const prefs = cloudKey ? prefsByCloud.get(cloudKey) : undefined;
 
+      let decryptedSid = '';
+      if (unlockedRoster) {
+        const rawEncSid =
+          (typeof dir?.encSid === 'string' && dir.encSid) ||
+          (typeof custom?.encSid === 'string' && custom.encSid) ||
+          '';
+        if (rawEncSid) {
+          decryptedSid = await decryptAdminSid(unlockedRoster.aesKey, rawEncSid);
+        }
+      }
+
       const last4 =
+        (decryptedSid ? decryptedSid.slice(-4) : '') ||
         (typeof dir?.last4 === 'string' && dir.last4) ||
         (typeof custom?.last4 === 'string' && custom.last4) ||
         (typeof prefs?.last4 === 'string' && prefs.last4) ||
@@ -820,28 +1128,42 @@ export async function loadAllAdminStudents(): Promise<AdminStudentListItem[]> {
           : custom?.prog === 'tr' || dir?.prog === 'tr'
             ? 'tr'
             : allowMeta?.prog || 'tr';
+      const effectiveLang: 'tr' | 'en' =
+        prefs && (prefs.lang === 'en' || prefs.lang === 'tr') ? prefs.lang : baseProg;
+
+      const resolvedName =
+        readAdminDirFullName(authHash, dir) ||
+        (decryptedSid && typeof custom?.encName === 'string' ? decryptStudentName(decryptedSid, custom.encName) : '') ||
+        (allowMeta ? `Dönem I •••${last4}` : `Özel Öğrenci •••${last4}`);
 
       results.push({
         authHash,
         cloudKey,
+        studentId: decryptedSid || undefined,
         last4,
-        fullName:
-          readAdminDirFullName(authHash, dir) ||
-          (allowMeta ? `Dönem I •••••••${last4}` : `Özel Öğrenci ••••${last4}`),
+        fullName: resolvedName,
         group: baseGroup,
         prog: baseProg,
         myMbuGroup: prefs ? normalizeMbuGroupPref(prefs.myMbuGroup) : baseGroup,
-        myLabGroup: prefs ? normalizeLabGroupPref(prefs.myLabGroup) : normalizeLabGroupPref(custom?.labGroup ?? dir?.labGroup),
+        myLabGroup:
+          effectiveLang === 'en'
+            ? ''
+            : prefs
+              ? normalizeLabGroupPref(prefs.myLabGroup)
+              : normalizeLabGroupPref(custom?.labGroup ?? dir?.labGroup),
         otherGroupMode: prefs ? normalizeOtherGroupModePref(prefs.otherGroupMode) : 'dim',
-        lang: prefs ? (normalizeLangPref(prefs.lang) || baseProg) : baseProg,
+        lang: effectiveLang,
         source: allowMeta ? 'allowlist' : 'custom',
         active: custom ? custom.active !== false : dir ? dir.active !== false : true,
         updatedAtMs: Math.max(tsToMillis(prefs?.updatedAt), tsToMillis(dir?.updatedAt), tsToMillis(custom?.updatedAt)),
       });
-    });
+    }
 
+    // 3. Any stray prefs documents not matched above
     prefsByCloud.forEach((prefs, cloudKey) => {
       if (seenCloudKeys.has(cloudKey)) return;
+      const rosterMatch = rosterByCloud.get(cloudKey);
+      if (rosterMatch) return;
       const authHash = typeof prefs.authHash === 'string' ? prefs.authHash : '';
       const allowMeta = authHash ? verifyStudentHash(authHash) : null;
       const last4 = typeof prefs.last4 === 'string' && prefs.last4 ? prefs.last4 : cloudKey.slice(-4);
@@ -856,7 +1178,7 @@ export async function loadAllAdminStudents(): Promise<AdminStudentListItem[]> {
         group: baseGroup,
         prog: baseProg,
         myMbuGroup: normalizeMbuGroupPref(prefs.myMbuGroup),
-        myLabGroup: normalizeLabGroupPref(prefs.myLabGroup),
+        myLabGroup: baseProg === 'en' ? '' : normalizeLabGroupPref(prefs.myLabGroup),
         otherGroupMode: normalizeOtherGroupModePref(prefs.otherGroupMode),
         lang: normalizeLangPref(prefs.lang) || baseProg,
         source: allowMeta ? 'allowlist' : 'custom',
@@ -865,7 +1187,10 @@ export async function loadAllAdminStudents(): Promise<AdminStudentListItem[]> {
       });
     });
 
-    return results.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+    return results.sort((a, b) => {
+      if (a.source !== b.source) return a.source === 'custom' ? -1 : 1;
+      return a.fullName.localeCompare(b.fullName, 'tr');
+    });
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, 'admin_student_directory');
   }
@@ -875,6 +1200,7 @@ export async function adminSaveStudentSettings(
   input: {
     cloudKey: string;
     authHash?: string;
+    studentId?: string;
     last4?: string;
     fullName?: string;
     myMbuGroup: '' | 'I' | 'II' | 'III' | 'IV' | 'V';
@@ -891,14 +1217,17 @@ export async function adminSaveStudentSettings(
   }
 
   const mbu = normalizeMbuGroupPref(input.myMbuGroup);
-  const lab = normalizeLabGroupPref(input.myLabGroup);
-  const mode = normalizeOtherGroupModePref(input.otherGroupMode);
   const lang: 'tr' | 'en' = input.lang === 'en' ? 'en' : 'tr';
+  const lab = lang === 'en' ? '' : normalizeLabGroupPref(input.myLabGroup);
+  const mode = normalizeOtherGroupModePref(input.otherGroupMode);
   const authHash = input.authHash && isValidAuthHash(input.authHash) ? input.authHash : '';
+  const cleanSid = typeof input.studentId === 'string' && /^01\d{9}$/.test(input.studentId.trim()) ? input.studentId.trim() : '';
   const cleanLast4 =
-    typeof input.last4 === 'string' && /^[0-9]{4}$/.test(input.last4.trim())
-      ? input.last4.trim()
-      : '';
+    cleanSid
+      ? cleanSid.slice(-4)
+      : typeof input.last4 === 'string' && /^[0-9]{4}$/.test(input.last4.trim())
+        ? input.last4.trim()
+        : '';
 
   const prefsPayload: Record<string, unknown> = {
     myMbuGroup: mbu,
@@ -921,9 +1250,18 @@ export async function adminSaveStudentSettings(
     const dirRef = doc(db, 'admin_student_directory', authHash);
     const prefsRef = doc(db, 'student_prefs', input.cloudKey);
 
-    const [customSnap, dirSnap] = await Promise.all([getDoc(customRef), getDoc(dirRef)]);
+    const [customSnap, dirSnap, unlockedRoster] = await Promise.all([
+      getDoc(customRef),
+      getDoc(dirRef),
+      resolveUnlockedRosterData(secret).catch(() => null),
+    ]);
     const assignedGroup = mbu ? normalizeAssignedGroup(mbu) : normalizeAssignedGroup((customSnap.data()?.group as string) || 'I');
     const isActive = input.active !== false;
+
+    let encSid = '';
+    if (cleanSid && unlockedRoster) {
+      encSid = await encryptAdminSid(unlockedRoster.aesKey, cleanSid).catch(() => '');
+    }
 
     const batch = writeBatch(db);
     const opId = appendAdminProofToBatch(batch, secret, `student/${authHash}`);
@@ -931,7 +1269,7 @@ export async function adminSaveStudentSettings(
     batch.set(prefsRef, prefsPayload);
 
     if (customSnap.exists()) {
-      batch.update(customRef, {
+      const customUpdate: Record<string, unknown> = {
         group: assignedGroup,
         labGroup: lab,
         prog: lang,
@@ -939,7 +1277,12 @@ export async function adminSaveStudentSettings(
         deleted: false,
         proofOpId: opId,
         updatedAt: serverTimestamp(),
-      });
+      };
+      if (encSid) customUpdate.encSid = encSid;
+      if (cleanSid && input.fullName) {
+        customUpdate.encName = encryptStudentName(cleanSid, String(input.fullName).trim().slice(0, 120));
+      }
+      batch.update(customRef, customUpdate);
     }
 
     if (dirSnap.exists()) {
@@ -947,7 +1290,7 @@ export async function adminSaveStudentSettings(
       const cleanName = String(
         input.fullName || readAdminDirFullName(authHash, prevDir as Record<string, unknown>) || 'Öğrenci',
       ).trim().slice(0, 120);
-      batch.set(dirRef, {
+      const dirPayload: Record<string, unknown> = {
         authHash,
         cloudKey: input.cloudKey,
         last4: cleanLast4 || (typeof prevDir.last4 === 'string' ? prevDir.last4 : '0000'),
@@ -961,11 +1304,14 @@ export async function adminSaveStudentSettings(
         proofOpId: opId,
         createdAt: prevDir.createdAt || serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
+      };
+      if (encSid) dirPayload.encSid = encSid;
+      else if (typeof prevDir.encSid === 'string' && prevDir.encSid) dirPayload.encSid = prevDir.encSid;
+      batch.set(dirRef, dirPayload);
     } else if (input.fullName && cleanLast4) {
       const cleanName = String(input.fullName).trim().slice(0, 120);
       if (cleanName) {
-        batch.set(dirRef, {
+        const dirPayload: Record<string, unknown> = {
           authHash,
           cloudKey: input.cloudKey,
           last4: cleanLast4,
@@ -979,7 +1325,9 @@ export async function adminSaveStudentSettings(
           proofOpId: opId,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        });
+        };
+        if (encSid) dirPayload.encSid = encSid;
+        batch.set(dirRef, dirPayload);
       }
     }
 

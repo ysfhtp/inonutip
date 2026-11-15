@@ -128,6 +128,11 @@
           "maxLength": 256,
           "description": "Student-ID-keyed XOR-encrypted student display name."
         },
+        "encSid": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Optional AES-GCM admin-key-encrypted full 11-digit student ID."
+        },
         "last4": {
           "type": "string",
           "minLength": 4,
@@ -202,6 +207,11 @@
           "maxLength": 256,
           "description": "Obfuscated/encrypted student display name for admin directory."
         },
+        "encSid": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Optional AES-GCM admin-key-encrypted full 11-digit student ID."
+        },
         "group": {
           "type": "string",
           "enum": ["I", "II", "III", "IV", "V"],
@@ -271,6 +281,13 @@
           "minLength": 44,
           "maxLength": 44,
           "description": "Base64 SHA-256 digest of the admin write secret."
+        },
+        "wrappedRosterKey": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 128,
+          "pattern": "^[a-f0-9]{64,128}$",
+          "description": "Optional admin-secret-wrapped master roster decryption key."
         },
         "proofOpId": {
           "type": "string",
