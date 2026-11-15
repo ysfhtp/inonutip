@@ -2,7 +2,7 @@
   "entities": {
     "StudentPrefs": {
       "title": "StudentPrefs",
-      "description": "Per-student non-PII schedule group preferences synchronized across devices by a runtime-derived 256-bit salted key.",
+      "description": "Per-student non-PII schedule group and language preferences synchronized across devices by a runtime-derived 256-bit salted key.",
       "type": "object",
       "properties": {
         "myMbuGroup": {
@@ -23,6 +23,24 @@
           "maxLength": 4,
           "description": "Display mode for other groups."
         },
+        "lang": {
+          "type": "string",
+          "enum": ["", "tr", "en"],
+          "maxLength": 2,
+          "description": "Optional preferred schedule language."
+        },
+        "authHash": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[a-f0-9]{0,32}$",
+          "description": "Optional salted 32-hex allowlist reference hash."
+        },
+        "last4": {
+          "type": "string",
+          "maxLength": 4,
+          "pattern": "^[0-9]{0,4}$",
+          "description": "Optional last 4 digits of student ID for masked admin display."
+        },
         "updatedAt": {
           "type": "string",
           "format": "date-time",
@@ -30,12 +48,220 @@
         }
       },
       "required": ["myMbuGroup", "myLabGroup", "otherGroupMode", "updatedAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Admin-managed campus or schedule notice displayed in the daily schedule view.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short announcement heading."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 800,
+          "description": "Announcement body text."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["info", "warn", "urgent"],
+          "maxLength": 6,
+          "description": "Visual severity tone."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether the announcement is visible to students."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest modification."
+        }
+      },
+      "required": ["title", "message", "tone", "active", "createdAt", "updatedAt"]
+    },
+    "CustomStudent": {
+      "title": "CustomStudent",
+      "description": "Admin-added non-PII student login entry keyed by salted 32-hex auth hash.",
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "string",
+          "enum": ["I", "II", "III", "IV", "V"],
+          "maxLength": 3,
+          "description": "Assigned MBU / PSP group."
+        },
+        "labGroup": {
+          "type": "string",
+          "enum": ["", "1", "2"],
+          "maxLength": 1,
+          "description": "Optional assigned LAB group."
+        },
+        "prog": {
+          "type": "string",
+          "enum": ["tr", "en"],
+          "maxLength": 2,
+          "description": "Assigned program language."
+        },
+        "encName": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Student-ID-keyed XOR-encrypted student display name."
+        },
+        "last4": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 4,
+          "pattern": "^[0-9]{4}$",
+          "description": "Last 4 digits of student ID."
+        },
+        "cloudKey": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Derived 64-hex cloud preference document ID."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether login is enabled for this custom student."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update."
+        }
+      },
+      "required": ["group", "labGroup", "prog", "encName", "last4", "cloudKey", "active", "createdAt", "updatedAt"]
+    },
+    "AdminStudentRecord": {
+      "title": "AdminStudentRecord",
+      "description": "Strict admin-only student directory record isolating student names from public reads.",
+      "type": "object",
+      "properties": {
+        "authHash": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 32,
+          "pattern": "^[a-f0-9]{32}$",
+          "description": "32-hex student auth hash."
+        },
+        "cloudKey": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "64-hex student prefs key."
+        },
+        "last4": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 4,
+          "pattern": "^[0-9]{4}$",
+          "description": "Last 4 digits of student ID."
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Student full name visible strictly to admins."
+        },
+        "group": {
+          "type": "string",
+          "enum": ["I", "II", "III", "IV", "V"],
+          "maxLength": 3,
+          "description": "Assigned MBU group."
+        },
+        "labGroup": {
+          "type": "string",
+          "enum": ["", "1", "2"],
+          "maxLength": 1,
+          "description": "Assigned LAB group."
+        },
+        "prog": {
+          "type": "string",
+          "enum": ["tr", "en"],
+          "maxLength": 2,
+          "description": "Program language."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["allowlist", "custom"],
+          "maxLength": 10,
+          "description": "Origin of the student record."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether student account is active."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["authHash", "cloudKey", "last4", "fullName", "group", "labGroup", "prog", "source", "active", "createdAt", "updatedAt"]
+    },
+    "AdminSecurityConfig": {
+      "title": "AdminSecurityConfig",
+      "description": "Admin password digest configuration writable only by verified admins.",
+      "type": "object",
+      "properties": {
+        "passwordHash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Salted SHA-256 hash of admin login password."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of password update."
+        }
+      },
+      "required": ["passwordHash", "updatedAt"]
     }
   },
   "firestore": {
     "/student_prefs/{studentHash}": {
       "schema": { "$ref": "#/entities/StudentPrefs" },
-      "description": "Stores each student's MBU/LAB group and visibility preferences keyed by a 64-hex SHA-256 key never embedded in the client bundle."
+      "description": "Stores each student's MBU/LAB group and visibility preferences keyed by a 64-hex SHA-256 key."
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Stores admin-managed announcements shown in the daily view."
+    },
+    "/custom_students/{authHash}": {
+      "schema": { "$ref": "#/entities/CustomStudent" },
+      "description": "Stores admin-added custom students keyed by salted 32-hex auth hash."
+    },
+    "/admin_student_directory/{authHash}": {
+      "schema": { "$ref": "#/entities/AdminStudentRecord" },
+      "description": "Admin-only student directory isolating names and statuses from non-admin access."
+    },
+    "/admin_config/{configId}": {
+      "schema": { "$ref": "#/entities/AdminSecurityConfig" },
+      "description": "Stores salted SHA-256 admin password hash for 01260102038 verification."
     }
   }
 }

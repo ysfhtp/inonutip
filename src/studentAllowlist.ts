@@ -208,7 +208,7 @@ function deriveNameKeyByte(sid: string, index: number): number {
   return (h >>> 16) & 0xff;
 }
 
-function decryptStudentName(sid: string, b64: string): string {
+export function decryptStudentName(sid: string, b64: string): string {
   if (!b64) return '';
   try {
     const bin = atob(b64);
@@ -222,12 +222,47 @@ function decryptStudentName(sid: string, b64: string): string {
   }
 }
 
+export function encryptStudentName(rawSid: string, fullName: string): string {
+  const sid = normalizeStudentId(rawSid);
+  const cleanName = String(fullName || '').trim().slice(0, 120);
+  if (!sid || !cleanName) return '';
+  try {
+    const bytes = new TextEncoder().encode(cleanName);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) {
+      bin += String.fromCharCode(bytes[i] ^ deriveNameKeyByte(sid, i));
+    }
+    return btoa(bin);
+  } catch {
+    return '';
+  }
+}
+
+export const ADMIN_STUDENT_ID = '01260102038';
+export const ADMIN_STUDENT_HASH = hashStudentId(ADMIN_STUDENT_ID);
+export const DEFAULT_ADMIN_PASSWORD_HASH = '25be9d153053e43e3de8b19857b85e4cd3d806568ba6e19ed5c9106f5821d527';
+
+export function isAdminStudentId(rawSid: string): boolean {
+  return normalizeStudentId(rawSid) === ADMIN_STUDENT_ID;
+}
+
+export function isAdminStudentHash(hash: string): boolean {
+  return typeof hash === 'string' && hash === ADMIN_STUDENT_HASH;
+}
+
+export function isValidAuthHash(id: string): boolean {
+  return typeof id === 'string' && /^[a-f0-9]{32}$/.test(id);
+}
+
 export interface StudentAuthMatch {
   hash: string;
   last4: string;
   group: string;
   prog: 'tr' | 'en';
   name: string;
+  labGroup?: '' | '1' | '2';
+  source?: 'allowlist' | 'custom';
+  isAdmin?: boolean;
 }
 
 export function verifyStudentId(rawSid: string): StudentAuthMatch | null {
@@ -246,6 +281,8 @@ export function verifyStudentId(rawSid: string): StudentAuthMatch | null {
     group,
     prog: prog === 'en' ? 'en' : 'tr',
     name: decryptStudentName(sid, encName),
+    source: 'allowlist',
+    isAdmin: sid === ADMIN_STUDENT_ID,
   };
 }
 
@@ -289,6 +326,18 @@ export async function deriveCloudDocId(rawSid: string): Promise<string> {
       .join('');
   }
   return fallbackCloudHash64(sid);
+}
+
+export async function hashAdminPassword(password: string): Promise<string> {
+  const input = 'inonu-tip-admin-v1|' + String(password || '');
+  if (typeof crypto !== 'undefined' && crypto.subtle && typeof TextEncoder !== 'undefined') {
+    const bytes = new TextEncoder().encode(input);
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  return fallbackCloudHash64(input);
 }
 
 export function verifyStudentHash(hash: string): { group: string; prog: 'tr' | 'en' } | null {

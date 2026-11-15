@@ -14,13 +14,36 @@ service cloud.firestore {
       return resource.data;
     }
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdminByEmail() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'ysfhtp6@gmail.com';
+    }
+
+    function isAdmin() {
+      return isAdminByEmail()
+        || (isSignedIn() && request.auth.token.email_verified == true && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidAuthHash(id) {
+      return id is string && id.size() == 32 && id.matches('^[a-f0-9]{32}$');
+    }
+
     function isValidStudentHash(id) {
       return id is string && id.size() == 64 && id.matches('^[a-f0-9]{64}$');
     }
 
     function isValidStudentPrefs(data) {
       return data.keys().hasAll(['myMbuGroup', 'myLabGroup', 'otherGroupMode', 'updatedAt'])
-        && data.keys().hasOnly(['myMbuGroup', 'myLabGroup', 'otherGroupMode', 'updatedAt'])
+        && data.keys().hasOnly(['myMbuGroup', 'myLabGroup', 'otherGroupMode', 'lang', 'authHash', 'last4', 'updatedAt'])
         && data.myMbuGroup is string
         && data.myMbuGroup.size() <= 3
         && data.myMbuGroup in ['', 'I', 'II', 'III', 'IV', 'V']
@@ -30,22 +53,191 @@ service cloud.firestore {
         && data.otherGroupMode is string
         && data.otherGroupMode.size() <= 4
         && data.otherGroupMode in ['dim', 'hide']
+        && (!('lang' in data) || (data.lang is string && data.lang.size() <= 2 && data.lang in ['', 'tr', 'en']))
+        && (!('authHash' in data) || (data.authHash is string && data.authHash.size() <= 32 && data.authHash.matches('^[a-f0-9]{0,32}$')))
+        && (!('last4' in data) || (data.last4 is string && data.last4.size() <= 4 && data.last4.matches('^[0-9]{0,4}$')))
         && data.updatedAt is timestamp;
     }
 
-    // Non-PII student schedule group preferences keyed by unguessable 128-bit salted hash.
-    // List and delete are strictly forbidden so no roster enumeration is possible.
+    function isValidAnnouncement(data) {
+      return data.keys().hasAll(['title', 'message', 'tone', 'active', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['title', 'message', 'tone', 'active', 'createdAt', 'updatedAt'])
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 120
+        && data.message is string
+        && data.message.size() >= 1
+        && data.message.size() <= 800
+        && data.tone is string
+        && data.tone.size() <= 6
+        && data.tone in ['info', 'warn', 'urgent']
+        && data.active is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCustomStudent(data) {
+      return data.keys().hasAll(['group', 'labGroup', 'prog', 'encName', 'last4', 'cloudKey', 'active', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['group', 'labGroup', 'prog', 'encName', 'last4', 'cloudKey', 'active', 'createdAt', 'updatedAt'])
+        && data.group is string
+        && data.group.size() >= 1
+        && data.group.size() <= 3
+        && data.group in ['I', 'II', 'III', 'IV', 'V']
+        && data.labGroup is string
+        && data.labGroup.size() <= 1
+        && data.labGroup in ['', '1', '2']
+        && data.prog is string
+        && data.prog.size() == 2
+        && data.prog in ['tr', 'en']
+        && data.encName is string
+        && data.encName.size() <= 256
+        && data.last4 is string
+        && data.last4.size() == 4
+        && data.last4.matches('^[0-9]{4}$')
+        && data.cloudKey is string
+        && data.cloudKey.size() == 64
+        && data.cloudKey.matches('^[a-f0-9]{64}$')
+        && data.active is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAdminStudentRecord(data) {
+      return data.keys().hasAll(['authHash', 'cloudKey', 'last4', 'fullName', 'group', 'labGroup', 'prog', 'source', 'active', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['authHash', 'cloudKey', 'last4', 'fullName', 'group', 'labGroup', 'prog', 'source', 'active', 'createdAt', 'updatedAt'])
+        && data.authHash is string
+        && data.authHash.size() == 32
+        && data.authHash.matches('^[a-f0-9]{32}$')
+        && data.cloudKey is string
+        && data.cloudKey.size() == 64
+        && data.cloudKey.matches('^[a-f0-9]{64}$')
+        && data.last4 is string
+        && data.last4.size() == 4
+        && data.last4.matches('^[0-9]{4}$')
+        && data.fullName is string
+        && data.fullName.size() >= 1
+        && data.fullName.size() <= 120
+        && data.group is string
+        && data.group.size() >= 1
+        && data.group.size() <= 3
+        && data.group in ['I', 'II', 'III', 'IV', 'V']
+        && data.labGroup is string
+        && data.labGroup.size() <= 1
+        && data.labGroup in ['', '1', '2']
+        && data.prog is string
+        && data.prog.size() == 2
+        && data.prog in ['tr', 'en']
+        && data.source is string
+        && data.source.size() <= 10
+        && data.source in ['allowlist', 'custom']
+        && data.active is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAdminSecurityConfig(data) {
+      return data.keys().hasAll(['passwordHash', 'updatedAt'])
+        && data.keys().hasOnly(['passwordHash', 'updatedAt'])
+        && data.passwordHash is string
+        && data.passwordHash.size() == 64
+        && data.passwordHash.matches('^[a-f0-9]{64}$')
+        && data.updatedAt is timestamp;
+    }
+
+    // Non-PII student schedule group & language preferences keyed by unguessable 256-bit salted hash.
+    // Roster listing is strictly admin-only.
     match /student_prefs/{studentHash} {
-      allow list: if false;
       allow get: if isValidStudentHash(studentHash);
+      allow list: if isAdminByEmail();
       allow create: if isValidStudentHash(studentHash)
         && isValidStudentPrefs(incoming())
         && incoming().updatedAt == request.time;
       allow update: if isValidStudentHash(studentHash)
         && isValidStudentPrefs(incoming())
-        && incoming().diff(existing()).affectedKeys().hasOnly(['myMbuGroup', 'myLabGroup', 'otherGroupMode', 'updatedAt'])
+        && incoming().diff(existing()).affectedKeys().hasOnly(['myMbuGroup', 'myLabGroup', 'otherGroupMode', 'lang', 'authHash', 'last4', 'updatedAt'])
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidStudentHash(studentHash);
+    }
+
+    // Public active announcements; inactive/all management strictly admin-only.
+    match /announcements/{announcementId} {
+      allow get: if isValidId(announcementId) && (existing().active == true || isAdmin());
+      allow list: if existing().active == true || isAdminByEmail();
+      allow create: if isAdmin()
+        && isValidId(announcementId)
+        && isValidAnnouncement(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(announcementId)
+        && isValidAnnouncement(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'message', 'tone', 'active', 'updatedAt'])
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(announcementId);
+    }
+
+    // Custom student login entries keyed by salted 32-hex hash (zero plaintext PII).
+    match /custom_students/{authHash} {
+      allow get: if isValidAuthHash(authHash);
+      allow list: if isAdminByEmail();
+      allow create: if isAdmin()
+        && isValidAuthHash(authHash)
+        && isValidCustomStudent(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidAuthHash(authHash)
+        && isValidCustomStudent(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['group', 'labGroup', 'prog', 'encName', 'last4', 'cloudKey', 'active', 'updatedAt'])
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidAuthHash(authHash);
+    }
+
+    // Strict admin-only directory isolating custom student display names from non-admin access.
+    match /admin_student_directory/{authHash} {
+      allow get: if isAdmin() && isValidAuthHash(authHash);
+      allow list: if isAdminByEmail();
+      allow create: if isAdmin()
+        && isValidAuthHash(authHash)
+        && isValidAdminStudentRecord(incoming())
+        && incoming().authHash == authHash
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidAuthHash(authHash)
+        && isValidAdminStudentRecord(incoming())
+        && incoming().authHash == existing().authHash
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['cloudKey', 'last4', 'fullName', 'group', 'labGroup', 'prog', 'source', 'active', 'updatedAt'])
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidAuthHash(authHash);
+    }
+
+    // Salted SHA-256 admin password verification digest.
+    match /admin_config/{configId} {
+      allow get: if isValidId(configId) && configId == 'security';
+      allow list: if false;
+      allow create: if isAdmin()
+        && isValidId(configId)
+        && configId == 'security'
+        && isValidAdminSecurityConfig(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(configId)
+        && configId == 'security'
+        && isValidAdminSecurityConfig(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['passwordHash', 'updatedAt'])
         && incoming().updatedAt == request.time;
       allow delete: if false;
+    }
+
+    // Explicit admins registry (read-only by self/admins).
+    match /admins/{uid} {
+      allow get: if isSignedIn() && isValidId(uid) && (request.auth.uid == uid || isAdminByEmail());
+      allow list: if isAdminByEmail();
+      allow write: if false;
     }
   }
 }

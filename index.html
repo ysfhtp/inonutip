@@ -3031,12 +3031,31 @@
       </div>
 
       <form id="authLoginForm" class="space-y-3" novalidate>
-        <div class="space-y-1.5">
+        <div id="authStudentIdWrap" class="space-y-1.5">
           <label id="authInputLabel" for="authStudentIdInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Öğrenci Numarası</label>
           <input id="authStudentIdInput" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="16" placeholder="XXXXXXXXXXX" class="w-full ios-pill-control rounded-2xl px-4 py-3 text-sm sm:text-base font-semibold tracking-wide tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition">
         </div>
+        <div id="authAdminPasswordWrap" class="hidden space-y-2.5">
+          <div class="ios-pill-control rounded-2xl px-3.5 py-2 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span id="authStep2IdChip" class="font-mono text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums truncate">•••••••2038</span>
+              <span id="authAdminPwdBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0">Yönetici</span>
+            </div>
+            <button id="btnAuthBackToId" type="button" class="ios-press min-h-[36px] px-2.5 py-1 rounded-full bg-slate-500/10 hover:bg-slate-500/20 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition shrink-0">← Değiştir</button>
+          </div>
+          <div class="space-y-1.5">
+            <label id="authAdminPwdLabel" for="authAdminPasswordInput" class="block text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Yönetici Şifresi</label>
+            <div class="relative flex items-center">
+              <input id="authAdminPasswordInput" type="password" autocomplete="current-password" spellcheck="false" maxlength="64" placeholder="••••••••" class="w-full ios-pill-control rounded-2xl pl-4 pr-12 py-3 text-sm sm:text-base font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition">
+              <button id="btnToggleAdminPwdVis" type="button" class="absolute right-1 w-11 h-11 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition" aria-label="Şifreyi Göster">
+                <svg id="iconPwdEyeOpen" class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <svg id="iconPwdEyeClosed" class="w-4.5 h-4.5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+              </button>
+            </div>
+          </div>
+        </div>
         <p id="authErrorMsg" role="alert" class="hidden rounded-2xl px-3.5 py-2.5 text-xs font-semibold leading-snug calc-status-fail"></p>
-        <button id="btnAuthSubmit" type="submit" class="ios-press w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold shadow-sm transition">
+        <button id="btnAuthSubmit" type="submit" class="ios-press w-full min-h-[44px] py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold shadow-sm transition">
           Giriş Yap
         </button>
       </form>
@@ -3132,6 +3151,9 @@
           </button>
         </div>
       </div>
+
+      <!-- DAILY ANNOUNCEMENTS CONTAINER -->
+      <div id="dailyAnnouncementsContainer" class="hidden space-y-2"></div>
 
       <!-- LESSON SLOTS CONTAINER -->
       <div id="dailySlotsContainer" class="space-y-2"></div>
@@ -3335,12 +3357,26 @@
           <p id="authSessionTitle" class="text-[11px] font-bold uppercase tracking-wider text-indigo-600/80 dark:text-indigo-300/80">Öğrenci Girişi</p>
           <p id="authSessionDesc" class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mt-0.5 truncate tabular-nums">Misafir modu • Otomatik grup için giriş yap</p>
         </div>
-        <button id="btnAuthActionInfo" type="button" class="ios-press w-full min-[360px]:w-auto justify-center px-3.5 py-2 rounded-full bg-indigo-500/12 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-semibold transition text-center">
+        <button id="btnAuthActionInfo" type="button" class="ios-press w-full min-[360px]:w-auto min-h-[44px] justify-center px-3.5 py-2 rounded-full bg-indigo-500/12 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-semibold transition text-center">
           Giriş Yap
         </button>
       </div>
-      <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="3">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.4.7</span>
+      <div id="adminSettingsCard" class="hidden ios-glass ios-tab-card rounded-3xl p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3 flex-wrap" data-tab-stagger="3">
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+          <span class="w-9 h-9 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
+            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          </span>
+          <div class="min-w-0">
+            <p id="adminCardTitle" class="text-[11px] font-bold uppercase tracking-wider text-amber-600/90 dark:text-amber-300/90">Yönetici Paneli</p>
+            <p id="adminCardDesc" class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mt-0.5 truncate">Duyurular, öğrenci ekleme ve tüm ayarlar</p>
+          </div>
+        </div>
+        <button id="btnOpenAdminModal" type="button" class="ios-press w-full min-[360px]:w-auto min-h-[44px] justify-center px-4 py-2 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 text-xs font-bold transition text-center">
+          Admin Ayarları
+        </button>
+      </div>
+      <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.4.8</span>
       </div>
     </section>
 
@@ -3478,6 +3514,214 @@
         <div id="foodCalWeekdays" class="food-cal-grid text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 py-1"></div>
         <div class="overflow-hidden rounded-2xl w-full">
           <div id="foodCalCarousel" class="w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex select-none" style="touch-action: pan-x; overscroll-behavior-x: contain;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Settings Modal -->
+  <div id="adminModal" class="fixed inset-0 z-50 hidden bg-black/45 backdrop-blur-md flex items-center justify-center p-2.5 min-[360px]:p-4" style="padding-top: max(0.75rem, env(safe-area-inset-top, 0px)); padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));">
+    <div id="adminModalCard" class="ios-glass rounded-3xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+      <!-- Modal Top Header -->
+      <div class="px-4 sm:px-5 pt-4 pb-3 border-b border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between gap-2 shrink-0">
+        <div class="min-w-0">
+          <span id="adminModalBadge" class="inline-block px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold tracking-wide">01260102038 • YÖNETİCİ</span>
+          <h3 id="adminModalTitle" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-1 truncate">Admin Ayarları</h3>
+        </div>
+        <button id="btnCloseAdminModal" type="button" class="ios-press w-11 h-11 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0" aria-label="Kapat">✕</button>
+      </div>
+
+      <!-- Cloud Google Authorization Strip -->
+      <div id="adminCloudAuthBar" class="px-4 sm:px-5 py-2.5 border-b border-slate-200/50 dark:border-slate-800/70 bg-slate-500/5 flex items-center justify-between gap-2.5 flex-wrap shrink-0">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+          <span id="adminCloudStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+          <p id="adminCloudStatusText" class="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Bulut kayıtları için Google yönetici yetkisini bağlayın.</p>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="btnAdminGoogleConnect" type="button" class="ios-press min-h-[44px] px-3.5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs transition">Google ile Doğrula</button>
+          <button id="btnAdminRefreshAll" type="button" class="hidden ios-press w-11 h-11 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 flex items-center justify-center transition" aria-label="Yenile" title="Yenile">
+            <svg id="iconAdminRefresh" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3-Tab Segmented Control -->
+      <div class="px-4 sm:px-5 pt-3 pb-2 shrink-0">
+        <div id="adminTabsBar" class="ios-pill-control p-1 rounded-2xl grid grid-cols-3 gap-1">
+          <button type="button" data-admin-tab="announcements" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold transition truncate">Duyurular</button>
+          <button type="button" data-admin-tab="add-student" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold transition truncate">Öğrenci Ekle</button>
+          <button type="button" data-admin-tab="students" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold transition truncate">Öğrenci Ayarları</button>
+        </div>
+      </div>
+
+      <!-- Scrollable Body -->
+      <div class="flex-1 overflow-y-auto px-4 sm:px-5 pb-5 pt-1 space-y-4">
+        <!-- PANE 1: DUYURULAR -->
+        <div id="adminPaneAnnouncements" class="space-y-3.5">
+          <form id="adminAnnForm" class="ios-pill-control rounded-2xl p-3.5 space-y-3" novalidate>
+            <div class="flex items-center justify-between gap-2">
+              <h4 id="adminAnnFormTitle" class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Yeni Duyuru</h4>
+              <button id="btnAdminAnnCancelEdit" type="button" class="hidden min-h-[44px] px-3 py-1 rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">İptal</button>
+            </div>
+            <input id="adminAnnTitleInput" type="text" maxlength="120" placeholder="Duyuru başlığı..." class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            <textarea id="adminAnnMsgInput" rows="3" maxlength="800" placeholder="Tüm öğrencilere gösterilecek duyuru mesajı..." class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"></textarea>
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div id="adminAnnToneChips" class="flex items-center gap-1.5">
+                <button type="button" data-ann-tone="info" class="group-chip min-h-[44px] px-3">Bilgi</button>
+                <button type="button" data-ann-tone="warn" class="group-chip min-h-[44px] px-3">Önemli</button>
+                <button type="button" data-ann-tone="urgent" class="group-chip min-h-[44px] px-3">Acil</button>
+              </div>
+              <button id="btnAdminAnnActiveToggle" type="button" class="ios-press min-h-[44px] px-3.5 py-2 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Yayında</button>
+            </div>
+            <button id="btnAdminAnnSubmit" type="submit" class="ios-press w-full min-h-[44px] py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">Duyuruyu Yayınla</button>
+          </form>
+
+          <div class="space-y-2">
+            <h4 id="adminAnnListHeading" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Kayıtlı Duyurular</h4>
+            <div id="adminAnnouncementsList" class="space-y-2"></div>
+          </div>
+        </div>
+
+        <!-- PANE 2: ÖĞRENCİ EKLE -->
+        <div id="adminPaneAddStudent" class="hidden space-y-3.5">
+          <form id="adminAddStudentForm" class="ios-pill-control rounded-2xl p-3.5 space-y-3.5" novalidate>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <label id="lblAdminAddSid" for="adminAddSid" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Öğrenci Numarası</label>
+                <input id="adminAddSid" type="text" inputmode="numeric" maxlength="11" placeholder="01260100000" class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              </div>
+              <div class="space-y-1">
+                <label id="lblAdminAddName" for="adminAddName" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">İsim Soyisim</label>
+                <input id="adminAddName" type="text" maxlength="120" placeholder="Ad Soyad" class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <span id="lblAdminAddGroup" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">MBU / PSP Grup Numarası</span>
+              <div id="adminAddGroupChips" class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" data-add-group="I" class="group-chip min-h-[44px] px-3.5">Grup I</button>
+                <button type="button" data-add-group="II" class="group-chip min-h-[44px] px-3.5">Grup II</button>
+                <button type="button" data-add-group="III" class="group-chip min-h-[44px] px-3.5">Grup III</button>
+                <button type="button" data-add-group="IV" class="group-chip min-h-[44px] px-3.5">Grup IV</button>
+                <button type="button" data-add-group="V" class="group-chip min-h-[44px] px-3.5">Grup V</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="space-y-1.5">
+                <span id="lblAdminAddLab" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">LAB Grubu (Opsiyonel)</span>
+                <div id="adminAddLabChips" class="flex items-center gap-1.5 flex-wrap">
+                  <button type="button" data-add-lab="" class="group-chip min-h-[44px] px-3">Tümü</button>
+                  <button type="button" data-add-lab="1" class="group-chip min-h-[44px] px-3">LAB 1</button>
+                  <button type="button" data-add-lab="2" class="group-chip min-h-[44px] px-3">LAB 2</button>
+                </div>
+              </div>
+              <div class="space-y-1.5">
+                <span id="lblAdminAddLang" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Program Dili</span>
+                <div id="adminAddLangChips" class="flex items-center gap-1.5 flex-wrap">
+                  <button type="button" data-add-lang="tr" class="group-chip min-h-[44px] px-3.5">Türkçe (TR)</button>
+                  <button type="button" data-add-lang="en" class="group-chip min-h-[44px] px-3.5">English (EN)</button>
+                </div>
+              </div>
+            </div>
+
+            <button id="btnAdminSaveNewStudent" type="submit" class="ios-press w-full min-h-[44px] py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">Öğrenciyi Kaydet</button>
+          </form>
+        </div>
+
+        <!-- PANE 3: TÜM ÖĞRENCİLERİN AYARLARINI KONTROL ETME -->
+        <div id="adminPaneStudents" class="hidden space-y-3.5">
+          <!-- Öğrenci No ile Doğrudan Ara & Düzenle -->
+          <div class="ios-pill-control rounded-2xl p-3 space-y-2">
+            <label id="lblAdminLookupSid" for="adminLookupSid" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Numara ile Öğrenci Bul ve Düzenle</label>
+            <div class="flex items-center gap-2">
+              <input id="adminLookupSid" type="text" inputmode="numeric" maxlength="11" placeholder="11 haneli numara (01...)" class="flex-1 min-w-0 ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              <button id="btnAdminLookupStudent" type="button" class="ios-press min-h-[44px] px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shrink-0 transition">Getir</button>
+            </div>
+          </div>
+
+          <!-- Seçili Öğrenci Ayar Düzenleyici -->
+          <div id="adminStudentEditorCard" class="hidden ios-glass rounded-2xl p-3.5 space-y-3 border border-blue-500/30">
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <p id="adminEditStudentBadge" class="text-[10.5px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400"></p>
+                <h4 id="adminEditStudentTitle" class="text-sm font-bold text-slate-900 dark:text-white truncate"></h4>
+              </div>
+              <button id="btnAdminCancelStudentEdit" type="button" class="ios-press min-h-[44px] px-3 py-1 rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-300">Kapat</button>
+            </div>
+            <div class="space-y-1">
+              <label id="lblAdminEditName" for="adminEditNameInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">İsim Soyisim</label>
+              <input id="adminEditNameInput" type="text" maxlength="120" class="w-full ios-pill-control rounded-xl px-3.5 py-2 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            </div>
+            <div class="space-y-1.5">
+              <span id="lblAdminEditMbu" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">MBU / PSP Grubu</span>
+              <div id="adminEditMbuChips" class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" data-edit-mbu="" class="group-chip min-h-[44px] px-3">Tümü</button>
+                <button type="button" data-edit-mbu="I" class="group-chip min-h-[44px] px-3">I</button>
+                <button type="button" data-edit-mbu="II" class="group-chip min-h-[44px] px-3">II</button>
+                <button type="button" data-edit-mbu="III" class="group-chip min-h-[44px] px-3">III</button>
+                <button type="button" data-edit-mbu="IV" class="group-chip min-h-[44px] px-3">IV</button>
+                <button type="button" data-edit-mbu="V" class="group-chip min-h-[44px] px-3">V</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div class="space-y-1.5">
+                <span id="lblAdminEditLab" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">LAB</span>
+                <div id="adminEditLabChips" class="flex items-center gap-1 flex-wrap">
+                  <button type="button" data-edit-lab="" class="group-chip min-h-[44px] px-2.5">Tümü</button>
+                  <button type="button" data-edit-lab="1" class="group-chip min-h-[44px] px-2.5">1</button>
+                  <button type="button" data-edit-lab="2" class="group-chip min-h-[44px] px-2.5">2</button>
+                </div>
+              </div>
+              <div class="space-y-1.5">
+                <span id="lblAdminEditMode" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Diğer Gruplar</span>
+                <div id="adminEditModeChips" class="flex items-center gap-1 flex-wrap">
+                  <button type="button" data-edit-mode="dim" class="group-chip min-h-[44px] px-2.5">Soluk</button>
+                  <button type="button" data-edit-mode="hide" class="group-chip min-h-[44px] px-2.5">Gizle</button>
+                </div>
+              </div>
+              <div class="space-y-1.5">
+                <span id="lblAdminEditLang" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Dil</span>
+                <div id="adminEditLangChips" class="flex items-center gap-1 flex-wrap">
+                  <button type="button" data-edit-lang="tr" class="group-chip min-h-[44px] px-2.5">TR</button>
+                  <button type="button" data-edit-lang="en" class="group-chip min-h-[44px] px-2.5">EN</button>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-2 pt-1 flex-wrap">
+              <div class="flex items-center gap-2">
+                <button id="btnAdminEditActiveToggle" type="button" class="ios-press min-h-[44px] px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Hesap Aktif</button>
+                <button id="btnAdminDeleteCustomStudent" type="button" class="hidden ios-press min-h-[44px] px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400">Öğrenciyi Sil</button>
+              </div>
+              <button id="btnAdminSaveStudentEdit" type="button" class="ios-press min-h-[44px] px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition">Ayarları Kaydet</button>
+            </div>
+          </div>
+
+          <!-- Kayıtlı Öğrenci Listesi & Filtre -->
+          <div class="space-y-2.5">
+            <div class="flex items-center gap-2">
+              <input id="adminStudentFilterInput" type="text" placeholder="İsim, son 4 hane veya grup filtrele..." class="flex-1 min-w-0 ios-pill-control rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            </div>
+            <div id="adminStudentGroupFilterChips" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+              <button type="button" data-filter-sgroup="" class="group-chip min-h-[44px] px-3 shrink-0">Tümü</button>
+              <button type="button" data-filter-sgroup="I" class="group-chip min-h-[44px] px-3 shrink-0">Grup I</button>
+              <button type="button" data-filter-sgroup="II" class="group-chip min-h-[44px] px-3 shrink-0">Grup II</button>
+              <button type="button" data-filter-sgroup="III" class="group-chip min-h-[44px] px-3 shrink-0">Grup III</button>
+              <button type="button" data-filter-sgroup="IV" class="group-chip min-h-[44px] px-3 shrink-0">Grup IV</button>
+              <button type="button" data-filter-sgroup="V" class="group-chip min-h-[44px] px-3 shrink-0">Grup V</button>
+            </div>
+            <p id="adminStudentsCountLabel" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 px-1"></p>
+            <div id="adminStudentsList" class="space-y-2"></div>
+          </div>
+
+          <!-- Yönetici Şifresini Güncelle -->
+          <form id="adminPwdForm" class="ios-pill-control rounded-2xl p-3.5 space-y-2.5" novalidate>
+            <h4 id="lblAdminPwdChangeTitle" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Yönetici Giriş Şifresini Güncelle</h4>
+            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <input id="adminNewPwdInput" type="password" maxlength="64" placeholder="Yeni şifre (en az 4 karakter)" class="flex-1 min-w-0 ios-pill-control rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+              <button id="btnAdminSaveNewPwd" type="submit" class="ios-press min-h-[44px] w-full sm:w-auto px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold shrink-0 transition">Şifreyi Kaydet</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -3720,6 +3964,43 @@
         authLoginShortBtn: 'Giriş Yap',
         authLogoutBtn: 'Çıkış Yap',
         authLogoutToast: 'Oturum kapatıldı',
+        authAdminPwdLabel: 'Yönetici Şifresi',
+        authAdminPwdBadge: 'Yönetici',
+        authAdminStepSubtitle: 'Yönetici hesabıyla devam etmek için şifreni gir.',
+        authAdminChangeIdBtn: '← Değiştir',
+        authAdminVerifyBtn: 'Doğrula ve Giriş Yap',
+        authErrAdminPwdRequired: 'Yönetici girişi için şifre gereklidir.',
+        authErrAdminPwdWrong: 'Yönetici şifresi hatalı.',
+        adminCardTitle: 'Yönetici Paneli',
+        adminCardDesc: 'Duyurular, öğrenci ekleme ve tüm ayarlar',
+        adminOpenBtn: 'Admin Ayarları',
+        adminModalBadge: '01260102038 • YÖNETİCİ',
+        adminModalTitle: 'Admin Ayarları',
+        adminCloudConnected: (email) => `Bulut Yetkisi Aktif • ${email}`,
+        adminCloudNeedAuth: 'Bulut kayıtları için Google yönetici yetkisini bağlayın.',
+        adminCloudWrongEmail: (email) => `Yetkisiz hesap (${email}). ysfhtp6@gmail.com ile giriş yapın.`,
+        adminCloudConnectBtn: 'Google ile Doğrula',
+        adminTabAnn: 'Duyurular',
+        adminTabAdd: 'Öğrenci Ekle',
+        adminTabStudents: 'Öğrenci Ayarları',
+        adminAnnNewTitle: 'Yeni Duyuru',
+        adminAnnEditTitle: 'Duyuruyu Düzenle',
+        adminAnnBadgeInfo: 'Duyuru',
+        adminAnnBadgeWarn: 'Önemli',
+        adminAnnBadgeUrgent: 'Acil',
+        adminAnnLive: 'Yayında',
+        adminAnnDraft: 'Gizli',
+        adminAnnPublishBtn: 'Duyuruyu Yayınla',
+        adminAnnUpdateBtn: 'Duyuruyu Güncelle',
+        adminAnnSavedToast: 'Duyuru kaydedildi',
+        adminAnnDeletedToast: 'Duyuru silindi',
+        adminStudentSavedToast: 'Öğrenci eklendi ve ayarları kaydedildi',
+        adminStudentUpdatedToast: 'Öğrenci ayarları güncellendi',
+        adminStudentDeletedToast: 'Özel öğrenci kaydı silindi',
+        adminStudentNotFound: 'Bu numaraya ait öğrenci bulunamadı.',
+        adminPwdUpdatedToast: 'Yönetici şifresi güncellendi',
+        adminPwdInvalidToast: 'Şifre en az 4 karakter olmalıdır.',
+        adminNeedCloudToast: 'Önce Google ile yönetici yetkisini doğrulayın.',
         months: MONTHS_TR,
         monthsShort: MONTHS_SHORT_TR,
         days: DAYS_TR,
@@ -3871,6 +4152,43 @@
         authLoginShortBtn: 'Sign In',
         authLogoutBtn: 'Sign Out',
         authLogoutToast: 'Signed out',
+        authAdminPwdLabel: 'Admin Password',
+        authAdminPwdBadge: 'Admin',
+        authAdminStepSubtitle: 'Enter your password to continue with the admin account.',
+        authAdminChangeIdBtn: '← Change',
+        authAdminVerifyBtn: 'Verify & Sign In',
+        authErrAdminPwdRequired: 'Password is required for Admin sign in.',
+        authErrAdminPwdWrong: 'Incorrect admin password.',
+        adminCardTitle: 'Admin Panel',
+        adminCardDesc: 'Announcements, add student & all student settings',
+        adminOpenBtn: 'Admin Settings',
+        adminModalBadge: '01260102038 • ADMIN',
+        adminModalTitle: 'Admin Settings',
+        adminCloudConnected: (email) => `Cloud Auth Active • ${email}`,
+        adminCloudNeedAuth: 'Connect Google admin authorization to edit cloud records.',
+        adminCloudWrongEmail: (email) => `Unauthorized account (${email}). Sign in with ysfhtp6@gmail.com.`,
+        adminCloudConnectBtn: 'Verify with Google',
+        adminTabAnn: 'Notices',
+        adminTabAdd: 'Add Student',
+        adminTabStudents: 'All Students',
+        adminAnnNewTitle: 'New Announcement',
+        adminAnnEditTitle: 'Edit Announcement',
+        adminAnnBadgeInfo: 'Notice',
+        adminAnnBadgeWarn: 'Important',
+        adminAnnBadgeUrgent: 'Urgent',
+        adminAnnLive: 'Active',
+        adminAnnDraft: 'Hidden',
+        adminAnnPublishBtn: 'Publish Announcement',
+        adminAnnUpdateBtn: 'Update Announcement',
+        adminAnnSavedToast: 'Announcement saved',
+        adminAnnDeletedToast: 'Announcement deleted',
+        adminStudentSavedToast: 'Student saved & synced',
+        adminStudentUpdatedToast: 'Student settings updated',
+        adminStudentDeletedToast: 'Custom student removed',
+        adminStudentNotFound: 'No student found with that ID.',
+        adminPwdUpdatedToast: 'Admin password updated',
+        adminPwdInvalidToast: 'Password must be at least 4 characters.',
+        adminNeedCloudToast: 'Verify Google admin access first.',
         months: MONTHS_EN,
         monthsShort: MONTHS_SHORT_EN,
         days: DAYS_EN,
@@ -4337,16 +4655,26 @@
       if (authBadgeEl) authBadgeEl.textContent = loc.authFacultyBadge;
       const authTitleEl = document.getElementById('authTitle');
       if (authTitleEl) authTitleEl.textContent = loc.authTitle;
-      const authSubtitleEl = document.getElementById('authSubtitle');
-      if (authSubtitleEl) authSubtitleEl.textContent = loc.authSubtitle;
       const authLabelEl = document.getElementById('authInputLabel');
       if (authLabelEl) authLabelEl.textContent = loc.authInputLabel;
       const authInputEl = document.getElementById('authStudentIdInput');
       if (authInputEl) authInputEl.placeholder = loc.authInputPlaceholder;
-      const authSubmitEl = document.getElementById('btnAuthSubmit');
-      if (authSubmitEl) authSubmitEl.textContent = loc.authSubmitBtn;
       const authPrivacyEl = document.getElementById('authPrivacyHint');
       if (authPrivacyEl) authPrivacyEl.textContent = loc.authPrivacyHint;
+      const authAdminPwdLbl = document.getElementById('authAdminPwdLabel');
+      if (authAdminPwdLbl) authAdminPwdLbl.textContent = loc.authAdminPwdLabel;
+      const authAdminPwdBdg = document.getElementById('authAdminPwdBadge');
+      if (authAdminPwdBdg) authAdminPwdBdg.textContent = loc.authAdminPwdBadge;
+      const authBackBtnEl = document.getElementById('btnAuthBackToId');
+      if (authBackBtnEl) authBackBtnEl.textContent = loc.authAdminChangeIdBtn;
+      if (typeof syncAuthStepUI === 'function') syncAuthStepUI();
+      const adminCardTitleEl = document.getElementById('adminCardTitle');
+      if (adminCardTitleEl) adminCardTitleEl.textContent = loc.adminCardTitle;
+      const adminCardDescEl = document.getElementById('adminCardDesc');
+      if (adminCardDescEl) adminCardDescEl.textContent = loc.adminCardDesc;
+      const btnOpenAdminEl = document.getElementById('btnOpenAdminModal');
+      if (btnOpenAdminEl) btnOpenAdminEl.textContent = loc.adminOpenBtn;
+      if (typeof syncAdminModalLanguageUI === 'function') syncAdminModalLanguageUI();
       updateAuthSessionSummary();
 
       document.getElementById('headerAppTitle').textContent = loc.headerTitle;
@@ -4459,6 +4787,7 @@
       if (state.lang === lang) return;
       state.lang = lang;
       saveStore('lang', lang);
+      saveCurrentStudentPrefs(true);
       applyLanguageUI();
       if (state.activeTab === 'daily') renderDailyView();
       if (state.activeTab === 'weekly') renderWeeklyView();
@@ -6583,25 +6912,105 @@
       showToast(t('icsSavedToast'));
     }
 
-    // ==================== OPTIONAL STUDENT AUTH MODAL ====================
+    // ==================== OPTIONAL STUDENT AUTH MODAL & ADMIN CONTROLLER ====================
+    let activeAnnouncementsList = [];
+    let announcementsInitialFetchDone = false;
+
+    function renderDailyAnnouncements() {
+      const container = document.getElementById('dailyAnnouncementsContainer');
+      if (!container) return;
+      const loc = I18N[state.lang];
+      container.innerHTML = '';
+      if (!Array.isArray(activeAnnouncementsList) || activeAnnouncementsList.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+      container.classList.remove('hidden');
+      activeAnnouncementsList.forEach((ann, idx) => {
+        const tone = ann.tone === 'urgent' ? 'urgent' : ann.tone === 'warn' ? 'warn' : 'info';
+        const badgeCls =
+          tone === 'urgent'
+            ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300'
+            : tone === 'warn'
+              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+              : 'bg-blue-500/15 text-blue-600 dark:text-blue-300';
+        const badgeLabel =
+          tone === 'urgent' ? loc.adminAnnBadgeUrgent : tone === 'warn' ? loc.adminAnnBadgeWarn : loc.adminAnnBadgeInfo;
+
+        const card = document.createElement('div');
+        card.className = 'ios-glass ios-stagger-item rounded-2xl px-3.5 py-3 space-y-1';
+        card.style.setProperty('--stagger-delay', `${Math.min(idx, 4) * 35}ms`);
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${badgeCls}">${escapeHtml(badgeLabel)}</span>
+              <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(ann.title)}</h4>
+            </div>
+          </div>
+          <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">${escapeHtml(ann.message)}</p>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    async function refreshDailyAnnouncements(force = false) {
+      const api = window.__INONU_AUTH__;
+      if (!api || typeof api.loadActiveAnnouncements !== 'function') return;
+      if (announcementsInitialFetchDone && !force) {
+        renderDailyAnnouncements();
+        return;
+      }
+      announcementsInitialFetchDone = true;
+      try {
+        activeAnnouncementsList = await api.loadActiveAnnouncements();
+      } catch (e) {
+        activeAnnouncementsList = [];
+      }
+      renderDailyAnnouncements();
+    }
+
     function getActiveAuthSession() {
       const api = window.__INONU_AUTH__;
       if (!api || typeof api.verifyStudentHash !== 'function') return null;
       const saved = loadStore('authSession', null);
       if (!saved || typeof saved.hash !== 'string') return null;
       if (typeof saved.name !== 'string' || !saved.name.trim()) return null;
-      const meta = api.verifyStudentHash(saved.hash);
-      if (!meta) return null;
+
+      const allowMeta = api.verifyStudentHash(saved.hash);
+      let resolvedGroup = allowMeta ? allowMeta.group : '';
+      let resolvedProg = allowMeta ? allowMeta.prog : '';
+      let source = 'allowlist';
+
+      if (!allowMeta) {
+        const validHash = typeof api.isValidAuthHash === 'function' ? api.isValidAuthHash(saved.hash) : /^[a-f0-9]{32}$/.test(saved.hash);
+        const validCustomGroup = typeof saved.group === 'string' && ['I', 'II', 'III', 'IV', 'V'].includes(saved.group);
+        if (saved.source === 'custom' && validHash && validCustomGroup) {
+          resolvedGroup = saved.group;
+          resolvedProg = saved.prog === 'en' ? 'en' : 'tr';
+          source = 'custom';
+        } else {
+          return null;
+        }
+      }
+
       const cloudKey = (typeof saved.cloudKey === 'string' && typeof api.isValidCloudDocId === 'function' && api.isValidCloudDocId(saved.cloudKey))
         ? saved.cloudKey
         : '';
+      const isAdmin = Boolean(
+        saved.isAdmin === true &&
+        typeof api.isAdminStudentHash === 'function' &&
+        api.isAdminStudentHash(saved.hash)
+      );
+
       return {
         hash: saved.hash,
         cloudKey,
         last4: typeof saved.last4 === 'string' ? saved.last4 : '••••',
-        group: meta.group,
-        prog: meta.prog,
-        name: saved.name.trim()
+        group: resolvedGroup,
+        prog: resolvedProg,
+        name: saved.name.trim(),
+        source,
+        isAdmin
       };
     }
 
@@ -6615,15 +7024,20 @@
       const welcomeBarEl = document.getElementById('dailyWelcomeBar');
       const welcomeTextEl = document.getElementById('dailyWelcomeText');
       const welcomeGroupEl = document.getElementById('dailyWelcomeGroupPill');
+      const adminCardEl = document.getElementById('adminSettingsCard');
       const loc = I18N[state.lang];
       const session = getActiveAuthSession();
+
+      if (adminCardEl) {
+        adminCardEl.classList.toggle('hidden', !session || !session.isAdmin);
+      }
 
       if (!session) {
         if (titleEl) titleEl.textContent = loc.authGuestTitle;
         if (descEl) descEl.textContent = loc.authGuestDesc;
         if (infoBtn) {
           infoBtn.textContent = loc.authLoginShortBtn;
-          infoBtn.className = 'ios-press w-full min-[360px]:w-auto justify-center px-3.5 py-2 rounded-full bg-indigo-500/12 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-semibold transition text-center';
+          infoBtn.className = 'ios-press w-full min-[360px]:w-auto min-h-[44px] justify-center px-3.5 py-2 rounded-full bg-indigo-500/12 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-semibold transition text-center';
         }
         if (dailyBtn) {
           dailyBtn.className = 'w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-blue-500/15 text-[11px] font-semibold text-blue-600 dark:text-blue-400 transition flex items-center gap-1.5 active:scale-95';
@@ -6642,13 +7056,14 @@
       if (descEl) {
         const maskedHtml = `<span class="masked-id-dots">•••••••</span><span class="font-mono font-bold">${escapeHtml(session.last4)}</span>`;
         const groupText = loc.authWelcomeGroupBadge ? loc.authWelcomeGroupBadge(session.group) : `Grup ${session.group}`;
+        const adminTag = session.isAdmin ? ` • ${loc.authAdminPwdBadge}` : '';
         descEl.innerHTML = session.name
-          ? `${escapeHtml(session.name)} • ${maskedHtml} • ${escapeHtml(groupText)}`
-          : `${maskedHtml} • ${escapeHtml(groupText)}`;
+          ? `${escapeHtml(session.name)} • ${maskedHtml} • ${escapeHtml(groupText)}${escapeHtml(adminTag)}`
+          : `${maskedHtml} • ${escapeHtml(groupText)}${escapeHtml(adminTag)}`;
       }
       if (infoBtn) {
         infoBtn.textContent = loc.authLogoutBtn;
-        infoBtn.className = 'ios-press w-full min-[360px]:w-auto justify-center px-3.5 py-2 rounded-full bg-rose-500/12 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold transition text-center';
+        infoBtn.className = 'ios-press w-full min-[360px]:w-auto min-h-[44px] justify-center px-3.5 py-2 rounded-full bg-rose-500/12 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold transition text-center';
       }
       if (dailyBtn) {
         dailyBtn.className = 'w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-rose-500/15 text-[11px] font-semibold text-rose-600 dark:text-rose-400 transition flex items-center gap-1.5 active:scale-95';
@@ -6661,7 +7076,9 @@
       if (welcomeBarEl && welcomeTextEl) {
         welcomeTextEl.textContent = loc.authWelcomeGreeting(session.name);
         if (welcomeGroupEl) {
-          welcomeGroupEl.textContent = loc.authWelcomeGroupBadge(session.group);
+          welcomeGroupEl.textContent = session.isAdmin
+            ? `${loc.authWelcomeGroupBadge(session.group)} • ${loc.authAdminPwdBadge}`
+            : loc.authWelcomeGroupBadge(session.group);
         }
         welcomeBarEl.classList.remove('hidden');
       }
@@ -6689,6 +7106,70 @@
       }
     }
 
+    let authLoginStep = 'id';
+    let authPendingAdminId = '';
+
+    function syncAuthStepUI() {
+      const loc = I18N[state.lang];
+      const idWrap = document.getElementById('authStudentIdWrap');
+      const pwdWrap = document.getElementById('authAdminPasswordWrap');
+      const subtitleEl = document.getElementById('authSubtitle');
+      const submitEl = document.getElementById('btnAuthSubmit');
+      const backBtnEl = document.getElementById('btnAuthBackToId');
+      const chipEl = document.getElementById('authStep2IdChip');
+      const isPwdStep = authLoginStep === 'password';
+
+      if (idWrap) idWrap.classList.toggle('hidden', isPwdStep);
+      if (pwdWrap) pwdWrap.classList.toggle('hidden', !isPwdStep);
+      if (subtitleEl) subtitleEl.textContent = isPwdStep ? loc.authAdminStepSubtitle : loc.authSubtitle;
+      if (submitEl) submitEl.textContent = isPwdStep ? loc.authAdminVerifyBtn : loc.authSubmitBtn;
+      if (backBtnEl) backBtnEl.textContent = loc.authAdminChangeIdBtn;
+      if (chipEl && authPendingAdminId) {
+        chipEl.textContent = `•••••••${authPendingAdminId.slice(-4)}`;
+      }
+    }
+
+    function setAuthLoginStep(step, cleanedId = '') {
+      const nextStep = step === 'password' ? 'password' : 'id';
+      const idWrap = document.getElementById('authStudentIdWrap');
+      const pwdWrap = document.getElementById('authAdminPasswordWrap');
+      const idInp = document.getElementById('authStudentIdInput');
+      const pwdInp = document.getElementById('authAdminPasswordInput');
+
+      authLoginStep = nextStep;
+      authPendingAdminId = nextStep === 'password' ? String(cleanedId || '') : '';
+      syncAuthStepUI();
+
+      if (nextStep === 'password') {
+        if (pwdInp) pwdInp.value = '';
+        if (pwdWrap) {
+          pwdWrap.classList.remove('ios-stagger-item');
+          void pwdWrap.offsetWidth;
+          pwdWrap.classList.add('ios-stagger-item');
+        }
+        requestAnimationFrame(() => {
+          if (pwdInp) pwdInp.focus();
+        });
+      } else {
+        if (pwdInp) {
+          pwdInp.value = '';
+          pwdInp.type = 'password';
+        }
+        const eyeOpen = document.getElementById('iconPwdEyeOpen');
+        const eyeClosed = document.getElementById('iconPwdEyeClosed');
+        if (eyeOpen) eyeOpen.classList.remove('hidden');
+        if (eyeClosed) eyeClosed.classList.add('hidden');
+        if (idWrap) {
+          idWrap.classList.remove('ios-stagger-item');
+          void idWrap.offsetWidth;
+          idWrap.classList.add('ios-stagger-item');
+        }
+        if (cleanedId && idInp) {
+          idInp.value = cleanedId;
+        }
+      }
+    }
+
     function getStudentPrefs(hash) {
       if (!hash) return {};
       const all = loadStore('studentPrefs', {});
@@ -6702,7 +7183,8 @@
       next[hash] = {
         myMbuGroup: typeof prefs.myMbuGroup === 'string' ? prefs.myMbuGroup : '',
         myLabGroup: typeof prefs.myLabGroup === 'string' ? prefs.myLabGroup : '',
-        otherGroupMode: prefs.otherGroupMode === 'hide' ? 'hide' : 'dim'
+        otherGroupMode: prefs.otherGroupMode === 'hide' ? 'hide' : 'dim',
+        lang: prefs.lang === 'en' ? 'en' : prefs.lang === 'tr' ? 'tr' : ''
       };
       saveStore('studentPrefs', next);
     }
@@ -6713,7 +7195,9 @@
       const payload = {
         myMbuGroup: state.myMbuGroup || '',
         myLabGroup: state.myLabGroup || '',
-        otherGroupMode: state.otherGroupMode === 'hide' ? 'hide' : 'dim'
+        otherGroupMode: state.otherGroupMode === 'hide' ? 'hide' : 'dim',
+        lang: state.lang === 'en' ? 'en' : 'tr',
+        last4: session.last4 || ''
       };
       saveLocalStudentPrefs(session.hash, payload);
       if (syncToCloud && session.cloudKey) {
@@ -6731,19 +7215,26 @@
       const nextMbu = typeof cloudPrefs.myMbuGroup === 'string' ? cloudPrefs.myMbuGroup : '';
       const nextLab = typeof cloudPrefs.myLabGroup === 'string' ? cloudPrefs.myLabGroup : '';
       const nextMode = cloudPrefs.otherGroupMode === 'hide' ? 'hide' : 'dim';
+      const nextLang = cloudPrefs.lang === 'tr' || cloudPrefs.lang === 'en' ? cloudPrefs.lang : '';
       const changed =
         state.myMbuGroup !== nextMbu ||
         state.myLabGroup !== nextLab ||
-        state.otherGroupMode !== nextMode;
+        state.otherGroupMode !== nextMode ||
+        (nextLang && state.lang !== nextLang);
       saveLocalStudentPrefs(expectedHash, {
         myMbuGroup: nextMbu,
         myLabGroup: nextLab,
-        otherGroupMode: nextMode
+        otherGroupMode: nextMode,
+        lang: nextLang || state.lang
       });
       if (!changed) return false;
       state.myMbuGroup = nextMbu;
       state.myLabGroup = nextLab;
       state.otherGroupMode = nextMode;
+      if (nextLang) {
+        state.lang = nextLang;
+        saveStore('lang', state.lang);
+      }
       saveStore('myMbuGroup', state.myMbuGroup);
       saveStore('myLabGroup', state.myLabGroup);
       saveStore('otherGroupMode', state.otherGroupMode);
@@ -6773,6 +7264,7 @@
       const authGate = document.getElementById('authGate');
       const authGateCard = document.getElementById('authGateCard');
       const inp = document.getElementById('authStudentIdInput');
+      setAuthLoginStep('id');
       document.documentElement.classList.add('overflow-hidden');
       document.body.classList.add('overflow-hidden');
       openAnimatedModal(authGate, authGateCard, () => {
@@ -6787,11 +7279,13 @@
         document.documentElement.classList.remove('overflow-hidden');
         document.body.classList.remove('overflow-hidden');
         clearAuthError();
+        setAuthLoginStep('id');
       });
     }
 
     function refreshAllVisibleTabsAfterAuthChange() {
       applyLanguageUI();
+      renderDailyAnnouncements();
       if (state.activeTab === 'daily') renderDailyView();
       if (state.activeTab === 'weekly') renderWeeklyView();
       if (state.activeTab === 'food') renderFoodView();
@@ -6804,6 +7298,11 @@
       try {
         localStorage.removeItem(STORE_KEY + 'authSession');
       } catch (e) {}
+      const api = window.__INONU_AUTH__;
+      if (api && typeof api.signOutFirebaseAdmin === 'function') {
+        api.signOutFirebaseAdmin().catch(() => {});
+      }
+      closeAdminModal();
       state.myMbuGroup = '';
       state.myLabGroup = '';
       state.otherGroupMode = 'dim';
@@ -6813,8 +7312,399 @@
 
       const inp = document.getElementById('authStudentIdInput');
       if (inp) inp.value = '';
+      setAuthLoginStep('id');
       refreshAllVisibleTabsAfterAuthChange();
       showToast(t('authLogoutToast'));
+    }
+
+    // ==================== ADMIN SETTINGS MODAL CONTROLLER ====================
+    const adminState = {
+      activeTab: 'announcements',
+      editingAnnId: '',
+      annTone: 'info',
+      annActive: true,
+      addGroup: 'I',
+      addLab: '',
+      addLang: 'tr',
+      announcements: [],
+      students: [],
+      studentFilterGroup: '',
+      editingStudent: null,
+      deleteConfirmAnnId: '',
+      deleteConfirmStudentHash: ''
+    };
+
+    function syncAdminModalLanguageUI() {
+      const loc = I18N[state.lang];
+      const badgeEl = document.getElementById('adminModalBadge');
+      const titleEl = document.getElementById('adminModalTitle');
+      if (badgeEl) badgeEl.textContent = loc.adminModalBadge;
+      if (titleEl) titleEl.textContent = loc.adminModalTitle;
+      document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
+        const key = btn.getAttribute('data-admin-tab');
+        if (key === 'announcements') btn.textContent = loc.adminTabAnn;
+        if (key === 'add-student') btn.textContent = loc.adminTabAdd;
+        if (key === 'students') btn.textContent = loc.adminTabStudents;
+      });
+      syncAdminCloudStatusUI();
+      syncAdminAnnFormUI();
+    }
+
+    function syncAdminCloudStatusUI() {
+      const api = window.__INONU_AUTH__;
+      const dot = document.getElementById('adminCloudStatusDot');
+      const txt = document.getElementById('adminCloudStatusText');
+      const connectBtn = document.getElementById('btnAdminGoogleConnect');
+      const refreshBtn = document.getElementById('btnAdminRefreshAll');
+      const loc = I18N[state.lang];
+      if (!dot || !txt || !connectBtn) return;
+
+      const status = api && typeof api.getFirebaseAdminStatus === 'function'
+        ? api.getFirebaseAdminStatus()
+        : { signedIn: false, email: '', emailVerified: false, isAuthorizedAdmin: false };
+
+      if (status.isAuthorizedAdmin) {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0';
+        txt.textContent = loc.adminCloudConnected(status.email);
+        connectBtn.classList.add('hidden');
+        if (refreshBtn) refreshBtn.classList.remove('hidden');
+      } else if (status.signedIn && status.email) {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0';
+        txt.textContent = loc.adminCloudWrongEmail(status.email);
+        connectBtn.textContent = loc.adminCloudConnectBtn;
+        connectBtn.classList.remove('hidden');
+        if (refreshBtn) refreshBtn.classList.add('hidden');
+      } else {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0';
+        txt.textContent = loc.adminCloudNeedAuth;
+        connectBtn.textContent = loc.adminCloudConnectBtn;
+        connectBtn.classList.remove('hidden');
+        if (refreshBtn) refreshBtn.classList.add('hidden');
+      }
+    }
+
+    function switchAdminTab(tabKey) {
+      adminState.activeTab = tabKey;
+      document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
+        const isAct = btn.getAttribute('data-admin-tab') === tabKey;
+        btn.className = isAct
+          ? 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition truncate'
+          : 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 transition truncate';
+      });
+      const pAnn = document.getElementById('adminPaneAnnouncements');
+      const pAdd = document.getElementById('adminPaneAddStudent');
+      const pStu = document.getElementById('adminPaneStudents');
+      if (pAnn) pAnn.classList.toggle('hidden', tabKey !== 'announcements');
+      if (pAdd) pAdd.classList.toggle('hidden', tabKey !== 'add-student');
+      if (pStu) pStu.classList.toggle('hidden', tabKey !== 'students');
+    }
+
+    function syncAdminAnnFormUI() {
+      const loc = I18N[state.lang];
+      const heading = document.getElementById('adminAnnFormTitle');
+      const cancelBtn = document.getElementById('btnAdminAnnCancelEdit');
+      const submitBtn = document.getElementById('btnAdminAnnSubmit');
+      const activeToggle = document.getElementById('btnAdminAnnActiveToggle');
+      if (heading) heading.textContent = adminState.editingAnnId ? loc.adminAnnEditTitle : loc.adminAnnNewTitle;
+      if (cancelBtn) cancelBtn.classList.toggle('hidden', !adminState.editingAnnId);
+      if (submitBtn) submitBtn.textContent = adminState.editingAnnId ? loc.adminAnnUpdateBtn : loc.adminAnnPublishBtn;
+      if (activeToggle) {
+        activeToggle.textContent = adminState.annActive ? loc.adminAnnLive : loc.adminAnnDraft;
+        activeToggle.className = adminState.annActive
+          ? 'ios-press min-h-[44px] px-3.5 py-2 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+          : 'ios-press min-h-[44px] px-3.5 py-2 rounded-full text-xs font-semibold ios-pill-control text-slate-500 dark:text-slate-400';
+      }
+      document.querySelectorAll('[data-ann-tone]').forEach((b) => {
+        const tone = b.getAttribute('data-ann-tone');
+        b.classList.toggle('group-chip-active', tone === adminState.annTone);
+      });
+    }
+
+    function syncAdminAddStudentChips() {
+      document.querySelectorAll('[data-add-group]').forEach((b) => {
+        b.classList.toggle('group-chip-active', b.getAttribute('data-add-group') === adminState.addGroup);
+      });
+      document.querySelectorAll('[data-add-lab]').forEach((b) => {
+        b.classList.toggle('group-chip-active', b.getAttribute('data-add-lab') === adminState.addLab);
+      });
+      document.querySelectorAll('[data-add-lang]').forEach((b) => {
+        b.classList.toggle('group-chip-active', b.getAttribute('data-add-lang') === adminState.addLang);
+      });
+    }
+
+    function renderAdminAnnouncementsList() {
+      const listEl = document.getElementById('adminAnnouncementsList');
+      if (!listEl) return;
+      const loc = I18N[state.lang];
+      listEl.innerHTML = '';
+
+      if (!adminState.announcements || adminState.announcements.length === 0) {
+        listEl.innerHTML = '<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">Henüz kayıtlı duyuru yok.</div>';
+        return;
+      }
+
+      adminState.announcements.forEach((ann) => {
+        const row = document.createElement('div');
+        row.className = 'ios-pill-control rounded-2xl p-3 space-y-2';
+        const toneBadge =
+          ann.tone === 'urgent'
+            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300">${escapeHtml(loc.adminAnnBadgeUrgent)}</span>`
+            : ann.tone === 'warn'
+              ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">${escapeHtml(loc.adminAnnBadgeWarn)}</span>`
+              : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-300">${escapeHtml(loc.adminAnnBadgeInfo)}</span>`;
+        const statusBadge = ann.active
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">${escapeHtml(loc.adminAnnLive)}</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/15 text-slate-500 dark:text-slate-400">${escapeHtml(loc.adminAnnDraft)}</span>`;
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between gap-2 flex-wrap';
+        header.innerHTML = `
+          <div class="flex items-center gap-1.5 min-w-0 flex-1">
+            ${toneBadge}
+            ${statusBadge}
+            <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(ann.title)}</h5>
+          </div>
+        `;
+        const msg = document.createElement('p');
+        msg.className = 'text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line';
+        msg.textContent = ann.message;
+
+        const actions = document.createElement('div');
+        actions.className = 'flex items-center justify-end gap-1.5 flex-wrap pt-1';
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'ios-press min-h-[44px] px-3 py-1.5 rounded-full ios-pill-control text-xs font-semibold text-slate-700 dark:text-slate-200';
+        toggleBtn.textContent = ann.active ? 'Gizle' : 'Yayınla';
+        toggleBtn.addEventListener('click', async () => {
+          const api = window.__INONU_AUTH__;
+          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
+            showToast(loc.adminNeedCloudToast);
+            return;
+          }
+          try {
+            await api.saveAnnouncement({ ...ann, active: !ann.active });
+            await refreshAdminCloudData();
+            await refreshDailyAnnouncements(true);
+            showToast(loc.adminAnnSavedToast);
+          } catch (err) {
+            showToast(loc.adminNeedCloudToast);
+          }
+        });
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-xs font-semibold';
+        editBtn.textContent = 'Düzenle';
+        editBtn.addEventListener('click', () => {
+          adminState.editingAnnId = ann.id;
+          adminState.annTone = ann.tone;
+          adminState.annActive = ann.active;
+          document.getElementById('adminAnnTitleInput').value = ann.title;
+          document.getElementById('adminAnnMsgInput').value = ann.message;
+          syncAdminAnnFormUI();
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        const isConfirming = adminState.deleteConfirmAnnId === ann.id;
+        delBtn.className = isConfirming
+          ? 'ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-rose-600 text-white text-xs font-bold'
+          : 'ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 text-xs font-semibold';
+        delBtn.textContent = isConfirming ? 'Emin misin? Sil' : 'Sil';
+        delBtn.addEventListener('click', async () => {
+          const api = window.__INONU_AUTH__;
+          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
+            showToast(loc.adminNeedCloudToast);
+            return;
+          }
+          if (adminState.deleteConfirmAnnId !== ann.id) {
+            adminState.deleteConfirmAnnId = ann.id;
+            renderAdminAnnouncementsList();
+            return;
+          }
+          adminState.deleteConfirmAnnId = '';
+          try {
+            await api.deleteAnnouncement(ann.id);
+            await refreshAdminCloudData();
+            await refreshDailyAnnouncements(true);
+            showToast(loc.adminAnnDeletedToast);
+          } catch (err) {
+            showToast(loc.adminNeedCloudToast);
+          }
+        });
+
+        actions.appendChild(toggleBtn);
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+
+        row.appendChild(header);
+        row.appendChild(msg);
+        row.appendChild(actions);
+        listEl.appendChild(row);
+      });
+    }
+
+    function openStudentEditorInAdmin(item) {
+      if (!item) return;
+      adminState.editingStudent = {
+        ...item,
+        myMbuGroup: item.myMbuGroup || '',
+        myLabGroup: item.myLabGroup || '',
+        otherGroupMode: item.otherGroupMode === 'hide' ? 'hide' : 'dim',
+        lang: item.lang === 'en' ? 'en' : item.prog === 'en' ? 'en' : 'tr',
+        active: item.active !== false
+      };
+      adminState.deleteConfirmStudentHash = '';
+      syncAdminStudentEditorUI();
+    }
+
+    function syncAdminStudentEditorUI() {
+      const card = document.getElementById('adminStudentEditorCard');
+      if (!card) return;
+      const item = adminState.editingStudent;
+      if (!item) {
+        card.classList.add('hidden');
+        return;
+      }
+      card.classList.remove('hidden');
+      const badgeEl = document.getElementById('adminEditStudentBadge');
+      const titleEl = document.getElementById('adminEditStudentTitle');
+      const nameInp = document.getElementById('adminEditNameInput');
+      const activeToggle = document.getElementById('btnAdminEditActiveToggle');
+      const delBtn = document.getElementById('btnAdminDeleteCustomStudent');
+
+      if (badgeEl) badgeEl.textContent = `${item.source === 'custom' ? 'Özel Kayıt' : 'Dönem I'} • •••••••${item.last4 || '••••'}`;
+      if (titleEl) titleEl.textContent = item.fullName || `Öğrenci •••${item.last4}`;
+      if (nameInp) nameInp.value = item.fullName || '';
+
+      document.querySelectorAll('[data-edit-mbu]').forEach((b) => {
+        b.classList.toggle('group-chip-active', (b.getAttribute('data-edit-mbu') || '') === item.myMbuGroup);
+      });
+      document.querySelectorAll('[data-edit-lab]').forEach((b) => {
+        b.classList.toggle('group-chip-active', (b.getAttribute('data-edit-lab') || '') === item.myLabGroup);
+      });
+      document.querySelectorAll('[data-edit-mode]').forEach((b) => {
+        b.classList.toggle('group-chip-active', b.getAttribute('data-edit-mode') === item.otherGroupMode);
+      });
+      document.querySelectorAll('[data-edit-lang]').forEach((b) => {
+        b.classList.toggle('group-chip-active', b.getAttribute('data-edit-lang') === item.lang);
+      });
+
+      if (activeToggle) {
+        activeToggle.textContent = item.active ? 'Hesap Aktif' : 'Hesap Pasif';
+        activeToggle.className = item.active
+          ? 'ios-press min-h-[44px] px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+          : 'ios-press min-h-[44px] px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400';
+      }
+      if (delBtn) {
+        const canDelete = Boolean(item.authHash && item.source === 'custom');
+        delBtn.classList.toggle('hidden', !canDelete);
+        delBtn.textContent = adminState.deleteConfirmStudentHash === item.authHash ? 'Emin misin? Sil' : 'Öğrenciyi Sil';
+      }
+    }
+
+    function renderAdminStudentsList() {
+      const listEl = document.getElementById('adminStudentsList');
+      const countEl = document.getElementById('adminStudentsCountLabel');
+      const filterInp = document.getElementById('adminStudentFilterInput');
+      if (!listEl) return;
+
+      document.querySelectorAll('[data-filter-sgroup]').forEach((b) => {
+        b.classList.toggle('group-chip-active', (b.getAttribute('data-filter-sgroup') || '') === adminState.studentFilterGroup);
+      });
+
+      const q = (filterInp ? filterInp.value : '').trim().toLocaleLowerCase('tr-TR');
+      const filtered = (adminState.students || []).filter((st) => {
+        const effGroup = st.myMbuGroup || st.group || '';
+        if (adminState.studentFilterGroup && effGroup !== adminState.studentFilterGroup) return false;
+        if (!q) return true;
+        const hay = `${st.fullName} ${st.last4} ${effGroup} ${st.lang} ${st.source}`.toLocaleLowerCase('tr-TR');
+        return hay.includes(q);
+      });
+
+      if (countEl) {
+        countEl.textContent = `${filtered.length} öğrenci kaydı gösteriliyor (Numara ile aratarak 349 öğrencinin tamamına ulaşabilirsiniz)`;
+      }
+
+      listEl.innerHTML = '';
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">Eşleşen bulut öğrenci kaydı bulunamadı. Yukarıdan 11 haneli numara ile doğrudan öğrenci bulabilirsiniz.</div>';
+        return;
+      }
+
+      filtered.forEach((st) => {
+        const card = document.createElement('div');
+        card.className = 'ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-2.5 flex-wrap';
+        const effGroup = st.myMbuGroup || st.group || 'Tümü';
+        const effLab = st.myLabGroup ? `LAB ${st.myLabGroup}` : 'LAB Tümü';
+        const effLang = (st.lang || st.prog || 'tr').toUpperCase();
+        const effMode = st.otherGroupMode === 'hide' ? 'Gizle' : 'Soluklaştır';
+        const srcBadge = st.source === 'custom'
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">Özel</span>'
+          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">Dönem I</span>';
+        const inactiveBadge = st.active === false
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300">Pasif</span>'
+          : '';
+
+        const left = document.createElement('div');
+        left.className = 'min-w-0 flex-1 space-y-0.5';
+        left.innerHTML = `
+          <div class="flex items-center gap-1.5 flex-wrap">
+            ${srcBadge}${inactiveBadge}
+            <p class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(st.fullName)}</p>
+          </div>
+          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">•••••••${escapeHtml(st.last4)} • Grup ${escapeHtml(effGroup)} • ${escapeHtml(effLab)} • ${escapeHtml(effLang)} • ${escapeHtml(effMode)}</p>
+        `;
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'ios-press min-h-[44px] px-3.5 py-2 rounded-full bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold shrink-0 transition';
+        editBtn.textContent = 'Düzenle';
+        editBtn.addEventListener('click', () => openStudentEditorInAdmin(st));
+
+        card.appendChild(left);
+        card.appendChild(editBtn);
+        listEl.appendChild(card);
+      });
+    }
+
+    async function refreshAdminCloudData() {
+      const api = window.__INONU_AUTH__;
+      const icon = document.getElementById('iconAdminRefresh');
+      if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
+        syncAdminCloudStatusUI();
+        renderAdminAnnouncementsList();
+        renderAdminStudentsList();
+        return;
+      }
+      if (icon) icon.classList.add('animate-spin-ios');
+      try {
+        const [anns, students] = await Promise.all([
+          api.listAllAnnouncements().catch(() => []),
+          api.loadAllAdminStudents().catch(() => [])
+        ]);
+        adminState.announcements = anns;
+        adminState.students = students;
+        renderAdminAnnouncementsList();
+        renderAdminStudentsList();
+      } finally {
+        if (icon) icon.classList.remove('animate-spin-ios');
+      }
+    }
+
+    function openAdminModal() {
+      const session = getActiveAuthSession();
+      if (!session || !session.isAdmin) return;
+      syncAdminModalLanguageUI();
+      syncAdminAddStudentChips();
+      switchAdminTab(adminState.activeTab || 'announcements');
+      openAnimatedModal(document.getElementById('adminModal'), document.getElementById('adminModalCard'));
+      refreshAdminCloudData();
+    }
+
+    function closeAdminModal() {
+      closeAnimatedModal(document.getElementById('adminModal'), document.getElementById('adminModalCard'));
     }
 
     // ==================== BOOTSTRAP ====================
@@ -6863,6 +7753,9 @@
       });
 
       const authInputEl = document.getElementById('authStudentIdInput');
+      const authPwdInputEl = document.getElementById('authAdminPasswordInput');
+      const btnToggleAdminPwdVis = document.getElementById('btnToggleAdminPwdVis');
+      const btnAuthBackToId = document.getElementById('btnAuthBackToId');
       const authFormEl = document.getElementById('authLoginForm');
       if (authInputEl) {
         authInputEl.addEventListener('input', () => {
@@ -6873,6 +7766,33 @@
           clearAuthError();
         });
       }
+      if (btnAuthBackToId) {
+        btnAuthBackToId.addEventListener('click', () => {
+          const prevId = authPendingAdminId;
+          clearAuthError();
+          setAuthLoginStep('id', prevId);
+          requestAnimationFrame(() => {
+            if (authInputEl) {
+              authInputEl.focus();
+              authInputEl.setSelectionRange(authInputEl.value.length, authInputEl.value.length);
+            }
+          });
+        });
+      }
+      if (btnToggleAdminPwdVis && authPwdInputEl) {
+        btnToggleAdminPwdVis.addEventListener('click', () => {
+          const isPwd = authPwdInputEl.type === 'password';
+          authPwdInputEl.type = isPwd ? 'text' : 'password';
+          const eyeOpen = document.getElementById('iconPwdEyeOpen');
+          const eyeClosed = document.getElementById('iconPwdEyeClosed');
+          if (eyeOpen) eyeOpen.classList.toggle('hidden', isPwd);
+          if (eyeClosed) eyeClosed.classList.toggle('hidden', !isPwd);
+        });
+      }
+      if (authPwdInputEl) {
+        authPwdInputEl.addEventListener('input', clearAuthError);
+      }
+
       let authFailedCount = 0;
       let authLockedUntil = 0;
       if (authFormEl) {
@@ -6890,110 +7810,172 @@
             showAuthError(loc.authErrSystem);
             return;
           }
-          const raw = authInputEl ? authInputEl.value : '';
+
+          const raw = authLoginStep === 'password'
+            ? (authPendingAdminId || (authInputEl ? authInputEl.value : ''))
+            : (authInputEl ? authInputEl.value : '');
           const cleaned = api.normalizeStudentId(raw);
           if (!cleaned) {
+            setAuthLoginStep('id');
             showAuthError(loc.authErrEmpty);
             if (authInputEl) authInputEl.focus();
             return;
           }
           if (!/^01\d{9}$/.test(cleaned)) {
+            setAuthLoginStep('id');
             showAuthError(loc.authErrFormat);
             if (authInputEl) authInputEl.focus();
             return;
           }
-          const match = api.verifyStudentId(cleaned);
-          if (!match) {
-            authFailedCount += 1;
-            if (authFailedCount >= 5) {
-              authLockedUntil = Date.now() + 15000;
-              authFailedCount = 0;
-              showAuthError(loc.authErrRateLimited(15));
-            } else {
-              showAuthError(loc.authErrDenied);
-            }
-            if (authInputEl) authInputEl.focus();
+
+          const isAdminAttempt = typeof api.isAdminStudentId === 'function'
+            ? api.isAdminStudentId(cleaned)
+            : cleaned === '01260102038';
+
+          // Step 1 -> Step 2 transition for admin ID (password requested only after submitting ID)
+          if (isAdminAttempt && authLoginStep === 'id') {
+            clearAuthError();
+            setAuthLoginStep('password', cleaned);
             return;
           }
-          authFailedCount = 0;
-          authLockedUntil = 0;
 
           const submitBtn = document.getElementById('btnAuthSubmit');
           if (submitBtn) submitBtn.disabled = true;
 
-          const cloudKey = typeof api.deriveCloudDocId === 'function'
-            ? await api.deriveCloudDocId(cleaned).catch(() => '')
-            : '';
-
-          if (match.prog === 'tr' || match.prog === 'en') {
-            state.lang = match.prog;
-            saveStore('lang', state.lang);
-          }
-
-          const localPrefs = getStudentPrefs(match.hash);
-          const hasLocalMbu = Object.prototype.hasOwnProperty.call(localPrefs, 'myMbuGroup');
-          state.myMbuGroup = hasLocalMbu && typeof localPrefs.myMbuGroup === 'string'
-            ? localPrefs.myMbuGroup
-            : (match.group || '');
-          state.myLabGroup = typeof localPrefs.myLabGroup === 'string' ? localPrefs.myLabGroup : '';
-          state.otherGroupMode = localPrefs.otherGroupMode === 'hide' ? 'hide' : 'dim';
-
-          let cloudPromise = null;
-          let resolvedCloudPrefs = undefined;
-          if (cloudKey && typeof api.loadCloudStudentPrefs === 'function') {
-            cloudPromise = api.loadCloudStudentPrefs(match.hash, cloudKey).catch(() => null);
-            try {
-              resolvedCloudPrefs = await Promise.race([
-                cloudPromise,
-                new Promise((resolve) => setTimeout(() => resolve(undefined), 1500))
-              ]);
-              if (resolvedCloudPrefs && typeof resolvedCloudPrefs === 'object') {
-                state.myMbuGroup = typeof resolvedCloudPrefs.myMbuGroup === 'string'
-                  ? resolvedCloudPrefs.myMbuGroup
-                  : (match.group || '');
-                state.myLabGroup = typeof resolvedCloudPrefs.myLabGroup === 'string' ? resolvedCloudPrefs.myLabGroup : '';
-                state.otherGroupMode = resolvedCloudPrefs.otherGroupMode === 'hide' ? 'hide' : 'dim';
-                saveLocalStudentPrefs(match.hash, {
-                  myMbuGroup: state.myMbuGroup,
-                  myLabGroup: state.myLabGroup,
-                  otherGroupMode: state.otherGroupMode
-                });
+          try {
+            if (isAdminAttempt) {
+              const pwdVal = authPwdInputEl ? authPwdInputEl.value : '';
+              if (!pwdVal) {
+                showAuthError(loc.authErrAdminPwdRequired);
+                if (authPwdInputEl) authPwdInputEl.focus();
+                return;
               }
-            } catch (err) {}
-          }
-
-          saveStore('myMbuGroup', state.myMbuGroup);
-          saveStore('myLabGroup', state.myLabGroup);
-          saveStore('otherGroupMode', state.otherGroupMode);
-          saveStore('authSession', {
-            hash: match.hash,
-            cloudKey,
-            last4: match.last4,
-            group: match.group,
-            prog: match.prog,
-            name: match.name,
-            at: Date.now()
-          });
-          cloudStartupSyncDoneForHash = match.hash;
-
-          if (resolvedCloudPrefs === null) {
-            saveCurrentStudentPrefs(true);
-          } else if (resolvedCloudPrefs === undefined && cloudPromise) {
-            cloudPromise.then((lateCloudPrefs) => {
-              if (lateCloudPrefs) {
-                applySyncedCloudPrefs(match.hash, lateCloudPrefs);
-              } else if (lateCloudPrefs === null) {
-                saveCurrentStudentPrefs(true);
+              const pwdOk = typeof api.verifyAdminPassword === 'function'
+                ? await api.verifyAdminPassword(pwdVal)
+                : false;
+              if (!pwdOk) {
+                authFailedCount += 1;
+                if (authFailedCount >= 5) {
+                  authLockedUntil = Date.now() + 15000;
+                  authFailedCount = 0;
+                  showAuthError(loc.authErrRateLimited(15));
+                } else {
+                  showAuthError(loc.authErrAdminPwdWrong);
+                }
+                if (authPwdInputEl) {
+                  authPwdInputEl.value = '';
+                  authPwdInputEl.focus();
+                }
+                return;
               }
+            }
+
+            const match = typeof api.lookupStudentWithCloud === 'function'
+              ? await api.lookupStudentWithCloud(cleaned)
+              : api.verifyStudentId(cleaned);
+            if (!match) {
+              authFailedCount += 1;
+              if (authFailedCount >= 5) {
+                authLockedUntil = Date.now() + 15000;
+                authFailedCount = 0;
+                showAuthError(loc.authErrRateLimited(15));
+              } else {
+                showAuthError(loc.authErrDenied);
+              }
+              if (authInputEl) authInputEl.focus();
+              return;
+            }
+            authFailedCount = 0;
+            authLockedUntil = 0;
+
+            const cloudKey = typeof api.deriveCloudDocId === 'function'
+              ? await api.deriveCloudDocId(cleaned).catch(() => '')
+              : '';
+
+            if (match.prog === 'tr' || match.prog === 'en') {
+              state.lang = match.prog;
+              saveStore('lang', state.lang);
+            }
+
+            const localPrefs = getStudentPrefs(match.hash);
+            const hasLocalMbu = Object.prototype.hasOwnProperty.call(localPrefs, 'myMbuGroup');
+            state.myMbuGroup = hasLocalMbu && typeof localPrefs.myMbuGroup === 'string'
+              ? localPrefs.myMbuGroup
+              : (match.group || '');
+            state.myLabGroup = typeof localPrefs.myLabGroup === 'string'
+              ? localPrefs.myLabGroup
+              : (typeof match.labGroup === 'string' ? match.labGroup : '');
+            state.otherGroupMode = localPrefs.otherGroupMode === 'hide' ? 'hide' : 'dim';
+
+            let cloudPromise = null;
+            let resolvedCloudPrefs = undefined;
+            if (cloudKey && typeof api.loadCloudStudentPrefs === 'function') {
+              cloudPromise = api.loadCloudStudentPrefs(match.hash, cloudKey).catch(() => null);
+              try {
+                resolvedCloudPrefs = await Promise.race([
+                  cloudPromise,
+                  new Promise((resolve) => setTimeout(() => resolve(undefined), 1500))
+                ]);
+                if (resolvedCloudPrefs && typeof resolvedCloudPrefs === 'object') {
+                  state.myMbuGroup = typeof resolvedCloudPrefs.myMbuGroup === 'string'
+                    ? resolvedCloudPrefs.myMbuGroup
+                    : (match.group || '');
+                  state.myLabGroup = typeof resolvedCloudPrefs.myLabGroup === 'string'
+                    ? resolvedCloudPrefs.myLabGroup
+                    : (typeof match.labGroup === 'string' ? match.labGroup : '');
+                  state.otherGroupMode = resolvedCloudPrefs.otherGroupMode === 'hide' ? 'hide' : 'dim';
+                  if (resolvedCloudPrefs.lang === 'tr' || resolvedCloudPrefs.lang === 'en') {
+                    state.lang = resolvedCloudPrefs.lang;
+                    saveStore('lang', state.lang);
+                  }
+                  saveLocalStudentPrefs(match.hash, {
+                    myMbuGroup: state.myMbuGroup,
+                    myLabGroup: state.myLabGroup,
+                    otherGroupMode: state.otherGroupMode,
+                    lang: state.lang
+                  });
+                }
+              } catch (err) {}
+            }
+
+            saveStore('myMbuGroup', state.myMbuGroup);
+            saveStore('myLabGroup', state.myLabGroup);
+            saveStore('otherGroupMode', state.otherGroupMode);
+            saveStore('authSession', {
+              hash: match.hash,
+              cloudKey,
+              last4: match.last4,
+              group: match.group,
+              prog: match.prog,
+              name: match.name,
+              source: match.source === 'custom' ? 'custom' : 'allowlist',
+              isAdmin: Boolean(isAdminAttempt || match.isAdmin),
+              at: Date.now()
             });
-          }
+            cloudStartupSyncDoneForHash = match.hash;
 
-          if (submitBtn) submitBtn.disabled = false;
-          clearAuthError();
-          if (authInputEl) authInputEl.value = '';
-          closeAuthModal();
-          refreshAllVisibleTabsAfterAuthChange();
-          showToast(I18N[state.lang].authWelcomeToast(match.group, match.name));
+            if (resolvedCloudPrefs === null) {
+              saveCurrentStudentPrefs(true);
+            } else if (resolvedCloudPrefs === undefined && cloudPromise) {
+              cloudPromise.then((lateCloudPrefs) => {
+                if (lateCloudPrefs) {
+                  applySyncedCloudPrefs(match.hash, lateCloudPrefs);
+                } else if (lateCloudPrefs === null) {
+                  saveCurrentStudentPrefs(true);
+                }
+              });
+            }
+
+            clearAuthError();
+            if (authInputEl) authInputEl.value = '';
+            if (authPwdInputEl) authPwdInputEl.value = '';
+            setAuthLoginStep('id');
+            closeAuthModal();
+            refreshAllVisibleTabsAfterAuthChange();
+            showToast(I18N[state.lang].authWelcomeToast(match.group, match.name));
+          } finally {
+            if (submitBtn) submitBtn.disabled = false;
+          }
         });
       }
 
@@ -7265,8 +8247,372 @@
         });
       }
 
+      // ==================== ADMIN MODAL EVENT BINDINGS ====================
+      const btnOpenAdminModal = document.getElementById('btnOpenAdminModal');
+      if (btnOpenAdminModal) btnOpenAdminModal.addEventListener('click', openAdminModal);
+      const btnCloseAdminModal = document.getElementById('btnCloseAdminModal');
+      if (btnCloseAdminModal) btnCloseAdminModal.addEventListener('click', closeAdminModal);
+      const adminModalOverlay = document.getElementById('adminModal');
+      if (adminModalOverlay) {
+        adminModalOverlay.addEventListener('click', (e) => {
+          if (e.target.id === 'adminModal') closeAdminModal();
+        });
+      }
+
+      document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const tKey = btn.getAttribute('data-admin-tab') || 'announcements';
+          switchAdminTab(tKey);
+        });
+      });
+
+      const btnAdminGoogleConnect = document.getElementById('btnAdminGoogleConnect');
+      if (btnAdminGoogleConnect) {
+        btnAdminGoogleConnect.addEventListener('click', async () => {
+          const api = window.__INONU_AUTH__;
+          if (!api || typeof api.signInAdminWithGoogle !== 'function') return;
+          btnAdminGoogleConnect.disabled = true;
+          try {
+            const res = await api.signInAdminWithGoogle();
+            syncAdminCloudStatusUI();
+            if (res.ok) {
+              await refreshAdminCloudData();
+              showToast('Google yönetici yetkisi doğrulandı');
+            } else if (res.email) {
+              showToast(I18N[state.lang].adminCloudWrongEmail(res.email));
+            }
+          } finally {
+            btnAdminGoogleConnect.disabled = false;
+          }
+        });
+      }
+
+      const btnAdminRefreshAll = document.getElementById('btnAdminRefreshAll');
+      if (btnAdminRefreshAll) {
+        btnAdminRefreshAll.addEventListener('click', () => refreshAdminCloudData());
+      }
+
+      document.querySelectorAll('[data-ann-tone]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          adminState.annTone = btn.getAttribute('data-ann-tone') || 'info';
+          syncAdminAnnFormUI();
+        });
+      });
+      const btnAdminAnnActiveToggle = document.getElementById('btnAdminAnnActiveToggle');
+      if (btnAdminAnnActiveToggle) {
+        btnAdminAnnActiveToggle.addEventListener('click', () => {
+          adminState.annActive = !adminState.annActive;
+          syncAdminAnnFormUI();
+        });
+      }
+      const btnAdminAnnCancelEdit = document.getElementById('btnAdminAnnCancelEdit');
+      if (btnAdminAnnCancelEdit) {
+        btnAdminAnnCancelEdit.addEventListener('click', () => {
+          adminState.editingAnnId = '';
+          adminState.annTone = 'info';
+          adminState.annActive = true;
+          document.getElementById('adminAnnTitleInput').value = '';
+          document.getElementById('adminAnnMsgInput').value = '';
+          syncAdminAnnFormUI();
+        });
+      }
+
+      const adminAnnForm = document.getElementById('adminAnnForm');
+      if (adminAnnForm) {
+        adminAnnForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const loc = I18N[state.lang];
+          const api = window.__INONU_AUTH__;
+          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
+            showToast(loc.adminNeedCloudToast);
+            return;
+          }
+          const titleVal = document.getElementById('adminAnnTitleInput').value.trim();
+          const msgVal = document.getElementById('adminAnnMsgInput').value.trim();
+          if (!titleVal || !msgVal) {
+            showToast('Başlık ve mesaj zorunludur.');
+            return;
+          }
+          const btn = document.getElementById('btnAdminAnnSubmit');
+          if (btn) btn.disabled = true;
+          try {
+            await api.saveAnnouncement({
+              id: adminState.editingAnnId || undefined,
+              title: titleVal,
+              message: msgVal,
+              tone: adminState.annTone,
+              active: adminState.annActive
+            });
+            adminState.editingAnnId = '';
+            adminState.annTone = 'info';
+            adminState.annActive = true;
+            document.getElementById('adminAnnTitleInput').value = '';
+            document.getElementById('adminAnnMsgInput').value = '';
+            syncAdminAnnFormUI();
+            await refreshAdminCloudData();
+            await refreshDailyAnnouncements(true);
+            showToast(loc.adminAnnSavedToast);
+          } catch (err) {
+            showToast(loc.adminNeedCloudToast);
+          } finally {
+            if (btn) btn.disabled = false;
+          }
+        });
+      }
+
+      document.querySelectorAll('[data-add-group]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          adminState.addGroup = btn.getAttribute('data-add-group') || 'I';
+          syncAdminAddStudentChips();
+        });
+      });
+      document.querySelectorAll('[data-add-lab]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          adminState.addLab = btn.getAttribute('data-add-lab') || '';
+          syncAdminAddStudentChips();
+        });
+      });
+      document.querySelectorAll('[data-add-lang]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          adminState.addLang = btn.getAttribute('data-add-lang') === 'en' ? 'en' : 'tr';
+          syncAdminAddStudentChips();
+        });
+      });
+
+      const adminAddSidEl = document.getElementById('adminAddSid');
+      if (adminAddSidEl) {
+        adminAddSidEl.addEventListener('input', () => {
+          adminAddSidEl.value = adminAddSidEl.value.replace(/\D+/g, '').slice(0, 11);
+        });
+      }
+      const adminAddStudentForm = document.getElementById('adminAddStudentForm');
+      if (adminAddStudentForm) {
+        adminAddStudentForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const loc = I18N[state.lang];
+          const api = window.__INONU_AUTH__;
+          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
+            showToast(loc.adminNeedCloudToast);
+            return;
+          }
+          const sid = api.normalizeStudentId(document.getElementById('adminAddSid').value);
+          const fullName = document.getElementById('adminAddName').value.trim();
+          if (!/^01\d{9}$/.test(sid)) {
+            showToast(loc.authErrFormat);
+            return;
+          }
+          if (!fullName) {
+            showToast('İsim soyisim zorunludur.');
+            return;
+          }
+          const btn = document.getElementById('btnAdminSaveNewStudent');
+          if (btn) btn.disabled = true;
+          try {
+            await api.addOrUpdateCustomStudent({
+              studentId: sid,
+              fullName,
+              group: adminState.addGroup,
+              labGroup: adminState.addLab,
+              prog: adminState.addLang,
+              active: true
+            });
+            document.getElementById('adminAddSid').value = '';
+            document.getElementById('adminAddName').value = '';
+            await refreshAdminCloudData();
+            showToast(loc.adminStudentSavedToast);
+          } catch (err) {
+            showToast(loc.adminNeedCloudToast);
+          } finally {
+            if (btn) btn.disabled = false;
+          }
+        });
+      }
+
+      const adminLookupSidEl = document.getElementById('adminLookupSid');
+      if (adminLookupSidEl) {
+        adminLookupSidEl.addEventListener('input', () => {
+          adminLookupSidEl.value = adminLookupSidEl.value.replace(/\D+/g, '').slice(0, 11);
+        });
+      }
+      const btnAdminLookupStudent = document.getElementById('btnAdminLookupStudent');
+      if (btnAdminLookupStudent) {
+        btnAdminLookupStudent.addEventListener('click', async () => {
+          const loc = I18N[state.lang];
+          const api = window.__INONU_AUTH__;
+          if (!api || typeof api.lookupStudentForAdmin !== 'function') return;
+          const sid = api.normalizeStudentId(adminLookupSidEl ? adminLookupSidEl.value : '');
+          if (!/^01\d{9}$/.test(sid)) {
+            showToast(loc.authErrFormat);
+            return;
+          }
+          btnAdminLookupStudent.disabled = true;
+          try {
+            const found = await api.lookupStudentForAdmin(sid);
+            if (!found) {
+              showToast(loc.adminStudentNotFound);
+              return;
+            }
+            openStudentEditorInAdmin(found);
+          } finally {
+            btnAdminLookupStudent.disabled = false;
+          }
+        });
+      }
+
+      const btnAdminCancelStudentEdit = document.getElementById('btnAdminCancelStudentEdit');
+      if (btnAdminCancelStudentEdit) {
+        btnAdminCancelStudentEdit.addEventListener('click', () => {
+          adminState.editingStudent = null;
+          adminState.deleteConfirmStudentHash = '';
+          syncAdminStudentEditorUI();
+        });
+      }
+      document.querySelectorAll('[data-edit-mbu]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!adminState.editingStudent) return;
+          adminState.editingStudent.myMbuGroup = btn.getAttribute('data-edit-mbu') || '';
+          syncAdminStudentEditorUI();
+        });
+      });
+      document.querySelectorAll('[data-edit-lab]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!adminState.editingStudent) return;
+          adminState.editingStudent.myLabGroup = btn.getAttribute('data-edit-lab') || '';
+          syncAdminStudentEditorUI();
+        });
+      });
+      document.querySelectorAll('[data-edit-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!adminState.editingStudent) return;
+          adminState.editingStudent.otherGroupMode = btn.getAttribute('data-edit-mode') === 'hide' ? 'hide' : 'dim';
+          syncAdminStudentEditorUI();
+        });
+      });
+      document.querySelectorAll('[data-edit-lang]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!adminState.editingStudent) return;
+          adminState.editingStudent.lang = btn.getAttribute('data-edit-lang') === 'en' ? 'en' : 'tr';
+          syncAdminStudentEditorUI();
+        });
+      });
+      const btnAdminEditActiveToggle = document.getElementById('btnAdminEditActiveToggle');
+      if (btnAdminEditActiveToggle) {
+        btnAdminEditActiveToggle.addEventListener('click', () => {
+          if (!adminState.editingStudent) return;
+          adminState.editingStudent.active = !adminState.editingStudent.active;
+          syncAdminStudentEditorUI();
+        });
+      }
+      const btnAdminSaveStudentEdit = document.getElementById('btnAdminSaveStudentEdit');
+      if (btnAdminSaveStudentEdit) {
+        btnAdminSaveStudentEdit.addEventListener('click', async () => {
+          const loc = I18N[state.lang];
+          const api = window.__INONU_AUTH__;
+          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
+            showToast(loc.adminNeedCloudToast);
+            return;
+          }
+          if (!adminState.editingStudent) return;
+          const editedName = document.getElementById('adminEditNameInput').value.trim();
+          btnAdminSaveStudentEdit.disabled = true;
+          try {
+            await api.adminSaveStudentSettings({
+              cloudKey: adminState.editingStudent.cloudKey,
+              authHash: adminState.editingStudent.authHash,
+              last4: adminState.editingStudent.last4,
+              fullName: editedName || adminState.editingStudent.fullName,
+              myMbuGroup: adminState.editingStudent.myMbuGroup,
+              myLabGroup: adminState.editingStudent.myLabGroup,
+              otherGroupMode: adminState.editingStudent.otherGroupMode,
+              lang: adminState.editingStudent.lang,
+              source: adminState.editingStudent.source,
+              active: adminState.editingStudent.active
+            });
+            adminState.editingStudent = null;
+            syncAdminStudentEditorUI();
+            await refreshAdminCloudData();
+            showToast(loc.adminStudentUpdatedToast);
+          } catch (err) {
+            showToast(loc.adminNeedCloudToast);
+          } finally {
+            btnAdminSaveStudentEdit.disabled = false;
+          }
+        });
+      }
+      const btnAdminDeleteCustomStudent = document.getElementById('btnAdminDeleteCustomStudent');
+      if (btnAdminDeleteCustomStudent) {
+        btnAdminDeleteCustomStudent.addEventListener('click', async () => {
+          const loc = I18N[state.lang];
+          const api = window.__INONU_AUTH__;
+          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin || !adminState.editingStudent) return;
+          const hash = adminState.editingStudent.authHash;
+          if (!hash) return;
+          if (adminState.deleteConfirmStudentHash !== hash) {
+            adminState.deleteConfirmStudentHash = hash;
+            syncAdminStudentEditorUI();
+            return;
+          }
+          adminState.deleteConfirmStudentHash = '';
+          btnAdminDeleteCustomStudent.disabled = true;
+          try {
+            await api.deleteCustomStudent(hash, adminState.editingStudent.cloudKey);
+            adminState.editingStudent = null;
+            syncAdminStudentEditorUI();
+            await refreshAdminCloudData();
+            showToast(loc.adminStudentDeletedToast);
+          } catch (err) {
+            showToast(loc.adminNeedCloudToast);
+          } finally {
+            btnAdminDeleteCustomStudent.disabled = false;
+          }
+        });
+      }
+
+      const adminStudentFilterInput = document.getElementById('adminStudentFilterInput');
+      if (adminStudentFilterInput) {
+        adminStudentFilterInput.addEventListener('input', renderAdminStudentsList);
+      }
+      document.querySelectorAll('[data-filter-sgroup]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          adminState.studentFilterGroup = btn.getAttribute('data-filter-sgroup') || '';
+          renderAdminStudentsList();
+        });
+      });
+
+      const adminPwdForm = document.getElementById('adminPwdForm');
+      if (adminPwdForm) {
+        adminPwdForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const loc = I18N[state.lang];
+          const api = window.__INONU_AUTH__;
+          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
+            showToast(loc.adminNeedCloudToast);
+            return;
+          }
+          const newPwd = document.getElementById('adminNewPwdInput').value.trim();
+          if (newPwd.length < 4) {
+            showToast(loc.adminPwdInvalidToast);
+            return;
+          }
+          const btn = document.getElementById('btnAdminSaveNewPwd');
+          if (btn) btn.disabled = true;
+          try {
+            const res = await api.updateAdminPassword(newPwd);
+            if (res.ok) {
+              document.getElementById('adminNewPwdInput').value = '';
+              showToast(loc.adminPwdUpdatedToast);
+            } else {
+              showToast(loc.adminPwdInvalidToast);
+            }
+          } finally {
+            if (btn) btn.disabled = false;
+          }
+        });
+      }
+
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
+          closeAdminModal();
           closeAuthModal();
           closeFoodPhotoModal();
           closeFoodDateModal();
@@ -7336,10 +8682,22 @@
       switchTab('daily', false);
       updateAuthSessionSummary();
       syncActiveStudentCloudPrefs();
+      refreshDailyAnnouncements(true);
       requestAnimationFrame(() => updateTabIndicator('daily', false));
       window.addEventListener('inonu-auth-ready', () => {
         updateAuthSessionSummary();
         syncActiveStudentCloudPrefs();
+        refreshDailyAnnouncements(true);
+        const api = window.__INONU_AUTH__;
+        if (api && typeof api.subscribeAdminAuthState === 'function') {
+          api.subscribeAdminAuthState(() => {
+            syncAdminCloudStatusUI();
+            const adminModalEl = document.getElementById('adminModal');
+            if (adminModalEl && !adminModalEl.classList.contains('hidden')) {
+              refreshAdminCloudData();
+            }
+          });
+        }
       });
       if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(() => updateTabIndicator(state.activeTab, false));
