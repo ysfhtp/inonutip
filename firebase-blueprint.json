@@ -126,6 +126,12 @@
           "type": "number",
           "description": "Slot number (1-10)."
         },
+        "targetProg": {
+          "type": "string",
+          "enum": ["", "tr", "en"],
+          "maxLength": 2,
+          "description": "Target program language (tr, en, or empty for legacy)."
+        },
         "title": {
           "type": "string",
           "minLength": 1,
@@ -134,24 +140,28 @@
         },
         "sourceType": {
           "type": "string",
-          "enum": ["url", "file"],
-          "maxLength": 4,
-          "description": "Whether the PDF is stored as an external link or uploaded file."
+          "enum": ["url", "file", "server"],
+          "maxLength": 6,
+          "description": "Whether the PDF is an external link, small embedded file, or server-stored file."
         },
         "pdfUrl": {
           "type": "string",
           "maxLength": 2000,
-          "description": "PDF file URL or download link (empty when uploaded as file)."
+          "description": "PDF file URL or /api/lesson-pdf/ path."
         },
         "pdfData": {
           "type": "string",
           "maxLength": 950000,
-          "description": "Optional base64-encoded PDF content for direct device downloads."
+          "description": "Optional base64-encoded PDF content for small fallback downloads."
         },
         "pdfName": {
           "type": "string",
           "maxLength": 120,
           "description": "Optional PDF filename."
+        },
+        "fileSize": {
+          "type": "number",
+          "description": "Optional PDF file size in bytes (up to 250 MB)."
         },
         "deleted": {
           "type": "boolean",

@@ -3000,7 +3000,7 @@
       position: absolute;
       top: 0;
       left: 0;
-      border-radius: 0.75rem;
+      border-radius: 0.625rem;
       background: rgba(255, 255, 255, 0.95);
       box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
       will-change: transform, width, height;
@@ -3462,7 +3462,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.1</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.2</span>
       </div>
     </section>
 
@@ -3609,36 +3609,36 @@
   <div id="adminModal" class="fixed inset-0 z-50 hidden bg-black/45 backdrop-blur-md flex items-center justify-center p-2.5 min-[360px]:p-4" style="padding-top: max(0.75rem, env(safe-area-inset-top, 0px)); padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));">
     <div id="adminModalCard" class="ios-glass rounded-3xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
       <!-- Modal Top Header -->
-      <div class="px-4 sm:px-5 pt-4 pb-3 border-b border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between gap-2 shrink-0">
-        <div class="min-w-0">
-          <span id="adminModalBadge" class="inline-block px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold tracking-wide">01260102038 • YÖNETİCİ</span>
-          <h3 id="adminModalTitle" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-1 truncate">Admin Ayarları</h3>
+      <div class="px-3.5 sm:px-5 pt-3 pb-2 border-b border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between gap-2 shrink-0">
+        <div class="min-w-0 flex items-center gap-2 flex-wrap">
+          <span id="adminModalBadge" class="inline-block px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-bold tracking-wide">01260102038 • YÖNETİCİ</span>
+          <h3 id="adminModalTitle" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">Admin Ayarları</h3>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
-          <button id="btnAdminRefreshAll" type="button" class="ios-press w-11 h-11 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 flex items-center justify-center transition" aria-label="Yenile" title="Yenile">
+          <button id="btnAdminRefreshAll" type="button" class="ios-press w-9 h-9 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 flex items-center justify-center transition" aria-label="Yenile" title="Yenile">
             <svg id="iconAdminRefresh" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
           </button>
-          <button id="btnCloseAdminModal" type="button" class="ios-press w-11 h-11 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0" aria-label="Kapat">✕</button>
+          <button id="btnCloseAdminModal" type="button" class="ios-press w-9 h-9 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0" aria-label="Kapat">✕</button>
         </div>
       </div>
 
       <!-- Optional Legacy Session Unlock Strip (hidden when logged in with 2-step password) -->
-      <form id="adminReunlockBar" class="hidden px-4 sm:px-5 py-2.5 border-b border-amber-500/20 bg-amber-500/10 flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0" novalidate>
+      <form id="adminReunlockBar" class="hidden px-4 sm:px-5 py-2 border-b border-amber-500/20 bg-amber-500/10 flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0" novalidate>
         <p id="adminUnlockBannerText" class="text-[11px] sm:text-xs font-semibold text-amber-800 dark:text-amber-200 flex-1 min-w-[160px]">Düzenleme yapmak için yönetici şifresini bir kez doğrulayın:</p>
         <div class="flex items-center gap-1.5 w-full sm:w-auto">
-          <input id="adminUnlockPwdInput" type="password" maxlength="64" placeholder="Yönetici şifresi" class="flex-1 sm:w-44 min-w-0 ios-pill-control rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
-          <button id="btnAdminUnlockSubmit" type="submit" class="ios-press min-h-[44px] px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shrink-0 transition">Kilidi Aç</button>
+          <input id="adminUnlockPwdInput" type="password" maxlength="64" placeholder="Yönetici şifresi" class="flex-1 sm:w-44 min-w-0 ios-pill-control rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+          <button id="btnAdminUnlockSubmit" type="submit" class="ios-press min-h-[36px] px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shrink-0 transition">Kilidi Aç</button>
         </div>
       </form>
 
-      <!-- 4-Tab Segmented Control -->
-      <div class="px-4 sm:px-5 pt-3 pb-2 shrink-0">
-        <div id="adminTabsBar" class="ios-pill-control p-1 rounded-2xl grid grid-cols-2 sm:grid-cols-4 gap-1 relative">
-          <div id="adminTabIndicator" style="transform: translate3d(4px, 4px, 0); width: 80px; height: 44px;"></div>
-          <button type="button" data-admin-tab="announcements" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-center">Duyurular</button>
-          <button type="button" data-admin-tab="materials" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold whitespace-nowrap text-center">Ders PDF'leri</button>
-          <button type="button" data-admin-tab="add-student" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold whitespace-nowrap text-center">Öğrenci Ekle</button>
-          <button type="button" data-admin-tab="students" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold whitespace-nowrap text-center">Öğrenci Ayarları</button>
+      <!-- 4-Tab Compact Segmented Control -->
+      <div class="px-3 sm:px-5 pt-2 pb-1.5 shrink-0">
+        <div id="adminTabsBar" class="ios-pill-control p-0.5 rounded-xl grid grid-cols-4 gap-0.5 relative items-stretch">
+          <div id="adminTabIndicator" style="transform: translate3d(2px, 2px, 0); width: 70px; height: 32px;"></div>
+          <button type="button" data-admin-tab="announcements" class="admin-tab-btn py-1.5 px-1 sm:px-2 rounded-[10px] text-[10.5px] sm:text-xs font-bold leading-[1.15] text-center flex items-center justify-center">Duyurular</button>
+          <button type="button" data-admin-tab="materials" class="admin-tab-btn py-1.5 px-1 sm:px-2 rounded-[10px] text-[10.5px] sm:text-xs font-semibold leading-[1.15] text-center flex items-center justify-center">Ders PDF'leri</button>
+          <button type="button" data-admin-tab="add-student" class="admin-tab-btn py-1.5 px-1 sm:px-2 rounded-[10px] text-[10.5px] sm:text-xs font-semibold leading-[1.15] text-center flex items-center justify-center">Öğrenci Ekle</button>
+          <button type="button" data-admin-tab="students" class="admin-tab-btn py-1.5 px-1 sm:px-2 rounded-[10px] text-[10.5px] sm:text-xs font-semibold leading-[1.15] text-center flex items-center justify-center">Öğrenci Ayarları</button>
         </div>
       </div>
 
@@ -3698,7 +3698,14 @@
           <form id="adminMaterialForm" class="ios-pill-control rounded-2xl p-3.5 space-y-3" novalidate>
             <div class="flex items-center justify-between gap-2">
               <h4 id="adminMatFormHeading" class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Ders Notu / PDF Ekle</h4>
-              <button id="btnAdminMatCancelEdit" type="button" class="hidden min-h-[44px] px-3 py-1 rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">İptal</button>
+              <button id="btnAdminMatCancelEdit" type="button" class="hidden min-h-[36px] px-3 py-1 rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">İptal</button>
+            </div>
+            <div class="space-y-1">
+              <span id="lblAdminMatProg" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Hedef Program</span>
+              <div id="adminMatProgChips" class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" data-mat-prog="tr" class="group-chip group-chip-active min-h-[38px] px-3.5">Türkçe (TR)</button>
+                <button type="button" data-mat-prog="en" class="group-chip min-h-[38px] px-3.5">İngilizce (EN)</button>
+              </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div class="space-y-1">
@@ -3717,28 +3724,44 @@
             <div class="space-y-2">
               <span id="lblAdminMatSourceMode" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">PDF Kaynağı</span>
               <div class="flex items-center gap-1.5 flex-wrap">
-                <button type="button" data-mat-mode="file" class="group-chip group-chip-active min-h-[44px] px-3.5">PDF Dosyası Seç</button>
-                <button type="button" data-mat-mode="url" class="group-chip min-h-[44px] px-3.5">Web Bağlantısı (URL)</button>
+                <button type="button" data-mat-mode="file" class="group-chip group-chip-active min-h-[38px] px-3.5">PDF Dosyası Seç</button>
+                <button type="button" data-mat-mode="url" class="group-chip min-h-[38px] px-3.5">Web Bağlantısı (URL)</button>
               </div>
               <div id="adminMatFileWrap" class="space-y-1.5">
                 <label for="adminMatFileInput" class="ios-press cursor-pointer flex items-center justify-between gap-2 w-full ios-pill-control rounded-xl px-3.5 py-2.5 border border-dashed border-blue-500/40 hover:border-blue-500/70 transition">
                   <div class="flex items-center gap-2 min-w-0">
                     <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    <span id="adminMatFileLabel" class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">Cihazdan PDF dosyası seç (maks. 650 KB)...</span>
+                    <span id="adminMatFileLabel" class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">Cihazdan PDF dosyası seç (maks. 250 MB)...</span>
                   </div>
                   <span class="px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-[11px] font-bold shrink-0">Dosya Seç</span>
                 </label>
                 <input id="adminMatFileInput" type="file" accept="application/pdf,.pdf" class="sr-only">
+                <div id="adminMatUploadProgressWrap" class="hidden space-y-1 pt-0.5">
+                  <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 tabular-nums">
+                    <span id="adminMatUploadStatusText">Yükleniyor...</span>
+                    <span id="adminMatUploadPctText">0%</span>
+                  </div>
+                  <div class="w-full h-1.5 rounded-full bg-slate-200/70 dark:bg-slate-800 overflow-hidden">
+                    <div id="adminMatUploadProgressBar" class="h-full bg-blue-600 transition-all duration-150" style="width: 0%;"></div>
+                  </div>
+                </div>
               </div>
               <div id="adminMatUrlWrap" class="hidden space-y-1">
                 <input id="adminMatUrlInput" type="url" maxlength="2000" placeholder="https://drive.google.com/... veya PDF bağlantısı" class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
               </div>
             </div>
-            <button id="btnAdminMatSubmit" type="submit" class="ios-press w-full min-h-[44px] py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">PDF Materyalini Kaydet</button>
+            <button id="btnAdminMatSubmit" type="submit" class="ios-press w-full min-h-[42px] py-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">PDF Materyalini Kaydet</button>
           </form>
 
           <div class="space-y-2">
-            <h4 id="adminMatListHeading" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Yüklenen Ders PDF'leri</h4>
+            <div class="flex items-center justify-between gap-2 flex-wrap px-1">
+              <h4 id="adminMatListHeading" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Yüklenen Ders PDF'leri</h4>
+              <div id="adminMatListFilterChips" class="flex items-center gap-1">
+                <button type="button" data-mat-list-filter="" class="group-chip group-chip-active px-2.5 py-0.5 text-[11px]">Tümü</button>
+                <button type="button" data-mat-list-filter="tr" class="group-chip px-2.5 py-0.5 text-[11px]">TR</button>
+                <button type="button" data-mat-list-filter="en" class="group-chip px-2.5 py-0.5 text-[11px]">EN</button>
+              </div>
+            </div>
             <div id="adminMaterialsList" class="space-y-2"></div>
           </div>
         </div>
@@ -5382,32 +5405,41 @@
       }
 
       const matKey = `${slot.date}_${slot.slotNo}`;
-      const material = typeof lessonMaterialsMap !== 'undefined' ? lessonMaterialsMap[matKey] : null;
-      if (material && (material.pdfData || material.pdfUrl)) {
+      const rawMats = typeof lessonMaterialsMap !== 'undefined' ? lessonMaterialsMap[matKey] : null;
+      const matList = Array.isArray(rawMats)
+        ? rawMats.filter((m) => m && (!m.targetProg || m.targetProg === state.lang) && (m.pdfData || m.pdfUrl))
+        : [];
+      if (matList.length > 0) {
         const pdfWrap = document.createElement('div');
-        pdfWrap.className = 'mt-1.5';
-        const pdfLabel = material.title || material.pdfName || (state.lang === 'en' ? 'Download PDF' : 'PDF İndir');
-        if (material.pdfData) {
-          const pdfBtn = document.createElement('button');
-          pdfBtn.type = 'button';
-          pdfBtn.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition';
-          pdfBtn.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate max-w-[200px]">${escapeHtml(pdfLabel)}</span>`;
-          pdfBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openOrDownloadLessonMaterial(material);
-          });
-          pdfWrap.appendChild(pdfBtn);
-        } else {
-          const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
-          const pdfLink = document.createElement('a');
-          pdfLink.href = safeUrl;
-          pdfLink.target = '_blank';
-          pdfLink.rel = 'noopener noreferrer';
-          pdfLink.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition';
-          pdfLink.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate max-w-[200px]">${escapeHtml(pdfLabel)}</span>`;
-          pdfLink.addEventListener('click', (e) => e.stopPropagation());
-          pdfWrap.appendChild(pdfLink);
-        }
+        pdfWrap.className = 'mt-1.5 flex flex-wrap gap-1.5';
+        matList.forEach((material) => {
+          const pdfLabel = material.title || material.pdfName || (state.lang === 'en' ? 'Download PDF' : 'PDF İndir');
+          const sizeBadge = typeof material.fileSize === 'number' && material.fileSize > 0
+            ? ` (${formatPdfBytesLabel(material.fileSize)})`
+            : '';
+          const isDirectDownload = Boolean(material.pdfData) || (typeof material.pdfUrl === 'string' && material.pdfUrl.startsWith('/api/lesson-pdf/'));
+          if (isDirectDownload) {
+            const pdfBtn = document.createElement('button');
+            pdfBtn.type = 'button';
+            pdfBtn.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition max-w-full';
+            pdfBtn.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate max-w-[190px]">${escapeHtml(pdfLabel)}</span>${sizeBadge ? `<span class="text-[10px] opacity-75 shrink-0 tabular-nums">${escapeHtml(sizeBadge)}</span>` : ''}`;
+            pdfBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              openOrDownloadLessonMaterial(material);
+            });
+            pdfWrap.appendChild(pdfBtn);
+          } else {
+            const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
+            const pdfLink = document.createElement('a');
+            pdfLink.href = safeUrl;
+            pdfLink.target = '_blank';
+            pdfLink.rel = 'noopener noreferrer';
+            pdfLink.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition max-w-full';
+            pdfLink.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate max-w-[190px]">${escapeHtml(pdfLabel)}</span>`;
+            pdfLink.addEventListener('click', (e) => e.stopPropagation());
+            pdfWrap.appendChild(pdfLink);
+          }
+        });
         rightCol.appendChild(pdfWrap);
       }
 
@@ -7205,7 +7237,9 @@
         const list = await api.loadAllLessonMaterials();
         lessonMaterialsMap = {};
         list.forEach((m) => {
-          lessonMaterialsMap[`${m.date}_${m.slotNo}`] = m;
+          const k = `${m.date}_${m.slotNo}`;
+          if (!Array.isArray(lessonMaterialsMap[k])) lessonMaterialsMap[k] = [];
+          lessonMaterialsMap[k].push(m);
         });
         renderDailyView();
         renderWeeklyView();
@@ -7695,6 +7729,13 @@
       showToast(customToastMsg || t('authLogoutToast'));
     }
 
+    function formatPdfBytesLabel(bytes) {
+      const n = Number(bytes) || 0;
+      if (n <= 0) return '';
+      if (n < 1024 * 1024) return `${Math.max(1, Math.round(n / 1024))} KB`;
+      return `${(n / (1024 * 1024)).toFixed(n >= 10 * 1024 * 1024 ? 1 : 2)} MB`;
+    }
+
     function openOrDownloadLessonMaterial(material) {
       if (!material) return;
       if (material.pdfData) {
@@ -7723,6 +7764,17 @@
         }
       }
       if (material.pdfUrl) {
+        if (material.pdfUrl.startsWith('/api/lesson-pdf/')) {
+          const dlUrl = material.pdfUrl.includes('?') ? `${material.pdfUrl}&download=1` : `${material.pdfUrl}?download=1`;
+          const a = document.createElement('a');
+          a.href = dlUrl;
+          const rawName = (material.pdfName || material.title || `ders_${material.date}_${material.slotNo}`).trim();
+          a.download = rawName.toLowerCase().endsWith('.pdf') ? rawName : `${rawName}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          return;
+        }
         const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
         const a = document.createElement('a');
         a.href = safeUrl;
@@ -7742,9 +7794,14 @@
       annActive: true,
       annTargetGroup: '',
       annTargetProg: '',
+      matProg: 'tr',
       matMode: 'file',
+      matFileObj: null,
       matFileData: '',
       matFileName: '',
+      matFileSize: 0,
+      matExistingUrl: '',
+      matListFilterProg: '',
       editingMatId: '',
       addGroup: 'I',
       addLab: '',
@@ -7905,8 +7962,8 @@
       document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
         const isAct = btn.getAttribute('data-admin-tab') === tabKey;
         btn.className = isAct
-          ? 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold text-slate-900 dark:text-white whitespace-nowrap text-center transition'
-          : 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap text-center transition';
+          ? 'admin-tab-btn py-1.5 px-1 sm:px-2 rounded-[10px] text-[10.5px] sm:text-xs font-bold leading-[1.15] text-slate-900 dark:text-white text-center flex items-center justify-center transition'
+          : 'admin-tab-btn py-1.5 px-1 sm:px-2 rounded-[10px] text-[10.5px] sm:text-xs font-semibold leading-[1.15] text-slate-600 dark:text-slate-300 text-center flex items-center justify-center transition';
       });
       const pAnn = document.getElementById('adminPaneAnnouncements');
       const pMat = document.getElementById('adminPaneMaterials');
@@ -8333,10 +8390,15 @@
       listEl.appendChild(frag);
     }
 
+    function getAdminMatScheduleDays(progOverride) {
+      const p = progOverride || adminState.matProg || state.lang || 'tr';
+      return p === 'en' ? SCHEDULE_DAYS_EN : SCHEDULE_DAYS_TR;
+    }
+
     function populateAdminMatSlotSelect(dateStr, selectedSlotNo) {
       const slotSel = document.getElementById('adminMatSlotSelect');
       if (!slotSel) return;
-      const days = getScheduleDays();
+      const days = getAdminMatScheduleDays();
       const dayObj = days.find((d) => d.date === dateStr) || days[0];
       const slots = dayObj && Array.isArray(dayObj.slots) ? dayObj.slots : [];
       slotSel.innerHTML = '';
@@ -8361,6 +8423,26 @@
       }
     }
 
+    function setAdminMatUploadProgress(visible, pct = 0, loadedBytes = 0, totalBytes = 0, statusLabel = '') {
+      const wrap = document.getElementById('adminMatUploadProgressWrap');
+      const bar = document.getElementById('adminMatUploadProgressBar');
+      const pctEl = document.getElementById('adminMatUploadPctText');
+      const statusEl = document.getElementById('adminMatUploadStatusText');
+      if (!wrap) return;
+      wrap.classList.toggle('hidden', !visible);
+      if (bar) bar.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+      if (pctEl) pctEl.textContent = `${Math.round(pct)}%`;
+      if (statusEl) {
+        if (statusLabel) {
+          statusEl.textContent = statusLabel;
+        } else if (totalBytes > 0) {
+          statusEl.textContent = `Yükleniyor (${formatPdfBytesLabel(loadedBytes)} / ${formatPdfBytesLabel(totalBytes)})`;
+        } else {
+          statusEl.textContent = 'Yükleniyor...';
+        }
+      }
+    }
+
     function syncAdminMaterialModeUI() {
       const isFile = adminState.matMode !== 'url';
       const fileWrap = document.getElementById('adminMatFileWrap');
@@ -8369,15 +8451,21 @@
       const heading = document.getElementById('adminMatFormHeading');
       const cancelBtn = document.getElementById('btnAdminMatCancelEdit');
       const submitBtn = document.getElementById('btnAdminMatSubmit');
+      document.querySelectorAll('[data-mat-prog]').forEach((b) => {
+        b.classList.toggle('group-chip-active', b.getAttribute('data-mat-prog') === (adminState.matProg === 'en' ? 'en' : 'tr'));
+      });
       document.querySelectorAll('[data-mat-mode]').forEach((b) => {
         b.classList.toggle('group-chip-active', b.getAttribute('data-mat-mode') === (isFile ? 'file' : 'url'));
       });
       if (fileWrap) fileWrap.classList.toggle('hidden', !isFile);
       if (urlWrap) urlWrap.classList.toggle('hidden', isFile);
       if (fileLabel) {
-        fileLabel.textContent = adminState.matFileName
-          ? `Seçili PDF: ${adminState.matFileName}`
-          : 'Cihazdan PDF dosyası seç (maks. 650 KB)...';
+        if (adminState.matFileName) {
+          const sizeTxt = adminState.matFileSize > 0 ? ` (${formatPdfBytesLabel(adminState.matFileSize)})` : '';
+          fileLabel.textContent = `Seçili PDF: ${adminState.matFileName}${sizeTxt}`;
+        } else {
+          fileLabel.textContent = 'Cihazdan PDF dosyası seç (maks. 250 MB)...';
+        }
       }
       if (heading) {
         heading.textContent = adminState.editingMatId ? 'Ders PDF\'ini Güncelle' : 'Ders Notu / PDF Ekle';
@@ -8391,7 +8479,10 @@
     function syncAdminMaterialFormDefaults() {
       const dateSel = document.getElementById('adminMatDateSelect');
       if (!dateSel) return;
-      const days = getScheduleDays();
+      if (adminState.matProg !== 'tr' && adminState.matProg !== 'en') {
+        adminState.matProg = state.lang === 'en' ? 'en' : 'tr';
+      }
+      const days = getAdminMatScheduleDays();
       const prevDate = dateSel.value;
       dateSel.innerHTML = '';
       days.forEach((d) => {
@@ -8414,19 +8505,33 @@
       const listEl = document.getElementById('adminMaterialsList');
       if (!listEl) return;
       listEl.innerHTML = '';
-      const mats = adminState.materials || [];
+      document.querySelectorAll('[data-mat-list-filter]').forEach((b) => {
+        b.classList.toggle('group-chip-active', (b.getAttribute('data-mat-list-filter') || '') === (adminState.matListFilterProg || ''));
+      });
+      const allMats = adminState.materials || [];
+      const filterProg = adminState.matListFilterProg || '';
+      const mats = filterProg
+        ? allMats.filter((m) => (m.targetProg || '') === filterProg)
+        : allMats;
       if (mats.length === 0) {
-        listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">Henüz eklenmiş ders PDF'i yok.</div>`;
+        listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">Bu filtre için eklenmiş ders PDF'i yok.</div>`;
         return;
       }
-      const days = getScheduleDays();
       mats.forEach((mat, idx) => {
-        const dayMatch = days.find((d) => d.date === mat.date);
+        const progDays = mat.targetProg === 'en' ? SCHEDULE_DAYS_EN : (mat.targetProg === 'tr' ? SCHEDULE_DAYS_TR : getScheduleDays());
+        const dayMatch = progDays.find((d) => d.date === mat.date);
         const slotMatch = dayMatch && Array.isArray(dayMatch.slots) ? dayMatch.slots.find((s) => s.slotNo === mat.slotNo) : null;
         const lessonInfo = slotMatch ? slotMatch.title : '';
-        const isFile = Boolean(mat.pdfData) || mat.sourceType === 'file';
+        const isFile = Boolean(mat.pdfData) || mat.sourceType === 'file' || mat.sourceType === 'server' || (typeof mat.pdfUrl === 'string' && mat.pdfUrl.startsWith('/api/lesson-pdf/'));
+        const sizeLabel = typeof mat.fileSize === 'number' && mat.fileSize > 0 ? formatPdfBytesLabel(mat.fileSize) : '';
+        const progBadgeText = mat.targetProg === 'en' ? 'EN' : (mat.targetProg === 'tr' ? 'TR' : 'TR/EN');
+        const progBadgeCls = mat.targetProg === 'en'
+          ? 'bg-purple-500/15 text-purple-600 dark:text-purple-300'
+          : mat.targetProg === 'tr'
+            ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300'
+            : 'bg-slate-500/15 text-slate-600 dark:text-slate-300';
         const subInfo = isFile
-          ? `Dosya: ${mat.pdfName || mat.title || 'ders.pdf'}`
+          ? `Dosya: ${mat.pdfName || mat.title || 'ders.pdf'}${sizeLabel ? ` • ${sizeLabel}` : ''}`
           : mat.pdfUrl;
 
         const row = document.createElement('div');
@@ -8435,17 +8540,18 @@
         row.innerHTML = `
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${progBadgeCls}">${progBadgeText}</span>
               <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-300 tabular-nums">${escapeHtml(mat.date)} • ${mat.slotNo}. Ders</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isFile ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300' : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300'}">${isFile ? 'PDF Dosya' : 'URL'}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isFile ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300' : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300'}">${isFile ? (sizeLabel || 'PDF Dosya') : 'URL'}</span>
               <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(mat.title)}</h5>
             </div>
             ${lessonInfo ? `<p class="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate mt-0.5">${escapeHtml(lessonInfo)}</p>` : ''}
             <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">${escapeHtml(subInfo)}</p>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
-            <button type="button" class="btn-view-mat ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">${isFile ? 'İndir' : 'Görüntüle'}</button>
-            <button type="button" class="btn-edit-mat ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-xs font-semibold">Düzenle</button>
-            <button type="button" class="btn-del-mat ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 text-xs font-semibold" data-mat-id="${escapeHtml(mat.id)}">${adminState.deleteConfirmMatId === mat.id ? 'Emin misin? Sil' : 'Sil'}</button>
+            <button type="button" class="btn-view-mat ios-press min-h-[38px] px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">${isFile ? 'İndir' : 'Görüntüle'}</button>
+            <button type="button" class="btn-edit-mat ios-press min-h-[38px] px-3 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-xs font-semibold">Düzenle</button>
+            <button type="button" class="btn-del-mat ios-press min-h-[38px] px-3 py-1 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 text-xs font-semibold" data-mat-id="${escapeHtml(mat.id)}">${adminState.deleteConfirmMatId === mat.id ? 'Emin misin? Sil' : 'Sil'}</button>
           </div>
         `;
         row.querySelector('.btn-view-mat').addEventListener('click', () => {
@@ -8453,9 +8559,14 @@
         });
         row.querySelector('.btn-edit-mat').addEventListener('click', () => {
           adminState.editingMatId = mat.id;
+          adminState.matProg = mat.targetProg === 'en' ? 'en' : 'tr';
           adminState.matMode = isFile ? 'file' : 'url';
+          adminState.matFileObj = null;
           adminState.matFileData = mat.pdfData || '';
+          adminState.matFileSize = mat.fileSize || 0;
+          adminState.matExistingUrl = isFile && mat.pdfUrl ? mat.pdfUrl : '';
           adminState.matFileName = mat.pdfName || (isFile ? `${mat.title}.pdf` : '');
+          syncAdminMaterialFormDefaults();
           const dateSel = document.getElementById('adminMatDateSelect');
           if (dateSel) {
             if (!Array.from(dateSel.options).some((o) => o.value === mat.date)) {
@@ -8470,7 +8581,8 @@
           const titleEl = document.getElementById('adminMatTitleInput');
           const urlEl = document.getElementById('adminMatUrlInput');
           if (titleEl) titleEl.value = mat.title || '';
-          if (urlEl) urlEl.value = mat.pdfUrl || '';
+          if (urlEl) urlEl.value = !isFile ? (mat.pdfUrl || '') : '';
+          setAdminMatUploadProgress(false);
           syncAdminMaterialModeUI();
           const formEl = document.getElementById('adminMaterialForm');
           if (formEl && typeof formEl.scrollIntoView === 'function') {
@@ -8526,7 +8638,9 @@
         adminState.students = students;
         lessonMaterialsMap = {};
         mats.forEach((m) => {
-          lessonMaterialsMap[`${m.date}_${m.slotNo}`] = m;
+          const k = `${m.date}_${m.slotNo}`;
+          if (!Array.isArray(lessonMaterialsMap[k])) lessonMaterialsMap[k] = [];
+          lessonMaterialsMap[k].push(m);
         });
         renderAdminAnnouncementsList();
         renderAdminMaterialsList();
@@ -9262,6 +9376,20 @@
         });
       }
 
+      document.querySelectorAll('[data-mat-prog]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          adminState.matProg = btn.getAttribute('data-mat-prog') === 'en' ? 'en' : 'tr';
+          syncAdminMaterialFormDefaults();
+        });
+      });
+
+      document.querySelectorAll('[data-mat-list-filter]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          adminState.matListFilterProg = btn.getAttribute('data-mat-list-filter') || '';
+          renderAdminMaterialsList();
+        });
+      });
+
       document.querySelectorAll('[data-mat-mode]').forEach((btn) => {
         btn.addEventListener('click', () => {
           adminState.matMode = btn.getAttribute('data-mat-mode') === 'url' ? 'url' : 'file';
@@ -9287,31 +9415,21 @@
             adminMatFileInput.value = '';
             return;
           }
-          if (file.size > 650 * 1024) {
-            showToast('Dosya 650 KB\'dan büyük. Lütfen sıkıştırın veya Web Bağlantısı (URL) kullanın.');
+          if (file.size > 250 * 1024 * 1024) {
+            showToast('Dosya boyutu en fazla 250 MB olabilir.');
             adminMatFileInput.value = '';
             return;
           }
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = typeof reader.result === 'string' ? reader.result : '';
-            const base64 = result.replace(/^data:[^;]+;base64,/i, '');
-            if (!base64 || base64.length > 950000) {
-              showToast('PDF boyutu sınırı aşıyor. Lütfen URL seçeneğini kullanın.');
-              return;
-            }
-            adminState.matFileData = base64;
-            adminState.matFileName = file.name;
-            const titleEl = document.getElementById('adminMatTitleInput');
-            if (titleEl && !titleEl.value.trim()) {
-              titleEl.value = file.name.replace(/\.pdf$/i, '').slice(0, 120);
-            }
-            syncAdminMaterialModeUI();
-          };
-          reader.onerror = () => {
-            showToast('PDF dosyası okunamadı.');
-          };
-          reader.readAsDataURL(file);
+          adminState.matFileObj = file;
+          adminState.matFileData = '';
+          adminState.matFileName = file.name;
+          adminState.matFileSize = file.size;
+          const titleEl = document.getElementById('adminMatTitleInput');
+          if (titleEl && !titleEl.value.trim()) {
+            titleEl.value = file.name.replace(/\.pdf$/i, '').slice(0, 120);
+          }
+          setAdminMatUploadProgress(false);
+          syncAdminMaterialModeUI();
         });
       }
 
@@ -9319,13 +9437,17 @@
       if (btnAdminMatCancelEdit) {
         btnAdminMatCancelEdit.addEventListener('click', () => {
           adminState.editingMatId = '';
+          adminState.matFileObj = null;
           adminState.matFileData = '';
           adminState.matFileName = '';
+          adminState.matFileSize = 0;
+          adminState.matExistingUrl = '';
           const titleEl = document.getElementById('adminMatTitleInput');
           const urlEl = document.getElementById('adminMatUrlInput');
           if (titleEl) titleEl.value = '';
           if (urlEl) urlEl.value = '';
           if (adminMatFileInput) adminMatFileInput.value = '';
+          setAdminMatUploadProgress(false);
           syncAdminMaterialModeUI();
         });
       }
@@ -9339,6 +9461,7 @@
           if (!api || !secret) return;
           const dateVal = (document.getElementById('adminMatDateSelect')?.value || state.selectedDate || '').trim();
           const slotVal = parseInt(document.getElementById('adminMatSlotSelect')?.value || '1', 10) || 1;
+          const targetProg = adminState.matProg === 'en' ? 'en' : 'tr';
           const titleVal = (document.getElementById('adminMatTitleInput')?.value || '').trim();
           const urlVal = (document.getElementById('adminMatUrlInput')?.value || '').trim();
           const isFile = adminState.matMode !== 'url';
@@ -9347,7 +9470,7 @@
             showToast('Lütfen ders tarihi, saati ve PDF başlığını girin.');
             return;
           }
-          if (isFile && !adminState.matFileData) {
+          if (isFile && !adminState.matFileObj && !adminState.matFileData && !adminState.matExistingUrl) {
             showToast('Lütfen cihazdan bir PDF dosyası seçin veya Web Bağlantısı moduna geçin.');
             return;
           }
@@ -9359,32 +9482,72 @@
           const btn = document.getElementById('btnAdminMatSubmit');
           if (btn) btn.disabled = true;
           try {
-            await api.saveLessonMaterial({
+            const explicitSecret = secret === 'active' ? undefined : secret;
+            let savePayload = {
               id: adminState.editingMatId || undefined,
               date: dateVal,
               slotNo: slotVal,
+              targetProg,
               title: titleVal,
               sourceType: isFile ? 'file' : 'url',
               pdfUrl: isFile ? '' : urlVal,
               pdfData: isFile ? adminState.matFileData : '',
-              pdfName: isFile ? (adminState.matFileName || `${titleVal}.pdf`) : titleVal
-            }, secret === 'active' ? undefined : secret);
+              pdfName: isFile ? (adminState.matFileName || `${titleVal}.pdf`) : titleVal,
+              fileSize: adminState.matFileSize || undefined
+            };
+
+            if (isFile && adminState.matFileObj) {
+              setAdminMatUploadProgress(true, 1, 0, adminState.matFileObj.size, 'Sunucuya bağlanılıyor...');
+              const uploaded = await api.uploadLessonPdfFile(
+                adminState.matFileObj,
+                explicitSecret,
+                (pct, loaded, total) => setAdminMatUploadProgress(true, pct, loaded, total)
+              );
+              if (adminState.matExistingUrl && adminState.matExistingUrl.startsWith('/api/lesson-pdf/')) {
+                void api.deleteServerPdfByUrl(adminState.matExistingUrl, explicitSecret);
+              }
+              if (uploaded.fallbackBase64) {
+                savePayload.sourceType = 'file';
+                savePayload.pdfUrl = '';
+                savePayload.pdfData = uploaded.fallbackBase64;
+                savePayload.pdfName = uploaded.fileName;
+                savePayload.fileSize = uploaded.size;
+              } else {
+                savePayload.sourceType = 'server';
+                savePayload.pdfUrl = uploaded.url;
+                savePayload.pdfData = '';
+                savePayload.pdfName = uploaded.fileName;
+                savePayload.fileSize = uploaded.size;
+              }
+              setAdminMatUploadProgress(true, 100, uploaded.size, uploaded.size, 'Veritabanına kaydediliyor...');
+            } else if (isFile && adminState.matExistingUrl) {
+              savePayload.sourceType = adminState.matExistingUrl.startsWith('/api/lesson-pdf/') ? 'server' : 'url';
+              savePayload.pdfUrl = adminState.matExistingUrl;
+              savePayload.pdfData = '';
+            }
+
+            await api.saveLessonMaterial(savePayload, explicitSecret);
             adminState.editingMatId = '';
+            adminState.matFileObj = null;
             adminState.matFileData = '';
             adminState.matFileName = '';
+            adminState.matFileSize = 0;
+            adminState.matExistingUrl = '';
             const titleEl = document.getElementById('adminMatTitleInput');
             const urlEl = document.getElementById('adminMatUrlInput');
             if (titleEl) titleEl.value = '';
             if (urlEl) urlEl.value = '';
             if (adminMatFileInput) adminMatFileInput.value = '';
+            setAdminMatUploadProgress(false);
             syncAdminMaterialModeUI();
             await refreshAdminCloudData();
             await refreshLessonMaterials(true);
-            showToast('Ders PDF\'i kaydedildi');
+            showToast(`Ders PDF'i (${targetProg.toUpperCase()}) kaydedildi`);
           } catch (err) {
             console.warn('Lesson material save error:', err);
+            setAdminMatUploadProgress(false);
             const msg = err instanceof Error && err.message === 'PDF_TOO_LARGE'
-              ? 'PDF dosyası çok büyük (maks. 650 KB). Lütfen Web Bağlantısı kullanın.'
+              ? 'PDF dosyası en fazla 250 MB olabilir.'
               : 'PDF kaydedilemedi. Bağlantınızı veya yönetici kilidini kontrol edin.';
             showToast(msg);
           } finally {

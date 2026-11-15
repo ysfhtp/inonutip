@@ -11,6 +11,7 @@ import {
   deleteAnnouncement,
   deleteCustomStudent,
   deleteLessonMaterial,
+  deleteServerPdfByUrl,
   hasAdminWriteSecret,
   isStudentAlreadyRegistered,
   listAllAnnouncements,
@@ -26,6 +27,7 @@ import {
   setAdminWriteSecret,
   subscribeStudentAccountStatus,
   updateAdminPassword,
+  uploadLessonPdfFile,
   verifyAdminPassword,
   verifyAndUnlockAdmin,
 } from './firebasePrefs.ts';
@@ -73,6 +75,8 @@ declare global {
       loadAllLessonMaterials: typeof loadAllLessonMaterials;
       saveLessonMaterial: typeof saveLessonMaterial;
       deleteLessonMaterial: typeof deleteLessonMaterial;
+      uploadLessonPdfFile: typeof uploadLessonPdfFile;
+      deleteServerPdfByUrl: typeof deleteServerPdfByUrl;
       addOrUpdateCustomStudent: typeof addOrUpdateCustomStudent;
       deleteCustomStudent: typeof deleteCustomStudent;
       loadAllAdminStudents: typeof loadAllAdminStudents;
@@ -112,6 +116,8 @@ window.__INONU_AUTH__ = {
   loadAllLessonMaterials,
   saveLessonMaterial,
   deleteLessonMaterial,
+  uploadLessonPdfFile,
+  deleteServerPdfByUrl,
   addOrUpdateCustomStudent,
   deleteCustomStudent,
   loadAllAdminStudents,

@@ -851,17 +851,22 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
 // ==================== LESSON MATERIALS ====================
 
 export interface LessonMaterial {
-  id: string; // e.g. "01-12-2026_1"
+  id: string; // e.g. "01-12-2026_1_1730000000000_abcd"
   date: string; // DD.MM.YYYY
   slotNo: number;
+  targetProg: '' | 'tr' | 'en';
   title: string;
-  sourceType?: 'url' | 'file';
+  sourceType?: 'url' | 'file' | 'server';
   pdfUrl: string;
   pdfData?: string;
   pdfName?: string;
+  fileSize?: number;
   createdAtMs: number;
   updatedAtMs: number;
 }
+
+const MAX_SERVER_PDF_BYTES = 250 * 1024 * 1024;
+const PDF_UPLOAD_CHUNK_BYTES = 2 * 1024 * 1024;
 
 function normalizeMaterialDate(raw: string): string {
   const s = String(raw || '').trim();
@@ -878,6 +883,158 @@ function normalizeMaterialDate(raw: string): string {
   return s.slice(0, 16);
 }
 
+export async function deleteServerPdfByUrl(pdfUrl: string, adminSecret?: string): Promise<void> {
+  const clean = typeof pdfUrl === 'string' ? pdfUrl.trim() : '';
+  if (!clean.startsWith('/api/lesson-pdf/')) return;
+  const fileId = clean.slice('/api/lesson-pdf/'.length).split('?')[0].trim();
+  if (!/^[a-zA-Z0-9_-]{8,96}$/.test(fileId)) return;
+  try {
+    const secret = resolveAdminWriteSecret(adminSecret);
+    await fetch(`/api/lesson-pdf/${encodeURIComponent(fileId)}`, {
+      method: 'DELETE',
+      headers: {
+        'X-Admin-Secret': secret,
+      },
+    });
+  } catch {
+    // Best-effort cleanup
+  }
+}
+
+export async function uploadLessonPdfFile(
+  file: File,
+  adminSecret?: string,
+  onProgress?: (percent: number, loadedBytes: number, totalBytes: number) => void,
+): Promise<{
+  url: string;
+  fileId: string;
+  fileName: string;
+  size: number;
+  fallbackBase64?: string;
+}> {
+  const secret = resolveAdminWriteSecret(adminSecret);
+  if (!file || file.size < 1) {
+    throw new Error('PDF file is empty.');
+  }
+  if (file.size > MAX_SERVER_PDF_BYTES) {
+    throw new Error('PDF_TOO_LARGE');
+  }
+
+  const totalChunks = Math.ceil(file.size / PDF_UPLOAD_CHUNK_BYTES);
+  onProgress?.(2, 0, file.size);
+
+  const initResp = await fetch('/api/lesson-pdf/init', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Admin-Secret': secret,
+    },
+    body: JSON.stringify({
+      fileName: file.name,
+      fileSize: file.size,
+      totalChunks,
+    }),
+  });
+
+  if (initResp.status === 404 && file.size <= 650 * 1024) {
+    const fallbackBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const res = typeof reader.result === 'string' ? reader.result : '';
+        resolve(res.replace(/^data:[^;]+;base64,/i, ''));
+      };
+      reader.onerror = () => reject(new Error('PDF_READ_FAILED'));
+      reader.readAsDataURL(file);
+    });
+    onProgress?.(100, file.size, file.size);
+    return {
+      url: '',
+      fileId: '',
+      fileName: file.name,
+      size: file.size,
+      fallbackBase64,
+    };
+  }
+
+  if (!initResp.ok) {
+    const errJson = await initResp.json().catch(() => ({}));
+    throw new Error(String((errJson as { error?: string }).error || `UPLOAD_INIT_${initResp.status}`));
+  }
+
+  const initData = (await initResp.json()) as {
+    uploadId: string;
+    fileId: string;
+    chunkSize?: number;
+  };
+  const chunkSize = initData.chunkSize || PDF_UPLOAD_CHUNK_BYTES;
+
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * chunkSize;
+    const end = Math.min(file.size, start + chunkSize);
+    const chunkBuf = await file.slice(start, end).arrayBuffer();
+
+    let attempt = 0;
+    let uploaded = false;
+    let lastErr: unknown = null;
+    while (attempt < 3 && !uploaded) {
+      attempt += 1;
+      try {
+        const chunkResp = await fetch('/api/lesson-pdf/chunk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'X-Admin-Secret': secret,
+            'X-Upload-Id': initData.uploadId,
+            'X-Chunk-Index': String(i),
+          },
+          body: chunkBuf,
+        });
+        if (!chunkResp.ok) {
+          const errJson = await chunkResp.json().catch(() => ({}));
+          throw new Error(String((errJson as { error?: string }).error || `CHUNK_${chunkResp.status}`));
+        }
+        uploaded = true;
+      } catch (err) {
+        lastErr = err;
+        if (attempt >= 3) throw err;
+        await new Promise((r) => setTimeout(r, 350 * attempt));
+      }
+    }
+    if (!uploaded && lastErr) throw lastErr;
+
+    const pct = Math.min(96, Math.max(4, Math.round(((i + 1) / totalChunks) * 94)));
+    onProgress?.(pct, end, file.size);
+  }
+
+  const completeResp = await fetch('/api/lesson-pdf/complete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Admin-Secret': secret,
+    },
+    body: JSON.stringify({ uploadId: initData.uploadId }),
+  });
+
+  if (!completeResp.ok) {
+    const errJson = await completeResp.json().catch(() => ({}));
+    throw new Error(String((errJson as { error?: string }).error || `COMPLETE_${completeResp.status}`));
+  }
+
+  const completeData = (await completeResp.json()) as {
+    fileId: string;
+    url: string;
+    fileName: string;
+    size: number;
+  };
+  onProgress?.(100, file.size, file.size);
+  return {
+    url: completeData.url,
+    fileId: completeData.fileId,
+    fileName: completeData.fileName || file.name,
+    size: completeData.size || file.size,
+  };
+}
+
 export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
   const path = 'lesson_materials';
   try {
@@ -889,21 +1046,28 @@ export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
         const data = d.data();
         const pdfData = typeof data.pdfData === 'string' && data.pdfData.length > 0 ? data.pdfData : undefined;
         const pdfUrl = typeof data.pdfUrl === 'string' ? data.pdfUrl : '';
-        const sourceType: 'url' | 'file' = data.sourceType === 'file' || pdfData ? 'file' : 'url';
+        const sourceType: 'url' | 'file' | 'server' =
+          data.sourceType === 'server' || pdfUrl.startsWith('/api/lesson-pdf/')
+            ? 'server'
+            : data.sourceType === 'file' || pdfData
+              ? 'file'
+              : 'url';
         return {
           id: d.id,
           date: normalizeMaterialDate(typeof data.date === 'string' ? data.date : ''),
           slotNo: typeof data.slotNo === 'number' ? data.slotNo : 1,
+          targetProg: normalizeLangPref(data.targetProg),
           title: typeof data.title === 'string' ? data.title : '',
           sourceType,
           pdfUrl,
           pdfData,
           pdfName: typeof data.pdfName === 'string' ? data.pdfName : undefined,
+          fileSize: typeof data.fileSize === 'number' && data.fileSize >= 0 ? data.fileSize : undefined,
           createdAtMs: tsToMillis(data.createdAt),
           updatedAtMs: tsToMillis(data.updatedAt),
         };
       })
-      .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
+      .sort((a, b) => (a.createdAtMs || a.updatedAtMs) - (b.createdAtMs || b.updatedAtMs));
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
   }
@@ -914,11 +1078,13 @@ export async function saveLessonMaterial(
     id?: string;
     date: string;
     slotNo: number;
+    targetProg?: '' | 'tr' | 'en';
     title: string;
-    sourceType?: 'url' | 'file';
+    sourceType?: 'url' | 'file' | 'server';
     pdfUrl?: string;
     pdfData?: string;
     pdfName?: string;
+    fileSize?: number;
   },
   adminSecret?: string,
 ): Promise<LessonMaterial> {
@@ -926,20 +1092,30 @@ export async function saveLessonMaterial(
   const cleanDate = normalizeMaterialDate(input.date);
   const rawSlot = Math.round(Number(input.slotNo) || 1);
   const slotNo = Math.min(10, Math.max(1, rawSlot));
+  const targetProg = normalizeLangPref(input.targetProg);
   const cleanTitle = String(input.title || '').trim().slice(0, 120);
   const rawData = typeof input.pdfData === 'string'
     ? input.pdfData.trim().replace(/^data:[^;]+;base64,/i, '')
     : '';
   let cleanUrl = String(input.pdfUrl || '').trim();
-  if (cleanUrl && !/^https?:\/\//i.test(cleanUrl)) {
+  if (cleanUrl && !cleanUrl.startsWith('/api/lesson-pdf/') && !/^https?:\/\//i.test(cleanUrl)) {
     cleanUrl = `https://${cleanUrl}`;
   }
   cleanUrl = cleanUrl.slice(0, 2000);
-  const sourceType: 'url' | 'file' =
-    input.sourceType === 'file' || (rawData.length > 0 && !cleanUrl) ? 'file' : 'url';
+
+  const sourceType: 'url' | 'file' | 'server' =
+    input.sourceType === 'server' || cleanUrl.startsWith('/api/lesson-pdf/')
+      ? 'server'
+      : input.sourceType === 'file' || (rawData.length > 0 && !cleanUrl)
+        ? 'file'
+        : 'url';
   const cleanData = sourceType === 'file' ? rawData : '';
-  const finalUrl = sourceType === 'url' ? cleanUrl : '';
+  const finalUrl = sourceType === 'file' ? '' : cleanUrl;
   const cleanName = String(input.pdfName || '').trim().slice(0, 120);
+  const cleanFileSize =
+    typeof input.fileSize === 'number' && Number.isFinite(input.fileSize) && input.fileSize >= 0
+      ? Math.min(MAX_SERVER_PDF_BYTES, Math.round(input.fileSize))
+      : undefined;
 
   if (!cleanDate || !cleanTitle) {
     throw new Error('Date and title are required.');
@@ -952,7 +1128,10 @@ export async function saveLessonMaterial(
   }
 
   const dateKey = cleanDate.replace(/[^a-zA-Z0-9_-]/g, '-');
-  const candidateId = input.id ? input.id.trim().replace(/[^a-zA-Z0-9_-]/g, '-') : `${dateKey}_${slotNo}`;
+  const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const candidateId = input.id
+    ? input.id.trim().replace(/[^a-zA-Z0-9_-]/g, '-')
+    : `${dateKey}_${slotNo}_${uniqueSuffix}`;
   const rawId = (candidateId || `${Date.now()}_${slotNo}`).slice(0, 128);
   const docRef = doc(db, 'lesson_materials', rawId);
   const path = `lesson_materials/${rawId}`;
@@ -964,6 +1143,7 @@ export async function saveLessonMaterial(
     const payload: Record<string, unknown> = {
       date: cleanDate,
       slotNo,
+      targetProg,
       title: cleanTitle,
       sourceType,
       pdfUrl: finalUrl,
@@ -973,6 +1153,7 @@ export async function saveLessonMaterial(
       updatedAt: serverTimestamp(),
     };
     if (cleanName) payload.pdfName = cleanName;
+    if (typeof cleanFileSize === 'number') payload.fileSize = cleanFileSize;
 
     if (existingSnap.exists() && existingSnap.data()?.createdAt) {
       batch.update(docRef, payload);
@@ -986,11 +1167,13 @@ export async function saveLessonMaterial(
       id: rawId,
       date: cleanDate,
       slotNo,
+      targetProg,
       title: cleanTitle,
       sourceType,
       pdfUrl: finalUrl,
       pdfData: cleanData || undefined,
       pdfName: cleanName || undefined,
+      fileSize: cleanFileSize,
       createdAtMs: existingSnap.exists() ? tsToMillis(existingSnap.data()?.createdAt) : Date.now(),
       updatedAtMs: Date.now(),
     };
@@ -1009,6 +1192,7 @@ export async function deleteLessonMaterial(id: string, adminSecret?: string): Pr
   try {
     const existingSnap = await getDoc(docRef);
     if (!existingSnap.exists()) return;
+    const prevUrl = typeof existingSnap.data()?.pdfUrl === 'string' ? existingSnap.data()?.pdfUrl : '';
     const batch = writeBatch(db);
     const opId = appendAdminProofToBatch(batch, secret, path);
     batch.update(docRef, {
@@ -1017,6 +1201,9 @@ export async function deleteLessonMaterial(id: string, adminSecret?: string): Pr
       updatedAt: serverTimestamp(),
     });
     await batch.commit();
+    if (prevUrl.startsWith('/api/lesson-pdf/')) {
+      void deleteServerPdfByUrl(prevUrl, secret);
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
