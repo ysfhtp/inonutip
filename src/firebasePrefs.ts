@@ -1,36 +1,30 @@
 import { initializeApp } from 'firebase/app';
-import {
-  browserLocalPersistence,
-  getAuth,
-  getRedirectResult,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  setPersistence,
-  signInWithPopup,
-  signInWithRedirect,
-  signOut,
-  type User,
-} from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import {
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocFromServer,
   getDocs,
   getFirestore,
+  limit,
   query,
   serverTimestamp,
   setDoc,
   Timestamp,
-  updateDoc,
   where,
+  writeBatch,
+  type WriteBatch,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import {
   DEFAULT_ADMIN_PASSWORD_HASH,
+  decryptDirectoryName,
   decryptStudentName,
+  deriveAdminProofDigestB64,
+  deriveAdminWriteSecret,
   deriveCloudDocId,
+  encryptDirectoryName,
   encryptStudentName,
   hashAdminPassword,
   hashStudentId,
@@ -42,8 +36,6 @@ import {
   verifyStudentId,
   type StudentAuthMatch,
 } from './studentAllowlist.ts';
-
-export const ADMIN_AUTHORIZED_EMAIL = 'ysfhtp6@gmail.com';
 
 export interface StudentCloudPrefs {
   myMbuGroup: '' | 'I' | 'II' | 'III' | 'IV' | 'V';
@@ -64,13 +56,6 @@ export interface CloudAnnouncement {
   active: boolean;
   createdAtMs: number;
   updatedAtMs: number;
-}
-
-export interface AdminFirebaseAuthStatus {
-  signedIn: boolean;
-  email: string;
-  emailVerified: boolean;
-  isAuthorizedAdmin: boolean;
 }
 
 export interface AdminStudentListItem {
@@ -119,11 +104,43 @@ const VALID_MBU_GROUPS = new Set(['', 'I', 'II', 'III', 'IV', 'V']);
 const VALID_NONEMPTY_MBU_GROUPS = new Set(['I', 'II', 'III', 'IV', 'V']);
 const VALID_LAB_GROUPS = new Set(['', '1', '2']);
 const VALID_TONES = new Set<AnnouncementTone>(['info', 'warn', 'urgent']);
+const ADMIN_SECRET_RE = /^[a-f0-9]{64}$/;
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
-void setPersistence(auth, browserLocalPersistence).catch(() => {});
+
+let activeAdminWriteSecret = '';
+
+export function setAdminWriteSecret(secret: string): void {
+  const clean = typeof secret === 'string' ? secret.trim().toLowerCase() : '';
+  activeAdminWriteSecret = ADMIN_SECRET_RE.test(clean) ? clean : '';
+}
+
+export function clearAdminWriteSecret(): void {
+  activeAdminWriteSecret = '';
+}
+
+export function hasAdminWriteSecret(): boolean {
+  return ADMIN_SECRET_RE.test(activeAdminWriteSecret);
+}
+
+function resolveAdminWriteSecret(explicitSecret?: string): string {
+  const candidate = typeof explicitSecret === 'string' ? explicitSecret.trim().toLowerCase() : '';
+  if (ADMIN_SECRET_RE.test(candidate)) return candidate;
+  if (ADMIN_SECRET_RE.test(activeAdminWriteSecret)) return activeAdminWriteSecret;
+  throw new Error('ADMIN_SECRET_REQUIRED');
+}
+
+function appendAdminProofToBatch(batch: WriteBatch, writeSecret: string, targetPath: string): string {
+  const opId = `op_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  batch.set(doc(db, 'admin_proofs', opId), {
+    proof: writeSecret,
+    targetPath,
+    createdAt: serverTimestamp(),
+  });
+  return opId;
+}
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
   const errInfo: FirestoreErrorInfo = {
@@ -193,276 +210,6 @@ function tsToMillis(raw: unknown): number {
   return 0;
 }
 
-function buildFirebaseAuthStatus(user: User | null): AdminFirebaseAuthStatus {
-  const email = user?.email ? String(user.email).trim() : '';
-  const emailVerified = Boolean(user?.emailVerified);
-  return {
-    signedIn: Boolean(user),
-    email,
-    emailVerified,
-    isAuthorizedAdmin: Boolean(user && emailVerified && email.toLowerCase() === ADMIN_AUTHORIZED_EMAIL),
-  };
-}
-
-export function getFirebaseAdminStatus(): AdminFirebaseAuthStatus {
-  return buildFirebaseAuthStatus(auth.currentUser);
-}
-
-export function subscribeAdminAuthState(callback: (status: AdminFirebaseAuthStatus) => void): () => void {
-  return onAuthStateChanged(auth, (user) => {
-    callback(buildFirebaseAuthStatus(user));
-  });
-}
-
-export interface AdminGoogleSignInResult {
-  ok: boolean;
-  email: string;
-  isAuthorizedAdmin: boolean;
-  redirecting?: boolean;
-  errorCode?: string;
-  error?: string;
-  hostname?: string;
-}
-
-const PENDING_ADMIN_REDIRECT_KEY = 'inonu_pending_admin_redirect';
-
-function isRunningInIframe(): boolean {
-  try {
-    return typeof window !== 'undefined' && window.self !== window.top;
-  } catch {
-    return true;
-  }
-}
-
-function isRunningStandalonePWA(): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    return Boolean(
-      window.matchMedia?.('(display-mode: standalone)').matches ||
-      window.matchMedia?.('(display-mode: fullscreen)').matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true,
-    );
-  } catch {
-    return false;
-  }
-}
-
-function extractFirebaseErrorInfo(error: unknown): { code: string; message: string } {
-  const code =
-    typeof error === 'object' && error !== null && 'code' in error
-      ? String((error as { code?: unknown }).code || '')
-      : '';
-  const message = error instanceof Error ? error.message : String(error || '');
-  return { code, message };
-}
-
-function buildAdminGoogleProvider(): GoogleAuthProvider {
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({
-    login_hint: ADMIN_AUTHORIZED_EMAIL,
-    prompt: 'select_account',
-  });
-  return provider;
-}
-
-let cachedRedirectCheck: {
-  hadPendingRedirect: boolean;
-  ok: boolean;
-  email: string;
-  isAuthorizedAdmin: boolean;
-  errorCode?: string;
-  error?: string;
-  hostname?: string;
-} | null = null;
-
-const redirectInitPromise = (async () => {
-  const hadPending = (() => {
-    try {
-      return typeof window !== 'undefined' && window.localStorage.getItem(PENDING_ADMIN_REDIRECT_KEY) === '1';
-    } catch {
-      return false;
-    }
-  })();
-
-  try {
-    const res = await getRedirectResult(auth);
-    if (res?.user) {
-      try {
-        window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
-      } catch {}
-      const status = buildFirebaseAuthStatus(res.user);
-      cachedRedirectCheck = {
-        hadPendingRedirect: true,
-        ok: status.isAuthorizedAdmin,
-        email: status.email,
-        isAuthorizedAdmin: status.isAuthorizedAdmin,
-        errorCode: status.isAuthorizedAdmin ? '' : 'unauthorized_email',
-      };
-      return cachedRedirectCheck;
-    }
-  } catch (error) {
-    try {
-      window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
-    } catch {}
-    const { code, message } = extractFirebaseErrorInfo(error);
-    cachedRedirectCheck = {
-      hadPendingRedirect: true,
-      ok: false,
-      email: auth.currentUser?.email ?? '',
-      isAuthorizedAdmin: false,
-      errorCode: code,
-      error: message,
-      hostname: typeof window !== 'undefined' ? window.location.hostname : '',
-    };
-    return cachedRedirectCheck;
-  }
-
-  if (hadPending) {
-    try {
-      window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
-    } catch {}
-    const status = buildFirebaseAuthStatus(auth.currentUser);
-    cachedRedirectCheck = {
-      hadPendingRedirect: true,
-      ok: status.isAuthorizedAdmin,
-      email: status.email,
-      isAuthorizedAdmin: status.isAuthorizedAdmin,
-      errorCode: status.signedIn && !status.isAuthorizedAdmin ? 'unauthorized_email' : '',
-    };
-    return cachedRedirectCheck;
-  }
-
-  cachedRedirectCheck = {
-    hadPendingRedirect: false,
-    ok: false,
-    email: '',
-    isAuthorizedAdmin: false,
-  };
-  return cachedRedirectCheck;
-})();
-
-export async function consumeAdminRedirectResult() {
-  const res = await redirectInitPromise;
-  const out = cachedRedirectCheck || res;
-  cachedRedirectCheck = {
-    hadPendingRedirect: false,
-    ok: false,
-    email: '',
-    isAuthorizedAdmin: false,
-  };
-  return out;
-}
-
-export async function signInAdminWithGoogle(
-  mode: 'auto' | 'popup' | 'redirect' = 'auto',
-): Promise<AdminGoogleSignInResult> {
-  const provider = buildAdminGoogleProvider();
-  const inIframe = isRunningInIframe();
-  const standalonePwa = isRunningStandalonePWA();
-  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-
-  const startRedirect = async (): Promise<AdminGoogleSignInResult> => {
-    try {
-      window.localStorage.setItem(PENDING_ADMIN_REDIRECT_KEY, '1');
-    } catch {}
-    await signInWithRedirect(auth, provider);
-    return {
-      ok: false,
-      email: '',
-      isAuthorizedAdmin: false,
-      redirecting: true,
-      hostname,
-    };
-  };
-
-  if (mode === 'redirect' || (mode === 'auto' && standalonePwa && !inIframe)) {
-    if (inIframe) {
-      return {
-        ok: false,
-        email: auth.currentUser?.email ?? '',
-        isAuthorizedAdmin: false,
-        errorCode: 'iframe_redirect_blocked',
-        error: 'Redirect sign-in is blocked inside an embedded frame.',
-        hostname,
-      };
-    }
-    try {
-      return await startRedirect();
-    } catch (error) {
-      try {
-        window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
-      } catch {}
-      const { code, message } = extractFirebaseErrorInfo(error);
-      return {
-        ok: false,
-        email: auth.currentUser?.email ?? '',
-        isAuthorizedAdmin: false,
-        errorCode: code,
-        error: message,
-        hostname,
-      };
-    }
-  }
-
-  try {
-    const cred = await signInWithPopup(auth, provider);
-    try {
-      window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
-    } catch {}
-    const status = buildFirebaseAuthStatus(cred.user);
-    return {
-      ok: status.isAuthorizedAdmin,
-      email: status.email,
-      isAuthorizedAdmin: status.isAuthorizedAdmin,
-      errorCode: status.isAuthorizedAdmin ? '' : 'unauthorized_email',
-      hostname,
-    };
-  } catch (error) {
-    const { code, message } = extractFirebaseErrorInfo(error);
-    const shouldFallbackRedirect =
-      !inIframe &&
-      mode === 'auto' &&
-      (code === 'auth/popup-blocked' ||
-        code === 'auth/operation-not-supported-in-this-environment' ||
-        code === 'auth/cancelled-popup-request');
-
-    if (shouldFallbackRedirect) {
-      try {
-        return await startRedirect();
-      } catch (redirError) {
-        try {
-          window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
-        } catch {}
-        const rInfo = extractFirebaseErrorInfo(redirError);
-        return {
-          ok: false,
-          email: auth.currentUser?.email ?? '',
-          isAuthorizedAdmin: false,
-          errorCode: rInfo.code || code,
-          error: rInfo.message || message,
-          hostname,
-        };
-      }
-    }
-
-    return {
-      ok: false,
-      email: auth.currentUser?.email ?? '',
-      isAuthorizedAdmin: false,
-      errorCode: code,
-      error: message,
-      hostname,
-    };
-  }
-}
-
-export async function signOutFirebaseAdmin(): Promise<void> {
-  try {
-    window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
-  } catch {}
-  await signOut(auth);
-}
-
 export async function verifyAdminPassword(password: string): Promise<boolean> {
   const pwd = String(password || '');
   if (!pwd) return false;
@@ -481,19 +228,42 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
   return candidateHash === DEFAULT_ADMIN_PASSWORD_HASH;
 }
 
-export async function updateAdminPassword(newPassword: string): Promise<{ ok: boolean; error?: string }> {
+export async function verifyAndUnlockAdmin(password: string): Promise<{ ok: boolean; writeSecret: string }> {
+  const ok = await verifyAdminPassword(password);
+  if (!ok) {
+    return { ok: false, writeSecret: '' };
+  }
+  const writeSecret = await deriveAdminWriteSecret(String(password || ''));
+  setAdminWriteSecret(writeSecret);
+  return { ok: true, writeSecret };
+}
+
+export async function updateAdminPassword(
+  newPassword: string,
+  adminSecret?: string,
+): Promise<{ ok: boolean; newWriteSecret?: string; error?: string }> {
   const cleanPwd = String(newPassword || '').trim();
   if (cleanPwd.length < 4 || cleanPwd.length > 64) {
     return { ok: false, error: 'invalid_length' };
   }
+  const secret = resolveAdminWriteSecret(adminSecret);
   const digest = await hashAdminPassword(cleanPwd);
+  const newWriteSecret = await deriveAdminWriteSecret(cleanPwd);
+  const proofDigestB64 = await deriveAdminProofDigestB64(newWriteSecret);
   const path = 'admin_config/security';
+
   try {
-    await setDoc(doc(db, 'admin_config', 'security'), {
+    const batch = writeBatch(db);
+    const opId = appendAdminProofToBatch(batch, secret, path);
+    batch.set(doc(db, 'admin_config', 'security'), {
       passwordHash: digest,
+      proofDigestB64,
+      proofOpId: opId,
       updatedAt: serverTimestamp(),
     });
-    return { ok: true };
+    await batch.commit();
+    setAdminWriteSecret(newWriteSecret);
+    return { ok: true, newWriteSecret };
   } catch (error) {
     if (error instanceof Error && error.message.toLowerCase().includes('permission')) {
       handleFirestoreError(error, OperationType.WRITE, path);
@@ -508,12 +278,14 @@ export async function lookupStudentWithCloud(rawSid: string): Promise<StudentAut
 
   const allowlistMatch = verifyStudentId(sid);
   const authHash = hashStudentId(sid);
-  const path = `custom_students/${authHash}`;
 
   try {
     const snap = await getDoc(doc(db, 'custom_students', authHash));
     if (snap.exists()) {
       const data = snap.data();
+      if (data?.deleted === true) {
+        return allowlistMatch;
+      }
       if (data?.active === false) {
         return null;
       }
@@ -623,9 +395,10 @@ function mapAnnouncementDoc(id: string, data: Record<string, unknown>): CloudAnn
 export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
   const path = 'announcements';
   try {
-    const q = query(collection(db, 'announcements'), where('active', '==', true));
+    const q = query(collection(db, 'announcements'), where('active', '==', true), limit(100));
     const snap = await getDocs(q);
     return snap.docs
+      .filter((d) => d.data()?.deleted !== true)
       .map((d) => mapAnnouncementDoc(d.id, d.data() as Record<string, unknown>))
       .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
   } catch (error) {
@@ -639,8 +412,10 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
 export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
   const path = 'announcements';
   try {
-    const snap = await getDocs(collection(db, 'announcements'));
+    const q = query(collection(db, 'announcements'), limit(200));
+    const snap = await getDocs(q);
     return snap.docs
+      .filter((d) => d.data()?.deleted !== true)
       .map((d) => mapAnnouncementDoc(d.id, d.data() as Record<string, unknown>))
       .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
   } catch (error) {
@@ -648,13 +423,17 @@ export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
   }
 }
 
-export async function saveAnnouncement(input: {
-  id?: string;
-  title: string;
-  message: string;
-  tone: AnnouncementTone;
-  active: boolean;
-}): Promise<CloudAnnouncement> {
+export async function saveAnnouncement(
+  input: {
+    id?: string;
+    title: string;
+    message: string;
+    tone: AnnouncementTone;
+    active: boolean;
+  },
+  adminSecret?: string,
+): Promise<CloudAnnouncement> {
+  const secret = resolveAdminWriteSecret(adminSecret);
   const cleanTitle = String(input.title || '').trim().slice(0, 120);
   const cleanMessage = String(input.message || '').trim().slice(0, 800);
   const cleanTone = normalizeAnnouncementTone(input.tone);
@@ -671,24 +450,33 @@ export async function saveAnnouncement(input: {
 
   try {
     const existingSnap = await getDoc(docRef);
+    const batch = writeBatch(db);
+    const opId = appendAdminProofToBatch(batch, secret, path);
+
     if (existingSnap.exists()) {
-      await updateDoc(docRef, {
+      batch.update(docRef, {
         title: cleanTitle,
         message: cleanMessage,
         tone: cleanTone,
         active: isActive,
+        deleted: false,
+        proofOpId: opId,
         updatedAt: serverTimestamp(),
       });
     } else {
-      await setDoc(docRef, {
+      batch.set(docRef, {
         title: cleanTitle,
         message: cleanMessage,
         tone: cleanTone,
         active: isActive,
+        deleted: false,
+        proofOpId: opId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
     }
+    await batch.commit();
+
     const freshSnap = await getDoc(docRef);
     return mapAnnouncementDoc(rawId, (freshSnap.data() || {}) as Record<string, unknown>);
   } catch (error) {
@@ -696,12 +484,25 @@ export async function saveAnnouncement(input: {
   }
 }
 
-export async function deleteAnnouncement(id: string): Promise<void> {
+export async function deleteAnnouncement(id: string, adminSecret?: string): Promise<void> {
   const cleanId = String(id || '').trim();
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(cleanId)) return;
+  const secret = resolveAdminWriteSecret(adminSecret);
   const path = `announcements/${cleanId}`;
+  const docRef = doc(db, 'announcements', cleanId);
+
   try {
-    await deleteDoc(doc(db, 'announcements', cleanId));
+    const existingSnap = await getDoc(docRef);
+    if (!existingSnap.exists()) return;
+    const batch = writeBatch(db);
+    const opId = appendAdminProofToBatch(batch, secret, path);
+    batch.update(docRef, {
+      active: false,
+      deleted: true,
+      proofOpId: opId,
+      updatedAt: serverTimestamp(),
+    });
+    await batch.commit();
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
@@ -709,15 +510,19 @@ export async function deleteAnnouncement(id: string): Promise<void> {
 
 // ==================== ADMIN STUDENT MANAGEMENT ====================
 
-export async function addOrUpdateCustomStudent(input: {
-  studentId: string;
-  fullName: string;
-  group: 'I' | 'II' | 'III' | 'IV' | 'V';
-  labGroup?: '' | '1' | '2';
-  prog: 'tr' | 'en';
-  otherGroupMode?: 'dim' | 'hide';
-  active?: boolean;
-}): Promise<AdminStudentListItem> {
+export async function addOrUpdateCustomStudent(
+  input: {
+    studentId: string;
+    fullName: string;
+    group: 'I' | 'II' | 'III' | 'IV' | 'V';
+    labGroup?: '' | '1' | '2';
+    prog: 'tr' | 'en';
+    otherGroupMode?: 'dim' | 'hide';
+    active?: boolean;
+  },
+  adminSecret?: string,
+): Promise<AdminStudentListItem> {
+  const secret = resolveAdminWriteSecret(adminSecret);
   const sid = normalizeStudentId(input.studentId);
   if (!/^01\d{9}$/.test(sid)) {
     throw new Error('Invalid student ID format.');
@@ -736,6 +541,7 @@ export async function addOrUpdateCustomStudent(input: {
   const cloudKey = await deriveCloudDocId(sid);
   const last4 = sid.slice(-4);
   const encName = encryptStudentName(sid, cleanName);
+  const encFullName = encryptDirectoryName(authHash, cleanName);
   const source: 'allowlist' | 'custom' = verifyStudentHash(authHash) ? 'allowlist' : 'custom';
 
   const customRef = doc(db, 'custom_students', authHash);
@@ -743,9 +549,12 @@ export async function addOrUpdateCustomStudent(input: {
   const prefsRef = doc(db, 'student_prefs', cloudKey);
 
   try {
-    const existingCustom = await getDoc(customRef);
+    const [existingCustom, existingDir] = await Promise.all([getDoc(customRef), getDoc(dirRef)]);
+    const batch = writeBatch(db);
+    const opId = appendAdminProofToBatch(batch, secret, `student/${authHash}`);
+
     if (existingCustom.exists()) {
-      await updateDoc(customRef, {
+      batch.update(customRef, {
         group,
         labGroup,
         prog,
@@ -753,10 +562,12 @@ export async function addOrUpdateCustomStudent(input: {
         last4,
         cloudKey,
         active,
+        deleted: false,
+        proofOpId: opId,
         updatedAt: serverTimestamp(),
       });
     } else {
-      await setDoc(customRef, {
+      batch.set(customRef, {
         group,
         labGroup,
         prog,
@@ -764,41 +575,30 @@ export async function addOrUpdateCustomStudent(input: {
         last4,
         cloudKey,
         active,
+        deleted: false,
+        proofOpId: opId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
     }
 
-    const existingDir = await getDoc(dirRef);
-    if (existingDir.exists()) {
-      await updateDoc(dirRef, {
-        cloudKey,
-        last4,
-        fullName: cleanName,
-        group,
-        labGroup,
-        prog,
-        source,
-        active,
-        updatedAt: serverTimestamp(),
-      });
-    } else {
-      await setDoc(dirRef, {
-        authHash,
-        cloudKey,
-        last4,
-        fullName: cleanName,
-        group,
-        labGroup,
-        prog,
-        source,
-        active,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    }
+    batch.set(dirRef, {
+      authHash,
+      cloudKey,
+      last4,
+      encFullName,
+      group,
+      labGroup,
+      prog,
+      source,
+      active,
+      deleted: false,
+      proofOpId: opId,
+      createdAt: existingDir.exists() && existingDir.data()?.createdAt ? existingDir.data()?.createdAt : serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
 
-    await setDoc(prefsRef, {
+    batch.set(prefsRef, {
       myMbuGroup: group,
       myLabGroup: labGroup,
       otherGroupMode,
@@ -807,6 +607,8 @@ export async function addOrUpdateCustomStudent(input: {
       last4,
       updatedAt: serverTimestamp(),
     });
+
+    await batch.commit();
 
     return {
       authHash,
@@ -828,17 +630,72 @@ export async function addOrUpdateCustomStudent(input: {
   }
 }
 
-export async function deleteCustomStudent(authHash: string, cloudKey?: string): Promise<void> {
+export async function deleteCustomStudent(
+  authHash: string,
+  cloudKey?: string,
+  adminSecret?: string,
+): Promise<void> {
   if (!isValidAuthHash(authHash)) return;
+  const secret = resolveAdminWriteSecret(adminSecret);
+  const customRef = doc(db, 'custom_students', authHash);
+  const dirRef = doc(db, 'admin_student_directory', authHash);
+
   try {
-    await deleteDoc(doc(db, 'custom_students', authHash));
-    await deleteDoc(doc(db, 'admin_student_directory', authHash));
-    if (cloudKey && isValidCloudDocId(cloudKey)) {
-      await deleteDoc(doc(db, 'student_prefs', cloudKey));
+    const [existingCustom, existingDir] = await Promise.all([getDoc(customRef), getDoc(dirRef)]);
+    const batch = writeBatch(db);
+    const opId = appendAdminProofToBatch(batch, secret, `student/${authHash}`);
+
+    if (existingCustom.exists()) {
+      batch.update(customRef, {
+        active: false,
+        deleted: true,
+        proofOpId: opId,
+        updatedAt: serverTimestamp(),
+      });
     }
+    if (existingDir.exists()) {
+      const dirData = (existingDir.data() || {}) as Record<string, unknown>;
+      const fallbackName =
+        typeof dirData.fullName === 'string' && dirData.fullName
+          ? dirData.fullName
+          : `Öğrenci •••${typeof dirData.last4 === 'string' ? dirData.last4 : '0000'}`;
+      const encFullName =
+        typeof dirData.encFullName === 'string' && dirData.encFullName
+          ? dirData.encFullName
+          : encryptDirectoryName(authHash, fallbackName);
+      batch.set(dirRef, {
+        authHash,
+        cloudKey: (typeof dirData.cloudKey === 'string' && dirData.cloudKey) || (cloudKey || ''),
+        last4: typeof dirData.last4 === 'string' && /^[0-9]{4}$/.test(dirData.last4) ? dirData.last4 : '0000',
+        encFullName,
+        group: normalizeAssignedGroup(dirData.group),
+        labGroup: normalizeLabGroupPref(dirData.labGroup),
+        prog: dirData.prog === 'en' ? 'en' : 'tr',
+        source: dirData.source === 'custom' ? 'custom' : 'allowlist',
+        active: false,
+        deleted: true,
+        proofOpId: opId,
+        createdAt: dirData.createdAt || serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `custom_students/${authHash}`);
   }
+}
+
+function readAdminDirFullName(authHash: string, dirData: Record<string, unknown> | null | undefined): string {
+  if (!dirData) return '';
+  if (typeof dirData.encFullName === 'string' && dirData.encFullName) {
+    const dec = decryptDirectoryName(authHash, dirData.encFullName);
+    if (dec) return dec;
+  }
+  if (typeof dirData.fullName === 'string' && dirData.fullName) {
+    return dirData.fullName;
+  }
+  return '';
 }
 
 export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStudentListItem | null> {
@@ -859,9 +716,15 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
       getDoc(doc(db, 'custom_students', authHash)).catch(() => null),
       getDoc(doc(db, 'student_prefs', cloudKey)).catch(() => null),
     ]);
-    if (dirSnap && dirSnap.exists()) dirData = dirSnap.data() as Record<string, unknown>;
-    if (customSnap && customSnap.exists()) customData = customSnap.data() as Record<string, unknown>;
-    if (prefsSnap && prefsSnap.exists()) prefsData = prefsSnap.data() as Record<string, unknown>;
+    if (dirSnap && dirSnap.exists() && dirSnap.data()?.deleted !== true) {
+      dirData = dirSnap.data() as Record<string, unknown>;
+    }
+    if (customSnap && customSnap.exists() && customSnap.data()?.deleted !== true) {
+      customData = customSnap.data() as Record<string, unknown>;
+    }
+    if (prefsSnap && prefsSnap.exists()) {
+      prefsData = prefsSnap.data() as Record<string, unknown>;
+    }
   } catch {
     // Use local allowlist info if cloud fetch fails
   }
@@ -875,7 +738,7 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
       ? decryptStudentName(sid, customData.encName)
       : '';
   const fullName =
-    (dirData && typeof dirData.fullName === 'string' && dirData.fullName) ||
+    readAdminDirFullName(authHash, dirData) ||
     decryptedCustom ||
     allowMatch?.name ||
     `Öğrenci •••${last4}`;
@@ -910,9 +773,9 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
 export async function loadAllAdminStudents(): Promise<AdminStudentListItem[]> {
   try {
     const [dirSnap, customSnap, prefsSnap] = await Promise.all([
-      getDocs(collection(db, 'admin_student_directory')),
-      getDocs(collection(db, 'custom_students')),
-      getDocs(collection(db, 'student_prefs')),
+      getDocs(query(collection(db, 'admin_student_directory'), limit(1000))),
+      getDocs(query(collection(db, 'custom_students'), limit(1000))),
+      getDocs(query(collection(db, 'student_prefs'), limit(1000))),
     ]);
 
     const dirByHash = new Map<string, Record<string, unknown>>();
@@ -931,12 +794,17 @@ export async function loadAllAdminStudents(): Promise<AdminStudentListItem[]> {
     allHashes.forEach((authHash) => {
       const dir = dirByHash.get(authHash);
       const custom = customByHash.get(authHash);
-      const allowMeta = verifyStudentHash(authHash);
       const cloudKey =
         (typeof dir?.cloudKey === 'string' && dir.cloudKey) ||
         (typeof custom?.cloudKey === 'string' && custom.cloudKey) ||
         '';
       if (cloudKey) seenCloudKeys.add(cloudKey);
+
+      if (dir?.deleted === true || custom?.deleted === true) {
+        return;
+      }
+
+      const allowMeta = verifyStudentHash(authHash);
       const prefs = cloudKey ? prefsByCloud.get(cloudKey) : undefined;
 
       const last4 =
@@ -958,7 +826,7 @@ export async function loadAllAdminStudents(): Promise<AdminStudentListItem[]> {
         cloudKey,
         last4,
         fullName:
-          (typeof dir?.fullName === 'string' && dir.fullName) ||
+          readAdminDirFullName(authHash, dir) ||
           (allowMeta ? `Dönem I •••••••${last4}` : `Özel Öğrenci ••••${last4}`),
         group: baseGroup,
         prog: baseProg,
@@ -1003,18 +871,21 @@ export async function loadAllAdminStudents(): Promise<AdminStudentListItem[]> {
   }
 }
 
-export async function adminSaveStudentSettings(input: {
-  cloudKey: string;
-  authHash?: string;
-  last4?: string;
-  fullName?: string;
-  myMbuGroup: '' | 'I' | 'II' | 'III' | 'IV' | 'V';
-  myLabGroup: '' | '1' | '2';
-  otherGroupMode: 'dim' | 'hide';
-  lang: 'tr' | 'en';
-  source?: 'allowlist' | 'custom';
-  active?: boolean;
-}): Promise<void> {
+export async function adminSaveStudentSettings(
+  input: {
+    cloudKey: string;
+    authHash?: string;
+    last4?: string;
+    fullName?: string;
+    myMbuGroup: '' | 'I' | 'II' | 'III' | 'IV' | 'V';
+    myLabGroup: '' | '1' | '2';
+    otherGroupMode: 'dim' | 'hide';
+    lang: 'tr' | 'en';
+    source?: 'allowlist' | 'custom';
+    active?: boolean;
+  },
+  adminSecret?: string,
+): Promise<void> {
   if (!isValidCloudDocId(input.cloudKey)) {
     throw new Error('Invalid cloud document key.');
   }
@@ -1040,54 +911,79 @@ export async function adminSaveStudentSettings(input: {
   if (cleanLast4) prefsPayload.last4 = cleanLast4;
 
   try {
-    await setDoc(doc(db, 'student_prefs', input.cloudKey), prefsPayload);
+    if (!authHash) {
+      await setDoc(doc(db, 'student_prefs', input.cloudKey), prefsPayload);
+      return;
+    }
 
-    if (authHash) {
-      const customRef = doc(db, 'custom_students', authHash);
-      const dirRef = doc(db, 'admin_student_directory', authHash);
-      const [customSnap, dirSnap] = await Promise.all([getDoc(customRef), getDoc(dirRef)]);
-      const assignedGroup = mbu ? normalizeAssignedGroup(mbu) : normalizeAssignedGroup((customSnap.data()?.group as string) || 'I');
-      const isActive = input.active !== false;
+    const secret = resolveAdminWriteSecret(adminSecret);
+    const customRef = doc(db, 'custom_students', authHash);
+    const dirRef = doc(db, 'admin_student_directory', authHash);
+    const prefsRef = doc(db, 'student_prefs', input.cloudKey);
 
-      if (customSnap.exists()) {
-        await updateDoc(customRef, {
+    const [customSnap, dirSnap] = await Promise.all([getDoc(customRef), getDoc(dirRef)]);
+    const assignedGroup = mbu ? normalizeAssignedGroup(mbu) : normalizeAssignedGroup((customSnap.data()?.group as string) || 'I');
+    const isActive = input.active !== false;
+
+    const batch = writeBatch(db);
+    const opId = appendAdminProofToBatch(batch, secret, `student/${authHash}`);
+
+    batch.set(prefsRef, prefsPayload);
+
+    if (customSnap.exists()) {
+      batch.update(customRef, {
+        group: assignedGroup,
+        labGroup: lab,
+        prog: lang,
+        active: isActive,
+        deleted: false,
+        proofOpId: opId,
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    if (dirSnap.exists()) {
+      const prevDir = dirSnap.data() || {};
+      const cleanName = String(
+        input.fullName || readAdminDirFullName(authHash, prevDir as Record<string, unknown>) || 'Öğrenci',
+      ).trim().slice(0, 120);
+      batch.set(dirRef, {
+        authHash,
+        cloudKey: input.cloudKey,
+        last4: cleanLast4 || (typeof prevDir.last4 === 'string' ? prevDir.last4 : '0000'),
+        encFullName: encryptDirectoryName(authHash, cleanName || 'Öğrenci'),
+        group: assignedGroup,
+        labGroup: lab,
+        prog: lang,
+        source: prevDir.source === 'custom' ? 'custom' : 'allowlist',
+        active: isActive,
+        deleted: false,
+        proofOpId: opId,
+        createdAt: prevDir.createdAt || serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } else if (input.fullName && cleanLast4) {
+      const cleanName = String(input.fullName).trim().slice(0, 120);
+      if (cleanName) {
+        batch.set(dirRef, {
+          authHash,
+          cloudKey: input.cloudKey,
+          last4: cleanLast4,
+          encFullName: encryptDirectoryName(authHash, cleanName),
           group: assignedGroup,
           labGroup: lab,
           prog: lang,
+          source: input.source === 'custom' ? 'custom' : 'allowlist',
           active: isActive,
+          deleted: false,
+          proofOpId: opId,
+          createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-      }
-
-      if (dirSnap.exists()) {
-        const cleanName = String(input.fullName || dirSnap.data()?.fullName || '').trim().slice(0, 120);
-        await updateDoc(dirRef, {
-          fullName: cleanName || 'Öğrenci',
-          group: assignedGroup,
-          labGroup: lab,
-          prog: lang,
-          active: isActive,
-          updatedAt: serverTimestamp(),
-        });
-      } else if (input.fullName && cleanLast4) {
-        const cleanName = String(input.fullName).trim().slice(0, 120);
-        if (cleanName) {
-          await setDoc(dirRef, {
-            authHash,
-            cloudKey: input.cloudKey,
-            last4: cleanLast4,
-            fullName: cleanName,
-            group: assignedGroup,
-            labGroup: lab,
-            prog: lang,
-            source: input.source === 'custom' ? 'custom' : 'allowlist',
-            active: isActive,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
-        }
       }
     }
+
+    await batch.commit();
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `student_prefs/${input.cloudKey}`);
   }

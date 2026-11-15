@@ -238,6 +238,46 @@ export function encryptStudentName(rawSid: string, fullName: string): string {
   }
 }
 
+function deriveDirKeyByte(authHash: string, index: number): number {
+  const s = 'inonu-tip-dir-2026|' + authHash + '|' + index;
+  let h = 0x811c9dc5 | 0;
+  for (let i = 0; i < s.length; i++) {
+    h = Math.imul(h ^ s.charCodeAt(i), 0x01000193);
+  }
+  return (h >>> 16) & 0xff;
+}
+
+export function encryptDirectoryName(authHash: string, fullName: string): string {
+  const cleanHash = typeof authHash === 'string' ? authHash.trim().toLowerCase() : '';
+  const cleanName = String(fullName || '').trim().slice(0, 120);
+  if (!/^[a-f0-9]{32}$/.test(cleanHash) || !cleanName) return '';
+  try {
+    const bytes = new TextEncoder().encode(cleanName);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) {
+      bin += String.fromCharCode(bytes[i] ^ deriveDirKeyByte(cleanHash, i));
+    }
+    return btoa(bin);
+  } catch {
+    return '';
+  }
+}
+
+export function decryptDirectoryName(authHash: string, b64: string): string {
+  const cleanHash = typeof authHash === 'string' ? authHash.trim().toLowerCase() : '';
+  if (!/^[a-f0-9]{32}$/.test(cleanHash) || !b64) return '';
+  try {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) {
+      bytes[i] = bin.charCodeAt(i) ^ deriveDirKeyByte(cleanHash, i);
+    }
+    return new TextDecoder('utf-8').decode(bytes).trim();
+  } catch {
+    return '';
+  }
+}
+
 export const ADMIN_STUDENT_ID = '01260102038';
 export const ADMIN_STUDENT_HASH = hashStudentId(ADMIN_STUDENT_ID);
 export const DEFAULT_ADMIN_PASSWORD_HASH = '25be9d153053e43e3de8b19857b85e4cd3d806568ba6e19ed5c9106f5821d527';
@@ -338,6 +378,33 @@ export async function hashAdminPassword(password: string): Promise<string> {
       .join('');
   }
   return fallbackCloudHash64(input);
+}
+
+export async function deriveAdminWriteSecret(password: string): Promise<string> {
+  const input = 'inonu-tip-admin-write-v1|' + String(password || '');
+  if (typeof crypto !== 'undefined' && crypto.subtle && typeof TextEncoder !== 'undefined') {
+    const bytes = new TextEncoder().encode(input);
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  return fallbackCloudHash64(input);
+}
+
+export async function deriveAdminProofDigestB64(writeSecret: string): Promise<string> {
+  const cleanSecret = String(writeSecret || '').trim();
+  if (!cleanSecret || typeof crypto === 'undefined' || !crypto.subtle || typeof TextEncoder === 'undefined') {
+    return '';
+  }
+  const bytes = new TextEncoder().encode(cleanSecret);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  const view = new Uint8Array(digest);
+  let bin = '';
+  for (let i = 0; i < view.length; i++) {
+    bin += String.fromCharCode(view[i]);
+  }
+  return btoa(bin);
 }
 
 export function verifyStudentHash(hash: string): { group: string; prog: 'tr' | 'en' } | null {

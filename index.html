@@ -3376,7 +3376,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.4.9</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.5.0</span>
       </div>
     </section>
 
@@ -3528,31 +3528,22 @@
           <span id="adminModalBadge" class="inline-block px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold tracking-wide">01260102038 • YÖNETİCİ</span>
           <h3 id="adminModalTitle" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-1 truncate">Admin Ayarları</h3>
         </div>
-        <button id="btnCloseAdminModal" type="button" class="ios-press w-11 h-11 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0" aria-label="Kapat">✕</button>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="btnAdminRefreshAll" type="button" class="ios-press w-11 h-11 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 flex items-center justify-center transition" aria-label="Yenile" title="Yenile">
+            <svg id="iconAdminRefresh" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          </button>
+          <button id="btnCloseAdminModal" type="button" class="ios-press w-11 h-11 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0" aria-label="Kapat">✕</button>
+        </div>
       </div>
 
-      <!-- Cloud Google Authorization Strip -->
-      <div id="adminCloudAuthBar" class="px-4 sm:px-5 py-2.5 border-b border-slate-200/50 dark:border-slate-800/70 bg-slate-500/5 space-y-2 shrink-0">
-        <div class="flex items-center justify-between gap-2.5 flex-wrap">
-          <div class="flex items-center gap-2 min-w-0 flex-1">
-            <span id="adminCloudStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
-            <p id="adminCloudStatusText" class="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Bulut kayıtları için Google yönetici yetkisini bağlayın.</p>
-          </div>
-          <div class="flex items-center gap-1.5 shrink-0">
-            <button id="btnAdminGoogleConnect" type="button" class="ios-press min-h-[44px] px-3.5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-semibold shadow-2xs transition">Google ile Doğrula</button>
-            <button id="btnAdminRefreshAll" type="button" class="hidden ios-press w-11 h-11 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 flex items-center justify-center transition" aria-label="Yenile" title="Yenile">
-              <svg id="iconAdminRefresh" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-            </button>
-          </div>
+      <!-- Optional Legacy Session Unlock Strip (hidden when logged in with 2-step password) -->
+      <form id="adminReunlockBar" class="hidden px-4 sm:px-5 py-2.5 border-b border-amber-500/20 bg-amber-500/10 flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0" novalidate>
+        <p id="adminUnlockBannerText" class="text-[11px] sm:text-xs font-semibold text-amber-800 dark:text-amber-200 flex-1 min-w-[160px]">Düzenleme yapmak için yönetici şifresini bir kez doğrulayın:</p>
+        <div class="flex items-center gap-1.5 w-full sm:w-auto">
+          <input id="adminUnlockPwdInput" type="password" maxlength="64" placeholder="Yönetici şifresi" class="flex-1 sm:w-44 min-w-0 ios-pill-control rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+          <button id="btnAdminUnlockSubmit" type="submit" class="ios-press min-h-[44px] px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shrink-0 transition">Kilidi Aç</button>
         </div>
-        <div id="adminCloudErrorBox" class="hidden rounded-2xl px-3 py-2.5 bg-rose-500/10 border border-rose-500/20 space-y-2">
-          <p id="adminCloudErrorText" class="text-[11px] sm:text-xs font-medium text-rose-700 dark:text-rose-300 leading-snug break-words"></p>
-          <div id="adminCloudErrorActions" class="flex items-center gap-2 flex-wrap">
-            <button id="btnAdminGoogleRedirect" type="button" class="hidden ios-press min-h-[38px] px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold transition">Yönlendirme ile Doğrula</button>
-            <a id="btnAdminOpenInBrowser" href="#" target="_blank" rel="noopener noreferrer" class="hidden ios-press min-h-[38px] inline-flex items-center px-3 py-1.5 rounded-full ios-pill-control text-[11px] font-semibold text-slate-800 dark:text-slate-100 transition">Tarayıcıda Aç ↗</a>
-          </div>
-        </div>
-      </div>
+      </form>
 
       <!-- 3-Tab Segmented Control -->
       <div class="px-4 sm:px-5 pt-3 pb-2 shrink-0">
@@ -3985,26 +3976,21 @@
         adminOpenBtn: 'Admin Ayarları',
         adminModalBadge: '01260102038 • YÖNETİCİ',
         adminModalTitle: 'Admin Ayarları',
-        adminCloudConnected: (email) => `Bulut Yetkisi Aktif • ${email}`,
-        adminCloudNeedAuth: 'Bulut kayıtları için Google yönetici yetkisini bağlayın.',
-        adminCloudWrongEmail: (email) => `Yetkisiz hesap (${email}). ysfhtp6@gmail.com ile giriş yapın.`,
-        adminCloudConnectBtn: 'Google ile Doğrula',
-        adminCloudSwitchAccountBtn: 'Hesap Değiştir',
-        adminCloudRedirectBtn: 'Yönlendirme ile Doğrula',
-        adminCloudOpenBrowserBtn: 'Tarayıcıda Aç ↗',
-        adminCloudRedirectingToast: 'Google giriş sayfasına yönlendiriliyor...',
-        adminCloudVerifiedToast: 'Google yönetici yetkisi doğrulandı',
-        adminCloudErrPopupBlocked: 'Açılır pencere (popup) engellendi. Yönlendirme veya tarayıcıda açma seçeneğini kullanın.',
-        adminCloudErrPopupClosed: 'Google giriş penceresi tamamlanmadan kapatıldı. Uygulama/PWA içindeyseniz aşağıdaki yönlendirme seçeneğini deneyin.',
-        adminCloudErrUnauthorizedDomain: (host) => `Bu alan adı (${host}) Firebase Yetkili Alan Adları listesinde değil. Firebase Console -> Authentication -> Settings -> Authorized domains bölümüne ekleyin.`,
-        adminCloudErrNetwork: 'Ağ bağlantısı kurulamadı. İnternetinizi kontrol edip tekrar deneyin.',
-        adminCloudErrIframe: 'Gömülü pencerede yönlendirme engellendi. Tam tarayıcıda açıp tekrar deneyin.',
-        adminCloudErrGeneric: (code) => `Google doğrulama başarısız oldu (${code || 'bilinmeyen hata'}).`,
+        adminUnlockBanner: 'Düzenleme yapmak için yönetici şifresini bir kez doğrulayın:',
+        adminUnlockPlaceholder: 'Yönetici şifresi',
+        adminUnlockBtn: 'Kilidi Aç',
+        adminUnlockedToast: 'Yönetici yazma yetkisi aktif edildi',
+        adminNeedPasswordUnlock: 'İşlem için yönetici şifresini doğrulayın.',
         adminTabAnn: 'Duyurular',
         adminTabAdd: 'Öğrenci Ekle',
         adminTabStudents: 'Öğrenci Ayarları',
         adminAnnNewTitle: 'Yeni Duyuru',
         adminAnnEditTitle: 'Duyuruyu Düzenle',
+        adminAnnTitlePlaceholder: 'Duyuru başlığı...',
+        adminAnnMsgPlaceholder: 'Tüm öğrencilere gösterilecek duyuru mesajı...',
+        adminAnnListHeading: 'Kayıtlı Duyurular',
+        adminAnnEmpty: 'Henüz kayıtlı duyuru yok.',
+        adminAnnToneInfo: 'Bilgi',
         adminAnnBadgeInfo: 'Duyuru',
         adminAnnBadgeWarn: 'Önemli',
         adminAnnBadgeUrgent: 'Acil',
@@ -4012,15 +3998,46 @@
         adminAnnDraft: 'Gizli',
         adminAnnPublishBtn: 'Duyuruyu Yayınla',
         adminAnnUpdateBtn: 'Duyuruyu Güncelle',
+        adminAnnCancelBtn: 'İptal',
+        adminAnnHideAction: 'Gizle',
+        adminAnnShowAction: 'Yayınla',
+        adminAnnEditAction: 'Düzenle',
+        adminAnnDeleteAction: 'Sil',
+        adminAnnConfirmDeleteAction: 'Emin misin? Sil',
         adminAnnSavedToast: 'Duyuru kaydedildi',
         adminAnnDeletedToast: 'Duyuru silindi',
+        adminTitleMsgRequired: 'Başlık ve mesaj zorunludur.',
+        adminNameRequired: 'İsim soyisim zorunludur.',
+        adminAddSidLabel: 'Öğrenci Numarası',
+        adminAddNameLabel: 'İsim Soyisim',
+        adminAddNamePlaceholder: 'Ad Soyad',
+        adminAddGroupLabel: 'MBU / PSP Grup Numarası',
+        adminAddLabLabel: 'LAB Grubu (Opsiyonel)',
+        adminAddLangLabel: 'Program Dili',
+        adminAddSaveBtn: 'Öğrenciyi Kaydet',
+        adminLookupSidLabel: 'Numara ile Öğrenci Bul ve Düzenle',
+        adminLookupSidPlaceholder: '11 haneli numara (01...)',
+        adminLookupBtn: 'Getir',
+        adminEditCloseBtn: 'Kapat',
+        adminEditModeLabel: 'Diğer Gruplar',
+        adminEditLangLabel: 'Dil',
+        adminEditActiveText: 'Hesap Aktif',
+        adminEditInactiveText: 'Hesap Pasif',
+        adminEditDeleteBtn: 'Öğrenciyi Sil',
+        adminEditSaveBtn: 'Ayarları Kaydet',
+        adminStudentFilterPlaceholder: 'İsim, son 4 hane veya grup filtrele...',
+        adminStudentsCountLabel: (n) => `${n} öğrenci kaydı gösteriliyor (Numara ile aratarak 349 öğrencinin tamamına ulaşabilirsiniz)`,
+        adminStudentsEmpty: 'Eşleşen bulut öğrenci kaydı bulunamadı. Yukarıdan 11 haneli numara ile doğrudan öğrenci bulabilirsiniz.',
+        adminPwdChangeTitle: 'Yönetici Giriş Şifresini Güncelle',
+        adminPwdChangePlaceholder: 'Yeni şifre (en az 4 karakter)',
+        adminPwdSaveBtn: 'Şifreyi Kaydet',
         adminStudentSavedToast: 'Öğrenci eklendi ve ayarları kaydedildi',
         adminStudentUpdatedToast: 'Öğrenci ayarları güncellendi',
         adminStudentDeletedToast: 'Özel öğrenci kaydı silindi',
         adminStudentNotFound: 'Bu numaraya ait öğrenci bulunamadı.',
         adminPwdUpdatedToast: 'Yönetici şifresi güncellendi',
         adminPwdInvalidToast: 'Şifre en az 4 karakter olmalıdır.',
-        adminNeedCloudToast: 'Önce Google ile yönetici yetkisini doğrulayın.',
+        adminSaveErrorToast: 'Kayıt sırasında hata oluştu. Tekrar deneyin.',
         months: MONTHS_TR,
         monthsShort: MONTHS_SHORT_TR,
         days: DAYS_TR,
@@ -4184,26 +4201,21 @@
         adminOpenBtn: 'Admin Settings',
         adminModalBadge: '01260102038 • ADMIN',
         adminModalTitle: 'Admin Settings',
-        adminCloudConnected: (email) => `Cloud Auth Active • ${email}`,
-        adminCloudNeedAuth: 'Connect Google admin authorization to edit cloud records.',
-        adminCloudWrongEmail: (email) => `Unauthorized account (${email}). Sign in with ysfhtp6@gmail.com.`,
-        adminCloudConnectBtn: 'Verify with Google',
-        adminCloudSwitchAccountBtn: 'Switch Account',
-        adminCloudRedirectBtn: 'Sign in via Redirect',
-        adminCloudOpenBrowserBtn: 'Open in Browser ↗',
-        adminCloudRedirectingToast: 'Redirecting to Google sign-in...',
-        adminCloudVerifiedToast: 'Google admin access verified',
-        adminCloudErrPopupBlocked: 'Popup window was blocked. Use redirect sign-in or open in a browser tab.',
-        adminCloudErrPopupClosed: 'Google sign-in window closed before completing. If using an installed app/PWA, try redirect sign-in below.',
-        adminCloudErrUnauthorizedDomain: (host) => `This domain (${host}) is not in Firebase Authorized Domains. Add it under Firebase Console -> Authentication -> Settings -> Authorized domains.`,
-        adminCloudErrNetwork: 'Network error while connecting to Google Auth. Check your connection and try again.',
-        adminCloudErrIframe: 'Redirect sign-in is restricted inside an embedded frame. Open in a full browser tab to continue.',
-        adminCloudErrGeneric: (code) => `Google verification failed (${code || 'unknown error'}).`,
+        adminUnlockBanner: 'Verify admin password once to enable edits:',
+        adminUnlockPlaceholder: 'Admin password',
+        adminUnlockBtn: 'Unlock',
+        adminUnlockedToast: 'Admin write access unlocked',
+        adminNeedPasswordUnlock: 'Please verify your admin password first.',
         adminTabAnn: 'Notices',
         adminTabAdd: 'Add Student',
         adminTabStudents: 'All Students',
         adminAnnNewTitle: 'New Announcement',
         adminAnnEditTitle: 'Edit Announcement',
+        adminAnnTitlePlaceholder: 'Announcement title...',
+        adminAnnMsgPlaceholder: 'Announcement message shown to all students...',
+        adminAnnListHeading: 'Saved Announcements',
+        adminAnnEmpty: 'No announcements saved yet.',
+        adminAnnToneInfo: 'Info',
         adminAnnBadgeInfo: 'Notice',
         adminAnnBadgeWarn: 'Important',
         adminAnnBadgeUrgent: 'Urgent',
@@ -4211,15 +4223,46 @@
         adminAnnDraft: 'Hidden',
         adminAnnPublishBtn: 'Publish Announcement',
         adminAnnUpdateBtn: 'Update Announcement',
+        adminAnnCancelBtn: 'Cancel',
+        adminAnnHideAction: 'Hide',
+        adminAnnShowAction: 'Publish',
+        adminAnnEditAction: 'Edit',
+        adminAnnDeleteAction: 'Delete',
+        adminAnnConfirmDeleteAction: 'Confirm Delete',
         adminAnnSavedToast: 'Announcement saved',
         adminAnnDeletedToast: 'Announcement deleted',
+        adminTitleMsgRequired: 'Title and message are required.',
+        adminNameRequired: 'Full name is required.',
+        adminAddSidLabel: 'Student ID Number',
+        adminAddNameLabel: 'Full Name',
+        adminAddNamePlaceholder: 'Full Name',
+        adminAddGroupLabel: 'PSP / MBU Group',
+        adminAddLabLabel: 'LAB Group (Optional)',
+        adminAddLangLabel: 'Program Language',
+        adminAddSaveBtn: 'Save Student',
+        adminLookupSidLabel: 'Find & Edit Student by ID',
+        adminLookupSidPlaceholder: '11-digit ID (01...)',
+        adminLookupBtn: 'Fetch',
+        adminEditCloseBtn: 'Close',
+        adminEditModeLabel: 'Other Groups',
+        adminEditLangLabel: 'Language',
+        adminEditActiveText: 'Account Active',
+        adminEditInactiveText: 'Account Inactive',
+        adminEditDeleteBtn: 'Delete Student',
+        adminEditSaveBtn: 'Save Settings',
+        adminStudentFilterPlaceholder: 'Filter by name, last 4 digits, or group...',
+        adminStudentsCountLabel: (n) => `Showing ${n} student records (Search by ID above to reach all 349 students)`,
+        adminStudentsEmpty: 'No matching cloud student records. Use the 11-digit ID lookup above to find any student.',
+        adminPwdChangeTitle: 'Update Admin Login Password',
+        adminPwdChangePlaceholder: 'New password (min 4 characters)',
+        adminPwdSaveBtn: 'Save Password',
         adminStudentSavedToast: 'Student saved & synced',
         adminStudentUpdatedToast: 'Student settings updated',
         adminStudentDeletedToast: 'Custom student removed',
         adminStudentNotFound: 'No student found with that ID.',
         adminPwdUpdatedToast: 'Admin password updated',
         adminPwdInvalidToast: 'Password must be at least 4 characters.',
-        adminNeedCloudToast: 'Verify Google admin access first.',
+        adminSaveErrorToast: 'Could not save changes. Please try again.',
         months: MONTHS_EN,
         monthsShort: MONTHS_SHORT_EN,
         days: DAYS_EN,
@@ -4706,6 +4749,7 @@
       const btnOpenAdminEl = document.getElementById('btnOpenAdminModal');
       if (btnOpenAdminEl) btnOpenAdminEl.textContent = loc.adminOpenBtn;
       if (typeof syncAdminModalLanguageUI === 'function') syncAdminModalLanguageUI();
+      if (typeof renderDailyAnnouncements === 'function') renderDailyAnnouncements();
       updateAuthSessionSummary();
 
       document.getElementById('headerAppTitle').textContent = loc.headerTitle;
@@ -7032,6 +7076,12 @@
         typeof api.isAdminStudentHash === 'function' &&
         api.isAdminStudentHash(saved.hash)
       );
+      const adminSecret = (isAdmin && typeof saved.adminSecret === 'string' && /^[a-f0-9]{64}$/.test(saved.adminSecret))
+        ? saved.adminSecret
+        : '';
+      if (adminSecret && typeof api.setAdminWriteSecret === 'function') {
+        api.setAdminWriteSecret(adminSecret);
+      }
 
       return {
         hash: saved.hash,
@@ -7041,7 +7091,8 @@
         prog: resolvedProg,
         name: saved.name.trim(),
         source,
-        isAdmin
+        isAdmin,
+        adminSecret
       };
     }
 
@@ -7330,8 +7381,8 @@
         localStorage.removeItem(STORE_KEY + 'authSession');
       } catch (e) {}
       const api = window.__INONU_AUTH__;
-      if (api && typeof api.signOutFirebaseAdmin === 'function') {
-        api.signOutFirebaseAdmin().catch(() => {});
+      if (api && typeof api.clearAdminWriteSecret === 'function') {
+        api.clearAdminWriteSecret();
       }
       closeAdminModal();
       state.myMbuGroup = '';
@@ -7365,103 +7416,116 @@
       deleteConfirmStudentHash: ''
     };
 
+    function syncAdminUnlockBarUI() {
+      const bar = document.getElementById('adminReunlockBar');
+      if (!bar) return;
+      const session = getActiveAuthSession();
+      const api = window.__INONU_AUTH__;
+      const hasSecret = Boolean(
+        session &&
+        session.isAdmin &&
+        (session.adminSecret || (api && typeof api.hasAdminWriteSecret === 'function' && api.hasAdminWriteSecret()))
+      );
+      bar.classList.toggle('hidden', !session || !session.isAdmin || hasSecret);
+    }
+
+    function ensureAdminSecretReady() {
+      const api = window.__INONU_AUTH__;
+      const session = getActiveAuthSession();
+      if (!api || !session || !session.isAdmin) return '';
+      if (session.adminSecret) {
+        if (typeof api.setAdminWriteSecret === 'function') api.setAdminWriteSecret(session.adminSecret);
+        syncAdminUnlockBarUI();
+        return session.adminSecret;
+      }
+      if (typeof api.hasAdminWriteSecret === 'function' && api.hasAdminWriteSecret()) {
+        syncAdminUnlockBarUI();
+        return 'active';
+      }
+      syncAdminUnlockBarUI();
+      const inp = document.getElementById('adminUnlockPwdInput');
+      if (inp) inp.focus();
+      showToast(I18N[state.lang].adminNeedPasswordUnlock);
+      return '';
+    }
+
     function syncAdminModalLanguageUI() {
       const loc = I18N[state.lang];
-      const badgeEl = document.getElementById('adminModalBadge');
-      const titleEl = document.getElementById('adminModalTitle');
-      if (badgeEl) badgeEl.textContent = loc.adminModalBadge;
-      if (titleEl) titleEl.textContent = loc.adminModalTitle;
+      const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      const setPh = (id, val) => { const el = document.getElementById(id); if (el) el.placeholder = val; };
+
+      setTxt('adminModalBadge', loc.adminModalBadge);
+      setTxt('adminModalTitle', loc.adminModalTitle);
+      setTxt('adminUnlockBannerText', loc.adminUnlockBanner);
+      setPh('adminUnlockPwdInput', loc.adminUnlockPlaceholder);
+      setTxt('btnAdminUnlockSubmit', loc.adminUnlockBtn);
+
       document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
         const key = btn.getAttribute('data-admin-tab');
         if (key === 'announcements') btn.textContent = loc.adminTabAnn;
         if (key === 'add-student') btn.textContent = loc.adminTabAdd;
         if (key === 'students') btn.textContent = loc.adminTabStudents;
       });
-      syncAdminCloudStatusUI();
+
+      setTxt('btnAdminAnnCancelEdit', loc.adminAnnCancelBtn);
+      setPh('adminAnnTitleInput', loc.adminAnnTitlePlaceholder);
+      setPh('adminAnnMsgInput', loc.adminAnnMsgPlaceholder);
+      setTxt('adminAnnListHeading', loc.adminAnnListHeading);
+      document.querySelectorAll('[data-ann-tone]').forEach((b) => {
+        const tKey = b.getAttribute('data-ann-tone');
+        if (tKey === 'info') b.textContent = loc.adminAnnToneInfo;
+        if (tKey === 'warn') b.textContent = loc.adminAnnBadgeWarn;
+        if (tKey === 'urgent') b.textContent = loc.adminAnnBadgeUrgent;
+      });
+
+      setTxt('lblAdminAddSid', loc.adminAddSidLabel);
+      setTxt('lblAdminAddName', loc.adminAddNameLabel);
+      setPh('adminAddName', loc.adminAddNamePlaceholder);
+      setTxt('lblAdminAddGroup', loc.adminAddGroupLabel);
+      document.querySelectorAll('[data-add-group]').forEach((b) => {
+        const g = b.getAttribute('data-add-group') || '';
+        b.textContent = state.lang === 'en' ? `Group ${g}` : `Grup ${g}`;
+      });
+      setTxt('lblAdminAddLab', loc.adminAddLabLabel);
+      const addLabAllBtn = document.querySelector('[data-add-lab=""]');
+      if (addLabAllBtn) addLabAllBtn.textContent = loc.groupAllLabel;
+      setTxt('lblAdminAddLang', loc.adminAddLangLabel);
+      setTxt('btnAdminSaveNewStudent', loc.adminAddSaveBtn);
+
+      setTxt('lblAdminLookupSid', loc.adminLookupSidLabel);
+      setPh('adminLookupSid', loc.adminLookupSidPlaceholder);
+      setTxt('btnAdminLookupStudent', loc.adminLookupBtn);
+      setTxt('btnAdminCancelStudentEdit', loc.adminEditCloseBtn);
+      setTxt('lblAdminEditName', loc.adminAddNameLabel);
+      const editMbuAll = document.querySelector('[data-edit-mbu=""]');
+      if (editMbuAll) editMbuAll.textContent = loc.groupAllLabel;
+      const editLabAll = document.querySelector('[data-edit-lab=""]');
+      if (editLabAll) editLabAll.textContent = loc.groupAllLabel;
+      setTxt('lblAdminEditMode', loc.adminEditModeLabel);
+      const editDim = document.querySelector('[data-edit-mode="dim"]');
+      if (editDim) editDim.textContent = loc.otherModeDim;
+      const editHide = document.querySelector('[data-edit-mode="hide"]');
+      if (editHide) editHide.textContent = loc.otherModeHide;
+      setTxt('lblAdminEditLang', loc.adminEditLangLabel);
+      setTxt('btnAdminSaveStudentEdit', loc.adminEditSaveBtn);
+
+      setPh('adminStudentFilterInput', loc.adminStudentFilterPlaceholder);
+      document.querySelectorAll('[data-filter-sgroup]').forEach((b) => {
+        const g = b.getAttribute('data-filter-sgroup') || '';
+        b.textContent = g ? (state.lang === 'en' ? `Group ${g}` : `Grup ${g}`) : loc.groupAllLabel;
+      });
+      setTxt('lblAdminPwdChangeTitle', loc.adminPwdChangeTitle);
+      setPh('adminNewPwdInput', loc.adminPwdChangePlaceholder);
+      setTxt('btnAdminSaveNewPwd', loc.adminPwdSaveBtn);
+
+      syncAdminUnlockBarUI();
       syncAdminAnnFormUI();
-    }
 
-    function clearAdminCloudAuthError() {
-      const box = document.getElementById('adminCloudErrorBox');
-      const txt = document.getElementById('adminCloudErrorText');
-      if (box) box.classList.add('hidden');
-      if (txt) txt.textContent = '';
-    }
-
-    function showAdminCloudAuthError(res) {
-      const loc = I18N[state.lang];
-      const box = document.getElementById('adminCloudErrorBox');
-      const txt = document.getElementById('adminCloudErrorText');
-      const redirBtn = document.getElementById('btnAdminGoogleRedirect');
-      const openTabLink = document.getElementById('btnAdminOpenInBrowser');
-      const code = (res && res.errorCode) ? String(res.errorCode) : '';
-      const host = (res && res.hostname) || (typeof window !== 'undefined' ? window.location.hostname : '');
-      const inIframe = (() => {
-        try { return window.self !== window.top; } catch (e) { return true; }
-      })();
-
-      let msg = '';
-      if (code === 'unauthorized_email' && res && res.email) {
-        msg = loc.adminCloudWrongEmail(res.email);
-      } else if (code === 'auth/unauthorized-domain') {
-        msg = loc.adminCloudErrUnauthorizedDomain(host);
-      } else if (code === 'auth/popup-blocked') {
-        msg = loc.adminCloudErrPopupBlocked;
-      } else if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
-        msg = loc.adminCloudErrPopupClosed;
-      } else if (code === 'auth/network-request-failed') {
-        msg = loc.adminCloudErrNetwork;
-      } else if (code === 'iframe_redirect_blocked') {
-        msg = loc.adminCloudErrIframe;
-      } else {
-        msg = loc.adminCloudErrGeneric(code || (res && res.error) || '');
-      }
-
-      if (txt) txt.textContent = msg;
-      if (redirBtn) {
-        redirBtn.textContent = loc.adminCloudRedirectBtn;
-        redirBtn.classList.toggle('hidden', inIframe || code === 'auth/unauthorized-domain');
-      }
-      if (openTabLink) {
-        openTabLink.textContent = loc.adminCloudOpenBrowserBtn;
-        openTabLink.href = window.location.href;
-        openTabLink.classList.toggle('hidden', !inIframe);
-      }
-      if (box) box.classList.remove('hidden');
-      showToast(msg);
-    }
-
-    function syncAdminCloudStatusUI() {
-      const api = window.__INONU_AUTH__;
-      const dot = document.getElementById('adminCloudStatusDot');
-      const txt = document.getElementById('adminCloudStatusText');
-      const connectBtn = document.getElementById('btnAdminGoogleConnect');
-      const refreshBtn = document.getElementById('btnAdminRefreshAll');
-      const loc = I18N[state.lang];
-      if (!dot || !txt || !connectBtn) return;
-
-      const status = api && typeof api.getFirebaseAdminStatus === 'function'
-        ? api.getFirebaseAdminStatus()
-        : { signedIn: false, email: '', emailVerified: false, isAuthorizedAdmin: false };
-
-      if (status.isAuthorizedAdmin) {
-        dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0';
-        txt.textContent = loc.adminCloudConnected(status.email);
-        connectBtn.classList.add('hidden');
-        if (refreshBtn) refreshBtn.classList.remove('hidden');
-        clearAdminCloudAuthError();
-      } else if (status.signedIn && status.email) {
-        dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0';
-        txt.textContent = loc.adminCloudWrongEmail(status.email);
-        connectBtn.textContent = loc.adminCloudSwitchAccountBtn;
-        connectBtn.classList.remove('hidden');
-        if (refreshBtn) refreshBtn.classList.add('hidden');
-      } else {
-        dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0';
-        txt.textContent = loc.adminCloudNeedAuth;
-        connectBtn.textContent = loc.adminCloudConnectBtn;
-        connectBtn.classList.remove('hidden');
-        if (refreshBtn) refreshBtn.classList.add('hidden');
+      const modalEl = document.getElementById('adminModal');
+      if (modalEl && !modalEl.classList.contains('hidden')) {
+        renderAdminAnnouncementsList();
+        renderAdminStudentsList();
+        syncAdminStudentEditorUI();
       }
     }
 
@@ -7521,7 +7585,7 @@
       listEl.innerHTML = '';
 
       if (!adminState.announcements || adminState.announcements.length === 0) {
-        listEl.innerHTML = '<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">Henüz kayıtlı duyuru yok.</div>';
+        listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">${escapeHtml(loc.adminAnnEmpty)}</div>`;
         return;
       }
 
@@ -7557,27 +7621,25 @@
         const toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
         toggleBtn.className = 'ios-press min-h-[44px] px-3 py-1.5 rounded-full ios-pill-control text-xs font-semibold text-slate-700 dark:text-slate-200';
-        toggleBtn.textContent = ann.active ? 'Gizle' : 'Yayınla';
+        toggleBtn.textContent = ann.active ? loc.adminAnnHideAction : loc.adminAnnShowAction;
         toggleBtn.addEventListener('click', async () => {
           const api = window.__INONU_AUTH__;
-          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
-            showToast(loc.adminNeedCloudToast);
-            return;
-          }
+          const secret = ensureAdminSecretReady();
+          if (!api || !secret) return;
           try {
-            await api.saveAnnouncement({ ...ann, active: !ann.active });
+            await api.saveAnnouncement({ ...ann, active: !ann.active }, secret === 'active' ? undefined : secret);
             await refreshAdminCloudData();
             await refreshDailyAnnouncements(true);
             showToast(loc.adminAnnSavedToast);
           } catch (err) {
-            showToast(loc.adminNeedCloudToast);
+            showToast(loc.adminSaveErrorToast);
           }
         });
 
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.className = 'ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-xs font-semibold';
-        editBtn.textContent = 'Düzenle';
+        editBtn.textContent = loc.adminAnnEditAction;
         editBtn.addEventListener('click', () => {
           adminState.editingAnnId = ann.id;
           adminState.annTone = ann.tone;
@@ -7593,13 +7655,11 @@
         delBtn.className = isConfirming
           ? 'ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-rose-600 text-white text-xs font-bold'
           : 'ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 text-xs font-semibold';
-        delBtn.textContent = isConfirming ? 'Emin misin? Sil' : 'Sil';
+        delBtn.textContent = isConfirming ? loc.adminAnnConfirmDeleteAction : loc.adminAnnDeleteAction;
         delBtn.addEventListener('click', async () => {
           const api = window.__INONU_AUTH__;
-          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
-            showToast(loc.adminNeedCloudToast);
-            return;
-          }
+          const secret = ensureAdminSecretReady();
+          if (!api || !secret) return;
           if (adminState.deleteConfirmAnnId !== ann.id) {
             adminState.deleteConfirmAnnId = ann.id;
             renderAdminAnnouncementsList();
@@ -7607,12 +7667,12 @@
           }
           adminState.deleteConfirmAnnId = '';
           try {
-            await api.deleteAnnouncement(ann.id);
+            await api.deleteAnnouncement(ann.id, secret === 'active' ? undefined : secret);
             await refreshAdminCloudData();
             await refreshDailyAnnouncements(true);
             showToast(loc.adminAnnDeletedToast);
           } catch (err) {
-            showToast(loc.adminNeedCloudToast);
+            showToast(loc.adminSaveErrorToast);
           }
         });
 
@@ -7644,6 +7704,7 @@
     function syncAdminStudentEditorUI() {
       const card = document.getElementById('adminStudentEditorCard');
       if (!card) return;
+      const loc = I18N[state.lang];
       const item = adminState.editingStudent;
       if (!item) {
         card.classList.add('hidden');
@@ -7656,7 +7717,10 @@
       const activeToggle = document.getElementById('btnAdminEditActiveToggle');
       const delBtn = document.getElementById('btnAdminDeleteCustomStudent');
 
-      if (badgeEl) badgeEl.textContent = `${item.source === 'custom' ? 'Özel Kayıt' : 'Dönem I'} • •••••••${item.last4 || '••••'}`;
+      const srcLabel = item.source === 'custom'
+        ? (state.lang === 'en' ? 'Custom' : 'Özel Kayıt')
+        : (state.lang === 'en' ? 'Term I' : 'Dönem I');
+      if (badgeEl) badgeEl.textContent = `${srcLabel} • •••••••${item.last4 || '••••'}`;
       if (titleEl) titleEl.textContent = item.fullName || `Öğrenci •••${item.last4}`;
       if (nameInp) nameInp.value = item.fullName || '';
 
@@ -7674,7 +7738,7 @@
       });
 
       if (activeToggle) {
-        activeToggle.textContent = item.active ? 'Hesap Aktif' : 'Hesap Pasif';
+        activeToggle.textContent = item.active ? loc.adminEditActiveText : loc.adminEditInactiveText;
         activeToggle.className = item.active
           ? 'ios-press min-h-[44px] px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
           : 'ios-press min-h-[44px] px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400';
@@ -7682,7 +7746,7 @@
       if (delBtn) {
         const canDelete = Boolean(item.authHash && item.source === 'custom');
         delBtn.classList.toggle('hidden', !canDelete);
-        delBtn.textContent = adminState.deleteConfirmStudentHash === item.authHash ? 'Emin misin? Sil' : 'Öğrenciyi Sil';
+        delBtn.textContent = adminState.deleteConfirmStudentHash === item.authHash ? loc.adminAnnConfirmDeleteAction : loc.adminEditDeleteBtn;
       }
     }
 
@@ -7691,6 +7755,7 @@
       const countEl = document.getElementById('adminStudentsCountLabel');
       const filterInp = document.getElementById('adminStudentFilterInput');
       if (!listEl) return;
+      const loc = I18N[state.lang];
 
       document.querySelectorAll('[data-filter-sgroup]').forEach((b) => {
         b.classList.toggle('group-chip-active', (b.getAttribute('data-filter-sgroup') || '') === adminState.studentFilterGroup);
@@ -7706,27 +7771,32 @@
       });
 
       if (countEl) {
-        countEl.textContent = `${filtered.length} öğrenci kaydı gösteriliyor (Numara ile aratarak 349 öğrencinin tamamına ulaşabilirsiniz)`;
+        countEl.textContent = loc.adminStudentsCountLabel(filtered.length);
       }
 
       listEl.innerHTML = '';
       if (filtered.length === 0) {
-        listEl.innerHTML = '<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">Eşleşen bulut öğrenci kaydı bulunamadı. Yukarıdan 11 haneli numara ile doğrudan öğrenci bulabilirsiniz.</div>';
+        listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">${escapeHtml(loc.adminStudentsEmpty)}</div>`;
         return;
       }
 
       filtered.forEach((st) => {
         const card = document.createElement('div');
         card.className = 'ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-2.5 flex-wrap';
-        const effGroup = st.myMbuGroup || st.group || 'Tümü';
-        const effLab = st.myLabGroup ? `LAB ${st.myLabGroup}` : 'LAB Tümü';
+        const effGroup = st.myMbuGroup || st.group || loc.groupAllLabel;
+        const effLab = st.myLabGroup ? `LAB ${st.myLabGroup}` : `LAB ${loc.groupAllLabel}`;
         const effLang = (st.lang || st.prog || 'tr').toUpperCase();
-        const effMode = st.otherGroupMode === 'hide' ? 'Gizle' : 'Soluklaştır';
+        const effMode = st.otherGroupMode === 'hide' ? loc.otherModeHide : loc.otherModeDim;
+        const groupWord = state.lang === 'en' ? 'Group' : 'Grup';
+        const customBadgeText = state.lang === 'en' ? 'Custom' : 'Özel';
+        const allowBadgeText = state.lang === 'en' ? 'Term I' : 'Dönem I';
+        const inactiveText = state.lang === 'en' ? 'Inactive' : 'Pasif';
+
         const srcBadge = st.source === 'custom'
-          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">Özel</span>'
-          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">Dönem I</span>';
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">${customBadgeText}</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">${allowBadgeText}</span>`;
         const inactiveBadge = st.active === false
-          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300">Pasif</span>'
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300">${inactiveText}</span>`
           : '';
 
         const left = document.createElement('div');
@@ -7736,13 +7806,13 @@
             ${srcBadge}${inactiveBadge}
             <p class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(st.fullName)}</p>
           </div>
-          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">•••••••${escapeHtml(st.last4)} • Grup ${escapeHtml(effGroup)} • ${escapeHtml(effLab)} • ${escapeHtml(effLang)} • ${escapeHtml(effMode)}</p>
+          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">•••••••${escapeHtml(st.last4)} • ${groupWord} ${escapeHtml(effGroup)} • ${escapeHtml(effLab)} • ${escapeHtml(effLang)} • ${escapeHtml(effMode)}</p>
         `;
 
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.className = 'ios-press min-h-[44px] px-3.5 py-2 rounded-full bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold shrink-0 transition';
-        editBtn.textContent = 'Düzenle';
+        editBtn.textContent = loc.adminAnnEditAction;
         editBtn.addEventListener('click', () => openStudentEditorInAdmin(st));
 
         card.appendChild(left);
@@ -7753,9 +7823,9 @@
 
     async function refreshAdminCloudData() {
       const api = window.__INONU_AUTH__;
+      const session = getActiveAuthSession();
       const icon = document.getElementById('iconAdminRefresh');
-      if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
-        syncAdminCloudStatusUI();
+      if (!api || !session || !session.isAdmin) {
         renderAdminAnnouncementsList();
         renderAdminStudentsList();
         return;
@@ -7924,6 +7994,7 @@
           const submitBtn = document.getElementById('btnAuthSubmit');
           if (submitBtn) submitBtn.disabled = true;
 
+          let verifiedAdminSecret = '';
           try {
             if (isAdminAttempt) {
               const pwdVal = authPwdInputEl ? authPwdInputEl.value : '';
@@ -7932,9 +8003,14 @@
                 if (authPwdInputEl) authPwdInputEl.focus();
                 return;
               }
-              const pwdOk = typeof api.verifyAdminPassword === 'function'
-                ? await api.verifyAdminPassword(pwdVal)
-                : false;
+              let pwdOk = false;
+              if (typeof api.verifyAndUnlockAdmin === 'function') {
+                const unlockRes = await api.verifyAndUnlockAdmin(pwdVal);
+                pwdOk = Boolean(unlockRes && unlockRes.ok);
+                verifiedAdminSecret = (unlockRes && unlockRes.writeSecret) || '';
+              } else if (typeof api.verifyAdminPassword === 'function') {
+                pwdOk = await api.verifyAdminPassword(pwdVal);
+              }
               if (!pwdOk) {
                 authFailedCount += 1;
                 if (authFailedCount >= 5) {
@@ -8032,6 +8108,7 @@
               name: match.name,
               source: match.source === 'custom' ? 'custom' : 'allowlist',
               isAdmin: Boolean(isAdminAttempt || match.isAdmin),
+              adminSecret: (isAdminAttempt && verifiedAdminSecret) ? verifiedAdminSecret : '',
               at: Date.now()
             });
             cloudStartupSyncDoneForHash = match.hash;
@@ -8348,44 +8425,38 @@
         });
       });
 
-      const runAdminGoogleAuth = async (mode) => {
-        const api = window.__INONU_AUTH__;
-        const loc = I18N[state.lang];
-        if (!api || typeof api.signInAdminWithGoogle !== 'function') return;
-        const connectBtn = document.getElementById('btnAdminGoogleConnect');
-        const redirBtn = document.getElementById('btnAdminGoogleRedirect');
-        if (connectBtn) connectBtn.disabled = true;
-        if (redirBtn) redirBtn.disabled = true;
-        clearAdminCloudAuthError();
-        try {
-          const res = await api.signInAdminWithGoogle(mode);
-          syncAdminCloudStatusUI();
-          if (res && res.redirecting) {
-            showToast(loc.adminCloudRedirectingToast);
+      const adminReunlockBar = document.getElementById('adminReunlockBar');
+      if (adminReunlockBar) {
+        adminReunlockBar.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const loc = I18N[state.lang];
+          const api = window.__INONU_AUTH__;
+          const inp = document.getElementById('adminUnlockPwdInput');
+          const btn = document.getElementById('btnAdminUnlockSubmit');
+          const pwd = inp ? inp.value : '';
+          if (!api || typeof api.verifyAndUnlockAdmin !== 'function' || !pwd) {
+            showToast(loc.authErrAdminPwdRequired);
             return;
           }
-          if (res && res.ok) {
-            clearAdminCloudAuthError();
-            await refreshAdminCloudData();
-            showToast(loc.adminCloudVerifiedToast);
-          } else {
-            showAdminCloudAuthError(res);
+          if (btn) btn.disabled = true;
+          try {
+            const res = await api.verifyAndUnlockAdmin(pwd);
+            if (!res || !res.ok || !res.writeSecret) {
+              showToast(loc.authErrAdminPwdWrong);
+              if (inp) { inp.value = ''; inp.focus(); }
+              return;
+            }
+            const curSaved = loadStore('authSession', null);
+            if (curSaved && typeof curSaved === 'object') {
+              saveStore('authSession', { ...curSaved, adminSecret: res.writeSecret });
+            }
+            if (inp) inp.value = '';
+            syncAdminUnlockBarUI();
+            showToast(loc.adminUnlockedToast);
+          } finally {
+            if (btn) btn.disabled = false;
           }
-        } catch (err) {
-          showAdminCloudAuthError({ error: err && err.message ? err.message : String(err) });
-        } finally {
-          if (connectBtn) connectBtn.disabled = false;
-          if (redirBtn) redirBtn.disabled = false;
-        }
-      };
-
-      const btnAdminGoogleConnect = document.getElementById('btnAdminGoogleConnect');
-      if (btnAdminGoogleConnect) {
-        btnAdminGoogleConnect.addEventListener('click', () => runAdminGoogleAuth('auto'));
-      }
-      const btnAdminGoogleRedirect = document.getElementById('btnAdminGoogleRedirect');
-      if (btnAdminGoogleRedirect) {
-        btnAdminGoogleRedirect.addEventListener('click', () => runAdminGoogleAuth('redirect'));
+        });
       }
 
       const btnAdminRefreshAll = document.getElementById('btnAdminRefreshAll');
@@ -8424,14 +8495,12 @@
           e.preventDefault();
           const loc = I18N[state.lang];
           const api = window.__INONU_AUTH__;
-          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
-            showToast(loc.adminNeedCloudToast);
-            return;
-          }
+          const secret = ensureAdminSecretReady();
+          if (!api || !secret) return;
           const titleVal = document.getElementById('adminAnnTitleInput').value.trim();
           const msgVal = document.getElementById('adminAnnMsgInput').value.trim();
           if (!titleVal || !msgVal) {
-            showToast('Başlık ve mesaj zorunludur.');
+            showToast(loc.adminTitleMsgRequired);
             return;
           }
           const btn = document.getElementById('btnAdminAnnSubmit');
@@ -8443,7 +8512,7 @@
               message: msgVal,
               tone: adminState.annTone,
               active: adminState.annActive
-            });
+            }, secret === 'active' ? undefined : secret);
             adminState.editingAnnId = '';
             adminState.annTone = 'info';
             adminState.annActive = true;
@@ -8454,7 +8523,7 @@
             await refreshDailyAnnouncements(true);
             showToast(loc.adminAnnSavedToast);
           } catch (err) {
-            showToast(loc.adminNeedCloudToast);
+            showToast(loc.adminSaveErrorToast);
           } finally {
             if (btn) btn.disabled = false;
           }
@@ -8492,10 +8561,8 @@
           e.preventDefault();
           const loc = I18N[state.lang];
           const api = window.__INONU_AUTH__;
-          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
-            showToast(loc.adminNeedCloudToast);
-            return;
-          }
+          const secret = ensureAdminSecretReady();
+          if (!api || !secret) return;
           const sid = api.normalizeStudentId(document.getElementById('adminAddSid').value);
           const fullName = document.getElementById('adminAddName').value.trim();
           if (!/^01\d{9}$/.test(sid)) {
@@ -8503,7 +8570,7 @@
             return;
           }
           if (!fullName) {
-            showToast('İsim soyisim zorunludur.');
+            showToast(loc.adminNameRequired);
             return;
           }
           const btn = document.getElementById('btnAdminSaveNewStudent');
@@ -8516,13 +8583,13 @@
               labGroup: adminState.addLab,
               prog: adminState.addLang,
               active: true
-            });
+            }, secret === 'active' ? undefined : secret);
             document.getElementById('adminAddSid').value = '';
             document.getElementById('adminAddName').value = '';
             await refreshAdminCloudData();
             showToast(loc.adminStudentSavedToast);
           } catch (err) {
-            showToast(loc.adminNeedCloudToast);
+            showToast(loc.adminSaveErrorToast);
           } finally {
             if (btn) btn.disabled = false;
           }
@@ -8609,10 +8676,8 @@
         btnAdminSaveStudentEdit.addEventListener('click', async () => {
           const loc = I18N[state.lang];
           const api = window.__INONU_AUTH__;
-          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
-            showToast(loc.adminNeedCloudToast);
-            return;
-          }
+          const secret = ensureAdminSecretReady();
+          if (!api || !secret) return;
           if (!adminState.editingStudent) return;
           const editedName = document.getElementById('adminEditNameInput').value.trim();
           btnAdminSaveStudentEdit.disabled = true;
@@ -8628,13 +8693,13 @@
               lang: adminState.editingStudent.lang,
               source: adminState.editingStudent.source,
               active: adminState.editingStudent.active
-            });
+            }, secret === 'active' ? undefined : secret);
             adminState.editingStudent = null;
             syncAdminStudentEditorUI();
             await refreshAdminCloudData();
             showToast(loc.adminStudentUpdatedToast);
           } catch (err) {
-            showToast(loc.adminNeedCloudToast);
+            showToast(loc.adminSaveErrorToast);
           } finally {
             btnAdminSaveStudentEdit.disabled = false;
           }
@@ -8645,7 +8710,8 @@
         btnAdminDeleteCustomStudent.addEventListener('click', async () => {
           const loc = I18N[state.lang];
           const api = window.__INONU_AUTH__;
-          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin || !adminState.editingStudent) return;
+          const secret = ensureAdminSecretReady();
+          if (!api || !secret || !adminState.editingStudent) return;
           const hash = adminState.editingStudent.authHash;
           if (!hash) return;
           if (adminState.deleteConfirmStudentHash !== hash) {
@@ -8656,13 +8722,13 @@
           adminState.deleteConfirmStudentHash = '';
           btnAdminDeleteCustomStudent.disabled = true;
           try {
-            await api.deleteCustomStudent(hash, adminState.editingStudent.cloudKey);
+            await api.deleteCustomStudent(hash, adminState.editingStudent.cloudKey, secret === 'active' ? undefined : secret);
             adminState.editingStudent = null;
             syncAdminStudentEditorUI();
             await refreshAdminCloudData();
             showToast(loc.adminStudentDeletedToast);
           } catch (err) {
-            showToast(loc.adminNeedCloudToast);
+            showToast(loc.adminSaveErrorToast);
           } finally {
             btnAdminDeleteCustomStudent.disabled = false;
           }
@@ -8686,10 +8752,8 @@
           e.preventDefault();
           const loc = I18N[state.lang];
           const api = window.__INONU_AUTH__;
-          if (!api || !api.getFirebaseAdminStatus().isAuthorizedAdmin) {
-            showToast(loc.adminNeedCloudToast);
-            return;
-          }
+          const secret = ensureAdminSecretReady();
+          if (!api || !secret) return;
           const newPwd = document.getElementById('adminNewPwdInput').value.trim();
           if (newPwd.length < 4) {
             showToast(loc.adminPwdInvalidToast);
@@ -8698,12 +8762,18 @@
           const btn = document.getElementById('btnAdminSaveNewPwd');
           if (btn) btn.disabled = true;
           try {
-            const res = await api.updateAdminPassword(newPwd);
+            const res = await api.updateAdminPassword(newPwd, secret === 'active' ? undefined : secret);
             if (res.ok) {
+              if (res.newWriteSecret) {
+                const curSaved = loadStore('authSession', null);
+                if (curSaved && typeof curSaved === 'object') {
+                  saveStore('authSession', { ...curSaved, adminSecret: res.newWriteSecret });
+                }
+              }
               document.getElementById('adminNewPwdInput').value = '';
               showToast(loc.adminPwdUpdatedToast);
             } else {
-              showToast(loc.adminPwdInvalidToast);
+              showToast(loc.adminSaveErrorToast);
             }
           } finally {
             if (btn) btn.disabled = false;
@@ -8791,35 +8861,13 @@
         const api = window.__INONU_AUTH__;
         if (!api || inonuAuthHooksBound) return;
         inonuAuthHooksBound = true;
+        const session = getActiveAuthSession();
+        if (session && session.isAdmin && session.adminSecret && typeof api.setAdminWriteSecret === 'function') {
+          api.setAdminWriteSecret(session.adminSecret);
+        }
         updateAuthSessionSummary();
         syncActiveStudentCloudPrefs();
         refreshDailyAnnouncements(true);
-        if (typeof api.subscribeAdminAuthState === 'function') {
-          api.subscribeAdminAuthState(() => {
-            syncAdminCloudStatusUI();
-            const adminModalEl = document.getElementById('adminModal');
-            if (adminModalEl && !adminModalEl.classList.contains('hidden')) {
-              refreshAdminCloudData();
-            }
-          });
-        }
-        if (typeof api.consumeAdminRedirectResult === 'function') {
-          api.consumeAdminRedirectResult().then((redirRes) => {
-            if (!redirRes || !redirRes.hadPendingRedirect) return;
-            syncAdminCloudStatusUI();
-            const session = getActiveAuthSession();
-            if (session && session.isAdmin) {
-              switchTab('info', false);
-              openAdminModal();
-              if (redirRes.ok) {
-                clearAdminCloudAuthError();
-                showToast(I18N[state.lang].adminCloudVerifiedToast);
-              } else if (redirRes.errorCode || redirRes.error) {
-                showAdminCloudAuthError(redirRes);
-              }
-            }
-          }).catch(() => {});
-        }
       }
 
       if (window.__INONU_AUTH__) {

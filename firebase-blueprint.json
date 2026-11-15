@@ -76,6 +76,17 @@
           "type": "boolean",
           "description": "Whether the announcement is visible to students."
         },
+        "deleted": {
+          "type": "boolean",
+          "description": "Soft-deletion flag controlled by verified admin proof."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -87,7 +98,7 @@
           "description": "Server timestamp of latest modification."
         }
       },
-      "required": ["title", "message", "tone", "active", "createdAt", "updatedAt"]
+      "required": ["title", "message", "tone", "active", "deleted", "proofOpId", "createdAt", "updatedAt"]
     },
     "CustomStudent": {
       "title": "CustomStudent",
@@ -135,6 +146,17 @@
           "type": "boolean",
           "description": "Whether login is enabled for this custom student."
         },
+        "deleted": {
+          "type": "boolean",
+          "description": "Soft-deletion flag controlled by verified admin proof."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -146,7 +168,7 @@
           "description": "Server timestamp of latest update."
         }
       },
-      "required": ["group", "labGroup", "prog", "encName", "last4", "cloudKey", "active", "createdAt", "updatedAt"]
+      "required": ["group", "labGroup", "prog", "encName", "last4", "cloudKey", "active", "deleted", "proofOpId", "createdAt", "updatedAt"]
     },
     "AdminStudentRecord": {
       "title": "AdminStudentRecord",
@@ -174,11 +196,11 @@
           "pattern": "^[0-9]{4}$",
           "description": "Last 4 digits of student ID."
         },
-        "fullName": {
+        "encFullName": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 120,
-          "description": "Student full name visible strictly to admins."
+          "maxLength": 256,
+          "description": "Obfuscated/encrypted student display name for admin directory."
         },
         "group": {
           "type": "string",
@@ -208,6 +230,17 @@
           "type": "boolean",
           "description": "Whether student account is active."
         },
+        "deleted": {
+          "type": "boolean",
+          "description": "Soft-deletion flag controlled by verified admin proof."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -219,11 +252,11 @@
           "description": "Server update timestamp."
         }
       },
-      "required": ["authHash", "cloudKey", "last4", "fullName", "group", "labGroup", "prog", "source", "active", "createdAt", "updatedAt"]
+      "required": ["authHash", "cloudKey", "last4", "encFullName", "group", "labGroup", "prog", "source", "active", "deleted", "proofOpId", "createdAt", "updatedAt"]
     },
     "AdminSecurityConfig": {
       "title": "AdminSecurityConfig",
-      "description": "Admin password digest configuration writable only by verified admins.",
+      "description": "Admin password digest configuration writable only with valid current admin proof.",
       "type": "object",
       "properties": {
         "passwordHash": {
@@ -233,13 +266,52 @@
           "pattern": "^[a-f0-9]{64}$",
           "description": "Salted SHA-256 hash of admin login password."
         },
+        "proofDigestB64": {
+          "type": "string",
+          "minLength": 44,
+          "maxLength": 44,
+          "description": "Base64 SHA-256 digest of the admin write secret."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
         "updatedAt": {
           "type": "string",
           "format": "date-time",
           "description": "Server timestamp of password update."
         }
       },
-      "required": ["passwordHash", "updatedAt"]
+      "required": ["passwordHash", "proofDigestB64", "proofOpId", "updatedAt"]
+    },
+    "AdminProof": {
+      "title": "AdminProof",
+      "description": "Write-only atomic proof document verifying admin password knowledge in write batches.",
+      "type": "object",
+      "properties": {
+        "proof": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Admin write secret derived from the admin password."
+        },
+        "targetPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Exact target resource key bound to this batch."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp enforcing single-batch non-replayability."
+        }
+      },
+      "required": ["proof", "targetPath", "createdAt"]
     }
   },
   "firestore": {
@@ -257,11 +329,15 @@
     },
     "/admin_student_directory/{authHash}": {
       "schema": { "$ref": "#/entities/AdminStudentRecord" },
-      "description": "Admin-only student directory isolating names and statuses from non-admin access."
+      "description": "Admin student directory storing encrypted names and group metadata."
     },
     "/admin_config/{configId}": {
       "schema": { "$ref": "#/entities/AdminSecurityConfig" },
-      "description": "Stores salted SHA-256 admin password hash for 01260102038 verification."
+      "description": "Stores salted SHA-256 admin password hash and write proof verifier for 01260102038."
+    },
+    "/admin_proofs/{opId}": {
+      "schema": { "$ref": "#/entities/AdminProof" },
+      "description": "Write-only atomic batch verification docs; unreadable by all clients."
     }
   }
 }
