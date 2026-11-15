@@ -8,12 +8,14 @@ import {
   getDocs,
   getFirestore,
   limit,
+  onSnapshot,
   query,
   serverTimestamp,
   setDoc,
   Timestamp,
   where,
   writeBatch,
+  type Unsubscribe,
   type WriteBatch,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -33,6 +35,7 @@ import {
   encryptStudentName,
   hashAdminPassword,
   hashStudentId,
+  isAdminStudentHash,
   isAdminStudentId,
   isValidAuthHash,
   isValidCloudDocId,
@@ -461,43 +464,167 @@ export async function updateAdminPassword(
   }
 }
 
-export async function lookupStudentWithCloud(rawSid: string): Promise<StudentAuthMatch | null> {
+export type StudentAccountStatus = 'active' | 'inactive' | 'deleted';
+
+export type StudentLoginCheckResult =
+  | { ok: true; match: StudentAuthMatch }
+  | { ok: false; reason: 'invalid' | 'not_found' | 'inactive' | 'deleted' };
+
+async function getDocPreferServer(ref: ReturnType<typeof doc>) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return getDoc(ref);
+  }
+  try {
+    return await getDocFromServer(ref);
+  } catch {
+    return getDoc(ref);
+  }
+}
+
+export async function checkStudentLoginStatus(rawSid: string): Promise<StudentLoginCheckResult> {
   const sid = normalizeStudentId(rawSid);
-  if (!/^01\d{9}$/.test(sid)) return null;
+  if (!/^01\d{9}$/.test(sid)) return { ok: false, reason: 'invalid' };
 
   const allowlistMatch = verifyStudentId(sid);
   const authHash = hashStudentId(sid);
 
   try {
-    const snap = await getDoc(doc(db, 'custom_students', authHash));
+    const snap = await getDocPreferServer(doc(db, 'custom_students', authHash));
     if (snap.exists()) {
       const data = snap.data();
       if (data?.deleted === true) {
-        return allowlistMatch;
+        return { ok: false, reason: 'deleted' };
       }
       if (data?.active === false) {
-        return null;
+        return { ok: false, reason: 'inactive' };
       }
       const decryptedCustomName =
         typeof data?.encName === 'string' && data.encName
           ? decryptStudentName(sid, data.encName)
           : '';
+      const prog: 'tr' | 'en' =
+        data?.prog === 'en' ? 'en' : data?.prog === 'tr' ? 'tr' : allowlistMatch?.prog || 'tr';
       return {
-        hash: authHash,
-        last4: sid.slice(-4),
-        group: normalizeAssignedGroup(data?.group || allowlistMatch?.group || 'I'),
-        prog: data?.prog === 'en' ? 'en' : data?.prog === 'tr' ? 'tr' : allowlistMatch?.prog || 'tr',
-        labGroup: normalizeLabGroupPref(data?.labGroup),
-        name: decryptedCustomName || allowlistMatch?.name || '',
-        source: 'custom',
-        isAdmin: isAdminStudentId(sid),
+        ok: true,
+        match: {
+          hash: authHash,
+          last4: sid.slice(-4),
+          group: normalizeAssignedGroup(data?.group || allowlistMatch?.group || 'I'),
+          prog,
+          labGroup: prog === 'en' ? '' : normalizeLabGroupPref(data?.labGroup),
+          name: decryptedCustomName || allowlistMatch?.name || '',
+          source: allowlistMatch ? 'allowlist' : 'custom',
+          isAdmin: isAdminStudentId(sid),
+        },
       };
     }
+
+    if (allowlistMatch) {
+      const dirSnap = await getDocPreferServer(doc(db, 'admin_student_directory', authHash)).catch(() => null);
+      if (dirSnap && dirSnap.exists()) {
+        const dirData = dirSnap.data();
+        if (dirData?.deleted === true) {
+          return { ok: false, reason: 'deleted' };
+        }
+        if (dirData?.active === false) {
+          return { ok: false, reason: 'inactive' };
+        }
+      }
+    }
   } catch {
-    // Offline or non-existent custom record; fall back to built-in allowlist match
+    // Offline or transient read failure; fall back to built-in allowlist match if available
   }
 
-  return allowlistMatch;
+  if (allowlistMatch) {
+    return { ok: true, match: allowlistMatch };
+  }
+  return { ok: false, reason: 'not_found' };
+}
+
+export async function lookupStudentWithCloud(rawSid: string): Promise<StudentAuthMatch | null> {
+  const res = await checkStudentLoginStatus(rawSid);
+  return res.ok ? res.match : null;
+}
+
+export async function checkStudentSessionActive(authHash: string): Promise<StudentAccountStatus> {
+  if (!isValidAuthHash(authHash) || isAdminStudentHash(authHash)) {
+    return 'active';
+  }
+  const path = `custom_students/${authHash}`;
+  try {
+    const snap = await getDocPreferServer(doc(db, 'custom_students', authHash));
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data?.deleted === true) return 'deleted';
+      if (data?.active === false) return 'inactive';
+      return 'active';
+    }
+    const dirSnap = await getDocPreferServer(doc(db, 'admin_student_directory', authHash)).catch(() => null);
+    if (dirSnap && dirSnap.exists()) {
+      const dirData = dirSnap.data();
+      if (dirData?.deleted === true) return 'deleted';
+      if (dirData?.active === false) return 'inactive';
+    }
+    return 'active';
+  } catch (error) {
+    if (error instanceof Error && error.message.toLowerCase().includes('permission')) {
+      handleFirestoreError(error, OperationType.GET, path);
+    }
+    return 'active';
+  }
+}
+
+export function subscribeStudentAccountStatus(
+  authHash: string,
+  onInvalid: (reason: 'inactive' | 'deleted') => void,
+): Unsubscribe {
+  if (!isValidAuthHash(authHash) || isAdminStudentHash(authHash)) {
+    return () => {};
+  }
+  const path = `custom_students/${authHash}`;
+  return onSnapshot(
+    doc(db, 'custom_students', authHash),
+    (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      if (data?.deleted === true) {
+        onInvalid('deleted');
+      } else if (data?.active === false) {
+        onInvalid('inactive');
+      }
+    },
+    (error) => {
+      if (error instanceof Error && error.message.toLowerCase().includes('permission')) {
+        handleFirestoreError(error, OperationType.GET, path);
+      }
+      console.warn('Student account status listener warning:', error);
+    },
+  );
+}
+
+export async function isStudentAlreadyRegistered(rawSid: string): Promise<boolean> {
+  const sid = normalizeStudentId(rawSid);
+  if (!/^01\d{9}$/.test(sid)) return false;
+  const authHash = hashStudentId(sid);
+  const inAllowlist = Boolean(verifyStudentId(sid));
+
+  try {
+    const [customSnap, dirSnap] = await Promise.all([
+      getDocPreferServer(doc(db, 'custom_students', authHash)).catch(() => null),
+      getDocPreferServer(doc(db, 'admin_student_directory', authHash)).catch(() => null),
+    ]);
+    const customExists = Boolean(customSnap && customSnap.exists());
+    const dirExists = Boolean(dirSnap && dirSnap.exists());
+    const customDeleted = Boolean(customSnap && customSnap.exists() && customSnap.data()?.deleted === true);
+    const dirDeleted = Boolean(dirSnap && dirSnap.exists() && dirSnap.data()?.deleted === true);
+
+    if (customExists && !customDeleted) return true;
+    if (dirExists && !dirDeleted) return true;
+    if (inAllowlist && !customDeleted && !dirDeleted) return true;
+    return false;
+  } catch {
+    return inAllowlist;
+  }
 }
 
 export async function loadCloudStudentPrefs(authHash: string, cloudDocId: string): Promise<StudentCloudPrefs | null> {
@@ -726,6 +853,7 @@ export async function addOrUpdateCustomStudent(
     active?: boolean;
   },
   adminSecret?: string,
+  options?: { rejectIfExists?: boolean },
 ): Promise<AdminStudentListItem> {
   const secret = resolveAdminWriteSecret(adminSecret);
   const sid = normalizeStudentId(input.studentId);
@@ -764,7 +892,22 @@ export async function addOrUpdateCustomStudent(
   const prefsRef = doc(db, 'student_prefs', cloudKey);
 
   try {
-    const [existingCustom, existingDir] = await Promise.all([getDoc(customRef), getDoc(dirRef)]);
+    const [existingCustom, existingDir] = await Promise.all([
+      getDocPreferServer(customRef),
+      getDocPreferServer(dirRef),
+    ]);
+
+    if (options?.rejectIfExists) {
+      const customExistsLive = existingCustom.exists() && existingCustom.data()?.deleted !== true;
+      const dirExistsLive = existingDir.exists() && existingDir.data()?.deleted !== true;
+      const customDeleted = existingCustom.exists() && existingCustom.data()?.deleted === true;
+      const dirDeleted = existingDir.exists() && existingDir.data()?.deleted === true;
+      const builtInNotDeleted = Boolean(verifyStudentId(sid)) && !customDeleted && !dirDeleted;
+      if (customExistsLive || dirExistsLive || builtInNotDeleted) {
+        throw new Error('DUPLICATE_STUDENT_ID');
+      }
+    }
+
     const batch = writeBatch(db);
     const opId = appendAdminProofToBatch(batch, secret, `student/${authHash}`);
 
@@ -838,6 +981,9 @@ export async function addOrUpdateCustomStudent(
       updatedAtMs: Date.now(),
     };
   } catch (error) {
+    if (error instanceof Error && error.message === 'DUPLICATE_STUDENT_ID') {
+      throw error;
+    }
     handleFirestoreError(error, OperationType.WRITE, `custom_students/${authHash}`);
   }
 }
@@ -846,14 +992,87 @@ export async function deleteCustomStudent(
   authHash: string,
   cloudKey?: string,
   adminSecret?: string,
+  studentHint?: {
+    studentId?: string;
+    last4?: string;
+    fullName?: string;
+    group?: string;
+    myMbuGroup?: string;
+    myLabGroup?: string;
+    prog?: string;
+    source?: string;
+  },
 ): Promise<void> {
   if (!isValidAuthHash(authHash)) return;
+  if (isAdminStudentHash(authHash)) {
+    throw new Error('CANNOT_DELETE_ADMIN');
+  }
   const secret = resolveAdminWriteSecret(adminSecret);
   const customRef = doc(db, 'custom_students', authHash);
   const dirRef = doc(db, 'admin_student_directory', authHash);
 
   try {
-    const [existingCustom, existingDir] = await Promise.all([getDoc(customRef), getDoc(dirRef)]);
+    const [existingCustom, existingDir, unlockedRoster] = await Promise.all([
+      getDocPreferServer(customRef),
+      getDocPreferServer(dirRef),
+      resolveUnlockedRosterData(secret).catch(() => null),
+    ]);
+
+    const rosterEntry = unlockedRoster?.entries.find((e) => e.authHash === authHash);
+    const allowMeta = verifyStudentHash(authHash);
+    const customData = (existingCustom.exists() ? existingCustom.data() : null) as Record<string, unknown> | null;
+    const dirData = (existingDir.exists() ? existingDir.data() : null) as Record<string, unknown> | null;
+
+    const hintSid =
+      typeof studentHint?.studentId === 'string' && /^01\d{9}$/.test(studentHint.studentId.trim())
+        ? studentHint.studentId.trim()
+        : '';
+    const effectiveSid = hintSid || rosterEntry?.sid || '';
+
+    const derivedCloudKey =
+      (typeof customData?.cloudKey === 'string' && isValidCloudDocId(customData.cloudKey) ? customData.cloudKey : '') ||
+      (typeof dirData?.cloudKey === 'string' && isValidCloudDocId(dirData.cloudKey) ? dirData.cloudKey : '') ||
+      (typeof cloudKey === 'string' && isValidCloudDocId(cloudKey) ? cloudKey : '') ||
+      rosterEntry?.cloudKey ||
+      (effectiveSid ? await deriveCloudDocId(effectiveSid) : '');
+
+    const effectiveLast4 =
+      (effectiveSid ? effectiveSid.slice(-4) : '') ||
+      (typeof customData?.last4 === 'string' && /^[0-9]{4}$/.test(customData.last4) ? customData.last4 : '') ||
+      (typeof dirData?.last4 === 'string' && /^[0-9]{4}$/.test(dirData.last4) ? dirData.last4 : '') ||
+      (typeof studentHint?.last4 === 'string' && /^[0-9]{4}$/.test(studentHint.last4) ? studentHint.last4 : '') ||
+      '0000';
+
+    const effectiveGroup = normalizeAssignedGroup(
+      customData?.group ?? dirData?.group ?? studentHint?.group ?? studentHint?.myMbuGroup ?? rosterEntry?.group ?? allowMeta?.group ?? 'I',
+    );
+    const effectiveProg: 'tr' | 'en' =
+      customData?.prog === 'en' || dirData?.prog === 'en' || studentHint?.prog === 'en' || rosterEntry?.prog === 'en' || allowMeta?.prog === 'en'
+        ? 'en'
+        : 'tr';
+    const effectiveLabGroup =
+      effectiveProg === 'en'
+        ? ''
+        : normalizeLabGroupPref(customData?.labGroup ?? dirData?.labGroup ?? studentHint?.myLabGroup ?? '');
+    const effectiveSource: 'allowlist' | 'custom' =
+      allowMeta || rosterEntry || dirData?.source === 'allowlist' || studentHint?.source === 'allowlist'
+        ? 'allowlist'
+        : 'custom';
+
+    const resolvedName =
+      readAdminDirFullName(authHash, dirData) ||
+      (typeof studentHint?.fullName === 'string' ? studentHint.fullName.trim() : '') ||
+      rosterEntry?.fullName ||
+      `Öğrenci •••${effectiveLast4}`;
+
+    let encSid =
+      (typeof customData?.encSid === 'string' && customData.encSid) ||
+      (typeof dirData?.encSid === 'string' && dirData.encSid) ||
+      '';
+    if (!encSid && effectiveSid && unlockedRoster) {
+      encSid = await encryptAdminSid(unlockedRoster.aesKey, effectiveSid).catch(() => '');
+    }
+
     const batch = writeBatch(db);
     const opId = appendAdminProofToBatch(batch, secret, `student/${authHash}`);
 
@@ -864,36 +1083,52 @@ export async function deleteCustomStudent(
         proofOpId: opId,
         updatedAt: serverTimestamp(),
       });
-    }
-    if (existingDir.exists()) {
-      const dirData = (existingDir.data() || {}) as Record<string, unknown>;
-      const fallbackName =
-        typeof dirData.fullName === 'string' && dirData.fullName
-          ? dirData.fullName
-          : `Öğrenci •••${typeof dirData.last4 === 'string' ? dirData.last4 : '0000'}`;
-      const encFullName =
-        typeof dirData.encFullName === 'string' && dirData.encFullName
-          ? dirData.encFullName
-          : encryptDirectoryName(authHash, fallbackName);
-      batch.set(dirRef, {
-        authHash,
-        cloudKey: (typeof dirData.cloudKey === 'string' && dirData.cloudKey) || (cloudKey || ''),
-        last4: typeof dirData.last4 === 'string' && /^[0-9]{4}$/.test(dirData.last4) ? dirData.last4 : '0000',
-        encFullName,
-        group: normalizeAssignedGroup(dirData.group),
-        labGroup: normalizeLabGroupPref(dirData.labGroup),
-        prog: dirData.prog === 'en' ? 'en' : 'tr',
-        source: dirData.source === 'custom' ? 'custom' : 'allowlist',
+    } else if (isValidCloudDocId(derivedCloudKey)) {
+      const customPayload: Record<string, unknown> = {
+        group: effectiveGroup,
+        labGroup: effectiveLabGroup,
+        prog: effectiveProg,
+        encName: effectiveSid && resolvedName ? encryptStudentName(effectiveSid, resolvedName.slice(0, 120)) : '',
+        last4: effectiveLast4,
+        cloudKey: derivedCloudKey,
         active: false,
         deleted: true,
         proofOpId: opId,
-        createdAt: dirData.createdAt || serverTimestamp(),
+        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
+      };
+      if (encSid) customPayload.encSid = encSid;
+      batch.set(customRef, customPayload);
+    }
+
+    if (isValidCloudDocId(derivedCloudKey)) {
+      const encFullName =
+        (typeof dirData?.encFullName === 'string' && dirData.encFullName) ||
+        encryptDirectoryName(authHash, resolvedName.slice(0, 120) || `Öğrenci •••${effectiveLast4}`);
+      const dirPayload: Record<string, unknown> = {
+        authHash,
+        cloudKey: derivedCloudKey,
+        last4: effectiveLast4,
+        encFullName,
+        group: effectiveGroup,
+        labGroup: effectiveLabGroup,
+        prog: effectiveProg,
+        source: effectiveSource,
+        active: false,
+        deleted: true,
+        proofOpId: opId,
+        createdAt: (dirData?.createdAt as Timestamp | undefined) || serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      if (encSid) dirPayload.encSid = encSid;
+      batch.set(dirRef, dirPayload);
     }
 
     await batch.commit();
   } catch (error) {
+    if (error instanceof Error && error.message === 'CANNOT_DELETE_ADMIN') {
+      throw error;
+    }
     handleFirestoreError(error, OperationType.DELETE, `custom_students/${authHash}`);
   }
 }
@@ -924,14 +1159,16 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
 
   try {
     const [dirSnap, customSnap, prefsSnap] = await Promise.all([
-      getDoc(doc(db, 'admin_student_directory', authHash)).catch(() => null),
-      getDoc(doc(db, 'custom_students', authHash)).catch(() => null),
-      getDoc(doc(db, 'student_prefs', cloudKey)).catch(() => null),
+      getDocPreferServer(doc(db, 'admin_student_directory', authHash)).catch(() => null),
+      getDocPreferServer(doc(db, 'custom_students', authHash)).catch(() => null),
+      getDocPreferServer(doc(db, 'student_prefs', cloudKey)).catch(() => null),
     ]);
-    if (dirSnap && dirSnap.exists() && dirSnap.data()?.deleted !== true) {
+    if (dirSnap && dirSnap.exists()) {
+      if (dirSnap.data()?.deleted === true) return null;
       dirData = dirSnap.data() as Record<string, unknown>;
     }
-    if (customSnap && customSnap.exists() && customSnap.data()?.deleted !== true) {
+    if (customSnap && customSnap.exists()) {
+      if (customSnap.data()?.deleted === true) return null;
       customData = customSnap.data() as Record<string, unknown>;
     }
     if (prefsSnap && prefsSnap.exists()) {
@@ -978,7 +1215,7 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
     otherGroupMode: prefsData ? normalizeOtherGroupModePref(prefsData.otherGroupMode) : 'dim',
     lang: prefsData ? (normalizeLangPref(prefsData.lang) || baseProg) : baseProg,
     source: allowMatch ? 'allowlist' : 'custom',
-    active: customData ? customData.active !== false : true,
+    active: customData ? customData.active !== false : dirData ? dirData.active !== false : true,
     updatedAtMs: Math.max(tsToMillis(prefsData?.updatedAt), tsToMillis(dirData?.updatedAt), tsToMillis(customData?.updatedAt)),
   };
 }
@@ -1025,8 +1262,7 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
         const custom = customByHash.get(authHash);
         const prefs = prefsByCloud.get(cloudKey);
 
-        const isDeletedOverride = Boolean(dir?.deleted === true && custom?.deleted === true);
-        if (isDeletedOverride && !verifyStudentHash(authHash)) continue;
+        if (dir?.deleted === true || custom?.deleted === true) continue;
 
         const baseGroup = normalizeAssignedGroup(
           (custom && custom.deleted !== true ? custom.group : undefined) ??
@@ -1246,27 +1482,56 @@ export async function adminSaveStudentSettings(
     }
 
     const secret = resolveAdminWriteSecret(adminSecret);
+    if (isAdminStudentHash(authHash) && input.active === false) {
+      throw new Error('CANNOT_DEACTIVATE_ADMIN');
+    }
     const customRef = doc(db, 'custom_students', authHash);
     const dirRef = doc(db, 'admin_student_directory', authHash);
     const prefsRef = doc(db, 'student_prefs', input.cloudKey);
 
     const [customSnap, dirSnap, unlockedRoster] = await Promise.all([
-      getDoc(customRef),
-      getDoc(dirRef),
+      getDocPreferServer(customRef),
+      getDocPreferServer(dirRef),
       resolveUnlockedRosterData(secret).catch(() => null),
     ]);
-    const assignedGroup = mbu ? normalizeAssignedGroup(mbu) : normalizeAssignedGroup((customSnap.data()?.group as string) || 'I');
-    const isActive = input.active !== false;
+    const rosterEntry = unlockedRoster?.entries.find((e) => e.authHash === authHash);
+    const effectiveSid = cleanSid || rosterEntry?.sid || '';
+    const effectiveLast4 =
+      (effectiveSid ? effectiveSid.slice(-4) : '') ||
+      cleanLast4 ||
+      (typeof customSnap.data()?.last4 === 'string' && /^[0-9]{4}$/.test(customSnap.data()?.last4)
+        ? (customSnap.data()?.last4 as string)
+        : '') ||
+      (typeof dirSnap.data()?.last4 === 'string' && /^[0-9]{4}$/.test(dirSnap.data()?.last4)
+        ? (dirSnap.data()?.last4 as string)
+        : '') ||
+      '0000';
+
+    const assignedGroup = mbu
+      ? normalizeAssignedGroup(mbu)
+      : normalizeAssignedGroup((customSnap.data()?.group as string) || rosterEntry?.group || 'I');
+    const isActive = isAdminStudentHash(authHash) ? true : input.active !== false;
 
     let encSid = '';
-    if (cleanSid && unlockedRoster) {
-      encSid = await encryptAdminSid(unlockedRoster.aesKey, cleanSid).catch(() => '');
+    if (effectiveSid && unlockedRoster) {
+      encSid = await encryptAdminSid(unlockedRoster.aesKey, effectiveSid).catch(() => '');
     }
 
     const batch = writeBatch(db);
     const opId = appendAdminProofToBatch(batch, secret, `student/${authHash}`);
 
     batch.set(prefsRef, prefsPayload);
+
+    const resolvedName = String(
+      input.fullName ||
+        (dirSnap.exists() ? readAdminDirFullName(authHash, dirSnap.data() as Record<string, unknown>) : '') ||
+        rosterEntry?.fullName ||
+        '',
+    )
+      .trim()
+      .slice(0, 120);
+    const resolvedEncName =
+      effectiveSid && resolvedName ? encryptStudentName(effectiveSid, resolvedName) : '';
 
     if (customSnap.exists()) {
       const customUpdate: Record<string, unknown> = {
@@ -1279,22 +1544,34 @@ export async function adminSaveStudentSettings(
         updatedAt: serverTimestamp(),
       };
       if (encSid) customUpdate.encSid = encSid;
-      if (cleanSid && input.fullName) {
-        customUpdate.encName = encryptStudentName(cleanSid, String(input.fullName).trim().slice(0, 120));
-      }
+      if (resolvedEncName) customUpdate.encName = resolvedEncName;
       batch.update(customRef, customUpdate);
+    } else {
+      const customCreate: Record<string, unknown> = {
+        group: assignedGroup,
+        labGroup: lab,
+        prog: lang,
+        encName: resolvedEncName,
+        last4: effectiveLast4,
+        cloudKey: input.cloudKey,
+        active: isActive,
+        deleted: false,
+        proofOpId: opId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      if (encSid) customCreate.encSid = encSid;
+      batch.set(customRef, customCreate);
     }
 
     if (dirSnap.exists()) {
       const prevDir = dirSnap.data() || {};
-      const cleanName = String(
-        input.fullName || readAdminDirFullName(authHash, prevDir as Record<string, unknown>) || 'Öğrenci',
-      ).trim().slice(0, 120);
+      const cleanName = resolvedName || 'Öğrenci';
       const dirPayload: Record<string, unknown> = {
         authHash,
         cloudKey: input.cloudKey,
-        last4: cleanLast4 || (typeof prevDir.last4 === 'string' ? prevDir.last4 : '0000'),
-        encFullName: encryptDirectoryName(authHash, cleanName || 'Öğrenci'),
+        last4: effectiveLast4,
+        encFullName: encryptDirectoryName(authHash, cleanName),
         group: assignedGroup,
         labGroup: lab,
         prog: lang,
@@ -1308,31 +1585,31 @@ export async function adminSaveStudentSettings(
       if (encSid) dirPayload.encSid = encSid;
       else if (typeof prevDir.encSid === 'string' && prevDir.encSid) dirPayload.encSid = prevDir.encSid;
       batch.set(dirRef, dirPayload);
-    } else if (input.fullName && cleanLast4) {
-      const cleanName = String(input.fullName).trim().slice(0, 120);
-      if (cleanName) {
-        const dirPayload: Record<string, unknown> = {
-          authHash,
-          cloudKey: input.cloudKey,
-          last4: cleanLast4,
-          encFullName: encryptDirectoryName(authHash, cleanName),
-          group: assignedGroup,
-          labGroup: lab,
-          prog: lang,
-          source: input.source === 'custom' ? 'custom' : 'allowlist',
-          active: isActive,
-          deleted: false,
-          proofOpId: opId,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        };
-        if (encSid) dirPayload.encSid = encSid;
-        batch.set(dirRef, dirPayload);
-      }
+    } else if (resolvedName && effectiveLast4) {
+      const dirPayload: Record<string, unknown> = {
+        authHash,
+        cloudKey: input.cloudKey,
+        last4: effectiveLast4,
+        encFullName: encryptDirectoryName(authHash, resolvedName),
+        group: assignedGroup,
+        labGroup: lab,
+        prog: lang,
+        source: input.source === 'custom' || !verifyStudentHash(authHash) ? 'custom' : 'allowlist',
+        active: isActive,
+        deleted: false,
+        proofOpId: opId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      if (encSid) dirPayload.encSid = encSid;
+      batch.set(dirRef, dirPayload);
     }
 
     await batch.commit();
   } catch (error) {
+    if (error instanceof Error && error.message === 'CANNOT_DEACTIVATE_ADMIN') {
+      throw error;
+    }
     handleFirestoreError(error, OperationType.WRITE, `student_prefs/${input.cloudKey}`);
   }
 }

@@ -5,10 +5,13 @@ import './index.css';
 import {
   addOrUpdateCustomStudent,
   adminSaveStudentSettings,
+  checkStudentLoginStatus,
+  checkStudentSessionActive,
   clearAdminWriteSecret,
   deleteAnnouncement,
   deleteCustomStudent,
   hasAdminWriteSecret,
+  isStudentAlreadyRegistered,
   listAllAnnouncements,
   loadActiveAnnouncements,
   loadAllAdminStudents,
@@ -18,6 +21,7 @@ import {
   saveAnnouncement,
   saveCloudStudentPrefs,
   setAdminWriteSecret,
+  subscribeStudentAccountStatus,
   updateAdminPassword,
   verifyAdminPassword,
   verifyAndUnlockAdmin,
@@ -46,6 +50,10 @@ declare global {
       isValidAuthHash: typeof isValidAuthHash;
       isAdminStudentId: typeof isAdminStudentId;
       isAdminStudentHash: typeof isAdminStudentHash;
+      checkStudentLoginStatus: typeof checkStudentLoginStatus;
+      checkStudentSessionActive: typeof checkStudentSessionActive;
+      subscribeStudentAccountStatus: typeof subscribeStudentAccountStatus;
+      isStudentAlreadyRegistered: typeof isStudentAlreadyRegistered;
       lookupStudentWithCloud: typeof lookupStudentWithCloud;
       verifyAdminPassword: typeof verifyAdminPassword;
       verifyAndUnlockAdmin: typeof verifyAndUnlockAdmin;
@@ -78,6 +86,10 @@ window.__INONU_AUTH__ = {
   isValidAuthHash,
   isAdminStudentId,
   isAdminStudentHash,
+  checkStudentLoginStatus,
+  checkStudentSessionActive,
+  subscribeStudentAccountStatus,
+  isStudentAlreadyRegistered,
   lookupStudentWithCloud,
   verifyAdminPassword,
   verifyAndUnlockAdmin,
