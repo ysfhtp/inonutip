@@ -3462,7 +3462,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.3</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.4</span>
       </div>
     </section>
 
@@ -3570,6 +3570,24 @@
         <button id="btnDeleteNote" type="button" class="ios-press px-3 py-1.5 rounded-full text-rose-600 dark:text-rose-400 text-xs font-semibold">Sil</button>
         <button id="btnSaveNote" type="button" class="ios-press px-4 py-1.5 rounded-full bg-blue-600 text-white text-xs font-semibold">Kaydet</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Lesson Multiple PDFs Modal -->
+  <div id="lessonPdfsModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+    <div id="lessonPdfsModalCard" class="ios-glass rounded-3xl max-w-md w-full p-3.5 min-[360px]:p-4 space-y-3 shadow-2xl">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-7 h-7 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          </span>
+          <h3 id="lessonPdfsModalTitle" class="text-sm font-bold text-slate-900 dark:text-white truncate">Ders PDF'leri</h3>
+          <span id="lessonPdfsModalCount" class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-300 text-[10px] font-bold tabular-nums shrink-0">0</span>
+        </div>
+        <button id="btnCloseLessonPdfsModal" type="button" class="ios-press w-7 h-7 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0" aria-label="Kapat">✕</button>
+      </div>
+      <p id="lessonPdfsModalSubtitle" class="text-xs text-slate-500 dark:text-slate-400 leading-snug"></p>
+      <div id="lessonPdfsModalList" class="max-h-[55vh] overflow-y-auto space-y-2 pr-0.5"></div>
     </div>
   </div>
 
@@ -5437,35 +5455,47 @@
         : [];
       if (matList.length > 0) {
         const pdfWrap = document.createElement('div');
-        pdfWrap.className = 'mt-1.5 flex flex-wrap gap-1.5';
-        matList.forEach((material) => {
-          const pdfLabel = material.title || material.pdfName || (state.lang === 'en' ? 'Download PDF' : 'PDF İndir');
-          const sizeBadge = typeof material.fileSize === 'number' && material.fileSize > 0
-            ? ` (${formatPdfBytesLabel(material.fileSize)})`
-            : '';
-          const isDirectDownload = Boolean(material.pdfData) || Number(material.chunkCount) > 0 || material.sourceType === 'chunks' || (typeof material.pdfUrl === 'string' && material.pdfUrl.startsWith('/api/lesson-pdf/'));
-          if (isDirectDownload) {
-            const pdfBtn = document.createElement('button');
-            pdfBtn.type = 'button';
-            pdfBtn.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition max-w-full';
-            pdfBtn.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate max-w-[190px]">${escapeHtml(pdfLabel)}</span>${sizeBadge ? `<span class="text-[10px] opacity-75 shrink-0 tabular-nums">${escapeHtml(sizeBadge)}</span>` : ''}`;
-            pdfBtn.addEventListener('click', (e) => {
-              e.stopPropagation();
-              openOrDownloadLessonMaterial(material);
-            });
-            pdfWrap.appendChild(pdfBtn);
-          } else {
-            const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
-            const pdfLink = document.createElement('a');
-            pdfLink.href = safeUrl;
-            pdfLink.target = '_blank';
-            pdfLink.rel = 'noopener noreferrer';
-            pdfLink.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition max-w-full';
-            pdfLink.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate max-w-[190px]">${escapeHtml(pdfLabel)}</span>`;
-            pdfLink.addEventListener('click', (e) => e.stopPropagation());
-            pdfWrap.appendChild(pdfLink);
-          }
-        });
+        pdfWrap.className = 'mt-1.5 flex items-center gap-1.5 min-w-0 flex-nowrap';
+        const material = matList[0];
+        const pdfLabel = material.title || material.pdfName || (state.lang === 'en' ? 'Download PDF' : 'PDF İndir');
+        const sizeBadge = typeof material.fileSize === 'number' && material.fileSize > 0
+          ? ` (${formatPdfBytesLabel(material.fileSize)})`
+          : '';
+        const isDirectDownload = Boolean(material.pdfData) || Number(material.chunkCount) > 0 || material.sourceType === 'chunks' || (typeof material.pdfUrl === 'string' && material.pdfUrl.startsWith('/api/lesson-pdf/'));
+        if (isDirectDownload) {
+          const pdfBtn = document.createElement('button');
+          pdfBtn.type = 'button';
+          pdfBtn.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition min-w-0 max-w-full';
+          pdfBtn.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate">${escapeHtml(pdfLabel)}</span>${sizeBadge ? `<span class="text-[10px] opacity-75 shrink-0 tabular-nums">${escapeHtml(sizeBadge)}</span>` : ''}`;
+          pdfBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openOrDownloadLessonMaterial(material);
+          });
+          pdfWrap.appendChild(pdfBtn);
+        } else {
+          const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
+          const pdfLink = document.createElement('a');
+          pdfLink.href = safeUrl;
+          pdfLink.target = '_blank';
+          pdfLink.rel = 'noopener noreferrer';
+          pdfLink.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition min-w-0 max-w-full';
+          pdfLink.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate">${escapeHtml(pdfLabel)}</span>`;
+          pdfLink.addEventListener('click', (e) => e.stopPropagation());
+          pdfWrap.appendChild(pdfLink);
+        }
+        if (matList.length > 1) {
+          const extraCount = matList.length - 1;
+          const moreBtn = document.createElement('button');
+          moreBtn.type = 'button';
+          moreBtn.className = 'ios-press shrink-0 inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-rose-500/18 hover:bg-rose-500/28 border border-rose-500/25 text-rose-700 dark:text-rose-200 text-xs font-bold tabular-nums transition';
+          moreBtn.textContent = `+${extraCount}`;
+          moreBtn.setAttribute('aria-label', state.lang === 'en' ? `Show ${matList.length} PDFs` : `${matList.length} PDF'i göster`);
+          moreBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openLessonPdfsModal(slot, matList);
+          });
+          pdfWrap.appendChild(moreBtn);
+        }
         rightCol.appendChild(pdfWrap);
       }
 
@@ -7210,6 +7240,80 @@
       });
     }
 
+    // ==================== MULTIPLE LESSON PDFs MODAL ====================
+    function openLessonPdfsModal(slot, matList) {
+      const modal = document.getElementById('lessonPdfsModal');
+      const card = document.getElementById('lessonPdfsModalCard');
+      const titleEl = document.getElementById('lessonPdfsModalTitle');
+      const countEl = document.getElementById('lessonPdfsModalCount');
+      const subEl = document.getElementById('lessonPdfsModalSubtitle');
+      const listEl = document.getElementById('lessonPdfsModalList');
+      if (!modal || !card || !listEl || !Array.isArray(matList) || matList.length === 0) return;
+
+      if (titleEl) {
+        titleEl.textContent = state.lang === 'en' ? 'Lesson PDFs' : 'Ders PDF\'leri';
+      }
+      if (countEl) {
+        countEl.textContent = `${matList.length} PDF`;
+      }
+      if (subEl && slot) {
+        subEl.textContent = `${formatDateLong(slot.date)} • ${slot.time} — ${slot.title}`;
+      }
+
+      listEl.innerHTML = '';
+      matList.forEach((material, idx) => {
+        const pdfLabel = material.title || material.pdfName || (state.lang === 'en' ? `PDF ${idx + 1}` : `PDF ${idx + 1}`);
+        const sizeLabel = typeof material.fileSize === 'number' && material.fileSize > 0
+          ? formatPdfBytesLabel(material.fileSize)
+          : '';
+        const isDirectDownload = Boolean(material.pdfData) || Number(material.chunkCount) > 0 || material.sourceType === 'chunks' || (typeof material.pdfUrl === 'string' && material.pdfUrl.startsWith('/api/lesson-pdf/'));
+        const metaTxt = isDirectDownload
+          ? `${material.pdfName || pdfLabel}${sizeLabel ? ` • ${sizeLabel}` : ''}`
+          : material.pdfUrl;
+
+        const row = document.createElement('div');
+        row.className = 'ios-pill-control rounded-2xl p-2.5 flex items-center justify-between gap-2.5';
+        row.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <span class="w-8 h-8 rounded-xl bg-rose-500/12 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(pdfLabel)}</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate tabular-nums">${escapeHtml(metaTxt || '')}</p>
+            </div>
+          </div>
+        `;
+
+        if (isDirectDownload) {
+          const dlBtn = document.createElement('button');
+          dlBtn.type = 'button';
+          dlBtn.className = 'ios-press shrink-0 px-3 py-1.5 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-bold transition';
+          dlBtn.textContent = state.lang === 'en' ? 'Download' : 'İndir';
+          dlBtn.addEventListener('click', () => {
+            openOrDownloadLessonMaterial(material);
+          });
+          row.appendChild(dlBtn);
+        } else {
+          const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
+          const linkBtn = document.createElement('a');
+          linkBtn.href = safeUrl;
+          linkBtn.target = '_blank';
+          linkBtn.rel = 'noopener noreferrer';
+          linkBtn.className = 'ios-press shrink-0 px-3 py-1.5 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-bold transition';
+          linkBtn.textContent = state.lang === 'en' ? 'Open' : 'Aç';
+          row.appendChild(linkBtn);
+        }
+        listEl.appendChild(row);
+      });
+
+      openAnimatedModal(modal, card);
+    }
+
+    function closeLessonPdfsModal() {
+      closeAnimatedModal(document.getElementById('lessonPdfsModal'), document.getElementById('lessonPdfsModalCard'));
+    }
+
     // ==================== CALENDAR (.ics) ====================
     function exportSlotsToIcs(slots, filename) {
       const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Inonu Tip Donem I//TR', 'CALSCALE:GREGORIAN'];
@@ -7741,6 +7845,7 @@
       closeAdminModal();
       closeGroupModal();
       closeNoteModal();
+      closeLessonPdfsModal();
       state.myMbuGroup = '';
       state.myLabGroup = '';
       state.otherGroupMode = 'dim';
@@ -9295,6 +9400,16 @@
       document.getElementById('noteModal').addEventListener('click', (e) => {
         if (e.target.id === 'noteModal') closeNoteModal();
       });
+      const btnCloseLessonPdfsModal = document.getElementById('btnCloseLessonPdfsModal');
+      if (btnCloseLessonPdfsModal) {
+        btnCloseLessonPdfsModal.addEventListener('click', closeLessonPdfsModal);
+      }
+      const lessonPdfsModalEl = document.getElementById('lessonPdfsModal');
+      if (lessonPdfsModalEl) {
+        lessonPdfsModalEl.addEventListener('click', (e) => {
+          if (e.target.id === 'lessonPdfsModal') closeLessonPdfsModal();
+        });
+      }
       document.getElementById('btnSaveNote').addEventListener('click', () => {
         if (!state.modalSlotKey) return;
         const val = document.getElementById('noteModalTextarea').value.trim();
@@ -10095,6 +10210,7 @@
           closeFoodPhotoModal();
           closeFoodDateModal();
           closeNoteModal();
+          closeLessonPdfsModal();
           closeGroupModal();
           closeInstallModal();
         }
