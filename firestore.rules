@@ -123,7 +123,7 @@ service cloud.firestore {
 
     function isValidLessonMaterial(data) {
       return data.keys().hasAll(['date', 'slotNo', 'title', 'pdfUrl', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['date', 'slotNo', 'targetProg', 'title', 'sourceType', 'pdfUrl', 'pdfData', 'pdfName', 'fileSize', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['date', 'slotNo', 'targetProg', 'title', 'sourceType', 'pdfUrl', 'pdfData', 'chunkCount', 'pdfName', 'fileSize', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
         && data.date is string
         && data.date.size() >= 1
         && data.date.size() <= 16
@@ -134,16 +134,35 @@ service cloud.firestore {
         && data.title is string
         && data.title.size() >= 1
         && data.title.size() <= 120
-        && (!('sourceType' in data) || (data.sourceType is string && data.sourceType.size() <= 6 && data.sourceType in ['url', 'file', 'server']))
+        && (!('sourceType' in data) || (data.sourceType is string && data.sourceType.size() <= 6 && data.sourceType in ['url', 'file', 'server', 'chunks']))
         && data.pdfUrl is string
         && data.pdfUrl.size() <= 2000
         && (!('pdfData' in data) || (data.pdfData is string && data.pdfData.size() <= 950000))
+        && (!('chunkCount' in data) || (data.chunkCount is number && data.chunkCount >= 0 && data.chunkCount <= 600))
         && (!('pdfName' in data) || (data.pdfName is string && data.pdfName.size() <= 120))
         && (!('fileSize' in data) || (data.fileSize is number && data.fileSize >= 0 && data.fileSize <= 262144000))
-        && (data.deleted == true || data.pdfUrl.size() >= 1 || ('pdfData' in data && data.pdfData.size() >= 1))
+        && (data.deleted == true || data.pdfUrl.size() >= 1 || ('pdfData' in data && data.pdfData.size() >= 1) || ('chunkCount' in data && data.chunkCount >= 1))
         && data.deleted is bool
         && isValidId(data.proofOpId)
         && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLessonMaterialChunk(data) {
+      return data.keys().hasAll(['materialId', 'chunkIndex', 'totalChunks', 'data', 'proofOpId', 'updatedAt'])
+        && data.keys().hasOnly(['materialId', 'chunkIndex', 'totalChunks', 'data', 'proofOpId', 'updatedAt'])
+        && isValidId(data.materialId)
+        && data.chunkIndex is number
+        && data.chunkIndex >= 0
+        && data.chunkIndex < 600
+        && data.totalChunks is number
+        && data.totalChunks >= 1
+        && data.totalChunks <= 600
+        && data.chunkIndex < data.totalChunks
+        && data.data is string
+        && data.data.size() >= 1
+        && data.data.size() <= 900000
+        && isValidId(data.proofOpId)
         && data.updatedAt is timestamp;
     }
 
@@ -279,10 +298,27 @@ service cloud.firestore {
       allow update: if isValidId(lessonKey)
         && isValidLessonMaterial(incoming())
         && (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
-        && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'slotNo', 'targetProg', 'title', 'sourceType', 'pdfUrl', 'pdfData', 'pdfName', 'fileSize', 'deleted', 'proofOpId', 'updatedAt'])
+        && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'slotNo', 'targetProg', 'title', 'sourceType', 'pdfUrl', 'pdfData', 'chunkCount', 'pdfName', 'fileSize', 'deleted', 'proofOpId', 'updatedAt'])
         && incoming().updatedAt == request.time
         && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'lesson_materials/' + lessonKey));
       allow delete: if isAdmin() && isValidId(lessonKey);
+    }
+
+    // Cross-deployment Firestore PDF binary chunks for lesson materials.
+    match /lesson_material_chunks/{chunkId} {
+      allow get: if isValidId(chunkId);
+      allow list: if request.query.limit <= 500;
+      allow create: if isValidId(chunkId)
+        && isValidLessonMaterialChunk(incoming())
+        && incoming().updatedAt == request.time
+        && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'lesson_material_chunks/' + incoming().materialId));
+      allow update: if isValidId(chunkId)
+        && isValidLessonMaterialChunk(incoming())
+        && incoming().materialId == existing().materialId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['materialId', 'chunkIndex', 'totalChunks', 'data', 'proofOpId', 'updatedAt'])
+        && incoming().updatedAt == request.time
+        && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'lesson_material_chunks/' + incoming().materialId));
+      allow delete: if isAdmin() && isValidId(chunkId);
     }
 
     // Custom student login entries keyed by salted 32-hex hash (zero plaintext PII).

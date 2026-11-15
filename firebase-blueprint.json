@@ -140,9 +140,9 @@
         },
         "sourceType": {
           "type": "string",
-          "enum": ["url", "file", "server"],
+          "enum": ["url", "file", "server", "chunks"],
           "maxLength": 6,
-          "description": "Whether the PDF is an external link, small embedded file, or server-stored file."
+          "description": "Whether the PDF is an external link, small embedded file, server-stored file, or Firestore chunked file."
         },
         "pdfUrl": {
           "type": "string",
@@ -152,7 +152,11 @@
         "pdfData": {
           "type": "string",
           "maxLength": 950000,
-          "description": "Optional base64-encoded PDF content for small fallback downloads."
+          "description": "Optional base64-encoded PDF content for small direct downloads."
+        },
+        "chunkCount": {
+          "type": "number",
+          "description": "Number of Firestore chunks stored in lesson_material_chunks when sourceType is chunks."
         },
         "pdfName": {
           "type": "string",
@@ -416,6 +420,47 @@
         }
       },
       "required": ["proof", "targetPath", "createdAt"]
+    },
+    "LessonMaterialChunk": {
+      "title": "LessonMaterialChunk",
+      "description": "Chunked base64 segment of an admin-uploaded lesson PDF stored natively in Firestore for cross-deployment availability.",
+      "type": "object",
+      "properties": {
+        "materialId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Parent lesson_materials document ID."
+        },
+        "chunkIndex": {
+          "type": "number",
+          "description": "Zero-based index of this PDF chunk."
+        },
+        "totalChunks": {
+          "type": "number",
+          "description": "Total chunk count for this PDF."
+        },
+        "data": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 900000,
+          "description": "Base64-encoded binary slice of the PDF."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update."
+        }
+      },
+      "required": ["materialId", "chunkIndex", "totalChunks", "data", "proofOpId", "updatedAt"]
     }
   },
   "firestore": {
@@ -446,6 +491,10 @@
     "/lesson_materials/{lessonKey}": {
       "schema": { "$ref": "#/entities/LessonMaterial" },
       "description": "Stores admin-uploaded PDF materials for lesson slots."
+    },
+    "/lesson_material_chunks/{chunkId}": {
+      "schema": { "$ref": "#/entities/LessonMaterialChunk" },
+      "description": "Stores chunked binary segments of lesson PDFs for cross-deployment download."
     }
   }
 }

@@ -3462,7 +3462,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.2</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.3</span>
       </div>
     </section>
 
@@ -3902,6 +3902,32 @@
           </form>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="pdfDownloadBanner" class="hidden fixed inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[420px] bottom-24 z-50 ios-glass rounded-2xl px-3.5 py-2.5 shadow-xl border border-blue-500/25">
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="w-7 h-7 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        </span>
+        <div class="min-w-0">
+          <p id="pdfDownloadBannerTitle" class="text-xs font-bold text-slate-900 dark:text-white truncate">PDF</p>
+          <p id="pdfDownloadBannerStatus" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums truncate">Hazırlanıyor...</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <div id="pdfDownloadReadyActions" class="hidden flex items-center gap-1.5">
+          <a id="pdfDownloadSaveLink" href="#" download="ders.pdf" class="ios-press inline-flex items-center px-2.5 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition">İndir</a>
+          <a id="pdfDownloadOpenLink" href="#" target="_blank" rel="noopener noreferrer" class="ios-press inline-flex items-center px-2.5 py-1.5 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition">Aç</a>
+        </div>
+        <button id="btnClosePdfBanner" type="button" aria-label="Kapat" class="ios-press w-7 h-7 rounded-full ios-pill-control flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+    </div>
+    <div id="pdfDownloadProgressWrap" class="mt-2 w-full h-1.5 rounded-full bg-slate-200/70 dark:bg-slate-800 overflow-hidden">
+      <div id="pdfDownloadProgressBar" class="h-full bg-blue-600 transition-all duration-150" style="width: 0%;"></div>
     </div>
   </div>
 
@@ -5407,7 +5433,7 @@
       const matKey = `${slot.date}_${slot.slotNo}`;
       const rawMats = typeof lessonMaterialsMap !== 'undefined' ? lessonMaterialsMap[matKey] : null;
       const matList = Array.isArray(rawMats)
-        ? rawMats.filter((m) => m && (!m.targetProg || m.targetProg === state.lang) && (m.pdfData || m.pdfUrl))
+        ? rawMats.filter((m) => m && (!m.targetProg || m.targetProg === state.lang) && (m.pdfData || m.pdfUrl || Number(m.chunkCount) > 0 || m.sourceType === 'chunks'))
         : [];
       if (matList.length > 0) {
         const pdfWrap = document.createElement('div');
@@ -5417,7 +5443,7 @@
           const sizeBadge = typeof material.fileSize === 'number' && material.fileSize > 0
             ? ` (${formatPdfBytesLabel(material.fileSize)})`
             : '';
-          const isDirectDownload = Boolean(material.pdfData) || (typeof material.pdfUrl === 'string' && material.pdfUrl.startsWith('/api/lesson-pdf/'));
+          const isDirectDownload = Boolean(material.pdfData) || Number(material.chunkCount) > 0 || material.sourceType === 'chunks' || (typeof material.pdfUrl === 'string' && material.pdfUrl.startsWith('/api/lesson-pdf/'));
           if (isDirectDownload) {
             const pdfBtn = document.createElement('button');
             pdfBtn.type = 'button';
@@ -7736,8 +7762,102 @@
       return `${(n / (1024 * 1024)).toFixed(n >= 10 * 1024 * 1024 ? 1 : 2)} MB`;
     }
 
-    function openOrDownloadLessonMaterial(material) {
+    let activePdfDownloadHideTimer = null;
+    let activePdfDownloadBlobUrl = '';
+    const activePdfDownloadInFlight = new Set();
+
+    function closePdfDownloadBanner(revokeUrl = true) {
+      if (activePdfDownloadHideTimer) {
+        clearTimeout(activePdfDownloadHideTimer);
+        activePdfDownloadHideTimer = null;
+      }
+      const banner = document.getElementById('pdfDownloadBanner');
+      if (banner) banner.classList.add('hidden');
+      if (revokeUrl && activePdfDownloadBlobUrl) {
+        const oldUrl = activePdfDownloadBlobUrl;
+        activePdfDownloadBlobUrl = '';
+        setTimeout(() => {
+          try { URL.revokeObjectURL(oldUrl); } catch {}
+        }, 5000);
+      }
+    }
+
+    function showPdfDownloadProgressBanner(title, statusText, pct) {
+      if (activePdfDownloadHideTimer) {
+        clearTimeout(activePdfDownloadHideTimer);
+        activePdfDownloadHideTimer = null;
+      }
+      const banner = document.getElementById('pdfDownloadBanner');
+      const titleEl = document.getElementById('pdfDownloadBannerTitle');
+      const statusEl = document.getElementById('pdfDownloadBannerStatus');
+      const progWrap = document.getElementById('pdfDownloadProgressWrap');
+      const progBar = document.getElementById('pdfDownloadProgressBar');
+      const readyWrap = document.getElementById('pdfDownloadReadyActions');
+      if (!banner) return;
+      if (titleEl) titleEl.textContent = title || 'PDF';
+      if (statusEl) statusEl.textContent = statusText || '';
+      if (progWrap) progWrap.classList.remove('hidden');
+      if (readyWrap) readyWrap.classList.add('hidden');
+      if (progBar) progBar.style.width = `${Math.min(100, Math.max(2, Number(pct) || 0))}%`;
+      banner.classList.remove('hidden');
+    }
+
+    function triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle) {
+      if (activePdfDownloadBlobUrl) {
+        const staleUrl = activePdfDownloadBlobUrl;
+        setTimeout(() => {
+          try { URL.revokeObjectURL(staleUrl); } catch {}
+        }, 10000);
+      }
+      const blobUrl = URL.createObjectURL(blob);
+      activePdfDownloadBlobUrl = blobUrl;
+
+      const saveLink = document.getElementById('pdfDownloadSaveLink');
+      const openLink = document.getElementById('pdfDownloadOpenLink');
+      const banner = document.getElementById('pdfDownloadBanner');
+      const titleEl = document.getElementById('pdfDownloadBannerTitle');
+      const statusEl = document.getElementById('pdfDownloadBannerStatus');
+      const progWrap = document.getElementById('pdfDownloadProgressWrap');
+      const readyWrap = document.getElementById('pdfDownloadReadyActions');
+
+      if (saveLink) {
+        saveLink.href = blobUrl;
+        saveLink.download = fileName;
+        saveLink.textContent = state.lang === 'en' ? 'Save' : 'Kaydet';
+      }
+      if (openLink) {
+        openLink.href = blobUrl;
+        openLink.textContent = state.lang === 'en' ? 'Open' : 'Aç';
+      }
+      if (titleEl) titleEl.textContent = displayTitle || fileName;
+      if (statusEl) {
+        const sizeTxt = blob.size > 0 ? ` (${formatPdfBytesLabel(blob.size)})` : '';
+        statusEl.textContent = state.lang === 'en' ? `Ready to save/open${sizeTxt}` : `PDF hazır${sizeTxt}`;
+      }
+      if (progWrap) progWrap.classList.add('hidden');
+      if (readyWrap) readyWrap.classList.remove('hidden');
+      if (banner) banner.classList.remove('hidden');
+
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      if (activePdfDownloadHideTimer) clearTimeout(activePdfDownloadHideTimer);
+      activePdfDownloadHideTimer = setTimeout(() => {
+        closePdfDownloadBanner(true);
+      }, 18000);
+    }
+
+    async function openOrDownloadLessonMaterial(material) {
       if (!material) return;
+      const rawName = (material.pdfName || material.title || `ders_${material.date}_${material.slotNo}`).trim();
+      const fileName = rawName.toLowerCase().endsWith('.pdf') ? rawName : `${rawName}.pdf`;
+      const displayTitle = material.title || fileName;
+
       if (material.pdfData) {
         try {
           const cleanB64 = String(material.pdfData).replace(/^data:[^;]+;base64,/i, '');
@@ -7747,15 +7867,7 @@
             bytes[i] = bin.charCodeAt(i);
           }
           const blob = new Blob([bytes], { type: 'application/pdf' });
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          const rawName = (material.pdfName || material.title || `ders_${material.date}_${material.slotNo}`).trim();
-          a.download = rawName.toLowerCase().endsWith('.pdf') ? rawName : `${rawName}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+          triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle);
           return;
         } catch (err) {
           console.warn('PDF blob download failed:', err);
@@ -7763,16 +7875,72 @@
           return;
         }
       }
+
+      const chunkTotal = Number(material.chunkCount) || 0;
+      if (chunkTotal > 0 && material.id) {
+        const api = window.__INONU_AUTH__;
+        if (!api || typeof api.downloadLessonMaterialChunks !== 'function') {
+          showToast(state.lang === 'en' ? 'Downloader module not ready.' : 'İndirme modülü henüz hazır değil.');
+          return;
+        }
+        if (activePdfDownloadInFlight.has(material.id)) return;
+        activePdfDownloadInFlight.add(material.id);
+        try {
+          showPdfDownloadProgressBanner(
+            displayTitle,
+            state.lang === 'en' ? 'Preparing PDF...' : 'PDF indiriliyor...',
+            4
+          );
+          const blob = await api.downloadLessonMaterialChunks(material.id, chunkTotal, (pct, done, total) => {
+            showPdfDownloadProgressBanner(
+              displayTitle,
+              state.lang === 'en'
+                ? `Downloading... %${pct} (${done}/${total})`
+                : `İndiriliyor... %${pct} (${done}/${total})`,
+              pct
+            );
+          });
+          triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle);
+        } catch (err) {
+          console.warn('Cloud chunk PDF download failed:', err);
+          closePdfDownloadBanner(true);
+          showToast(state.lang === 'en' ? 'Could not download PDF from cloud.' : 'PDF buluttan indirilemedi. Bağlantınızı kontrol edin.');
+        } finally {
+          activePdfDownloadInFlight.delete(material.id);
+        }
+        return;
+      }
+
       if (material.pdfUrl) {
         if (material.pdfUrl.startsWith('/api/lesson-pdf/')) {
           const dlUrl = material.pdfUrl.includes('?') ? `${material.pdfUrl}&download=1` : `${material.pdfUrl}?download=1`;
-          const a = document.createElement('a');
-          a.href = dlUrl;
-          const rawName = (material.pdfName || material.title || `ders_${material.date}_${material.slotNo}`).trim();
-          a.download = rawName.toLowerCase().endsWith('.pdf') ? rawName : `${rawName}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
+          if (activePdfDownloadInFlight.has(dlUrl)) return;
+          activePdfDownloadInFlight.add(dlUrl);
+          try {
+            showPdfDownloadProgressBanner(
+              displayTitle,
+              state.lang === 'en' ? 'Fetching PDF...' : 'Sunucudan alınıyor...',
+              35
+            );
+            const resp = await fetch(dlUrl, { cache: 'no-store' });
+            const ct = (resp.headers.get('content-type') || '').toLowerCase();
+            if (!resp.ok || ct.includes('text/html')) {
+              throw new Error(resp.status === 404 || ct.includes('text/html') ? 'LEGACY_SERVER_FILE_MISSING' : `HTTP_${resp.status}`);
+            }
+            const blob = await resp.blob();
+            triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle);
+          } catch (err) {
+            console.warn('Server PDF download failed:', err);
+            closePdfDownloadBanner(true);
+            const msg = err instanceof Error && err.message === 'LEGACY_SERVER_FILE_MISSING'
+              ? (state.lang === 'en'
+                  ? 'This older PDF needs to be re-uploaded from the admin panel.'
+                  : 'Bu eski PDF dosyası bulunamadı. Yönetici panelinden yeniden yükleyin.')
+              : (state.lang === 'en' ? 'Could not download PDF.' : 'PDF indirilemedi.');
+            showToast(msg);
+          } finally {
+            activePdfDownloadInFlight.delete(dlUrl);
+          }
           return;
         }
         const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
@@ -7801,6 +7969,7 @@
       matFileName: '',
       matFileSize: 0,
       matExistingUrl: '',
+      matExistingChunkCount: 0,
       matListFilterProg: '',
       editingMatId: '',
       addGroup: 'I',
@@ -7832,7 +8001,10 @@
     function ensureAdminSecretReady() {
       const api = window.__INONU_AUTH__;
       const session = getActiveAuthSession();
-      if (!api || !session || !session.isAdmin) return '';
+      if (!api || !session || !session.isAdmin) {
+        showToast('Yönetici oturumu aktif değil. Lütfen yönetici numarasıyla tekrar giriş yapın.');
+        return '';
+      }
       if (session.adminSecret) {
         if (typeof api.setAdminWriteSecret === 'function') api.setAdminWriteSecret(session.adminSecret);
         syncAdminUnlockBarUI();
@@ -7843,6 +8015,10 @@
         return 'active';
       }
       syncAdminUnlockBarUI();
+      const bar = document.getElementById('adminReunlockBar');
+      if (bar && typeof bar.scrollIntoView === 'function') {
+        bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       const inp = document.getElementById('adminUnlockPwdInput');
       if (inp) inp.focus();
       showToast(I18N[state.lang].adminNeedPasswordUnlock);
@@ -8522,7 +8698,7 @@
         const dayMatch = progDays.find((d) => d.date === mat.date);
         const slotMatch = dayMatch && Array.isArray(dayMatch.slots) ? dayMatch.slots.find((s) => s.slotNo === mat.slotNo) : null;
         const lessonInfo = slotMatch ? slotMatch.title : '';
-        const isFile = Boolean(mat.pdfData) || mat.sourceType === 'file' || mat.sourceType === 'server' || (typeof mat.pdfUrl === 'string' && mat.pdfUrl.startsWith('/api/lesson-pdf/'));
+        const isFile = Boolean(mat.pdfData) || Number(mat.chunkCount) > 0 || mat.sourceType === 'chunks' || mat.sourceType === 'file' || mat.sourceType === 'server' || (typeof mat.pdfUrl === 'string' && mat.pdfUrl.startsWith('/api/lesson-pdf/'));
         const sizeLabel = typeof mat.fileSize === 'number' && mat.fileSize > 0 ? formatPdfBytesLabel(mat.fileSize) : '';
         const progBadgeText = mat.targetProg === 'en' ? 'EN' : (mat.targetProg === 'tr' ? 'TR' : 'TR/EN');
         const progBadgeCls = mat.targetProg === 'en'
@@ -8565,6 +8741,7 @@
           adminState.matFileData = mat.pdfData || '';
           adminState.matFileSize = mat.fileSize || 0;
           adminState.matExistingUrl = isFile && mat.pdfUrl ? mat.pdfUrl : '';
+          adminState.matExistingChunkCount = Number(mat.chunkCount) || 0;
           adminState.matFileName = mat.pdfName || (isFile ? `${mat.title}.pdf` : '');
           syncAdminMaterialFormDefaults();
           const dateSel = document.getElementById('adminMatDateSelect');
@@ -9433,6 +9610,11 @@
         });
       }
 
+      const btnClosePdfBanner = document.getElementById('btnClosePdfBanner');
+      if (btnClosePdfBanner) {
+        btnClosePdfBanner.addEventListener('click', () => closePdfDownloadBanner(true));
+      }
+
       const btnAdminMatCancelEdit = document.getElementById('btnAdminMatCancelEdit');
       if (btnAdminMatCancelEdit) {
         btnAdminMatCancelEdit.addEventListener('click', () => {
@@ -9442,6 +9624,7 @@
           adminState.matFileName = '';
           adminState.matFileSize = 0;
           adminState.matExistingUrl = '';
+          adminState.matExistingChunkCount = 0;
           const titleEl = document.getElementById('adminMatTitleInput');
           const urlEl = document.getElementById('adminMatUrlInput');
           if (titleEl) titleEl.value = '';
@@ -9457,8 +9640,12 @@
         adminMaterialForm.addEventListener('submit', async (e) => {
           e.preventDefault();
           const api = window.__INONU_AUTH__;
+          if (!api) {
+            showToast('Uygulama modülü yüklenemedi. Sayfayı yenileyin.');
+            return;
+          }
           const secret = ensureAdminSecretReady();
-          if (!api || !secret) return;
+          if (!secret) return;
           const dateVal = (document.getElementById('adminMatDateSelect')?.value || state.selectedDate || '').trim();
           const slotVal = parseInt(document.getElementById('adminMatSlotSelect')?.value || '1', 10) || 1;
           const targetProg = adminState.matProg === 'en' ? 'en' : 'tr';
@@ -9470,7 +9657,7 @@
             showToast('Lütfen ders tarihi, saati ve PDF başlığını girin.');
             return;
           }
-          if (isFile && !adminState.matFileObj && !adminState.matFileData && !adminState.matExistingUrl) {
+          if (isFile && !adminState.matFileObj && !adminState.matFileData && !adminState.matExistingUrl && !(adminState.matExistingChunkCount > 0)) {
             showToast('Lütfen cihazdan bir PDF dosyası seçin veya Web Bağlantısı moduna geçin.');
             return;
           }
@@ -9483,8 +9670,12 @@
           if (btn) btn.disabled = true;
           try {
             const explicitSecret = secret === 'active' ? undefined : secret;
-            let savePayload = {
-              id: adminState.editingMatId || undefined,
+            const targetMatId =
+              adminState.editingMatId ||
+              (typeof api.generateLessonMaterialId === 'function' ? api.generateLessonMaterialId(dateVal, slotVal) : undefined);
+
+            const savePayload = {
+              id: targetMatId,
               date: dateVal,
               slotNo: slotVal,
               targetProg,
@@ -9492,36 +9683,47 @@
               sourceType: isFile ? 'file' : 'url',
               pdfUrl: isFile ? '' : urlVal,
               pdfData: isFile ? adminState.matFileData : '',
+              chunkCount: 0,
               pdfName: isFile ? (adminState.matFileName || `${titleVal}.pdf`) : titleVal,
               fileSize: adminState.matFileSize || undefined
             };
 
             if (isFile && adminState.matFileObj) {
-              setAdminMatUploadProgress(true, 1, 0, adminState.matFileObj.size, 'Sunucuya bağlanılıyor...');
+              setAdminMatUploadProgress(true, 1, 0, adminState.matFileObj.size, 'Bulut yüklemesi başlatılıyor...');
               const uploaded = await api.uploadLessonPdfFile(
                 adminState.matFileObj,
                 explicitSecret,
-                (pct, loaded, total) => setAdminMatUploadProgress(true, pct, loaded, total)
+                (pct, loaded, total) => setAdminMatUploadProgress(true, pct, loaded, total, pct >= 95 ? 'Kaydediliyor...' : ''),
+                targetMatId
               );
+              savePayload.id = uploaded.materialId || targetMatId;
               if (adminState.matExistingUrl && adminState.matExistingUrl.startsWith('/api/lesson-pdf/')) {
                 void api.deleteServerPdfByUrl(adminState.matExistingUrl, explicitSecret);
               }
               if (uploaded.fallbackBase64) {
                 savePayload.sourceType = 'file';
+                savePayload.chunkCount = 0;
                 savePayload.pdfUrl = '';
                 savePayload.pdfData = uploaded.fallbackBase64;
                 savePayload.pdfName = uploaded.fileName;
                 savePayload.fileSize = uploaded.size;
               } else {
-                savePayload.sourceType = 'server';
-                savePayload.pdfUrl = uploaded.url;
+                savePayload.sourceType = 'chunks';
+                savePayload.chunkCount = uploaded.chunkCount;
+                savePayload.pdfUrl = '';
                 savePayload.pdfData = '';
                 savePayload.pdfName = uploaded.fileName;
                 savePayload.fileSize = uploaded.size;
               }
               setAdminMatUploadProgress(true, 100, uploaded.size, uploaded.size, 'Veritabanına kaydediliyor...');
+            } else if (isFile && adminState.matExistingChunkCount > 0) {
+              savePayload.sourceType = 'chunks';
+              savePayload.chunkCount = adminState.matExistingChunkCount;
+              savePayload.pdfUrl = '';
+              savePayload.pdfData = '';
             } else if (isFile && adminState.matExistingUrl) {
               savePayload.sourceType = adminState.matExistingUrl.startsWith('/api/lesson-pdf/') ? 'server' : 'url';
+              savePayload.chunkCount = 0;
               savePayload.pdfUrl = adminState.matExistingUrl;
               savePayload.pdfData = '';
             }
@@ -9533,6 +9735,7 @@
             adminState.matFileName = '';
             adminState.matFileSize = 0;
             adminState.matExistingUrl = '';
+            adminState.matExistingChunkCount = 0;
             const titleEl = document.getElementById('adminMatTitleInput');
             const urlEl = document.getElementById('adminMatUrlInput');
             if (titleEl) titleEl.value = '';
@@ -9546,10 +9749,32 @@
           } catch (err) {
             console.warn('Lesson material save error:', err);
             setAdminMatUploadProgress(false);
-            const msg = err instanceof Error && err.message === 'PDF_TOO_LARGE'
-              ? 'PDF dosyası en fazla 250 MB olabilir.'
-              : 'PDF kaydedilemedi. Bağlantınızı veya yönetici kilidini kontrol edin.';
-            showToast(msg);
+            const rawErr = err instanceof Error ? err.message : String(err || '');
+            if (rawErr.includes('ADMIN_SECRET_REQUIRED')) {
+              const savedSession = loadStore('authSession', null);
+              if (savedSession && typeof savedSession === 'object') {
+                saveStore('authSession', { ...savedSession, adminSecret: '' });
+              }
+              if (typeof api.clearAdminWriteSecret === 'function') api.clearAdminWriteSecret();
+              syncAdminUnlockBarUI();
+              const bar = document.getElementById('adminReunlockBar');
+              if (bar && typeof bar.scrollIntoView === 'function') bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              showToast('Yönetici kilidini açmak için üstteki alana şifrenizi girin.');
+            } else if (/permission|PERMISSION_DENIED|admin_proofs/i.test(rawErr)) {
+              const savedSession = loadStore('authSession', null);
+              if (savedSession && typeof savedSession === 'object') {
+                saveStore('authSession', { ...savedSession, adminSecret: '' });
+              }
+              if (typeof api.clearAdminWriteSecret === 'function') api.clearAdminWriteSecret();
+              syncAdminUnlockBarUI();
+              const bar = document.getElementById('adminReunlockBar');
+              if (bar && typeof bar.scrollIntoView === 'function') bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              showToast('Yönetici şifresi doğrulanamadı. Üstten yönetici şifrenizi tekrar girin.');
+            } else if (rawErr === 'PDF_TOO_LARGE') {
+              showToast('PDF dosyası en fazla 250 MB olabilir.');
+            } else {
+              showToast('PDF yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+            }
           } finally {
             if (btn) btn.disabled = false;
           }

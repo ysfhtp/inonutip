@@ -12,6 +12,8 @@ import {
   deleteCustomStudent,
   deleteLessonMaterial,
   deleteServerPdfByUrl,
+  downloadLessonMaterialChunks,
+  generateLessonMaterialId,
   hasAdminWriteSecret,
   isStudentAlreadyRegistered,
   listAllAnnouncements,
@@ -76,6 +78,8 @@ declare global {
       saveLessonMaterial: typeof saveLessonMaterial;
       deleteLessonMaterial: typeof deleteLessonMaterial;
       uploadLessonPdfFile: typeof uploadLessonPdfFile;
+      downloadLessonMaterialChunks: typeof downloadLessonMaterialChunks;
+      generateLessonMaterialId: typeof generateLessonMaterialId;
       deleteServerPdfByUrl: typeof deleteServerPdfByUrl;
       addOrUpdateCustomStudent: typeof addOrUpdateCustomStudent;
       deleteCustomStudent: typeof deleteCustomStudent;
@@ -117,6 +121,8 @@ window.__INONU_AUTH__ = {
   saveLessonMaterial,
   deleteLessonMaterial,
   uploadLessonPdfFile,
+  downloadLessonMaterialChunks,
+  generateLessonMaterialId,
   deleteServerPdfByUrl,
   addOrUpdateCustomStudent,
   deleteCustomStudent,

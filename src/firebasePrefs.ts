@@ -856,9 +856,10 @@ export interface LessonMaterial {
   slotNo: number;
   targetProg: '' | 'tr' | 'en';
   title: string;
-  sourceType?: 'url' | 'file' | 'server';
+  sourceType?: 'url' | 'file' | 'server' | 'chunks';
   pdfUrl: string;
   pdfData?: string;
+  chunkCount?: number;
   pdfName?: string;
   fileSize?: number;
   createdAtMs: number;
@@ -866,7 +867,11 @@ export interface LessonMaterial {
 }
 
 const MAX_SERVER_PDF_BYTES = 250 * 1024 * 1024;
-const PDF_UPLOAD_CHUNK_BYTES = 2 * 1024 * 1024;
+const INLINE_PDF_MAX_BYTES = 650 * 1024;
+const CLOUD_PDF_CHUNK_BYTES = 600 * 1024;
+const CHUNKS_PER_BATCH = 3;
+const CHUNK_UPLOAD_CONCURRENCY = 3;
+const CHUNK_DOWNLOAD_CONCURRENCY = 6;
 
 function normalizeMaterialDate(raw: string): string {
   const s = String(raw || '').trim();
@@ -883,6 +888,24 @@ function normalizeMaterialDate(raw: string): string {
   return s.slice(0, 16);
 }
 
+export function generateLessonMaterialId(date: string, slotNo: number): string {
+  const cleanDate = normalizeMaterialDate(date) || '01.01.2026';
+  const dateKey = cleanDate.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const cleanSlot = Math.min(10, Math.max(1, Math.round(Number(slotNo) || 1)));
+  const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  return `${dateKey}_${cleanSlot}_${uniqueSuffix}`.slice(0, 100);
+}
+
+function uint8ToBase64(bytes: Uint8Array): string {
+  const sliceLen = 0x8000;
+  const parts: string[] = [];
+  for (let offset = 0; offset < bytes.length; offset += sliceLen) {
+    const sub = bytes.subarray(offset, Math.min(bytes.length, offset + sliceLen));
+    parts.push(String.fromCharCode(...sub));
+  }
+  return btoa(parts.join(''));
+}
+
 export async function deleteServerPdfByUrl(pdfUrl: string, adminSecret?: string): Promise<void> {
   const clean = typeof pdfUrl === 'string' ? pdfUrl.trim() : '';
   if (!clean.startsWith('/api/lesson-pdf/')) return;
@@ -897,7 +920,7 @@ export async function deleteServerPdfByUrl(pdfUrl: string, adminSecret?: string)
       },
     });
   } catch {
-    // Best-effort cleanup
+    // Best-effort legacy cleanup
   }
 }
 
@@ -905,11 +928,15 @@ export async function uploadLessonPdfFile(
   file: File,
   adminSecret?: string,
   onProgress?: (percent: number, loadedBytes: number, totalBytes: number) => void,
+  materialId?: string,
 ): Promise<{
+  sourceType: 'file' | 'chunks';
+  materialId: string;
   url: string;
   fileId: string;
   fileName: string;
   size: number;
+  chunkCount: number;
   fallbackBase64?: string;
 }> {
   const secret = resolveAdminWriteSecret(adminSecret);
@@ -920,119 +947,170 @@ export async function uploadLessonPdfFile(
     throw new Error('PDF_TOO_LARGE');
   }
 
-  const totalChunks = Math.ceil(file.size / PDF_UPLOAD_CHUNK_BYTES);
+  const cleanMatId = (
+    typeof materialId === 'string' && materialId.trim()
+      ? materialId.trim().replace(/[^a-zA-Z0-9_-]/g, '-')
+      : `mat_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+  ).slice(0, 100);
+
+  const cleanFileName = (file.name || 'ders.pdf').trim().slice(0, 120);
   onProgress?.(2, 0, file.size);
 
-  const initResp = await fetch('/api/lesson-pdf/init', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Secret': secret,
-    },
-    body: JSON.stringify({
-      fileName: file.name,
-      fileSize: file.size,
-      totalChunks,
-    }),
-  });
-
-  if (initResp.status === 404 && file.size <= 650 * 1024) {
-    const fallbackBase64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const res = typeof reader.result === 'string' ? reader.result : '';
-        resolve(res.replace(/^data:[^;]+;base64,/i, ''));
-      };
-      reader.onerror = () => reject(new Error('PDF_READ_FAILED'));
-      reader.readAsDataURL(file);
-    });
+  // Small PDFs (<= 650 KB) embed directly in the single lesson_materials doc.
+  if (file.size <= INLINE_PDF_MAX_BYTES) {
+    const buf = await file.arrayBuffer();
+    const inlineBase64 = uint8ToBase64(new Uint8Array(buf));
     onProgress?.(100, file.size, file.size);
     return {
+      sourceType: 'file',
+      materialId: cleanMatId,
       url: '',
-      fileId: '',
-      fileName: file.name,
+      fileId: cleanMatId,
+      fileName: cleanFileName,
       size: file.size,
-      fallbackBase64,
+      chunkCount: 0,
+      fallbackBase64: inlineBase64,
     };
   }
 
-  if (!initResp.ok) {
-    const errJson = await initResp.json().catch(() => ({}));
-    throw new Error(String((errJson as { error?: string }).error || `UPLOAD_INIT_${initResp.status}`));
-  }
-
-  const initData = (await initResp.json()) as {
-    uploadId: string;
-    fileId: string;
-    chunkSize?: number;
-  };
-  const chunkSize = initData.chunkSize || PDF_UPLOAD_CHUNK_BYTES;
-
-  for (let i = 0; i < totalChunks; i++) {
-    const start = i * chunkSize;
-    const end = Math.min(file.size, start + chunkSize);
-    const chunkBuf = await file.slice(start, end).arrayBuffer();
-
-    let attempt = 0;
-    let uploaded = false;
-    let lastErr: unknown = null;
-    while (attempt < 3 && !uploaded) {
-      attempt += 1;
-      try {
-        const chunkResp = await fetch('/api/lesson-pdf/chunk', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'X-Admin-Secret': secret,
-            'X-Upload-Id': initData.uploadId,
-            'X-Chunk-Index': String(i),
-          },
-          body: chunkBuf,
-        });
-        if (!chunkResp.ok) {
-          const errJson = await chunkResp.json().catch(() => ({}));
-          throw new Error(String((errJson as { error?: string }).error || `CHUNK_${chunkResp.status}`));
-        }
-        uploaded = true;
-      } catch (err) {
-        lastErr = err;
-        if (attempt >= 3) throw err;
-        await new Promise((r) => setTimeout(r, 350 * attempt));
-      }
+  // Larger PDFs (up to 250 MB) upload natively into Firestore lesson_material_chunks so every deployment/PWA shares the exact same files.
+  const totalChunks = Math.ceil(file.size / CLOUD_PDF_CHUNK_BYTES);
+  const batches: number[][] = [];
+  for (let i = 0; i < totalChunks; i += CHUNKS_PER_BATCH) {
+    const indices: number[] = [];
+    for (let j = i; j < Math.min(totalChunks, i + CHUNKS_PER_BATCH); j++) {
+      indices.push(j);
     }
-    if (!uploaded && lastErr) throw lastErr;
-
-    const pct = Math.min(96, Math.max(4, Math.round(((i + 1) / totalChunks) * 94)));
-    onProgress?.(pct, end, file.size);
+    batches.push(indices);
   }
 
-  const completeResp = await fetch('/api/lesson-pdf/complete', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Secret': secret,
-    },
-    body: JSON.stringify({ uploadId: initData.uploadId }),
-  });
+  let nextBatchCursor = 0;
+  let uploadedBytes = 0;
 
-  if (!completeResp.ok) {
-    const errJson = await completeResp.json().catch(() => ({}));
-    throw new Error(String((errJson as { error?: string }).error || `COMPLETE_${completeResp.status}`));
-  }
+  const uploadBatchWorker = async () => {
+    while (nextBatchCursor < batches.length) {
+      const batchIdx = nextBatchCursor++;
+      const chunkIndices = batches[batchIdx];
 
-  const completeData = (await completeResp.json()) as {
-    fileId: string;
-    url: string;
-    fileName: string;
-    size: number;
+      const encodedChunks = await Promise.all(
+        chunkIndices.map(async (chunkIndex) => {
+          const start = chunkIndex * CLOUD_PDF_CHUNK_BYTES;
+          const end = Math.min(file.size, start + CLOUD_PDF_CHUNK_BYTES);
+          const buf = await file.slice(start, end).arrayBuffer();
+          return {
+            chunkIndex,
+            byteLen: end - start,
+            b64: uint8ToBase64(new Uint8Array(buf)),
+          };
+        }),
+      );
+
+      let attempt = 0;
+      let committed = false;
+      let lastErr: unknown = null;
+      while (attempt < 3 && !committed) {
+        attempt += 1;
+        try {
+          const batch = writeBatch(db);
+          const opId = appendAdminProofToBatch(batch, secret, `lesson_material_chunks/${cleanMatId}`);
+          for (const chunk of encodedChunks) {
+            const chunkId = `${cleanMatId}_c${chunk.chunkIndex}`;
+            batch.set(doc(db, 'lesson_material_chunks', chunkId), {
+              materialId: cleanMatId,
+              chunkIndex: chunk.chunkIndex,
+              totalChunks,
+              data: chunk.b64,
+              proofOpId: opId,
+              updatedAt: serverTimestamp(),
+            });
+          }
+          await batch.commit();
+          committed = true;
+        } catch (err) {
+          lastErr = err;
+          if (attempt >= 3) throw err;
+          await new Promise((r) => setTimeout(r, 400 * attempt));
+        }
+      }
+      if (!committed && lastErr) throw lastErr;
+
+      const batchBytes = encodedChunks.reduce((sum, c) => sum + c.byteLen, 0);
+      uploadedBytes = Math.min(file.size, uploadedBytes + batchBytes);
+      const pct = Math.min(95, Math.max(4, Math.round((uploadedBytes / file.size) * 94)));
+      onProgress?.(pct, uploadedBytes, file.size);
+    }
   };
-  onProgress?.(100, file.size, file.size);
+
+  const workerCount = Math.min(CHUNK_UPLOAD_CONCURRENCY, batches.length);
+  await Promise.all(Array.from({ length: workerCount }, () => uploadBatchWorker()));
+  onProgress?.(98, file.size, file.size);
+
   return {
-    url: completeData.url,
-    fileId: completeData.fileId,
-    fileName: completeData.fileName || file.name,
-    size: completeData.size || file.size,
+    sourceType: 'chunks',
+    materialId: cleanMatId,
+    url: '',
+    fileId: cleanMatId,
+    fileName: cleanFileName,
+    size: file.size,
+    chunkCount: totalChunks,
   };
+}
+
+export async function downloadLessonMaterialChunks(
+  materialId: string,
+  chunkCount: number,
+  onProgress?: (percent: number, loadedChunks: number, totalChunks: number) => void,
+): Promise<Blob> {
+  const cleanId = String(materialId || '').trim();
+  const total = Math.round(Number(chunkCount) || 0);
+  if (!/^[a-zA-Z0-9_-]{1,115}$/.test(cleanId) || total < 1 || total > 600) {
+    throw new Error('INVALID_CHUNKED_MATERIAL');
+  }
+
+  const byteParts = new Array<Uint8Array>(total);
+  let nextIdx = 0;
+  let completed = 0;
+
+  const downloadWorker = async () => {
+    while (nextIdx < total) {
+      const idx = nextIdx++;
+      const chunkId = `${cleanId}_c${idx}`;
+      const chunkRef = doc(db, 'lesson_material_chunks', chunkId);
+
+      let snapData: Record<string, unknown> | null = null;
+      let lastErr: unknown = null;
+      for (let attempt = 1; attempt <= 2 && !snapData; attempt++) {
+        try {
+          const snap = attempt === 1 ? await getDocPreferServer(chunkRef) : await getDoc(chunkRef);
+          if (!snap.exists()) {
+            throw new Error(`MISSING_CHUNK_${idx}`);
+          }
+          snapData = snap.data() as Record<string, unknown>;
+        } catch (err) {
+          lastErr = err;
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 250));
+          }
+        }
+      }
+      if (!snapData) {
+        throw lastErr instanceof Error ? lastErr : new Error(`CHUNK_DOWNLOAD_FAILED_${idx}`);
+      }
+
+      const rawB64 = typeof snapData.data === 'string' ? snapData.data : '';
+      if (!rawB64) {
+        throw new Error(`EMPTY_CHUNK_${idx}`);
+      }
+      byteParts[idx] = b64ToBytes(rawB64);
+      completed += 1;
+      onProgress?.(Math.min(99, Math.round((completed / total) * 100)), completed, total);
+    }
+  };
+
+  const workers = Math.min(CHUNK_DOWNLOAD_CONCURRENCY, total);
+  await Promise.all(Array.from({ length: workers }, () => downloadWorker()));
+  onProgress?.(100, total, total);
+  return new Blob(byteParts as unknown as BlobPart[], { type: 'application/pdf' });
 }
 
 export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
@@ -1046,12 +1124,20 @@ export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
         const data = d.data();
         const pdfData = typeof data.pdfData === 'string' && data.pdfData.length > 0 ? data.pdfData : undefined;
         const pdfUrl = typeof data.pdfUrl === 'string' ? data.pdfUrl : '';
-        const sourceType: 'url' | 'file' | 'server' =
-          data.sourceType === 'server' || pdfUrl.startsWith('/api/lesson-pdf/')
-            ? 'server'
-            : data.sourceType === 'file' || pdfData
-              ? 'file'
-              : 'url';
+        const chunkCount =
+          typeof data.chunkCount === 'number' && Number.isFinite(data.chunkCount) && data.chunkCount > 0
+            ? Math.round(data.chunkCount)
+            : undefined;
+        const sourceType: 'url' | 'file' | 'server' | 'chunks' =
+          chunkCount && chunkCount > 0
+            ? 'chunks'
+            : data.sourceType === 'chunks'
+              ? 'chunks'
+              : data.sourceType === 'server' || pdfUrl.startsWith('/api/lesson-pdf/')
+                ? 'server'
+                : data.sourceType === 'file' || pdfData
+                  ? 'file'
+                  : 'url';
         return {
           id: d.id,
           date: normalizeMaterialDate(typeof data.date === 'string' ? data.date : ''),
@@ -1061,6 +1147,7 @@ export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
           sourceType,
           pdfUrl,
           pdfData,
+          chunkCount,
           pdfName: typeof data.pdfName === 'string' ? data.pdfName : undefined,
           fileSize: typeof data.fileSize === 'number' && data.fileSize >= 0 ? data.fileSize : undefined,
           createdAtMs: tsToMillis(data.createdAt),
@@ -1080,9 +1167,10 @@ export async function saveLessonMaterial(
     slotNo: number;
     targetProg?: '' | 'tr' | 'en';
     title: string;
-    sourceType?: 'url' | 'file' | 'server';
+    sourceType?: 'url' | 'file' | 'server' | 'chunks';
     pdfUrl?: string;
     pdfData?: string;
+    chunkCount?: number;
     pdfName?: string;
     fileSize?: number;
   },
@@ -1097,20 +1185,27 @@ export async function saveLessonMaterial(
   const rawData = typeof input.pdfData === 'string'
     ? input.pdfData.trim().replace(/^data:[^;]+;base64,/i, '')
     : '';
+  const rawChunkCount =
+    typeof input.chunkCount === 'number' && Number.isFinite(input.chunkCount) && input.chunkCount > 0
+      ? Math.round(input.chunkCount)
+      : 0;
   let cleanUrl = String(input.pdfUrl || '').trim();
   if (cleanUrl && !cleanUrl.startsWith('/api/lesson-pdf/') && !/^https?:\/\//i.test(cleanUrl)) {
     cleanUrl = `https://${cleanUrl}`;
   }
   cleanUrl = cleanUrl.slice(0, 2000);
 
-  const sourceType: 'url' | 'file' | 'server' =
-    input.sourceType === 'server' || cleanUrl.startsWith('/api/lesson-pdf/')
-      ? 'server'
-      : input.sourceType === 'file' || (rawData.length > 0 && !cleanUrl)
-        ? 'file'
-        : 'url';
+  const sourceType: 'url' | 'file' | 'server' | 'chunks' =
+    input.sourceType === 'chunks' || rawChunkCount > 0
+      ? 'chunks'
+      : input.sourceType === 'server' || cleanUrl.startsWith('/api/lesson-pdf/')
+        ? 'server'
+        : input.sourceType === 'file' || (rawData.length > 0 && !cleanUrl)
+          ? 'file'
+          : 'url';
   const cleanData = sourceType === 'file' ? rawData : '';
-  const finalUrl = sourceType === 'file' ? '' : cleanUrl;
+  const finalChunkCount = sourceType === 'chunks' ? rawChunkCount : 0;
+  const finalUrl = sourceType === 'file' || sourceType === 'chunks' ? '' : cleanUrl;
   const cleanName = String(input.pdfName || '').trim().slice(0, 120);
   const cleanFileSize =
     typeof input.fileSize === 'number' && Number.isFinite(input.fileSize) && input.fileSize >= 0
@@ -1123,16 +1218,18 @@ export async function saveLessonMaterial(
   if (sourceType === 'file') {
     if (!cleanData) throw new Error('PDF file data is required.');
     if (cleanData.length > 950000) throw new Error('PDF_TOO_LARGE');
+  } else if (sourceType === 'chunks') {
+    if (finalChunkCount < 1 || finalChunkCount > 600) {
+      throw new Error('Invalid PDF chunk count.');
+    }
   } else {
     if (!finalUrl) throw new Error('PDF URL is required.');
   }
 
-  const dateKey = cleanDate.replace(/[^a-zA-Z0-9_-]/g, '-');
-  const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const candidateId = input.id
-    ? input.id.trim().replace(/[^a-zA-Z0-9_-]/g, '-')
-    : `${dateKey}_${slotNo}_${uniqueSuffix}`;
-  const rawId = (candidateId || `${Date.now()}_${slotNo}`).slice(0, 128);
+    ? input.id.trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 110)
+    : generateLessonMaterialId(cleanDate, slotNo);
+  const rawId = (candidateId || `${Date.now()}_${slotNo}`).slice(0, 110);
   const docRef = doc(db, 'lesson_materials', rawId);
   const path = `lesson_materials/${rawId}`;
 
@@ -1148,6 +1245,7 @@ export async function saveLessonMaterial(
       sourceType,
       pdfUrl: finalUrl,
       pdfData: cleanData,
+      chunkCount: finalChunkCount,
       deleted: false,
       proofOpId: opId,
       updatedAt: serverTimestamp(),
@@ -1172,6 +1270,7 @@ export async function saveLessonMaterial(
       sourceType,
       pdfUrl: finalUrl,
       pdfData: cleanData || undefined,
+      chunkCount: finalChunkCount > 0 ? finalChunkCount : undefined,
       pdfName: cleanName || undefined,
       fileSize: cleanFileSize,
       createdAtMs: existingSnap.exists() ? tsToMillis(existingSnap.data()?.createdAt) : Date.now(),
