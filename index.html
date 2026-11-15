@@ -2247,7 +2247,7 @@
         #000000;
     }
 
-    /* İki odaklı ambiyans aydınlatması: Biri alttan, biri yukarılardan, yayvan ve akıcı */
+    /* İki odaklı ambiyans aydınlatması: Biri alttan, biri yukarılardan, derin ve çok yumuşak */
     .ios-ambient-aura {
       position: fixed;
       inset: 0;
@@ -2258,49 +2258,76 @@
 
     .ambient-top {
       position: absolute;
-      top: -12vh;
+      top: -16vh;
       left: 50%;
       transform: translate3d(-50%, 0, 0);
-      width: 150vw;
-      max-width: 1100px;
-      height: 72vh;
-      border-radius: 50% / 36%;
-      filter: blur(38px);
-      -webkit-filter: blur(38px);
+      width: 165vw;
+      max-width: 1240px;
+      height: 82vh;
+      border-radius: 50% / 40%;
       will-change: transform, opacity;
-      animation: iosAuraTopBloom 1.77s cubic-bezier(0.16, 1, 0.3, 1) both;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      animation: iosAuraTopBloomA 3.6s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
     .ambient-bottom {
       position: absolute;
-      bottom: -16vh;
+      bottom: -20vh;
       left: 50%;
       transform: translate3d(-50%, 0, 0);
-      width: 155vw;
-      max-width: 1150px;
-      height: 74vh;
-      border-radius: 50% / 36%;
-      filter: blur(38px);
-      -webkit-filter: blur(38px);
+      width: 170vw;
+      max-width: 1280px;
+      height: 84vh;
+      border-radius: 50% / 40%;
       will-change: transform, opacity;
-      animation: iosAuraBottomBloom 1.77s cubic-bezier(0.16, 1, 0.3, 1) both;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      animation: iosAuraBottomBloomA 3.6s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
-    @keyframes iosAuraTopBloom {
+    .ios-ambient-aura[data-bloom="b"] .ambient-top {
+      animation-name: iosAuraTopBloomB;
+    }
+    .ios-ambient-aura[data-bloom="b"] .ambient-bottom {
+      animation-name: iosAuraBottomBloomB;
+    }
+
+    @keyframes iosAuraTopBloomA {
       0% {
-        opacity: 0.26;
-        transform: translate3d(-50%, -18px, 0) scaleX(1.05) scaleY(0.92);
+        opacity: 0;
+        transform: translate3d(-50%, -44px, 0) scaleX(1.12) scaleY(0.76);
       }
       100% {
-        opacity: 0.95;
+        opacity: 0.96;
+        transform: translate3d(-50%, 0, 0) scale(1);
+      }
+    }
+    @keyframes iosAuraTopBloomB {
+      0% {
+        opacity: 0;
+        transform: translate3d(-50%, -44px, 0) scaleX(1.12) scaleY(0.76);
+      }
+      100% {
+        opacity: 0.96;
         transform: translate3d(-50%, 0, 0) scale(1);
       }
     }
 
-    @keyframes iosAuraBottomBloom {
+    @keyframes iosAuraBottomBloomA {
       0% {
-        opacity: 0.28;
-        transform: translate3d(-50%, 22px, 0) scaleX(1.05) scaleY(0.92);
+        opacity: 0;
+        transform: translate3d(-50%, 48px, 0) scaleX(1.12) scaleY(0.76);
+      }
+      100% {
+        opacity: 0.98;
+        transform: translate3d(-50%, 0, 0) scale(1);
+      }
+    }
+    @keyframes iosAuraBottomBloomB {
+      0% {
+        opacity: 0;
+        transform: translate3d(-50%, 48px, 0) scaleX(1.12) scaleY(0.76);
       }
       100% {
         opacity: 0.98;
@@ -2308,81 +2335,75 @@
       }
     }
 
-    .ios-ambient-aura.ambient-bloom-reset .ambient-top,
-    .ios-ambient-aura.ambient-bloom-reset .ambient-bottom {
-      animation: none !important;
-      opacity: 0.26 !important;
-    }
-
-    /* Tab colors: Biri yukarılardan, biri alttan yayılan yayvan eliptik auralar */
+    /* Tab colors: Çok kademeli yumuşak geçişli yayvan eliptik auralar (sıfır blur maliyeti, pürüzsüz derinlik) */
     /* Daily / Bugün */
     body[data-active-tab="daily"] .ambient-top {
-      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(0, 122, 255, 0.14), rgba(56, 189, 248, 0.08) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(0, 122, 255, 0.14) 0%, rgba(56, 189, 248, 0.09) 34%, rgba(56, 189, 248, 0.045) 56%, rgba(56, 189, 248, 0.015) 74%, transparent 92%);
     }
     body[data-active-tab="daily"] .ambient-bottom {
-      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(16, 185, 129, 0.16), rgba(56, 189, 248, 0.09) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(16, 185, 129, 0.16) 0%, rgba(56, 189, 248, 0.10) 34%, rgba(56, 189, 248, 0.045) 56%, rgba(16, 185, 129, 0.015) 74%, transparent 92%);
     }
     .dark body[data-active-tab="daily"] .ambient-top {
-      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(10, 132, 255, 0.20), rgba(56, 189, 248, 0.12) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(10, 132, 255, 0.20) 0%, rgba(56, 189, 248, 0.13) 34%, rgba(56, 189, 248, 0.06) 56%, rgba(10, 132, 255, 0.02) 74%, transparent 92%);
     }
     .dark body[data-active-tab="daily"] .ambient-bottom {
-      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(16, 185, 129, 0.24), rgba(52, 211, 153, 0.15) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(16, 185, 129, 0.24) 0%, rgba(52, 211, 153, 0.16) 34%, rgba(52, 211, 153, 0.075) 56%, rgba(16, 185, 129, 0.024) 74%, transparent 92%);
     }
 
     /* Weekly / Hafta */
     body[data-active-tab="weekly"] .ambient-top {
-      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(14, 165, 233, 0.14), rgba(59, 130, 246, 0.08) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(14, 165, 233, 0.14) 0%, rgba(59, 130, 246, 0.09) 34%, rgba(59, 130, 246, 0.045) 56%, rgba(14, 165, 233, 0.015) 74%, transparent 92%);
     }
     body[data-active-tab="weekly"] .ambient-bottom {
-      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(14, 165, 233, 0.15), rgba(34, 211, 238, 0.09) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(14, 165, 233, 0.15) 0%, rgba(34, 211, 238, 0.10) 34%, rgba(34, 211, 238, 0.045) 56%, rgba(14, 165, 233, 0.015) 74%, transparent 92%);
     }
     .dark body[data-active-tab="weekly"] .ambient-top {
-      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(56, 189, 248, 0.19), rgba(59, 130, 246, 0.12) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(56, 189, 248, 0.19) 0%, rgba(59, 130, 246, 0.13) 34%, rgba(59, 130, 246, 0.06) 56%, rgba(56, 189, 248, 0.02) 74%, transparent 92%);
     }
     .dark body[data-active-tab="weekly"] .ambient-bottom {
-      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(34, 211, 238, 0.21), rgba(56, 189, 248, 0.13) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(34, 211, 238, 0.21) 0%, rgba(56, 189, 248, 0.14) 34%, rgba(56, 189, 248, 0.065) 56%, rgba(34, 211, 238, 0.02) 74%, transparent 92%);
     }
 
     /* Search / Arama */
     body[data-active-tab="search"] .ambient-top {
-      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(99, 102, 241, 0.14), rgba(139, 92, 246, 0.08) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(99, 102, 241, 0.14) 0%, rgba(139, 92, 246, 0.09) 34%, rgba(139, 92, 246, 0.045) 56%, rgba(99, 102, 241, 0.015) 74%, transparent 92%);
     }
     body[data-active-tab="search"] .ambient-bottom {
-      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(99, 102, 241, 0.15), rgba(167, 139, 250, 0.09) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(99, 102, 241, 0.15) 0%, rgba(167, 139, 250, 0.10) 34%, rgba(167, 139, 250, 0.045) 56%, rgba(99, 102, 241, 0.015) 74%, transparent 92%);
     }
     .dark body[data-active-tab="search"] .ambient-top {
-      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(129, 140, 248, 0.19), rgba(139, 92, 246, 0.12) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(129, 140, 248, 0.19) 0%, rgba(139, 92, 246, 0.13) 34%, rgba(139, 92, 246, 0.06) 56%, rgba(129, 140, 248, 0.02) 74%, transparent 92%);
     }
     .dark body[data-active-tab="search"] .ambient-bottom {
-      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(167, 139, 250, 0.21), rgba(129, 140, 248, 0.13) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(167, 139, 250, 0.21) 0%, rgba(129, 140, 248, 0.14) 34%, rgba(129, 140, 248, 0.065) 56%, rgba(167, 139, 250, 0.02) 74%, transparent 92%);
     }
 
     /* Info / Sınav */
     body[data-active-tab="info"] .ambient-top {
-      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(79, 70, 229, 0.14), rgba(99, 102, 241, 0.08) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(79, 70, 229, 0.14) 0%, rgba(99, 102, 241, 0.09) 34%, rgba(99, 102, 241, 0.045) 56%, rgba(79, 70, 229, 0.015) 74%, transparent 92%);
     }
     body[data-active-tab="info"] .ambient-bottom {
-      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(79, 70, 229, 0.15), rgba(129, 140, 248, 0.09) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(79, 70, 229, 0.15) 0%, rgba(129, 140, 248, 0.10) 34%, rgba(129, 140, 248, 0.045) 56%, rgba(79, 70, 229, 0.015) 74%, transparent 92%);
     }
     .dark body[data-active-tab="info"] .ambient-top {
-      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(99, 102, 241, 0.19), rgba(79, 70, 229, 0.12) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(99, 102, 241, 0.19) 0%, rgba(79, 70, 229, 0.13) 34%, rgba(79, 70, 229, 0.06) 56%, rgba(99, 102, 241, 0.02) 74%, transparent 92%);
     }
     .dark body[data-active-tab="info"] .ambient-bottom {
-      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(129, 140, 248, 0.21), rgba(99, 102, 241, 0.13) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(129, 140, 248, 0.21) 0%, rgba(99, 102, 241, 0.14) 34%, rgba(99, 102, 241, 0.065) 56%, rgba(129, 140, 248, 0.02) 74%, transparent 92%);
     }
 
     /* Food / Yemekhane */
     body[data-active-tab="food"] .ambient-top {
-      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(245, 158, 11, 0.14), rgba(251, 191, 36, 0.08) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(245, 158, 11, 0.14) 0%, rgba(251, 191, 36, 0.09) 34%, rgba(251, 191, 36, 0.045) 56%, rgba(245, 158, 11, 0.015) 74%, transparent 92%);
     }
     body[data-active-tab="food"] .ambient-bottom {
-      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(245, 158, 11, 0.16), rgba(217, 119, 6, 0.09) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.10) 34%, rgba(217, 119, 6, 0.045) 56%, rgba(245, 158, 11, 0.015) 74%, transparent 92%);
     }
     .dark body[data-active-tab="food"] .ambient-top {
-      background: radial-gradient(ellipse 75% 55% at 50% 20%, rgba(245, 158, 11, 0.20), rgba(251, 191, 36, 0.12) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(245, 158, 11, 0.20) 0%, rgba(251, 191, 36, 0.13) 34%, rgba(251, 191, 36, 0.06) 56%, rgba(245, 158, 11, 0.02) 74%, transparent 92%);
     }
     .dark body[data-active-tab="food"] .ambient-bottom {
-      background: radial-gradient(ellipse 75% 55% at 50% 80%, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.13) 55%, transparent 75%);
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.14) 34%, rgba(217, 119, 6, 0.065) 56%, rgba(245, 158, 11, 0.02) 74%, transparent 92%);
     }
 
     .ios-glass {
@@ -2391,6 +2412,7 @@
       backdrop-filter: saturate(180%) blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.72);
       box-shadow: 0 8px 32px -4px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+      contain: layout style;
       transform: translate3d(0, 0, 0);
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
@@ -2426,7 +2448,7 @@
       transform: translate3d(0, 0, 0);
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
-      transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.28s ease;
+      transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.28s ease;
     }
     .dark .ios-glass-bar::before {
       background: rgba(16, 20, 30, 0.78);
@@ -2573,156 +2595,97 @@
       transform: scale(0.90) !important;
     }
     .nav-icon-wrap {
-      transition: transform 0.34s cubic-bezier(0.22, 1.35, 0.36, 1);
+      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
       will-change: transform;
     }
 
-    /* Distinct per-tab dock animations when selected */
+    /* Distinct per-tab dock animations harmonized to 0.64s cubic-bezier(0.22, 1, 0.36, 1) */
     @keyframes dockDailyBounce {
       0%, 100% { transform: translateY(0) rotate(0deg); }
-      25% { transform: translateY(-2.2px) rotate(-5deg); }
-      55% { transform: translateY(0.5px) rotate(3deg); }
-      80% { transform: translateY(-0.6px) rotate(0deg); }
+      28% { transform: translateY(-2px) rotate(-4deg); }
+      62% { transform: translateY(0.4px) rotate(2deg); }
     }
     @keyframes dockDailyIdle {
       0%, 72%, 100% { transform: translateY(0) scale(1); }
-      84% { transform: translateY(-1.5px) scale(1.04); }
+      84% { transform: translateY(-1.4px) scale(1.03); }
     }
     .nav-tab-btn[data-tab="daily"].is-active svg {
-      animation: dockDailyBounce 0.65s cubic-bezier(0.22, 1.3, 0.36, 1) 1, dockDailyIdle 4.2s ease-in-out 1s infinite;
+      animation: dockDailyBounce 0.64s cubic-bezier(0.22, 1, 0.36, 1) 1, dockDailyIdle 4.4s ease-in-out 1.1s infinite;
     }
 
     @keyframes dockWeeklyLine {
       0%, 100% { transform: translateX(0); opacity: 1; }
-      35% { transform: translateX(2.4px); opacity: 0.72; }
-      70% { transform: translateX(-1px); opacity: 1; }
+      38% { transform: translateX(2.2px); opacity: 0.76; }
+      72% { transform: translateX(-0.8px); opacity: 1; }
     }
     .nav-tab-btn[data-tab="weekly"].is-active .nav-week-line-1 {
-      animation: dockWeeklyLine 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0ms 1, dockWeeklyLine 3.8s ease-in-out 1.1s infinite;
+      animation: dockWeeklyLine 0.64s cubic-bezier(0.22, 1, 0.36, 1) 0ms 1, dockWeeklyLine 4s ease-in-out 1.1s infinite;
     }
     .nav-tab-btn[data-tab="weekly"].is-active .nav-week-line-2 {
-      animation: dockWeeklyLine 0.7s cubic-bezier(0.22, 1, 0.36, 1) 80ms 1, dockWeeklyLine 3.8s ease-in-out 1.24s infinite;
+      animation: dockWeeklyLine 0.64s cubic-bezier(0.22, 1, 0.36, 1) 70ms 1, dockWeeklyLine 4s ease-in-out 1.24s infinite;
     }
     .nav-tab-btn[data-tab="weekly"].is-active .nav-week-line-3 {
-      animation: dockWeeklyLine 0.7s cubic-bezier(0.22, 1, 0.36, 1) 160ms 1, dockWeeklyLine 3.8s ease-in-out 1.38s infinite;
+      animation: dockWeeklyLine 0.64s cubic-bezier(0.22, 1, 0.36, 1) 140ms 1, dockWeeklyLine 4s ease-in-out 1.38s infinite;
     }
 
     @keyframes dockSearchScan {
       0%, 100% { transform: rotate(0deg) scale(1); }
-      28% { transform: rotate(-16deg) scale(1.07); }
-      62% { transform: rotate(12deg) scale(1.05); }
-      84% { transform: rotate(-3deg) scale(1); }
+      30% { transform: rotate(-14deg) scale(1.06); }
+      64% { transform: rotate(10deg) scale(1.04); }
     }
     @keyframes dockSearchIdle {
       0%, 70%, 100% { transform: rotate(0deg); }
-      80% { transform: rotate(-10deg); }
-      90% { transform: rotate(8deg); }
+      80% { transform: rotate(-9deg); }
+      90% { transform: rotate(7deg); }
     }
     .nav-tab-btn[data-tab="search"].is-active svg {
       transform-origin: 45% 45%;
-      animation: dockSearchScan 0.72s cubic-bezier(0.22, 1.2, 0.36, 1) 1, dockSearchIdle 4.4s ease-in-out 1.1s infinite;
+      animation: dockSearchScan 0.64s cubic-bezier(0.22, 1, 0.36, 1) 1, dockSearchIdle 4.4s ease-in-out 1.1s infinite;
     }
 
     @keyframes dockExamWrite {
       0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      22% { transform: translate(-1.6px, 1.1px) rotate(-7deg); }
-      46% { transform: translate(0.7px, -0.5px) rotate(4deg); }
-      70% { transform: translate(-1.2px, 0.8px) rotate(-5deg); }
+      25% { transform: translate(-1.5px, 1px) rotate(-6deg); }
+      52% { transform: translate(0.6px, -0.4px) rotate(3deg); }
+      76% { transform: translate(-1px, 0.7px) rotate(-4deg); }
     }
     @keyframes dockExamWriteIdle {
       0%, 68%, 100% { transform: translate(0, 0) rotate(0deg); }
-      77% { transform: translate(-1.4px, 0.9px) rotate(-6deg); }
-      86% { transform: translate(0.5px, -0.4px) rotate(3deg); }
-      93% { transform: translate(-0.8px, 0.5px) rotate(-3deg); }
+      77% { transform: translate(-1.3px, 0.8px) rotate(-5deg); }
+      86% { transform: translate(0.5px, -0.3px) rotate(3deg); }
+      93% { transform: translate(-0.7px, 0.4px) rotate(-3deg); }
     }
     @keyframes dockExamLinesPulse {
       0%, 100% { opacity: 1; }
-      45% { opacity: 0.62; }
+      45% { opacity: 0.65; }
     }
     .nav-tab-btn[data-tab="info"].is-active .nav-exam-pencil {
       transform-origin: 15px 15px;
-      animation: dockExamWrite 0.78s cubic-bezier(0.22, 1, 0.36, 1) 1, dockExamWriteIdle 3.8s ease-in-out 1.1s infinite;
+      animation: dockExamWrite 0.64s cubic-bezier(0.22, 1, 0.36, 1) 1, dockExamWriteIdle 4s ease-in-out 1.1s infinite;
     }
     .nav-tab-btn[data-tab="info"].is-active .nav-exam-lines {
-      animation: dockExamLinesPulse 0.78s ease 1;
+      animation: dockExamLinesPulse 0.64s cubic-bezier(0.22, 1, 0.36, 1) 1;
     }
 
     @keyframes dockFoodDomeLift {
       0%, 100% { transform: translateY(0) rotate(0deg); }
-      35% { transform: translateY(-2.8px) rotate(-5deg); }
-      68% { transform: translateY(-0.8px) rotate(2deg); }
+      38% { transform: translateY(-2.4px) rotate(-4deg); }
+      72% { transform: translateY(-0.6px) rotate(1.5deg); }
     }
     @keyframes dockFoodDomeIdle {
       0%, 70%, 100% { transform: translateY(0) rotate(0deg); }
-      82% { transform: translateY(-2.2px) rotate(-4deg); }
+      82% { transform: translateY(-2px) rotate(-3.5deg); }
       92% { transform: translateY(0) rotate(1deg); }
     }
     .nav-tab-btn[data-tab="food"].is-active .nav-food-dome {
       transform-origin: 12px 13px;
-      animation: dockFoodDomeLift 0.76s cubic-bezier(0.22, 1.35, 0.36, 1) 1, dockFoodDomeIdle 4s ease-in-out 1.1s infinite;
-    }
-
-    @keyframes tabEnterRight {
-      from {
-        opacity: 0;
-        transform: translate3d(22px, 12px, 0) scale(0.988);
-      }
-      to {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-      }
-    }
-    @keyframes tabEnterLeft {
-      from {
-        opacity: 0;
-        transform: translate3d(-22px, 12px, 0) scale(0.988);
-      }
-      to {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-      }
-    }
-    .tab-enter-right {
-      animation: tabEnterRight 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
-      animation-delay: var(--tab-delay, 0ms);
-    }
-    .tab-enter-left {
-      animation: tabEnterLeft 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
-      animation-delay: var(--tab-delay, 0ms);
-    }
-    .tab-view-enter-right {
-      animation: tabViewEnterRight 0.20s cubic-bezier(0.16, 1, 0.3, 1) both;
-      will-change: transform, opacity;
-    }
-    .tab-view-enter-left {
-      animation: tabViewEnterLeft 0.20s cubic-bezier(0.16, 1, 0.3, 1) both;
-      will-change: transform, opacity;
-    }
-    @keyframes tabViewEnterRight {
-      from {
-        opacity: 0.75;
-        transform: translate3d(14px, 0, 0);
-      }
-      to {
-        opacity: 1;
-        transform: translate3d(0, 0, 0);
-      }
-    }
-    @keyframes tabViewEnterLeft {
-      from {
-        opacity: 0.75;
-        transform: translate3d(-14px, 0, 0);
-      }
-      to {
-        opacity: 1;
-        transform: translate3d(0, 0, 0);
-      }
+      animation: dockFoodDomeLift 0.64s cubic-bezier(0.22, 1, 0.36, 1) 1, dockFoodDomeIdle 4.2s ease-in-out 1.1s infinite;
     }
 
     @keyframes iosCardIn {
       from {
         opacity: 0;
-        transform: translate3d(0, 12px, 0) scale(0.985);
+        transform: translate3d(0, 18px, 0) scale(0.985);
       }
       to {
         opacity: 1;
@@ -2730,14 +2693,14 @@
       }
     }
     .ios-stagger-item {
-      animation: iosCardIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+      animation: iosCardIn 0.44s cubic-bezier(0.22, 1, 0.36, 1) backwards;
       animation-delay: var(--stagger-delay, 0ms);
     }
 
     @keyframes iosLangSwap {
       from {
-        opacity: 0.2;
-        transform: translate3d(0, 8px, 0) scale(0.99);
+        opacity: 0;
+        transform: translate3d(0, 10px, 0) scale(0.99);
       }
       to {
         opacity: 1;
@@ -2745,7 +2708,7 @@
       }
     }
     .ios-lang-swap {
-      animation: iosLangSwap 0.34s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+      animation: iosLangSwap 0.38s cubic-bezier(0.22, 1, 0.36, 1) backwards;
       animation-delay: var(--lang-delay, 0ms);
     }
 
@@ -2760,7 +2723,7 @@
     @keyframes modalCardIn {
       from {
         opacity: 0;
-        transform: scale(0.9) translate3d(0, 16px, 0);
+        transform: scale(0.93) translate3d(0, 14px, 0);
       }
       to {
         opacity: 1;
@@ -2774,18 +2737,18 @@
       }
       to {
         opacity: 0;
-        transform: scale(0.94) translate3d(0, 10px, 0);
+        transform: scale(0.95) translate3d(0, 10px, 0);
       }
     }
-    .modal-backdrop-in { animation: modalBackdropIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both; }
-    .modal-backdrop-out { animation: modalBackdropOut 0.18s ease-in forwards; }
-    .modal-card-in { animation: modalCardIn 0.32s cubic-bezier(0.22, 1.15, 0.36, 1) both; }
-    .modal-card-out { animation: modalCardOut 0.18s cubic-bezier(0.32, 0, 0.67, 0) forwards; }
+    .modal-backdrop-in { animation: modalBackdropIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) both; }
+    .modal-backdrop-out { animation: modalBackdropOut 0.2s ease-in forwards; }
+    .modal-card-in { animation: modalCardIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+    .modal-card-out { animation: modalCardOut 0.2s cubic-bezier(0.4, 0, 1, 1) forwards; }
 
     @keyframes toastIn {
       from {
         opacity: 0;
-        transform: translate3d(-50%, 16px, 0) scale(0.92);
+        transform: translate3d(-50%, 14px, 0) scale(0.94);
       }
       to {
         opacity: 1;
@@ -2799,14 +2762,14 @@
       }
       to {
         opacity: 0;
-        transform: translate3d(-50%, 10px, 0) scale(0.95);
+        transform: translate3d(-50%, 10px, 0) scale(0.96);
       }
     }
     .ios-toast {
       transform: translate3d(-50%, 0, 0);
       will-change: transform, opacity;
     }
-    .ios-toast-in { animation: toastIn 0.32s cubic-bezier(0.22, 1.2, 0.36, 1) forwards; }
+    .ios-toast-in { animation: toastIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
     .ios-toast-out { animation: toastOut 0.2s ease-in forwards; }
 
     @keyframes iosSpin {
@@ -2818,7 +2781,7 @@
     }
 
     .ios-press {
-      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
     }
     .ios-press:active {
       transform: scale(0.96);
@@ -2826,7 +2789,7 @@
 
     .week-day-btn,
     .food-day-btn {
-      transition: transform 0.22s cubic-bezier(0.22, 1.25, 0.36, 1), background-color 0.22s ease, color 0.2s ease, box-shadow 0.22s ease;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, color 0.2s ease, box-shadow 0.22s ease;
     }
     .week-day-btn:active,
     .food-day-btn:active {
@@ -2875,7 +2838,7 @@
       font-size: 13px;
       font-weight: 600;
       font-variant-numeric: tabular-nums;
-      transition: transform 0.16s cubic-bezier(0.22, 1.2, 0.36, 1), background-color 0.18s ease, color 0.18s ease;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, color 0.22s ease;
       cursor: pointer;
     }
     .food-cal-day:active {
@@ -2945,7 +2908,7 @@
       font-weight: 600;
       background: rgba(118, 118, 128, 0.12);
       color: #334155;
-      transition: transform 0.18s cubic-bezier(0.22, 1.25, 0.36, 1), background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
       cursor: pointer;
     }
     .group-chip:active {
@@ -3035,7 +2998,7 @@
 </head>
 <body class="safe-bottom antialiased selection:bg-blue-500/20">
   <div class="ios-ambient-bg">
-    <div id="ambientAura" class="ios-ambient-aura">
+    <div id="ambientAura" class="ios-ambient-aura" data-bloom="a">
       <div class="ambient-top"></div>
       <div class="ambient-bottom"></div>
     </div>
@@ -3119,7 +3082,7 @@
     <!-- ==================== TAB 1: GÜNLÜK ==================== -->
     <section id="viewDaily" class="space-y-2.5 hidden">
       <!-- DATE CARD -->
-      <div class="ios-glass rounded-3xl px-3.5 pt-3.5 min-[360px]:px-4 min-[360px]:pt-4 pb-0 space-y-3">
+      <div class="ios-glass ios-tab-card rounded-3xl px-3.5 pt-3.5 min-[360px]:px-4 min-[360px]:pt-4 pb-0 space-y-3" data-tab-stagger="0">
         <div id="dailyWelcomeBar" class="hidden flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200/60 dark:border-slate-800/80">
           <div class="flex items-center gap-2 min-w-0">
             <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
@@ -3174,7 +3137,7 @@
       <div id="dailySlotsContainer" class="space-y-2"></div>
 
       <!-- CLEAN CALENDAR EXPORT BUTTON -->
-      <div class="pt-2 pb-1 flex justify-center">
+      <div class="ios-tab-card pt-2 pb-1 flex justify-center" data-tab-stagger="last">
         <button id="btnExportDayIcs" type="button" class="ios-press px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition flex items-center gap-1.5 hover:bg-blue-500/10">
           <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
           <span id="btnExportDayIcsLabel">Bu Günün Derslerini Telefon Takvimine Ekle (.ics)</span>
@@ -3184,7 +3147,7 @@
 
     <!-- ==================== TAB 2: HAFTALAR ==================== -->
     <section id="viewWeekly" class="hidden space-y-3.5">
-      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-3">
+      <div class="ios-glass ios-tab-card rounded-3xl p-3.5 min-[360px]:p-4 space-y-3" data-tab-stagger="0">
         <div class="flex items-center justify-between gap-2 flex-wrap">
           <div class="min-w-0">
             <h2 id="weeklyViewTitle" class="text-base font-bold text-slate-900 dark:text-white truncate">Haftalık Program</h2>
@@ -3199,7 +3162,7 @@
         <div id="weekSelectorPills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5"></div>
       </div>
       <div id="weeklyDaysContainer" class="space-y-3.5"></div>
-      <div class="pt-2 pb-1 flex justify-center">
+      <div class="ios-tab-card pt-2 pb-1 flex justify-center" data-tab-stagger="last">
         <button id="btnExportWeekIcs" type="button" class="ios-press px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition flex items-center gap-1.5 hover:bg-blue-500/10">
           <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
           <span id="btnExportWeekIcsLabel">Bu Haftanın Derslerini Telefon Takvimine Ekle (.ics)</span>
@@ -3209,7 +3172,7 @@
 
     <!-- ==================== TAB 3: YEMEKHANE ==================== -->
     <section id="viewFood" class="hidden space-y-3.5">
-      <div class="ios-glass rounded-3xl px-3.5 pt-3.5 min-[360px]:px-4 min-[360px]:pt-4 pb-0 space-y-3">
+      <div class="ios-glass ios-tab-card rounded-3xl px-3.5 pt-3.5 min-[360px]:px-4 min-[360px]:pt-4 pb-0 space-y-3" data-tab-stagger="0">
         <div class="space-y-2">
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0 flex items-center gap-1.5 flex-1">
@@ -3265,7 +3228,7 @@
       <div id="foodAnnouncementsContainer" class="hidden space-y-2"></div>
       <div id="foodMenuContainer" class="space-y-3.5"></div>
 
-      <div class="pt-1 pb-1 flex items-center justify-center gap-2.5 flex-wrap">
+      <div class="ios-tab-card pt-1 pb-1 flex items-center justify-center gap-2.5 flex-wrap" data-tab-stagger="last">
         <a id="foodSourceLink" href="https://www.inonu.edu.tr/yemek" target="_blank" rel="noopener noreferrer" class="ios-press px-3.5 py-1.5 rounded-full ios-pill-control text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/15 transition inline-flex items-center justify-center">inonu.edu.tr/yemek ↗</a>
         <a id="foodReserveLink" href="https://yemek.inonu.edu.tr" target="_blank" rel="noopener noreferrer" class="ios-press px-3.5 py-1.5 rounded-full ios-pill-control text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/15 transition inline-flex items-center justify-center">Yemek Rezervasyonu ↗</a>
       </div>
@@ -3273,7 +3236,7 @@
 
     <!-- ==================== TAB 4: ARAMA ==================== -->
     <section id="viewSearch" class="hidden space-y-3.5">
-      <div class="ios-glass rounded-3xl p-4 space-y-3">
+      <div class="ios-glass ios-tab-card rounded-3xl p-4 space-y-3" data-tab-stagger="0">
         <div class="relative">
           <input id="inputSearchQuery" type="text" placeholder="Ders, kod, hoca veya tarih ara..." class="w-full ios-pill-control text-slate-900 dark:text-white placeholder-slate-400 rounded-2xl pl-9 pr-16 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40">
           <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -3286,7 +3249,7 @@
 
     <!-- ==================== TAB 4: SINAV & NOT ==================== -->
     <section id="viewInfo" class="hidden space-y-3.5">
-      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-3">
+      <div class="ios-glass ios-tab-card rounded-3xl p-3.5 min-[360px]:p-4 space-y-3" data-tab-stagger="0">
         <div class="flex items-center justify-between gap-2.5 pb-2 border-b border-indigo-500/15 dark:border-indigo-400/15">
           <div class="flex items-center gap-2.5 min-w-0">
             <span class="w-8 h-8 rounded-2xl bg-indigo-500/12 dark:bg-indigo-400/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
@@ -3356,7 +3319,7 @@
           <div id="finalNeedBox" class="rounded-2xl px-3.5 py-2.5 text-xs font-semibold leading-snug calc-status-pass"></div>
         </div>
       </div>
-      <div class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 space-y-2.5">
+      <div class="ios-glass ios-tab-card rounded-3xl p-3.5 min-[360px]:p-4 space-y-2.5" data-tab-stagger="1">
         <div class="flex items-center gap-2.5 pb-2 border-b border-indigo-500/15 dark:border-indigo-400/15">
           <span class="w-7 h-7 rounded-xl bg-indigo-500/12 dark:bg-indigo-400/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -3367,7 +3330,7 @@
         </div>
         <div id="examsListContainer" class="space-y-2"></div>
       </div>
-      <div id="authSessionCard" class="ios-glass rounded-3xl p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3 flex-wrap">
+      <div id="authSessionCard" class="ios-glass ios-tab-card rounded-3xl p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3 flex-wrap" data-tab-stagger="2">
         <div class="min-w-0 flex-1">
           <p id="authSessionTitle" class="text-[11px] font-bold uppercase tracking-wider text-indigo-600/80 dark:text-indigo-300/80">Öğrenci Girişi</p>
           <p id="authSessionDesc" class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mt-0.5 truncate tabular-nums">Misafir modu • Otomatik grup için giriş yap</p>
@@ -3376,8 +3339,8 @@
           Giriş Yap
         </button>
       </div>
-      <div class="text-center pt-2 pb-1">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.4.3</span>
+      <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="3">
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.4.7</span>
       </div>
     </section>
 
@@ -3525,7 +3488,7 @@
   <nav id="appNav" class="fixed inset-x-2 min-[360px]:inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[440px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
     <div id="dockContainer" class="ios-floating-dock rounded-full p-1 grid grid-cols-5 relative touch-none" style="touch-action: none;">
       <!-- Continuous Gliding Pill -->
-      <div id="tabIndicatorPill" data-active-tab="daily" style="transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), width 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform: translate3d(4px, 0px, 0px); width: 70px;"></div>
+      <div id="tabIndicatorPill" data-active-tab="daily" style="transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1); transform: translate3d(4px, 0px, 0px); width: 70px;"></div>
 
       <button type="button" data-tab="daily" data-tab-index="0" class="nav-tab-btn is-active w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 font-semibold relative z-10 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1.1);">
@@ -4247,7 +4210,7 @@
         modal.classList.remove('modal-backdrop-out');
         if (card) card.classList.remove('modal-card-out');
         if (typeof onClosed === 'function') onClosed();
-      }, 185);
+      }, 205);
       modalCloseTimers.set(modal, timer);
     }
 
@@ -4476,6 +4439,19 @@
 
     function animateActiveViewLanguageSwitch() {
       triggerAmbientBloom();
+      const activeSection = document.getElementById('view' + state.activeTab.charAt(0).toUpperCase() + state.activeTab.slice(1));
+      if (!activeSection) return;
+      activeSection.querySelectorAll('.ios-tab-card').forEach((card, idx) => {
+        card.classList.remove('ios-stagger-item', 'ios-lang-swap');
+        card.style.setProperty('--lang-delay', `${Math.min(idx, 4) * 35}ms`);
+        requestAnimationFrame(() => {
+          card.classList.add('ios-lang-swap');
+          card.addEventListener('animationend', () => {
+            card.classList.remove('ios-lang-swap');
+            card.style.removeProperty('--lang-delay');
+          }, { once: true });
+        });
+      });
     }
 
     function setLanguage(lang) {
@@ -4496,7 +4472,7 @@
     // ==================== iOS 18 LIQUID GLASS DOCK INDICATOR ====================
     const TAB_ORDER = ['daily', 'weekly', 'search', 'info', 'food'];
 
-    const PILL_SPRING = 'transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), width 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), background-color 0.2s ease, box-shadow 0.2s ease';
+    const PILL_SPRING = 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, box-shadow 0.22s ease';
     let lastVisualActiveTab = null;
 
     function getDockPillBounds(dock, btn) {
@@ -4511,7 +4487,7 @@
       const btn = dock && dock.querySelector(`.nav-tab-btn[data-tab="${tabName}"]`);
       if (!btn || !pill) return;
 
-      setDockActiveVisual(tabName, true);
+      setDockActiveVisual(tabName, !animate);
       const bounds = getDockPillBounds(dock, btn);
 
       pill.setAttribute('data-active-tab', tabName);
@@ -4532,6 +4508,7 @@
     }
 
     let forceInstantCarouselSync = false;
+    let isTabSwitchRender = false;
 
     function updateHeaderScrollState() {
       const header = document.getElementById('appHeader');
@@ -4547,9 +4524,8 @@
     function triggerAmbientBloom() {
       const aura = document.getElementById('ambientAura');
       if (!aura) return;
-      aura.classList.add('ambient-bloom-reset');
-      void aura.offsetWidth;
-      aura.classList.remove('ambient-bloom-reset');
+      const next = aura.getAttribute('data-bloom') === 'b' ? 'a' : 'b';
+      aura.setAttribute('data-bloom', next);
     }
 
     function activateTabView(tabName) {
@@ -4570,26 +4546,42 @@
       if (changed) {
         triggerAmbientBloom();
       }
+      let wasTargetHidden = false;
       ['daily', 'weekly', 'food', 'search', 'info'].forEach((tKey) => {
         const el = document.getElementById('view' + tKey.charAt(0).toUpperCase() + tKey.slice(1));
         if (!el) return;
-        const shouldHide = tKey !== tabName;
-        el.classList.toggle('hidden', shouldHide);
-        el.classList.remove('tab-enter-right', 'tab-enter-left', 'tab-view-enter-right', 'tab-view-enter-left');
+        const isTarget = tKey === tabName;
+        const wasHidden = el.classList.contains('hidden');
+        if (isTarget && wasHidden) wasTargetHidden = true;
+        el.classList.toggle('hidden', !isTarget);
+        el.querySelectorAll('.ios-tab-card').forEach((card) => {
+          if (!isTarget) {
+            card.classList.remove('ios-stagger-item', 'ios-lang-swap');
+            card.style.removeProperty('--stagger-delay');
+          } else if (changed || wasHidden) {
+            const rawStep = card.getAttribute('data-tab-stagger');
+            const delayMs = rawStep === 'last' ? 190 : (Number(rawStep) || 0) * 45;
+            card.classList.remove('ios-lang-swap');
+            card.style.setProperty('--stagger-delay', `${delayMs}ms`);
+            card.classList.add('ios-stagger-item');
+          }
+        });
       });
 
+      isTabSwitchRender = changed || wasTargetHidden;
       if (tabName === 'daily') renderDailyView();
       if (tabName === 'weekly') renderWeeklyView();
       if (tabName === 'food') renderFoodView();
       if (tabName === 'search') renderSearchView();
       if (tabName === 'info') renderInfoView();
+      isTabSwitchRender = false;
       forceInstantCarouselSync = false;
 
       requestAnimationFrame(updateHeaderScrollState);
     }
 
-    function setDockActiveVisual(tabName, force = false) {
-      if (!force && lastVisualActiveTab === tabName) return;
+    function setDockActiveVisual(tabName, syncOnly = false) {
+      if (!syncOnly && lastVisualActiveTab === tabName) return;
       lastVisualActiveTab = tabName;
       const pill = document.getElementById('tabIndicatorPill');
       if (pill) pill.setAttribute('data-active-tab', tabName);
@@ -4598,10 +4590,6 @@
         const isAct = b.getAttribute('data-tab') === tabName;
         const iconWrap = b.querySelector('.nav-icon-wrap');
         const svg = b.querySelector('svg');
-        if (isAct && force) {
-          b.classList.remove('is-active');
-          void b.offsetWidth;
-        }
         b.classList.toggle('is-active', isAct);
         if (iconWrap) iconWrap.style.transform = isAct ? 'scale(1.1)' : 'scale(1)';
         if (svg) svg.setAttribute('stroke-width', isAct ? '2.2' : '1.9');
@@ -5033,6 +5021,7 @@
       const hasMorning = visibleSlots.some((s) => s.slotNo <= 4);
       let lunchInserted = false;
 
+      const baseDelay = isTabSwitchRender ? 45 : 0;
       visibleSlots.forEach((slot, idx) => {
         if (!lunchInserted && hasMorning && slot.slotNo >= 5) {
           lunchInserted = true;
@@ -5042,13 +5031,13 @@
           const lunchEnd = slot5 && slot5.time ? slot5.time.split('-')[0] : '13.10';
           const lunch = document.createElement('div');
           lunch.className = 'ios-stagger-item flex items-center gap-3 py-1 px-2';
-          lunch.style.setProperty('--stagger-delay', `${Math.min(idx, 8) * 24}ms`);
+          lunch.style.setProperty('--stagger-delay', `${baseDelay + Math.min(idx, 8) * 28}ms`);
           lunch.innerHTML = `<div class="h-px flex-1 bg-slate-300/60 dark:bg-slate-800"></div><span class="text-[11px] font-medium text-slate-400 dark:text-slate-500 tabular-nums">${loc.lunchBreak} (${escapeHtml(lunchStart)} - ${escapeHtml(lunchEnd)})</span><div class="h-px flex-1 bg-slate-300/60 dark:bg-slate-800"></div>`;
           container.appendChild(lunch);
         }
         const cardEl = createSlotCardElement(slot);
         cardEl.classList.add('ios-stagger-item');
-        cardEl.style.setProperty('--stagger-delay', `${Math.min(idx + (lunchInserted ? 1 : 0), 9) * 24}ms`);
+        cardEl.style.setProperty('--stagger-delay', `${baseDelay + Math.min(idx + (lunchInserted ? 1 : 0), 9) * 28}ms`);
         container.appendChild(cardEl);
       });
 
@@ -5114,14 +5103,18 @@
       const container = document.getElementById('weeklyDaysContainer');
       container.innerHTML = '';
 
+      const weekSwitchOffset = isTabSwitchRender ? 45 : 0;
       weekDays.forEach((day, dayIdx) => {
         const sec = document.createElement('div');
         sec.className = 'space-y-2';
-        const baseDelay = Math.min(dayIdx, 5) * 32;
+        const animateDay = dayIdx < 2;
+        const baseDelay = weekSwitchOffset + dayIdx * 55;
 
         const header = document.createElement('div');
-        header.className = 'ios-stagger-item flex items-center justify-between px-1.5 pt-0.5';
-        header.style.setProperty('--stagger-delay', `${baseDelay}ms`);
+        header.className = `${animateDay ? 'ios-stagger-item ' : ''}flex items-center justify-between px-1.5 pt-0.5`;
+        if (animateDay) {
+          header.style.setProperty('--stagger-delay', `${baseDelay}ms`);
+        }
         header.innerHTML = `<h3 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">${escapeHtml(formatDateLong(day.date))}</h3>`;
 
         const openBtn = document.createElement('button');
@@ -5140,15 +5133,19 @@
         const { visibleSlots, hiddenCount } = filterSlotsForGroupPreference(day.slots);
         visibleSlots.forEach((slot, sIdx) => {
           const cardEl = createSlotCardElement(slot, { hideNotePreview: true });
-          cardEl.classList.add('ios-stagger-item');
-          cardEl.style.setProperty('--stagger-delay', `${Math.min(baseDelay + sIdx * 18, 180)}ms`);
+          if (animateDay && sIdx < 8) {
+            cardEl.classList.add('ios-stagger-item');
+            cardEl.style.setProperty('--stagger-delay', `${Math.min(baseDelay + sIdx * 24, 260)}ms`);
+          }
           list.appendChild(cardEl);
         });
         if (hiddenCount > 0) {
           const hiddenEl = document.createElement('button');
           hiddenEl.type = 'button';
-          hiddenEl.className = 'ios-stagger-item text-[11px] font-medium text-slate-400 dark:text-slate-500 px-1.5 hover:text-blue-600 dark:hover:text-blue-400 transition text-left';
-          hiddenEl.style.setProperty('--stagger-delay', `${Math.min(baseDelay + 60, 180)}ms`);
+          hiddenEl.className = `${animateDay ? 'ios-stagger-item ' : ''}text-[11px] font-medium text-slate-400 dark:text-slate-500 px-1.5 hover:text-blue-600 dark:hover:text-blue-400 transition text-left`;
+          if (animateDay) {
+            hiddenEl.style.setProperty('--stagger-delay', `${Math.min(baseDelay + 70, 260)}ms`);
+          }
           hiddenEl.textContent = `${loc.hiddenGroupsBanner(hiddenCount)} • ${loc.hiddenGroupsShowBtn}`;
           hiddenEl.addEventListener('click', openGroupModal);
           list.appendChild(hiddenEl);
@@ -5217,11 +5214,12 @@
       const CHUNK_SIZE = 60;
       const firstFrag = document.createDocumentFragment();
       const firstLimit = Math.min(FIRST_BATCH, matches.length);
+      const searchBaseDelay = isTabSwitchRender ? 45 : 0;
       for (let i = 0; i < firstLimit; i++) {
         const cardEl = createSlotCardElement(matches[i], { showDayFooter: true });
         if (i < 10) {
           cardEl.classList.add('ios-stagger-item');
-          cardEl.style.setProperty('--stagger-delay', `${i * 18}ms`);
+          cardEl.style.setProperty('--stagger-delay', `${searchBaseDelay + i * 28}ms`);
         }
         firstFrag.appendChild(cardEl);
       }
@@ -5444,12 +5442,13 @@
         }
       }
 
+      const examBaseDelay = isTabSwitchRender ? 85 : 0;
       mergedExams.forEach((item, examIdx) => {
         const displayTime =
           item.startTime && item.endTime ? `${item.startTime}-${item.endTime}` : item.rawTime;
         const row = document.createElement('div');
         row.className = 'ios-stagger-item ios-pill-control rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2';
-        row.style.setProperty('--stagger-delay', `${Math.min(examIdx, 8) * 28}ms`);
+        row.style.setProperty('--stagger-delay', `${examBaseDelay + Math.min(examIdx, 8) * 28}ms`);
         row.innerHTML = `
           <div class="min-w-0">
             <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400">${escapeHtml(formatDateLong(item.day.date))} • ${escapeHtml(displayTime)}</p>
@@ -5747,10 +5746,15 @@
       closeAnimatedModal(document.getElementById('foodPhotoModal'), document.getElementById('foodPhotoModalCard'));
     }
 
-    function createFoodDishCard(item, isoDate = '', animIndex = 0) {
+    function createFoodDishCard(item, isoDate = '', animIndex = 0, options = {}) {
       const card = document.createElement('div');
-      card.className = 'ios-glass ios-stagger-item rounded-2xl overflow-hidden flex flex-col';
-      card.style.setProperty('--stagger-delay', `${Math.min(animIndex, 8) * 24}ms`);
+      if (options.skipStagger) {
+        card.className = 'ios-glass rounded-2xl overflow-hidden flex flex-col';
+      } else {
+        card.className = 'ios-glass ios-stagger-item rounded-2xl overflow-hidden flex flex-col';
+        const baseDelay = Number(options.baseDelay) || 0;
+        card.style.setProperty('--stagger-delay', `${baseDelay + Math.min(animIndex, 10) * 28}ms`);
+      }
 
       const imgWrap = document.createElement('div');
       imgWrap.className = 'relative w-full overflow-hidden bg-slate-200/60 dark:bg-slate-800/60';
@@ -5910,32 +5914,35 @@
       if (totalKcal > 0) statsParts.push(loc.foodCalorieTotal(totalKcal));
       subInfo.textContent = statsParts.join(' • ');
 
+      const foodBaseDelay = isTabSwitchRender ? 45 : 0;
       if (regular.length > 0) {
         const sec = document.createElement('div');
         sec.className = 'space-y-2';
         const hdr = document.createElement('h3');
         hdr.className = 'ios-stagger-item text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5';
+        hdr.style.setProperty('--stagger-delay', `${foodBaseDelay}ms`);
         hdr.textContent = loc.foodMainMenu;
         sec.appendChild(hdr);
 
         const grid = document.createElement('div');
         grid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2.5';
-        regular.forEach((item, idx) => grid.appendChild(createFoodDishCard(item, isoDate, idx)));
+        regular.forEach((item, idx) => grid.appendChild(createFoodDishCard(item, isoDate, idx, { baseDelay: foodBaseDelay })));
         sec.appendChild(grid);
         container.appendChild(sec);
       }
 
-      Object.keys(grouped).forEach((typeKey) => {
+      Object.keys(grouped).forEach((typeKey, gIdx) => {
         const sec = document.createElement('div');
         sec.className = 'space-y-2 pt-1';
         const hdr = document.createElement('h3');
         hdr.className = 'ios-stagger-item text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5';
+        hdr.style.setProperty('--stagger-delay', `${foodBaseDelay + (gIdx + 1) * 35}ms`);
         hdr.textContent = getFoodTypeLabel(typeKey);
         sec.appendChild(hdr);
 
         const grid = document.createElement('div');
         grid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2.5';
-        grouped[typeKey].forEach((item, idx) => grid.appendChild(createFoodDishCard(item, isoDate, idx)));
+        grouped[typeKey].forEach((item, idx) => grid.appendChild(createFoodDishCard(item, isoDate, idx, { baseDelay: foodBaseDelay + (gIdx + 1) * 35 })));
         sec.appendChild(grid);
         container.appendChild(sec);
       });
@@ -5977,6 +5984,7 @@
 
       subInfo.textContent = loc.foodWeekSummary(activeDaysCount, totalPrimaryDishes);
 
+      const weekFoodOffset = isTabSwitchRender ? 45 : 0;
       weekdays.forEach(({ iso }, idx) => {
         const items = Array.isArray(weekResults[idx]) ? weekResults[idx] : [];
         const dmy = isoToDMY(iso);
@@ -5985,7 +5993,7 @@
         const daySection = document.createElement('div');
         daySection.id = `foodWeekDay_${iso}`;
         daySection.className = `ios-glass ios-stagger-item food-week-card rounded-3xl p-3.5 space-y-2.5${isToday ? ' ring-1 ring-blue-500/40' : ''}`;
-        daySection.style.setProperty('--stagger-delay', `${Math.min(idx, 4) * 38}ms`);
+        daySection.style.setProperty('--stagger-delay', `${weekFoodOffset + Math.min(idx, 4) * 45}ms`);
 
         const header = document.createElement('div');
         header.className = 'flex items-center justify-between gap-2';
@@ -6049,7 +6057,7 @@
           const mainItems = regular.length > 0 ? regular : items;
           const grid = document.createElement('div');
           grid.className = 'grid grid-cols-2 sm:grid-cols-4 gap-2';
-          mainItems.forEach((item) => grid.appendChild(createFoodDishCard(item, iso)));
+          mainItems.forEach((item) => grid.appendChild(createFoodDishCard(item, iso, 0, { skipStagger: true })));
           daySection.appendChild(grid);
 
           Object.keys(grouped).forEach((typeKey) => {
@@ -6060,7 +6068,7 @@
 
             const spGrid = document.createElement('div');
             spGrid.className = 'grid grid-cols-2 sm:grid-cols-4 gap-2';
-            grouped[typeKey].forEach((item) => spGrid.appendChild(createFoodDishCard(item, iso)));
+            grouped[typeKey].forEach((item) => spGrid.appendChild(createFoodDishCard(item, iso, 0, { skipStagger: true })));
             daySection.appendChild(spGrid);
           });
         }
