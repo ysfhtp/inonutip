@@ -76,6 +76,18 @@
           "type": "boolean",
           "description": "Whether the announcement is visible to students."
         },
+        "targetGroup": {
+          "type": "string",
+          "enum": ["", "I", "II", "III", "IV", "V"],
+          "maxLength": 3,
+          "description": "Target group filter or empty for all groups."
+        },
+        "targetProg": {
+          "type": "string",
+          "enum": ["", "tr", "en"],
+          "maxLength": 2,
+          "description": "Target program language filter or empty for all."
+        },
         "deleted": {
           "type": "boolean",
           "description": "Soft-deletion flag controlled by verified admin proof."
@@ -98,7 +110,62 @@
           "description": "Server timestamp of latest modification."
         }
       },
-      "required": ["title", "message", "tone", "active", "deleted", "proofOpId", "createdAt", "updatedAt"]
+      "required": ["title", "message", "tone", "active", "targetGroup", "targetProg", "deleted", "proofOpId", "createdAt", "updatedAt"]
+    },
+    "LessonMaterial": {
+      "title": "LessonMaterial",
+      "description": "Admin-attached PDF learning material for a specific lesson slot.",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "maxLength": 16,
+          "description": "Lesson date (DD.MM.YYYY)."
+        },
+        "slotNo": {
+          "type": "number",
+          "description": "Slot number (1-10)."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Material title."
+        },
+        "pdfUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "PDF file URL or download link."
+        },
+        "pdfName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Optional PDF filename."
+        },
+        "deleted": {
+          "type": "boolean",
+          "description": "Soft-deletion flag."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Admin proof op ID."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update."
+        }
+      },
+      "required": ["date", "slotNo", "title", "pdfUrl", "deleted", "proofOpId", "createdAt", "updatedAt"]
     },
     "CustomStudent": {
       "title": "CustomStudent",
@@ -355,6 +422,10 @@
     "/admin_proofs/{opId}": {
       "schema": { "$ref": "#/entities/AdminProof" },
       "description": "Write-only atomic batch verification docs; unreadable by all clients."
+    },
+    "/lesson_materials/{lessonKey}": {
+      "schema": { "$ref": "#/entities/LessonMaterial" },
+      "description": "Stores admin-uploaded PDF materials for lesson slots."
     }
   }
 }

@@ -3463,7 +3463,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.5.5</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.0</span>
       </div>
     </section>
 
@@ -3632,13 +3632,14 @@
         </div>
       </form>
 
-      <!-- 3-Tab Segmented Control -->
+      <!-- 4-Tab Segmented Control -->
       <div class="px-4 sm:px-5 pt-3 pb-2 shrink-0">
-        <div id="adminTabsBar" class="ios-pill-control p-1 rounded-2xl grid grid-cols-3 gap-1 relative">
-          <div id="adminTabIndicator" style="transform: translate3d(4px, 0, 0); width: 96px;"></div>
-          <button type="button" data-admin-tab="announcements" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold truncate">Duyurular</button>
-          <button type="button" data-admin-tab="add-student" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold truncate">Öğrenci Ekle</button>
-          <button type="button" data-admin-tab="students" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold truncate">Öğrenci Ayarları</button>
+        <div id="adminTabsBar" class="ios-pill-control p-1 rounded-2xl grid grid-cols-4 gap-1 relative">
+          <div id="adminTabIndicator" style="transform: translate3d(4px, 0, 0); width: 80px;"></div>
+          <button type="button" data-admin-tab="announcements" class="admin-tab-btn min-h-[44px] px-1.5 py-2 rounded-xl text-xs font-bold truncate">Duyurular</button>
+          <button type="button" data-admin-tab="materials" class="admin-tab-btn min-h-[44px] px-1.5 py-2 rounded-xl text-xs font-semibold truncate">Ders PDF</button>
+          <button type="button" data-admin-tab="add-student" class="admin-tab-btn min-h-[44px] px-1.5 py-2 rounded-xl text-xs font-semibold truncate">Öğrenci Ekle</button>
+          <button type="button" data-admin-tab="students" class="admin-tab-btn min-h-[44px] px-1.5 py-2 rounded-xl text-xs font-semibold truncate">Öğrenci Ayar</button>
         </div>
       </div>
 
@@ -3653,7 +3654,30 @@
             </div>
             <input id="adminAnnTitleInput" type="text" maxlength="120" placeholder="Duyuru başlığı..." class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             <textarea id="adminAnnMsgInput" rows="3" maxlength="800" placeholder="Tüm öğrencilere gösterilecek duyuru mesajı..." class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"></textarea>
-            <div class="flex items-center justify-between gap-2 flex-wrap">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div class="space-y-1">
+                <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Hedef Grup (Opsiyonel)</span>
+                <div id="adminAnnTargetGroupChips" class="flex items-center gap-1 flex-wrap">
+                  <button type="button" data-ann-target-group="" class="group-chip min-h-[44px] px-2.5">Tümü</button>
+                  <button type="button" data-ann-target-group="I" class="group-chip min-h-[44px] px-2">I</button>
+                  <button type="button" data-ann-target-group="II" class="group-chip min-h-[44px] px-2">II</button>
+                  <button type="button" data-ann-target-group="III" class="group-chip min-h-[44px] px-2">III</button>
+                  <button type="button" data-ann-target-group="IV" class="group-chip min-h-[44px] px-2">IV</button>
+                  <button type="button" data-ann-target-group="V" class="group-chip min-h-[44px] px-2">V</button>
+                </div>
+              </div>
+              <div class="space-y-1">
+                <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Hedef Program (Opsiyonel)</span>
+                <div id="adminAnnTargetProgChips" class="flex items-center gap-1 flex-wrap">
+                  <button type="button" data-ann-target-prog="" class="group-chip min-h-[44px] px-3">Tümü</button>
+                  <button type="button" data-ann-target-prog="tr" class="group-chip min-h-[44px] px-3">TR</button>
+                  <button type="button" data-ann-target-prog="en" class="group-chip min-h-[44px] px-3">EN</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 flex-wrap pt-1">
               <div id="adminAnnToneChips" class="flex items-center gap-1.5">
                 <button type="button" data-ann-tone="info" class="group-chip min-h-[44px] px-3">Bilgi</button>
                 <button type="button" data-ann-tone="warn" class="group-chip min-h-[44px] px-3">Önemli</button>
@@ -3667,6 +3691,37 @@
           <div class="space-y-2">
             <h4 id="adminAnnListHeading" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Kayıtlı Duyurular</h4>
             <div id="adminAnnouncementsList" class="space-y-2"></div>
+          </div>
+        </div>
+
+        <!-- PANE 2: DERS PDF'LERİ -->
+        <div id="adminPaneMaterials" class="hidden space-y-3.5">
+          <form id="adminMaterialForm" class="ios-pill-control rounded-2xl p-3.5 space-y-3" novalidate>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Ders Notu / PDF Ekle</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <label for="adminMatDateInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tarih (GG.AA.YYYY)</label>
+                <input id="adminMatDateInput" type="text" maxlength="16" placeholder="01.12.2026" class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              </div>
+              <div class="space-y-1">
+                <label for="adminMatSlotInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ders Saati (1-10)</label>
+                <input id="adminMatSlotInput" type="number" min="1" max="10" value="1" class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold tabular-nums text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              </div>
+            </div>
+            <div class="space-y-1">
+              <label for="adminMatTitleInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">PDF Başlığı / Konu</label>
+              <input id="adminMatTitleInput" type="text" maxlength="120" placeholder="Örn: Biyokimya Ders Notu" class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            </div>
+            <div class="space-y-1">
+              <label for="adminMatUrlInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">PDF Dosya / Web Bağlantısı (URL)</label>
+              <input id="adminMatUrlInput" type="url" maxlength="500" placeholder="https://..." class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            </div>
+            <button id="btnAdminMatSubmit" type="submit" class="ios-press w-full min-h-[44px] py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">PDF Malzemesini Kaydet</button>
+          </form>
+
+          <div class="space-y-2">
+            <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Yüklenen Ders PDF'leri</h4>
+            <div id="adminMaterialsList" class="space-y-2"></div>
           </div>
         </div>
 
@@ -4067,6 +4122,7 @@
         adminUnlockedToast: 'Yönetici yazma yetkisi aktif edildi',
         adminNeedPasswordUnlock: 'İşlem için yönetici şifresini doğrulayın.',
         adminTabAnn: 'Duyurular',
+        adminTabMaterials: 'Ders PDF\'leri',
         adminTabAdd: 'Öğrenci Ekle',
         adminTabStudents: 'Öğrenci Ayarları',
         adminAnnNewTitle: 'Yeni Duyuru',
@@ -4298,6 +4354,7 @@
         adminUnlockedToast: 'Admin write access unlocked',
         adminNeedPasswordUnlock: 'Please verify your admin password first.',
         adminTabAnn: 'Notices',
+        adminTabMaterials: 'Lesson PDFs',
         adminTabAdd: 'Add Student',
         adminTabStudents: 'All Students',
         adminAnnNewTitle: 'New Announcement',
@@ -5304,6 +5361,20 @@
         groupSpan.innerHTML = `<svg class="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg><span>${escapeHtml(slot.group.toUpperCase())}</span>`;
         groupWrap.appendChild(groupSpan);
         rightCol.appendChild(groupWrap);
+      }
+
+      const matKey = `${slot.date}_${slot.slotNo}`;
+      const material = typeof lessonMaterialsMap !== 'undefined' ? lessonMaterialsMap[matKey] : null;
+      if (material && material.pdfUrl) {
+        const pdfWrap = document.createElement('div');
+        pdfWrap.className = 'mt-1.5';
+        pdfWrap.innerHTML = `
+          <a href="${escapeHtml(material.pdfUrl)}" target="_blank" rel="noopener noreferrer" class="ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 text-rose-600 dark:text-rose-300 text-xs font-semibold">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span>${escapeHtml(material.pdfName || material.title || 'PDF İndir')}</span>
+          </a>
+        `;
+        rightCol.appendChild(pdfWrap);
       }
 
       const metaParts = [];
@@ -7084,18 +7155,53 @@
     // ==================== OPTIONAL STUDENT AUTH MODAL & ADMIN CONTROLLER ====================
     let activeAnnouncementsList = [];
     let announcementsInitialFetchDone = false;
+    let lessonMaterialsMap = {};
+    let lessonMaterialsInitialFetchDone = false;
+
+    async function refreshLessonMaterials(force = false) {
+      const api = window.__INONU_AUTH__;
+      if (!api || typeof api.loadAllLessonMaterials !== 'function') return;
+      if (lessonMaterialsInitialFetchDone && !force) {
+        renderDailyView();
+        renderWeeklyView();
+        return;
+      }
+      lessonMaterialsInitialFetchDone = true;
+      try {
+        const list = await api.loadAllLessonMaterials();
+        lessonMaterialsMap = {};
+        list.forEach((m) => {
+          lessonMaterialsMap[`${m.date}_${m.slotNo}`] = m;
+        });
+        renderDailyView();
+        renderWeeklyView();
+      } catch {
+        lessonMaterialsMap = {};
+      }
+    }
 
     function renderDailyAnnouncements() {
       const container = document.getElementById('dailyAnnouncementsContainer');
       if (!container) return;
       const loc = I18N[state.lang];
       container.innerHTML = '';
-      if (!Array.isArray(activeAnnouncementsList) || activeAnnouncementsList.length === 0) {
+
+      const session = getActiveAuthSession();
+      const studentGroup = session ? session.group : state.myMbuGroup;
+      const studentProg = session ? session.prog : state.lang;
+
+      const visibleAnns = (activeAnnouncementsList || []).filter((ann) => {
+        if (ann.targetGroup && ann.targetGroup !== studentGroup) return false;
+        if (ann.targetProg && ann.targetProg !== studentProg) return false;
+        return true;
+      });
+
+      if (!Array.isArray(visibleAnns) || visibleAnns.length === 0) {
         container.classList.add('hidden');
         return;
       }
       container.classList.remove('hidden');
-      activeAnnouncementsList.forEach((ann, idx) => {
+      visibleAnns.forEach((ann, idx) => {
         const tone = ann.tone === 'urgent' ? 'urgent' : ann.tone === 'warn' ? 'warn' : 'info';
         const badgeCls =
           tone === 'urgent'
@@ -7127,6 +7233,7 @@
       if (!api || typeof api.loadActiveAnnouncements !== 'function') return;
       if (announcementsInitialFetchDone && !force) {
         renderDailyAnnouncements();
+        void refreshLessonMaterials(false);
         return;
       }
       announcementsInitialFetchDone = true;
@@ -7136,6 +7243,7 @@
         activeAnnouncementsList = [];
       }
       renderDailyAnnouncements();
+      void refreshLessonMaterials(true);
     }
 
     function getActiveAuthSession() {
@@ -7559,15 +7667,19 @@
       editingAnnId: '',
       annTone: 'info',
       annActive: true,
+      annTargetGroup: '',
+      annTargetProg: '',
       addGroup: 'I',
       addLab: '',
       addLang: 'tr',
       announcements: [],
+      materials: [],
       students: [],
       studentFilterGroup: '',
       editingStudent: null,
       deleteConfirmAnnId: '',
-      deleteConfirmStudentHash: ''
+      deleteConfirmStudentHash: '',
+      deleteConfirmMatId: ''
     };
 
     function syncAdminUnlockBarUI() {
@@ -7617,6 +7729,7 @@
       document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
         const key = btn.getAttribute('data-admin-tab');
         if (key === 'announcements') btn.textContent = loc.adminTabAnn;
+        if (key === 'materials') btn.textContent = loc.adminTabMaterials;
         if (key === 'add-student') btn.textContent = loc.adminTabAdd;
         if (key === 'students') btn.textContent = loc.adminTabStudents;
       });
@@ -7849,6 +7962,8 @@
           adminState.editingAnnId = ann.id;
           adminState.annTone = ann.tone;
           adminState.annActive = ann.active;
+          adminState.annTargetGroup = ann.targetGroup || '';
+          adminState.annTargetProg = ann.targetProg || '';
           document.getElementById('adminAnnTitleInput').value = ann.title;
           document.getElementById('adminAnnMsgInput').value = ann.message;
           syncAdminAnnFormUI();
@@ -8115,12 +8230,63 @@
       listEl.appendChild(frag);
     }
 
+    function renderAdminMaterialsList() {
+      const listEl = document.getElementById('adminMaterialsList');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+      const mats = adminState.materials || [];
+      if (mats.length === 0) {
+        listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">Henüz eklenmiş ders PDF'i yok.</div>`;
+        return;
+      }
+      mats.forEach((mat, idx) => {
+        const row = document.createElement('div');
+        row.className = 'ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item';
+        row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 28}ms`);
+        row.innerHTML = `
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-300 tabular-nums">${escapeHtml(mat.date)} • ${mat.slotNo}. Ders</span>
+              <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(mat.title)}</h5>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">${escapeHtml(mat.pdfUrl)}</p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <a href="${escapeHtml(mat.pdfUrl)}" target="_blank" rel="noopener noreferrer" class="ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">Görüntüle</a>
+            <button type="button" class="btn-del-mat ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 text-xs font-semibold" data-mat-id="${escapeHtml(mat.id)}">${adminState.deleteConfirmMatId === mat.id ? 'Emin misin? Sil' : 'Sil'}</button>
+          </div>
+        `;
+        row.querySelector('.btn-del-mat').addEventListener('click', async () => {
+          const api = window.__INONU_AUTH__;
+          const secret = ensureAdminSecretReady();
+          if (!api || !secret) return;
+          if (adminState.deleteConfirmMatId !== mat.id) {
+            adminState.deleteConfirmMatId = mat.id;
+            renderAdminMaterialsList();
+            return;
+          }
+          adminState.deleteConfirmMatId = '';
+          try {
+            await api.deleteLessonMaterial(mat.id, secret === 'active' ? undefined : secret);
+            await refreshAdminCloudData();
+            await refreshLessonMaterials(true);
+            showToast('Ders PDF\'i silindi');
+          } catch (err) {
+            console.warn('Lesson material delete error:', err);
+            showToast('Silme başarısız oldu');
+          }
+        });
+        listEl.appendChild(row);
+      });
+    }
+
     async function refreshAdminCloudData() {
       const api = window.__INONU_AUTH__;
       const session = getActiveAuthSession();
       const icon = document.getElementById('iconAdminRefresh');
       if (!api || !session || !session.isAdmin) {
         renderAdminAnnouncementsList();
+        renderAdminMaterialsList();
         renderAdminStudentsList();
         return;
       }
@@ -8129,14 +8295,23 @@
       }
       if (icon) icon.classList.add('animate-spin-ios');
       try {
-        const [anns, students] = await Promise.all([
+        const [anns, mats, students] = await Promise.all([
           api.listAllAnnouncements().catch((err) => { console.warn('Admin announcements load failed:', err); return []; }),
+          api.loadAllLessonMaterials().catch((err) => { console.warn('Admin materials load failed:', err); return []; }),
           api.loadAllAdminStudents(session.adminSecret || undefined).catch((err) => { console.warn('Admin students load failed:', err); return []; })
         ]);
         adminState.announcements = anns;
+        adminState.materials = mats;
         adminState.students = students;
+        lessonMaterialsMap = {};
+        mats.forEach((m) => {
+          lessonMaterialsMap[`${m.date}_${m.slotNo}`] = m;
+        });
         renderAdminAnnouncementsList();
+        renderAdminMaterialsList();
         renderAdminStudentsList();
+        renderDailyView();
+        renderWeeklyView();
       } finally {
         if (icon) icon.classList.remove('animate-spin-ios');
       }
@@ -8842,6 +9017,47 @@
           } catch (err) {
             console.warn('Announcement save error:', err);
             showToast(loc.adminSaveErrorToast);
+          } finally {
+            if (btn) btn.disabled = false;
+          }
+        });
+      }
+
+      const adminMaterialForm = document.getElementById('adminMaterialForm');
+      if (adminMaterialForm) {
+        adminMaterialForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const api = window.__INONU_AUTH__;
+          const secret = ensureAdminSecretReady();
+          if (!api || !secret) return;
+          const dateVal = document.getElementById('adminMatDateInput').value.trim();
+          const slotVal = parseInt(document.getElementById('adminMatSlotInput').value.trim(), 10) || 1;
+          const titleVal = document.getElementById('adminMatTitleInput').value.trim();
+          const urlVal = document.getElementById('adminMatUrlInput').value.trim();
+          if (!dateVal || !titleVal || !urlVal) {
+            showToast('Tarih, başlık ve PDF URL zorunludur.');
+            return;
+          }
+          const btn = document.getElementById('btnAdminMatSubmit');
+          if (btn) btn.disabled = true;
+          try {
+            await api.saveLessonMaterial({
+              date: dateVal,
+              slotNo: slotVal,
+              title: titleVal,
+              pdfUrl: urlVal,
+              pdfName: titleVal
+            }, secret === 'active' ? undefined : secret);
+            document.getElementById('adminMatDateInput').value = '';
+            document.getElementById('adminMatSlotInput').value = '1';
+            document.getElementById('adminMatTitleInput').value = '';
+            document.getElementById('adminMatUrlInput').value = '';
+            await refreshAdminCloudData();
+            await refreshLessonMaterials(true);
+            showToast('Ders PDF\'i kaydedildi');
+          } catch (err) {
+            console.warn('Lesson material save error:', err);
+            showToast('PDF kaydedilemedi');
           } finally {
             if (btn) btn.disabled = false;
           }

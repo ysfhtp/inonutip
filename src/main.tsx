@@ -10,16 +10,19 @@ import {
   clearAdminWriteSecret,
   deleteAnnouncement,
   deleteCustomStudent,
+  deleteLessonMaterial,
   hasAdminWriteSecret,
   isStudentAlreadyRegistered,
   listAllAnnouncements,
   loadActiveAnnouncements,
   loadAllAdminStudents,
+  loadAllLessonMaterials,
   loadCloudStudentPrefs,
   lookupStudentForAdmin,
   lookupStudentWithCloud,
   saveAnnouncement,
   saveCloudStudentPrefs,
+  saveLessonMaterial,
   setAdminWriteSecret,
   subscribeStudentAccountStatus,
   updateAdminPassword,
@@ -67,6 +70,9 @@ declare global {
       listAllAnnouncements: typeof listAllAnnouncements;
       saveAnnouncement: typeof saveAnnouncement;
       deleteAnnouncement: typeof deleteAnnouncement;
+      loadAllLessonMaterials: typeof loadAllLessonMaterials;
+      saveLessonMaterial: typeof saveLessonMaterial;
+      deleteLessonMaterial: typeof deleteLessonMaterial;
       addOrUpdateCustomStudent: typeof addOrUpdateCustomStudent;
       deleteCustomStudent: typeof deleteCustomStudent;
       loadAllAdminStudents: typeof loadAllAdminStudents;
@@ -103,6 +109,9 @@ window.__INONU_AUTH__ = {
   listAllAnnouncements,
   saveAnnouncement,
   deleteAnnouncement,
+  loadAllLessonMaterials,
+  saveLessonMaterial,
+  deleteLessonMaterial,
   addOrUpdateCustomStudent,
   deleteCustomStudent,
   loadAllAdminStudents,

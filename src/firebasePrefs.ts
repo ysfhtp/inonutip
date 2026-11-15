@@ -62,6 +62,8 @@ export interface CloudAnnouncement {
   message: string;
   tone: AnnouncementTone;
   active: boolean;
+  targetGroup: '' | 'I' | 'II' | 'III' | 'IV' | 'V';
+  targetProg: '' | 'tr' | 'en';
   createdAtMs: number;
   updatedAtMs: number;
 }
@@ -703,6 +705,8 @@ function mapAnnouncementDoc(id: string, data: Record<string, unknown>): CloudAnn
     message: typeof data.message === 'string' ? data.message : '',
     tone: normalizeAnnouncementTone(data.tone),
     active: data.active === true,
+    targetGroup: normalizeMbuGroupPref(data.targetGroup),
+    targetProg: normalizeLangPref(data.targetProg),
     createdAtMs: tsToMillis(data.createdAt),
     updatedAtMs: tsToMillis(data.updatedAt),
   };
@@ -746,6 +750,8 @@ export async function saveAnnouncement(
     message: string;
     tone: AnnouncementTone;
     active: boolean;
+    targetGroup?: unknown;
+    targetProg?: unknown;
   },
   adminSecret?: string,
 ): Promise<CloudAnnouncement> {
@@ -754,6 +760,8 @@ export async function saveAnnouncement(
   const cleanMessage = String(input.message || '').trim().slice(0, 800);
   const cleanTone = normalizeAnnouncementTone(input.tone);
   const isActive = Boolean(input.active);
+  const targetGroup = normalizeMbuGroupPref(input.targetGroup);
+  const targetProg = normalizeLangPref(input.targetProg);
   if (!cleanTitle || !cleanMessage) {
     throw new Error('Title and message are required.');
   }
@@ -770,26 +778,24 @@ export async function saveAnnouncement(
     const batch = writeBatch(db);
     const opId = appendAdminProofToBatch(batch, secret, path);
 
+    const payload = {
+      title: cleanTitle,
+      message: cleanMessage,
+      tone: cleanTone,
+      active: isActive,
+      targetGroup,
+      targetProg,
+      deleted: false,
+      proofOpId: opId,
+      updatedAt: serverTimestamp(),
+    };
+
     if (existingSnap && existingSnap.exists() && existingSnap.data()?.createdAt) {
-      batch.update(docRef, {
-        title: cleanTitle,
-        message: cleanMessage,
-        tone: cleanTone,
-        active: isActive,
-        deleted: false,
-        proofOpId: opId,
-        updatedAt: serverTimestamp(),
-      });
+      batch.update(docRef, payload);
     } else {
       batch.set(docRef, {
-        title: cleanTitle,
-        message: cleanMessage,
-        tone: cleanTone,
-        active: isActive,
-        deleted: false,
-        proofOpId: opId,
+        ...payload,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
       });
     }
     await batch.commit();
@@ -800,7 +806,7 @@ export async function saveAnnouncement(
         return mapAnnouncementDoc(rawId, (freshSnap.data() || {}) as Record<string, unknown>);
       }
     } catch {
-      // Fall back to optimistic returned doc if read after commit fails transiently
+      // Fall back
     }
     return {
       id: rawId,
@@ -808,6 +814,8 @@ export async function saveAnnouncement(
       message: cleanMessage,
       tone: cleanTone,
       active: isActive,
+      targetGroup,
+      targetProg,
       createdAtMs: Date.now(),
       updatedAtMs: Date.now(),
     };
@@ -830,6 +838,130 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
     const opId = appendAdminProofToBatch(batch, secret, path);
     batch.update(docRef, {
       active: false,
+      deleted: true,
+      proofOpId: opId,
+      updatedAt: serverTimestamp(),
+    });
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+// ==================== LESSON MATERIALS ====================
+
+export interface LessonMaterial {
+  id: string; // e.g. "01.12.2026_1"
+  date: string;
+  slotNo: number;
+  title: string;
+  pdfUrl: string;
+  pdfName?: string;
+  createdAtMs: number;
+  updatedAtMs: number;
+}
+
+export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
+  const path = 'lesson_materials';
+  try {
+    const q = query(collection(db, 'lesson_materials'), limit(500));
+    const snap = await getDocs(q);
+    return snap.docs
+      .filter((d) => d.data()?.deleted !== true)
+      .map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          date: typeof data.date === 'string' ? data.date : '',
+          slotNo: typeof data.slotNo === 'number' ? data.slotNo : 1,
+          title: typeof data.title === 'string' ? data.title : '',
+          pdfUrl: typeof data.pdfUrl === 'string' ? data.pdfUrl : '',
+          pdfName: typeof data.pdfName === 'string' ? data.pdfName : undefined,
+          createdAtMs: tsToMillis(data.createdAt),
+          updatedAtMs: tsToMillis(data.updatedAt),
+        };
+      })
+      .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+  }
+}
+
+export async function saveLessonMaterial(
+  input: {
+    id?: string;
+    date: string;
+    slotNo: number;
+    title: string;
+    pdfUrl: string;
+    pdfName?: string;
+  },
+  adminSecret?: string,
+): Promise<LessonMaterial> {
+  const secret = resolveAdminWriteSecret(adminSecret);
+  const cleanDate = String(input.date || '').trim();
+  const slotNo = Number(input.slotNo) || 1;
+  const cleanTitle = String(input.title || '').trim().slice(0, 120);
+  const cleanUrl = String(input.pdfUrl || '').trim();
+  const cleanName = String(input.pdfName || '').trim().slice(0, 120);
+  if (!cleanDate || !cleanTitle || !cleanUrl) {
+    throw new Error('Date, title and PDF URL are required.');
+  }
+  const rawId = input.id ? input.id.trim() : `${cleanDate}_${slotNo}`;
+  const docRef = doc(db, 'lesson_materials', rawId);
+  const path = `lesson_materials/${rawId}`;
+
+  try {
+    const existingSnap = await getDoc(docRef);
+    const batch = writeBatch(db);
+    const opId = appendAdminProofToBatch(batch, secret, path);
+    const payload: Record<string, unknown> = {
+      date: cleanDate,
+      slotNo,
+      title: cleanTitle,
+      pdfUrl: cleanUrl,
+      deleted: false,
+      proofOpId: opId,
+      updatedAt: serverTimestamp(),
+    };
+    if (cleanName) payload.pdfName = cleanName;
+
+    if (existingSnap.exists() && existingSnap.data()?.createdAt) {
+      batch.update(docRef, payload);
+    } else {
+      payload.createdAt = serverTimestamp();
+      batch.set(docRef, payload);
+    }
+    await batch.commit();
+
+    return {
+      id: rawId,
+      date: cleanDate,
+      slotNo,
+      title: cleanTitle,
+      pdfUrl: cleanUrl,
+      pdfName: cleanName || undefined,
+      createdAtMs: existingSnap.exists() ? tsToMillis(existingSnap.data()?.createdAt) : Date.now(),
+      updatedAtMs: Date.now(),
+    };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function deleteLessonMaterial(id: string, adminSecret?: string): Promise<void> {
+  const cleanId = String(id || '').trim();
+  if (!cleanId) return;
+  const secret = resolveAdminWriteSecret(adminSecret);
+  const path = `lesson_materials/${cleanId}`;
+  const docRef = doc(db, 'lesson_materials', cleanId);
+
+  try {
+    const existingSnap = await getDoc(docRef);
+    if (!existingSnap.exists()) return;
+    const batch = writeBatch(db);
+    const opId = appendAdminProofToBatch(batch, secret, path);
+    batch.update(docRef, {
       deleted: true,
       proofOpId: opId,
       updatedAt: serverTimestamp(),

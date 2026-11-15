@@ -97,8 +97,8 @@ service cloud.firestore {
     }
 
     function isValidAnnouncement(data) {
-      return data.keys().hasAll(['title', 'message', 'tone', 'active', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['title', 'message', 'tone', 'active', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
+      return data.keys().hasAll(['title', 'message', 'tone', 'active', 'targetGroup', 'targetProg', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['title', 'message', 'tone', 'active', 'targetGroup', 'targetProg', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
         && data.title is string
         && data.title.size() >= 1
         && data.title.size() <= 120
@@ -109,6 +109,34 @@ service cloud.firestore {
         && data.tone.size() <= 6
         && data.tone in ['info', 'warn', 'urgent']
         && data.active is bool
+        && data.targetGroup is string
+        && data.targetGroup.size() <= 3
+        && data.targetGroup in ['', 'I', 'II', 'III', 'IV', 'V']
+        && data.targetProg is string
+        && data.targetProg.size() <= 2
+        && data.targetProg in ['', 'tr', 'en']
+        && data.deleted is bool
+        && isValidId(data.proofOpId)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLessonMaterial(data) {
+      return data.keys().hasAll(['date', 'slotNo', 'title', 'pdfUrl', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['date', 'slotNo', 'title', 'pdfUrl', 'pdfName', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
+        && data.date is string
+        && data.date.size() >= 1
+        && data.date.size() <= 16
+        && data.slotNo is number
+        && data.slotNo >= 1
+        && data.slotNo <= 10
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 120
+        && data.pdfUrl is string
+        && data.pdfUrl.size() >= 1
+        && data.pdfUrl.size() <= 500
+        && (!('pdfName' in data) || (data.pdfName is string && data.pdfName.size() <= 120))
         && data.deleted is bool
         && isValidId(data.proofOpId)
         && data.createdAt is timestamp
@@ -229,10 +257,28 @@ service cloud.firestore {
       allow update: if isValidId(announcementId)
         && isValidAnnouncement(incoming())
         && (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
-        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'message', 'tone', 'active', 'deleted', 'proofOpId', 'updatedAt'])
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'message', 'tone', 'active', 'targetGroup', 'targetProg', 'deleted', 'proofOpId', 'updatedAt'])
         && incoming().updatedAt == request.time
         && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'announcements/' + announcementId));
       allow delete: if isAdmin() && isValidId(announcementId);
+    }
+
+    // Admin-attached PDF learning materials for lesson slots.
+    match /lesson_materials/{lessonKey} {
+      allow get: if isValidId(lessonKey) && (resource == null || !('deleted' in existing()) || existing().deleted != true);
+      allow list: if request.query.limit <= 500;
+      allow create: if isValidId(lessonKey)
+        && isValidLessonMaterial(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'lesson_materials/' + lessonKey));
+      allow update: if isValidId(lessonKey)
+        && isValidLessonMaterial(incoming())
+        && (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'slotNo', 'title', 'pdfUrl', 'pdfName', 'deleted', 'proofOpId', 'updatedAt'])
+        && incoming().updatedAt == request.time
+        && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'lesson_materials/' + lessonKey));
+      allow delete: if isAdmin() && isValidId(lessonKey);
     }
 
     // Custom student login entries keyed by salted 32-hex hash (zero plaintext PII).
