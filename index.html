@@ -2228,12 +2228,13 @@
 
     .ios-ambient-bg {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: calc(100vh + 160px);
+      height: calc(100lvh + 160px);
       z-index: 0;
       pointer-events: none;
-      transform: translate3d(0, 0, 0);
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
       overflow: hidden;
       background:
         radial-gradient(circle at 15% 10%, rgba(0, 122, 255, 0.10), transparent 50%),
@@ -2250,7 +2251,11 @@
     /* İki odaklı ambiyans aydınlatması: Biri alttan, biri yukarılardan, derin ve çok yumuşak */
     .ios-ambient-aura {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100vh;
+      height: 100lvh;
       pointer-events: none;
       overflow: hidden;
       z-index: 0;
@@ -3458,7 +3463,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.5.2</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.5.5</span>
       </div>
     </section>
 
@@ -8990,36 +8995,64 @@
           const secret = ensureAdminSecretReady();
           if (!api || !secret) return;
           if (!adminState.editingStudent) return;
+          const target = { ...adminState.editingStudent };
           const editedName = document.getElementById('adminEditNameInput').value.trim();
-          const effLang = adminState.editingStudent.lang === 'en' ? 'en' : 'tr';
-          btnAdminSaveStudentEdit.disabled = true;
+          const effLang = target.lang === 'en' ? 'en' : 'tr';
+          const effLab = effLang === 'en' ? '' : target.myLabGroup;
+          const finalName = editedName || target.fullName;
+          const prevStudents = Array.isArray(adminState.students) ? [...adminState.students] : [];
+
+          // Optimistic local update: update in adminState.students immediately
+          const targetIndex = adminState.students.findIndex((st) => (
+            (target.authHash && st.authHash === target.authHash) ||
+            (target.cloudKey && st.cloudKey === target.cloudKey) ||
+            (target.studentId && st.studentId === target.studentId)
+          ));
+          if (targetIndex >= 0) {
+            adminState.students[targetIndex] = {
+              ...adminState.students[targetIndex],
+              fullName: finalName,
+              myMbuGroup: target.myMbuGroup,
+              myLabGroup: effLab,
+              otherGroupMode: target.otherGroupMode,
+              lang: effLang,
+              source: target.source,
+              active: target.active,
+              updatedAtMs: Date.now()
+            };
+          }
+
+          // Instant UI feedback: close card, re-render and show toast with 0ms delay
+          adminState.editingStudent = null;
+          syncAdminStudentEditorUI();
+          renderAdminStudentsList();
+          showToast(loc.adminStudentUpdatedToast);
+
+          // Background cloud save (non-blocking)
           try {
             await api.adminSaveStudentSettings({
-              cloudKey: adminState.editingStudent.cloudKey,
-              authHash: adminState.editingStudent.authHash,
-              studentId: adminState.editingStudent.studentId,
-              last4: adminState.editingStudent.last4,
-              fullName: editedName || adminState.editingStudent.fullName,
-              myMbuGroup: adminState.editingStudent.myMbuGroup,
-              myLabGroup: effLang === 'en' ? '' : adminState.editingStudent.myLabGroup,
-              otherGroupMode: adminState.editingStudent.otherGroupMode,
+              cloudKey: target.cloudKey,
+              authHash: target.authHash,
+              studentId: target.studentId,
+              last4: target.last4,
+              fullName: finalName,
+              myMbuGroup: target.myMbuGroup,
+              myLabGroup: effLab,
+              otherGroupMode: target.otherGroupMode,
               lang: effLang,
-              source: adminState.editingStudent.source,
-              active: adminState.editingStudent.active
+              source: target.source,
+              active: target.active
             }, secret === 'active' ? undefined : secret);
-            adminState.editingStudent = null;
-            syncAdminStudentEditorUI();
-            await refreshAdminCloudData();
-            showToast(loc.adminStudentUpdatedToast);
           } catch (err) {
+            // Revert optimistic state on unexpected failure
+            adminState.students = prevStudents;
+            renderAdminStudentsList();
             if (err && err.message === 'CANNOT_DEACTIVATE_ADMIN') {
               showToast(loc.adminCannotModifyAdminToast);
             } else {
               console.warn('Student save error:', err);
               showToast(loc.adminSaveErrorToast);
             }
-          } finally {
-            btnAdminSaveStudentEdit.disabled = false;
           }
         });
       }
@@ -9042,27 +9075,36 @@
             return;
           }
           adminState.deleteConfirmStudentHash = '';
-          btnAdminDeleteCustomStudent.disabled = true;
+          const target = { ...adminState.editingStudent };
+          const prevStudents = Array.isArray(adminState.students) ? [...adminState.students] : [];
+
+          // Optimistic local deletion: remove immediately from list
+          adminState.students = adminState.students.filter((st) => (
+            !(target.authHash && st.authHash === target.authHash) &&
+            !(target.cloudKey && st.cloudKey === target.cloudKey)
+          ));
+          adminState.editingStudent = null;
+          syncAdminStudentEditorUI();
+          renderAdminStudentsList();
+          showToast(loc.adminStudentDeletedToast);
+
           try {
             await api.deleteCustomStudent(
               hash,
-              adminState.editingStudent.cloudKey,
+              target.cloudKey,
               secret === 'active' ? undefined : secret,
-              adminState.editingStudent
+              target
             );
-            adminState.editingStudent = null;
-            syncAdminStudentEditorUI();
-            await refreshAdminCloudData();
-            showToast(loc.adminStudentDeletedToast);
           } catch (err) {
+            // Revert on failure
+            adminState.students = prevStudents;
+            renderAdminStudentsList();
             if (err && err.message === 'CANNOT_DELETE_ADMIN') {
               showToast(loc.adminCannotModifyAdminToast);
             } else {
               console.warn('Delete student error:', err);
               showToast(loc.adminSaveErrorToast);
             }
-          } finally {
-            btnAdminDeleteCustomStudent.disabled = false;
           }
         });
       }
