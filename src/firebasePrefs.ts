@@ -1,9 +1,13 @@
 import { initializeApp } from 'firebase/app';
 import {
+  browserLocalPersistence,
   getAuth,
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
+  setPersistence,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User,
 } from 'firebase/auth';
@@ -119,6 +123,7 @@ const VALID_TONES = new Set<AnnouncementTone>(['info', 'warn', 'urgent']);
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+void setPersistence(auth, browserLocalPersistence).catch(() => {});
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
   const errInfo: FirestoreErrorInfo = {
@@ -209,37 +214,252 @@ export function subscribeAdminAuthState(callback: (status: AdminFirebaseAuthStat
   });
 }
 
-export async function signInAdminWithGoogle(): Promise<{
+export interface AdminGoogleSignInResult {
   ok: boolean;
   email: string;
   isAuthorizedAdmin: boolean;
+  redirecting?: boolean;
+  errorCode?: string;
   error?: string;
-}> {
+  hostname?: string;
+}
+
+const PENDING_ADMIN_REDIRECT_KEY = 'inonu_pending_admin_redirect';
+
+function isRunningInIframe(): boolean {
+  try {
+    return typeof window !== 'undefined' && window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+function isRunningStandalonePWA(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return Boolean(
+      window.matchMedia?.('(display-mode: standalone)').matches ||
+      window.matchMedia?.('(display-mode: fullscreen)').matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true,
+    );
+  } catch {
+    return false;
+  }
+}
+
+function extractFirebaseErrorInfo(error: unknown): { code: string; message: string } {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code || '')
+      : '';
+  const message = error instanceof Error ? error.message : String(error || '');
+  return { code, message };
+}
+
+function buildAdminGoogleProvider(): GoogleAuthProvider {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({
     login_hint: ADMIN_AUTHORIZED_EMAIL,
     prompt: 'select_account',
   });
+  return provider;
+}
+
+let cachedRedirectCheck: {
+  hadPendingRedirect: boolean;
+  ok: boolean;
+  email: string;
+  isAuthorizedAdmin: boolean;
+  errorCode?: string;
+  error?: string;
+  hostname?: string;
+} | null = null;
+
+const redirectInitPromise = (async () => {
+  const hadPending = (() => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage.getItem(PENDING_ADMIN_REDIRECT_KEY) === '1';
+    } catch {
+      return false;
+    }
+  })();
+
+  try {
+    const res = await getRedirectResult(auth);
+    if (res?.user) {
+      try {
+        window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
+      } catch {}
+      const status = buildFirebaseAuthStatus(res.user);
+      cachedRedirectCheck = {
+        hadPendingRedirect: true,
+        ok: status.isAuthorizedAdmin,
+        email: status.email,
+        isAuthorizedAdmin: status.isAuthorizedAdmin,
+        errorCode: status.isAuthorizedAdmin ? '' : 'unauthorized_email',
+      };
+      return cachedRedirectCheck;
+    }
+  } catch (error) {
+    try {
+      window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
+    } catch {}
+    const { code, message } = extractFirebaseErrorInfo(error);
+    cachedRedirectCheck = {
+      hadPendingRedirect: true,
+      ok: false,
+      email: auth.currentUser?.email ?? '',
+      isAuthorizedAdmin: false,
+      errorCode: code,
+      error: message,
+      hostname: typeof window !== 'undefined' ? window.location.hostname : '',
+    };
+    return cachedRedirectCheck;
+  }
+
+  if (hadPending) {
+    try {
+      window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
+    } catch {}
+    const status = buildFirebaseAuthStatus(auth.currentUser);
+    cachedRedirectCheck = {
+      hadPendingRedirect: true,
+      ok: status.isAuthorizedAdmin,
+      email: status.email,
+      isAuthorizedAdmin: status.isAuthorizedAdmin,
+      errorCode: status.signedIn && !status.isAuthorizedAdmin ? 'unauthorized_email' : '',
+    };
+    return cachedRedirectCheck;
+  }
+
+  cachedRedirectCheck = {
+    hadPendingRedirect: false,
+    ok: false,
+    email: '',
+    isAuthorizedAdmin: false,
+  };
+  return cachedRedirectCheck;
+})();
+
+export async function consumeAdminRedirectResult() {
+  const res = await redirectInitPromise;
+  const out = cachedRedirectCheck || res;
+  cachedRedirectCheck = {
+    hadPendingRedirect: false,
+    ok: false,
+    email: '',
+    isAuthorizedAdmin: false,
+  };
+  return out;
+}
+
+export async function signInAdminWithGoogle(
+  mode: 'auto' | 'popup' | 'redirect' = 'auto',
+): Promise<AdminGoogleSignInResult> {
+  const provider = buildAdminGoogleProvider();
+  const inIframe = isRunningInIframe();
+  const standalonePwa = isRunningStandalonePWA();
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+
+  const startRedirect = async (): Promise<AdminGoogleSignInResult> => {
+    try {
+      window.localStorage.setItem(PENDING_ADMIN_REDIRECT_KEY, '1');
+    } catch {}
+    await signInWithRedirect(auth, provider);
+    return {
+      ok: false,
+      email: '',
+      isAuthorizedAdmin: false,
+      redirecting: true,
+      hostname,
+    };
+  };
+
+  if (mode === 'redirect' || (mode === 'auto' && standalonePwa && !inIframe)) {
+    if (inIframe) {
+      return {
+        ok: false,
+        email: auth.currentUser?.email ?? '',
+        isAuthorizedAdmin: false,
+        errorCode: 'iframe_redirect_blocked',
+        error: 'Redirect sign-in is blocked inside an embedded frame.',
+        hostname,
+      };
+    }
+    try {
+      return await startRedirect();
+    } catch (error) {
+      try {
+        window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
+      } catch {}
+      const { code, message } = extractFirebaseErrorInfo(error);
+      return {
+        ok: false,
+        email: auth.currentUser?.email ?? '',
+        isAuthorizedAdmin: false,
+        errorCode: code,
+        error: message,
+        hostname,
+      };
+    }
+  }
+
   try {
     const cred = await signInWithPopup(auth, provider);
+    try {
+      window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
+    } catch {}
     const status = buildFirebaseAuthStatus(cred.user);
     return {
       ok: status.isAuthorizedAdmin,
       email: status.email,
       isAuthorizedAdmin: status.isAuthorizedAdmin,
-      error: status.isAuthorizedAdmin ? undefined : 'unauthorized_email',
+      errorCode: status.isAuthorizedAdmin ? '' : 'unauthorized_email',
+      hostname,
     };
   } catch (error) {
+    const { code, message } = extractFirebaseErrorInfo(error);
+    const shouldFallbackRedirect =
+      !inIframe &&
+      mode === 'auto' &&
+      (code === 'auth/popup-blocked' ||
+        code === 'auth/operation-not-supported-in-this-environment' ||
+        code === 'auth/cancelled-popup-request');
+
+    if (shouldFallbackRedirect) {
+      try {
+        return await startRedirect();
+      } catch (redirError) {
+        try {
+          window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
+        } catch {}
+        const rInfo = extractFirebaseErrorInfo(redirError);
+        return {
+          ok: false,
+          email: auth.currentUser?.email ?? '',
+          isAuthorizedAdmin: false,
+          errorCode: rInfo.code || code,
+          error: rInfo.message || message,
+          hostname,
+        };
+      }
+    }
+
     return {
       ok: false,
       email: auth.currentUser?.email ?? '',
       isAuthorizedAdmin: false,
-      error: error instanceof Error ? error.message : String(error),
+      errorCode: code,
+      error: message,
+      hostname,
     };
   }
 }
 
 export async function signOutFirebaseAdmin(): Promise<void> {
+  try {
+    window.localStorage.removeItem(PENDING_ADMIN_REDIRECT_KEY);
+  } catch {}
   await signOut(auth);
 }
 

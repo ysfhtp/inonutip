@@ -5,6 +5,7 @@ import './index.css';
 import {
   addOrUpdateCustomStudent,
   adminSaveStudentSettings,
+  consumeAdminRedirectResult,
   deleteAnnouncement,
   deleteCustomStudent,
   getFirebaseAdminStatus,
@@ -48,6 +49,7 @@ declare global {
       verifyAdminPassword: typeof verifyAdminPassword;
       updateAdminPassword: typeof updateAdminPassword;
       signInAdminWithGoogle: typeof signInAdminWithGoogle;
+      consumeAdminRedirectResult: typeof consumeAdminRedirectResult;
       signOutFirebaseAdmin: typeof signOutFirebaseAdmin;
       getFirebaseAdminStatus: typeof getFirebaseAdminStatus;
       subscribeAdminAuthState: typeof subscribeAdminAuthState;
@@ -79,6 +81,7 @@ window.__INONU_AUTH__ = {
   verifyAdminPassword,
   updateAdminPassword,
   signInAdminWithGoogle,
+  consumeAdminRedirectResult,
   signOutFirebaseAdmin,
   getFirebaseAdminStatus,
   subscribeAdminAuthState,

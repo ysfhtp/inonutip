@@ -3376,7 +3376,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.4.8</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.4.9</span>
       </div>
     </section>
 
@@ -3532,16 +3532,25 @@
       </div>
 
       <!-- Cloud Google Authorization Strip -->
-      <div id="adminCloudAuthBar" class="px-4 sm:px-5 py-2.5 border-b border-slate-200/50 dark:border-slate-800/70 bg-slate-500/5 flex items-center justify-between gap-2.5 flex-wrap shrink-0">
-        <div class="flex items-center gap-2 min-w-0 flex-1">
-          <span id="adminCloudStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
-          <p id="adminCloudStatusText" class="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Bulut kayıtları için Google yönetici yetkisini bağlayın.</p>
+      <div id="adminCloudAuthBar" class="px-4 sm:px-5 py-2.5 border-b border-slate-200/50 dark:border-slate-800/70 bg-slate-500/5 space-y-2 shrink-0">
+        <div class="flex items-center justify-between gap-2.5 flex-wrap">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <span id="adminCloudStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+            <p id="adminCloudStatusText" class="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Bulut kayıtları için Google yönetici yetkisini bağlayın.</p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="btnAdminGoogleConnect" type="button" class="ios-press min-h-[44px] px-3.5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-semibold shadow-2xs transition">Google ile Doğrula</button>
+            <button id="btnAdminRefreshAll" type="button" class="hidden ios-press w-11 h-11 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 flex items-center justify-center transition" aria-label="Yenile" title="Yenile">
+              <svg id="iconAdminRefresh" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </button>
+          </div>
         </div>
-        <div class="flex items-center gap-1.5 shrink-0">
-          <button id="btnAdminGoogleConnect" type="button" class="ios-press min-h-[44px] px-3.5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs transition">Google ile Doğrula</button>
-          <button id="btnAdminRefreshAll" type="button" class="hidden ios-press w-11 h-11 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 flex items-center justify-center transition" aria-label="Yenile" title="Yenile">
-            <svg id="iconAdminRefresh" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-          </button>
+        <div id="adminCloudErrorBox" class="hidden rounded-2xl px-3 py-2.5 bg-rose-500/10 border border-rose-500/20 space-y-2">
+          <p id="adminCloudErrorText" class="text-[11px] sm:text-xs font-medium text-rose-700 dark:text-rose-300 leading-snug break-words"></p>
+          <div id="adminCloudErrorActions" class="flex items-center gap-2 flex-wrap">
+            <button id="btnAdminGoogleRedirect" type="button" class="hidden ios-press min-h-[38px] px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold transition">Yönlendirme ile Doğrula</button>
+            <a id="btnAdminOpenInBrowser" href="#" target="_blank" rel="noopener noreferrer" class="hidden ios-press min-h-[38px] inline-flex items-center px-3 py-1.5 rounded-full ios-pill-control text-[11px] font-semibold text-slate-800 dark:text-slate-100 transition">Tarayıcıda Aç ↗</a>
+          </div>
         </div>
       </div>
 
@@ -3980,6 +3989,17 @@
         adminCloudNeedAuth: 'Bulut kayıtları için Google yönetici yetkisini bağlayın.',
         adminCloudWrongEmail: (email) => `Yetkisiz hesap (${email}). ysfhtp6@gmail.com ile giriş yapın.`,
         adminCloudConnectBtn: 'Google ile Doğrula',
+        adminCloudSwitchAccountBtn: 'Hesap Değiştir',
+        adminCloudRedirectBtn: 'Yönlendirme ile Doğrula',
+        adminCloudOpenBrowserBtn: 'Tarayıcıda Aç ↗',
+        adminCloudRedirectingToast: 'Google giriş sayfasına yönlendiriliyor...',
+        adminCloudVerifiedToast: 'Google yönetici yetkisi doğrulandı',
+        adminCloudErrPopupBlocked: 'Açılır pencere (popup) engellendi. Yönlendirme veya tarayıcıda açma seçeneğini kullanın.',
+        adminCloudErrPopupClosed: 'Google giriş penceresi tamamlanmadan kapatıldı. Uygulama/PWA içindeyseniz aşağıdaki yönlendirme seçeneğini deneyin.',
+        adminCloudErrUnauthorizedDomain: (host) => `Bu alan adı (${host}) Firebase Yetkili Alan Adları listesinde değil. Firebase Console -> Authentication -> Settings -> Authorized domains bölümüne ekleyin.`,
+        adminCloudErrNetwork: 'Ağ bağlantısı kurulamadı. İnternetinizi kontrol edip tekrar deneyin.',
+        adminCloudErrIframe: 'Gömülü pencerede yönlendirme engellendi. Tam tarayıcıda açıp tekrar deneyin.',
+        adminCloudErrGeneric: (code) => `Google doğrulama başarısız oldu (${code || 'bilinmeyen hata'}).`,
         adminTabAnn: 'Duyurular',
         adminTabAdd: 'Öğrenci Ekle',
         adminTabStudents: 'Öğrenci Ayarları',
@@ -4168,6 +4188,17 @@
         adminCloudNeedAuth: 'Connect Google admin authorization to edit cloud records.',
         adminCloudWrongEmail: (email) => `Unauthorized account (${email}). Sign in with ysfhtp6@gmail.com.`,
         adminCloudConnectBtn: 'Verify with Google',
+        adminCloudSwitchAccountBtn: 'Switch Account',
+        adminCloudRedirectBtn: 'Sign in via Redirect',
+        adminCloudOpenBrowserBtn: 'Open in Browser ↗',
+        adminCloudRedirectingToast: 'Redirecting to Google sign-in...',
+        adminCloudVerifiedToast: 'Google admin access verified',
+        adminCloudErrPopupBlocked: 'Popup window was blocked. Use redirect sign-in or open in a browser tab.',
+        adminCloudErrPopupClosed: 'Google sign-in window closed before completing. If using an installed app/PWA, try redirect sign-in below.',
+        adminCloudErrUnauthorizedDomain: (host) => `This domain (${host}) is not in Firebase Authorized Domains. Add it under Firebase Console -> Authentication -> Settings -> Authorized domains.`,
+        adminCloudErrNetwork: 'Network error while connecting to Google Auth. Check your connection and try again.',
+        adminCloudErrIframe: 'Redirect sign-in is restricted inside an embedded frame. Open in a full browser tab to continue.',
+        adminCloudErrGeneric: (code) => `Google verification failed (${code || 'unknown error'}).`,
         adminTabAnn: 'Notices',
         adminTabAdd: 'Add Student',
         adminTabStudents: 'All Students',
@@ -7350,6 +7381,56 @@
       syncAdminAnnFormUI();
     }
 
+    function clearAdminCloudAuthError() {
+      const box = document.getElementById('adminCloudErrorBox');
+      const txt = document.getElementById('adminCloudErrorText');
+      if (box) box.classList.add('hidden');
+      if (txt) txt.textContent = '';
+    }
+
+    function showAdminCloudAuthError(res) {
+      const loc = I18N[state.lang];
+      const box = document.getElementById('adminCloudErrorBox');
+      const txt = document.getElementById('adminCloudErrorText');
+      const redirBtn = document.getElementById('btnAdminGoogleRedirect');
+      const openTabLink = document.getElementById('btnAdminOpenInBrowser');
+      const code = (res && res.errorCode) ? String(res.errorCode) : '';
+      const host = (res && res.hostname) || (typeof window !== 'undefined' ? window.location.hostname : '');
+      const inIframe = (() => {
+        try { return window.self !== window.top; } catch (e) { return true; }
+      })();
+
+      let msg = '';
+      if (code === 'unauthorized_email' && res && res.email) {
+        msg = loc.adminCloudWrongEmail(res.email);
+      } else if (code === 'auth/unauthorized-domain') {
+        msg = loc.adminCloudErrUnauthorizedDomain(host);
+      } else if (code === 'auth/popup-blocked') {
+        msg = loc.adminCloudErrPopupBlocked;
+      } else if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        msg = loc.adminCloudErrPopupClosed;
+      } else if (code === 'auth/network-request-failed') {
+        msg = loc.adminCloudErrNetwork;
+      } else if (code === 'iframe_redirect_blocked') {
+        msg = loc.adminCloudErrIframe;
+      } else {
+        msg = loc.adminCloudErrGeneric(code || (res && res.error) || '');
+      }
+
+      if (txt) txt.textContent = msg;
+      if (redirBtn) {
+        redirBtn.textContent = loc.adminCloudRedirectBtn;
+        redirBtn.classList.toggle('hidden', inIframe || code === 'auth/unauthorized-domain');
+      }
+      if (openTabLink) {
+        openTabLink.textContent = loc.adminCloudOpenBrowserBtn;
+        openTabLink.href = window.location.href;
+        openTabLink.classList.toggle('hidden', !inIframe);
+      }
+      if (box) box.classList.remove('hidden');
+      showToast(msg);
+    }
+
     function syncAdminCloudStatusUI() {
       const api = window.__INONU_AUTH__;
       const dot = document.getElementById('adminCloudStatusDot');
@@ -7368,10 +7449,11 @@
         txt.textContent = loc.adminCloudConnected(status.email);
         connectBtn.classList.add('hidden');
         if (refreshBtn) refreshBtn.classList.remove('hidden');
+        clearAdminCloudAuthError();
       } else if (status.signedIn && status.email) {
         dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0';
         txt.textContent = loc.adminCloudWrongEmail(status.email);
-        connectBtn.textContent = loc.adminCloudConnectBtn;
+        connectBtn.textContent = loc.adminCloudSwitchAccountBtn;
         connectBtn.classList.remove('hidden');
         if (refreshBtn) refreshBtn.classList.add('hidden');
       } else {
@@ -8266,25 +8348,44 @@
         });
       });
 
+      const runAdminGoogleAuth = async (mode) => {
+        const api = window.__INONU_AUTH__;
+        const loc = I18N[state.lang];
+        if (!api || typeof api.signInAdminWithGoogle !== 'function') return;
+        const connectBtn = document.getElementById('btnAdminGoogleConnect');
+        const redirBtn = document.getElementById('btnAdminGoogleRedirect');
+        if (connectBtn) connectBtn.disabled = true;
+        if (redirBtn) redirBtn.disabled = true;
+        clearAdminCloudAuthError();
+        try {
+          const res = await api.signInAdminWithGoogle(mode);
+          syncAdminCloudStatusUI();
+          if (res && res.redirecting) {
+            showToast(loc.adminCloudRedirectingToast);
+            return;
+          }
+          if (res && res.ok) {
+            clearAdminCloudAuthError();
+            await refreshAdminCloudData();
+            showToast(loc.adminCloudVerifiedToast);
+          } else {
+            showAdminCloudAuthError(res);
+          }
+        } catch (err) {
+          showAdminCloudAuthError({ error: err && err.message ? err.message : String(err) });
+        } finally {
+          if (connectBtn) connectBtn.disabled = false;
+          if (redirBtn) redirBtn.disabled = false;
+        }
+      };
+
       const btnAdminGoogleConnect = document.getElementById('btnAdminGoogleConnect');
       if (btnAdminGoogleConnect) {
-        btnAdminGoogleConnect.addEventListener('click', async () => {
-          const api = window.__INONU_AUTH__;
-          if (!api || typeof api.signInAdminWithGoogle !== 'function') return;
-          btnAdminGoogleConnect.disabled = true;
-          try {
-            const res = await api.signInAdminWithGoogle();
-            syncAdminCloudStatusUI();
-            if (res.ok) {
-              await refreshAdminCloudData();
-              showToast('Google yönetici yetkisi doğrulandı');
-            } else if (res.email) {
-              showToast(I18N[state.lang].adminCloudWrongEmail(res.email));
-            }
-          } finally {
-            btnAdminGoogleConnect.disabled = false;
-          }
-        });
+        btnAdminGoogleConnect.addEventListener('click', () => runAdminGoogleAuth('auto'));
+      }
+      const btnAdminGoogleRedirect = document.getElementById('btnAdminGoogleRedirect');
+      if (btnAdminGoogleRedirect) {
+        btnAdminGoogleRedirect.addEventListener('click', () => runAdminGoogleAuth('redirect'));
       }
 
       const btnAdminRefreshAll = document.getElementById('btnAdminRefreshAll');
@@ -8684,12 +8785,16 @@
       syncActiveStudentCloudPrefs();
       refreshDailyAnnouncements(true);
       requestAnimationFrame(() => updateTabIndicator('daily', false));
-      window.addEventListener('inonu-auth-ready', () => {
+
+      let inonuAuthHooksBound = false;
+      function bindInonuAuthHooks() {
+        const api = window.__INONU_AUTH__;
+        if (!api || inonuAuthHooksBound) return;
+        inonuAuthHooksBound = true;
         updateAuthSessionSummary();
         syncActiveStudentCloudPrefs();
         refreshDailyAnnouncements(true);
-        const api = window.__INONU_AUTH__;
-        if (api && typeof api.subscribeAdminAuthState === 'function') {
+        if (typeof api.subscribeAdminAuthState === 'function') {
           api.subscribeAdminAuthState(() => {
             syncAdminCloudStatusUI();
             const adminModalEl = document.getElementById('adminModal');
@@ -8698,7 +8803,29 @@
             }
           });
         }
-      });
+        if (typeof api.consumeAdminRedirectResult === 'function') {
+          api.consumeAdminRedirectResult().then((redirRes) => {
+            if (!redirRes || !redirRes.hadPendingRedirect) return;
+            syncAdminCloudStatusUI();
+            const session = getActiveAuthSession();
+            if (session && session.isAdmin) {
+              switchTab('info', false);
+              openAdminModal();
+              if (redirRes.ok) {
+                clearAdminCloudAuthError();
+                showToast(I18N[state.lang].adminCloudVerifiedToast);
+              } else if (redirRes.errorCode || redirRes.error) {
+                showAdminCloudAuthError(redirRes);
+              }
+            }
+          }).catch(() => {});
+        }
+      }
+
+      if (window.__INONU_AUTH__) {
+        bindInonuAuthHooks();
+      }
+      window.addEventListener('inonu-auth-ready', bindInonuAuthHooks);
       if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(() => updateTabIndicator(state.activeTab, false));
       }
