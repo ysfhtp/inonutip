@@ -851,14 +851,31 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
 // ==================== LESSON MATERIALS ====================
 
 export interface LessonMaterial {
-  id: string; // e.g. "01.12.2026_1"
-  date: string;
+  id: string; // e.g. "01-12-2026_1"
+  date: string; // DD.MM.YYYY
   slotNo: number;
   title: string;
+  sourceType?: 'url' | 'file';
   pdfUrl: string;
+  pdfData?: string;
   pdfName?: string;
   createdAtMs: number;
   updatedAtMs: number;
+}
+
+function normalizeMaterialDate(raw: string): string {
+  const s = String(raw || '').trim();
+  const isoMatch = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
+  }
+  const dmyMatch = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  if (dmyMatch) {
+    const [, d, m, y] = dmyMatch;
+    return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
+  }
+  return s.slice(0, 16);
 }
 
 export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
@@ -870,12 +887,17 @@ export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
       .filter((d) => d.data()?.deleted !== true)
       .map((d) => {
         const data = d.data();
+        const pdfData = typeof data.pdfData === 'string' && data.pdfData.length > 0 ? data.pdfData : undefined;
+        const pdfUrl = typeof data.pdfUrl === 'string' ? data.pdfUrl : '';
+        const sourceType: 'url' | 'file' = data.sourceType === 'file' || pdfData ? 'file' : 'url';
         return {
           id: d.id,
-          date: typeof data.date === 'string' ? data.date : '',
+          date: normalizeMaterialDate(typeof data.date === 'string' ? data.date : ''),
           slotNo: typeof data.slotNo === 'number' ? data.slotNo : 1,
           title: typeof data.title === 'string' ? data.title : '',
-          pdfUrl: typeof data.pdfUrl === 'string' ? data.pdfUrl : '',
+          sourceType,
+          pdfUrl,
+          pdfData,
           pdfName: typeof data.pdfName === 'string' ? data.pdfName : undefined,
           createdAtMs: tsToMillis(data.createdAt),
           updatedAtMs: tsToMillis(data.updatedAt),
@@ -893,21 +915,45 @@ export async function saveLessonMaterial(
     date: string;
     slotNo: number;
     title: string;
-    pdfUrl: string;
+    sourceType?: 'url' | 'file';
+    pdfUrl?: string;
+    pdfData?: string;
     pdfName?: string;
   },
   adminSecret?: string,
 ): Promise<LessonMaterial> {
   const secret = resolveAdminWriteSecret(adminSecret);
-  const cleanDate = String(input.date || '').trim();
-  const slotNo = Number(input.slotNo) || 1;
+  const cleanDate = normalizeMaterialDate(input.date);
+  const rawSlot = Math.round(Number(input.slotNo) || 1);
+  const slotNo = Math.min(10, Math.max(1, rawSlot));
   const cleanTitle = String(input.title || '').trim().slice(0, 120);
-  const cleanUrl = String(input.pdfUrl || '').trim();
-  const cleanName = String(input.pdfName || '').trim().slice(0, 120);
-  if (!cleanDate || !cleanTitle || !cleanUrl) {
-    throw new Error('Date, title and PDF URL are required.');
+  const rawData = typeof input.pdfData === 'string'
+    ? input.pdfData.trim().replace(/^data:[^;]+;base64,/i, '')
+    : '';
+  let cleanUrl = String(input.pdfUrl || '').trim();
+  if (cleanUrl && !/^https?:\/\//i.test(cleanUrl)) {
+    cleanUrl = `https://${cleanUrl}`;
   }
-  const rawId = input.id ? input.id.trim() : `${cleanDate}_${slotNo}`;
+  cleanUrl = cleanUrl.slice(0, 2000);
+  const sourceType: 'url' | 'file' =
+    input.sourceType === 'file' || (rawData.length > 0 && !cleanUrl) ? 'file' : 'url';
+  const cleanData = sourceType === 'file' ? rawData : '';
+  const finalUrl = sourceType === 'url' ? cleanUrl : '';
+  const cleanName = String(input.pdfName || '').trim().slice(0, 120);
+
+  if (!cleanDate || !cleanTitle) {
+    throw new Error('Date and title are required.');
+  }
+  if (sourceType === 'file') {
+    if (!cleanData) throw new Error('PDF file data is required.');
+    if (cleanData.length > 950000) throw new Error('PDF_TOO_LARGE');
+  } else {
+    if (!finalUrl) throw new Error('PDF URL is required.');
+  }
+
+  const dateKey = cleanDate.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const candidateId = input.id ? input.id.trim().replace(/[^a-zA-Z0-9_-]/g, '-') : `${dateKey}_${slotNo}`;
+  const rawId = (candidateId || `${Date.now()}_${slotNo}`).slice(0, 128);
   const docRef = doc(db, 'lesson_materials', rawId);
   const path = `lesson_materials/${rawId}`;
 
@@ -919,7 +965,9 @@ export async function saveLessonMaterial(
       date: cleanDate,
       slotNo,
       title: cleanTitle,
-      pdfUrl: cleanUrl,
+      sourceType,
+      pdfUrl: finalUrl,
+      pdfData: cleanData,
       deleted: false,
       proofOpId: opId,
       updatedAt: serverTimestamp(),
@@ -939,7 +987,9 @@ export async function saveLessonMaterial(
       date: cleanDate,
       slotNo,
       title: cleanTitle,
-      pdfUrl: cleanUrl,
+      sourceType,
+      pdfUrl: finalUrl,
+      pdfData: cleanData || undefined,
       pdfName: cleanName || undefined,
       createdAtMs: existingSnap.exists() ? tsToMillis(existingSnap.data()?.createdAt) : Date.now(),
       updatedAtMs: Date.now(),

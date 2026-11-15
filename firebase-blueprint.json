@@ -132,11 +132,21 @@
           "maxLength": 120,
           "description": "Material title."
         },
+        "sourceType": {
+          "type": "string",
+          "enum": ["url", "file"],
+          "maxLength": 4,
+          "description": "Whether the PDF is stored as an external link or uploaded file."
+        },
         "pdfUrl": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 500,
-          "description": "PDF file URL or download link."
+          "maxLength": 2000,
+          "description": "PDF file URL or download link (empty when uploaded as file)."
+        },
+        "pdfData": {
+          "type": "string",
+          "maxLength": 950000,
+          "description": "Optional base64-encoded PDF content for direct device downloads."
         },
         "pdfName": {
           "type": "string",

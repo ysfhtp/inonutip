@@ -123,7 +123,7 @@ service cloud.firestore {
 
     function isValidLessonMaterial(data) {
       return data.keys().hasAll(['date', 'slotNo', 'title', 'pdfUrl', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['date', 'slotNo', 'title', 'pdfUrl', 'pdfName', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['date', 'slotNo', 'title', 'sourceType', 'pdfUrl', 'pdfData', 'pdfName', 'deleted', 'proofOpId', 'createdAt', 'updatedAt'])
         && data.date is string
         && data.date.size() >= 1
         && data.date.size() <= 16
@@ -133,10 +133,12 @@ service cloud.firestore {
         && data.title is string
         && data.title.size() >= 1
         && data.title.size() <= 120
+        && (!('sourceType' in data) || (data.sourceType is string && data.sourceType.size() <= 4 && data.sourceType in ['url', 'file']))
         && data.pdfUrl is string
-        && data.pdfUrl.size() >= 1
-        && data.pdfUrl.size() <= 500
+        && data.pdfUrl.size() <= 2000
+        && (!('pdfData' in data) || (data.pdfData is string && data.pdfData.size() <= 950000))
         && (!('pdfName' in data) || (data.pdfName is string && data.pdfName.size() <= 120))
+        && (data.deleted == true || data.pdfUrl.size() >= 1 || ('pdfData' in data && data.pdfData.size() >= 1))
         && data.deleted is bool
         && isValidId(data.proofOpId)
         && data.createdAt is timestamp
@@ -275,7 +277,7 @@ service cloud.firestore {
       allow update: if isValidId(lessonKey)
         && isValidLessonMaterial(incoming())
         && (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
-        && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'slotNo', 'title', 'pdfUrl', 'pdfName', 'deleted', 'proofOpId', 'updatedAt'])
+        && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'slotNo', 'title', 'sourceType', 'pdfUrl', 'pdfData', 'pdfName', 'deleted', 'proofOpId', 'updatedAt'])
         && incoming().updatedAt == request.time
         && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'lesson_materials/' + lessonKey));
       allow delete: if isAdmin() && isValidId(lessonKey);

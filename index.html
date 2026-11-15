@@ -2998,16 +2998,15 @@
     }
     #adminTabIndicator {
       position: absolute;
-      top: 4px;
-      bottom: 4px;
+      top: 0;
       left: 0;
       border-radius: 0.75rem;
       background: rgba(255, 255, 255, 0.95);
       box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
-      will-change: transform, width;
+      will-change: transform, width, height;
       pointer-events: none;
       z-index: 0;
-      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease;
+      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1), height 0.38s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease;
     }
     .dark #adminTabIndicator {
       background: rgba(30, 41, 59, 0.94);
@@ -3463,7 +3462,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.0</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.1</span>
       </div>
     </section>
 
@@ -3634,12 +3633,12 @@
 
       <!-- 4-Tab Segmented Control -->
       <div class="px-4 sm:px-5 pt-3 pb-2 shrink-0">
-        <div id="adminTabsBar" class="ios-pill-control p-1 rounded-2xl grid grid-cols-4 gap-1 relative">
-          <div id="adminTabIndicator" style="transform: translate3d(4px, 0, 0); width: 80px;"></div>
-          <button type="button" data-admin-tab="announcements" class="admin-tab-btn min-h-[44px] px-1.5 py-2 rounded-xl text-xs font-bold truncate">Duyurular</button>
-          <button type="button" data-admin-tab="materials" class="admin-tab-btn min-h-[44px] px-1.5 py-2 rounded-xl text-xs font-semibold truncate">Ders PDF</button>
-          <button type="button" data-admin-tab="add-student" class="admin-tab-btn min-h-[44px] px-1.5 py-2 rounded-xl text-xs font-semibold truncate">Öğrenci Ekle</button>
-          <button type="button" data-admin-tab="students" class="admin-tab-btn min-h-[44px] px-1.5 py-2 rounded-xl text-xs font-semibold truncate">Öğrenci Ayar</button>
+        <div id="adminTabsBar" class="ios-pill-control p-1 rounded-2xl grid grid-cols-2 sm:grid-cols-4 gap-1 relative">
+          <div id="adminTabIndicator" style="transform: translate3d(4px, 4px, 0); width: 80px; height: 44px;"></div>
+          <button type="button" data-admin-tab="announcements" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-center">Duyurular</button>
+          <button type="button" data-admin-tab="materials" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold whitespace-nowrap text-center">Ders PDF'leri</button>
+          <button type="button" data-admin-tab="add-student" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold whitespace-nowrap text-center">Öğrenci Ekle</button>
+          <button type="button" data-admin-tab="students" class="admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold whitespace-nowrap text-center">Öğrenci Ayarları</button>
         </div>
       </div>
 
@@ -3697,30 +3696,49 @@
         <!-- PANE 2: DERS PDF'LERİ -->
         <div id="adminPaneMaterials" class="hidden space-y-3.5">
           <form id="adminMaterialForm" class="ios-pill-control rounded-2xl p-3.5 space-y-3" novalidate>
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Ders Notu / PDF Ekle</h4>
+            <div class="flex items-center justify-between gap-2">
+              <h4 id="adminMatFormHeading" class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Ders Notu / PDF Ekle</h4>
+              <button id="btnAdminMatCancelEdit" type="button" class="hidden min-h-[44px] px-3 py-1 rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">İptal</button>
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div class="space-y-1">
-                <label for="adminMatDateInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tarih (GG.AA.YYYY)</label>
-                <input id="adminMatDateInput" type="text" maxlength="16" placeholder="01.12.2026" class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <label id="lblAdminMatDate" for="adminMatDateSelect" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ders Tarihi</label>
+                <select id="adminMatDateSelect" class="w-full ios-pill-control rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold tabular-nums text-slate-900 dark:text-white bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/40"></select>
               </div>
               <div class="space-y-1">
-                <label for="adminMatSlotInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ders Saati (1-10)</label>
-                <input id="adminMatSlotInput" type="number" min="1" max="10" value="1" class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold tabular-nums text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <label id="lblAdminMatSlot" for="adminMatSlotSelect" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ders Saati</label>
+                <select id="adminMatSlotSelect" class="w-full ios-pill-control rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/40"></select>
               </div>
             </div>
             <div class="space-y-1">
-              <label for="adminMatTitleInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">PDF Başlığı / Konu</label>
+              <label id="lblAdminMatTitle" for="adminMatTitleInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">PDF Başlığı / Konu</label>
               <input id="adminMatTitleInput" type="text" maxlength="120" placeholder="Örn: Biyokimya Ders Notu" class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </div>
-            <div class="space-y-1">
-              <label for="adminMatUrlInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">PDF Dosya / Web Bağlantısı (URL)</label>
-              <input id="adminMatUrlInput" type="url" maxlength="500" placeholder="https://..." class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            <div class="space-y-2">
+              <span id="lblAdminMatSourceMode" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">PDF Kaynağı</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" data-mat-mode="file" class="group-chip group-chip-active min-h-[44px] px-3.5">PDF Dosyası Seç</button>
+                <button type="button" data-mat-mode="url" class="group-chip min-h-[44px] px-3.5">Web Bağlantısı (URL)</button>
+              </div>
+              <div id="adminMatFileWrap" class="space-y-1.5">
+                <label for="adminMatFileInput" class="ios-press cursor-pointer flex items-center justify-between gap-2 w-full ios-pill-control rounded-xl px-3.5 py-2.5 border border-dashed border-blue-500/40 hover:border-blue-500/70 transition">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span id="adminMatFileLabel" class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">Cihazdan PDF dosyası seç (maks. 650 KB)...</span>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-[11px] font-bold shrink-0">Dosya Seç</span>
+                </label>
+                <input id="adminMatFileInput" type="file" accept="application/pdf,.pdf" class="sr-only">
+              </div>
+              <div id="adminMatUrlWrap" class="hidden space-y-1">
+                <input id="adminMatUrlInput" type="url" maxlength="2000" placeholder="https://drive.google.com/... veya PDF bağlantısı" class="w-full ios-pill-control rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              </div>
             </div>
-            <button id="btnAdminMatSubmit" type="submit" class="ios-press w-full min-h-[44px] py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">PDF Malzemesini Kaydet</button>
+            <button id="btnAdminMatSubmit" type="submit" class="ios-press w-full min-h-[44px] py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">PDF Materyalini Kaydet</button>
           </form>
 
           <div class="space-y-2">
-            <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Yüklenen Ders PDF'leri</h4>
+            <h4 id="adminMatListHeading" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Yüklenen Ders PDF'leri</h4>
             <div id="adminMaterialsList" class="space-y-2"></div>
           </div>
         </div>
@@ -4356,7 +4374,7 @@
         adminTabAnn: 'Notices',
         adminTabMaterials: 'Lesson PDFs',
         adminTabAdd: 'Add Student',
-        adminTabStudents: 'All Students',
+        adminTabStudents: 'Student Settings',
         adminAnnNewTitle: 'New Announcement',
         adminAnnEditTitle: 'Edit Announcement',
         adminAnnTitlePlaceholder: 'Announcement title...',
@@ -5365,15 +5383,31 @@
 
       const matKey = `${slot.date}_${slot.slotNo}`;
       const material = typeof lessonMaterialsMap !== 'undefined' ? lessonMaterialsMap[matKey] : null;
-      if (material && material.pdfUrl) {
+      if (material && (material.pdfData || material.pdfUrl)) {
         const pdfWrap = document.createElement('div');
         pdfWrap.className = 'mt-1.5';
-        pdfWrap.innerHTML = `
-          <a href="${escapeHtml(material.pdfUrl)}" target="_blank" rel="noopener noreferrer" class="ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 text-rose-600 dark:text-rose-300 text-xs font-semibold">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            <span>${escapeHtml(material.pdfName || material.title || 'PDF İndir')}</span>
-          </a>
-        `;
+        const pdfLabel = material.title || material.pdfName || (state.lang === 'en' ? 'Download PDF' : 'PDF İndir');
+        if (material.pdfData) {
+          const pdfBtn = document.createElement('button');
+          pdfBtn.type = 'button';
+          pdfBtn.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition';
+          pdfBtn.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate max-w-[200px]">${escapeHtml(pdfLabel)}</span>`;
+          pdfBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openOrDownloadLessonMaterial(material);
+          });
+          pdfWrap.appendChild(pdfBtn);
+        } else {
+          const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
+          const pdfLink = document.createElement('a');
+          pdfLink.href = safeUrl;
+          pdfLink.target = '_blank';
+          pdfLink.rel = 'noopener noreferrer';
+          pdfLink.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition';
+          pdfLink.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate max-w-[200px]">${escapeHtml(pdfLabel)}</span>`;
+          pdfLink.addEventListener('click', (e) => e.stopPropagation());
+          pdfWrap.appendChild(pdfLink);
+        }
         rightCol.appendChild(pdfWrap);
       }
 
@@ -7661,6 +7695,45 @@
       showToast(customToastMsg || t('authLogoutToast'));
     }
 
+    function openOrDownloadLessonMaterial(material) {
+      if (!material) return;
+      if (material.pdfData) {
+        try {
+          const cleanB64 = String(material.pdfData).replace(/^data:[^;]+;base64,/i, '');
+          const bin = atob(cleanB64);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) {
+            bytes[i] = bin.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          const rawName = (material.pdfName || material.title || `ders_${material.date}_${material.slotNo}`).trim();
+          a.download = rawName.toLowerCase().endsWith('.pdf') ? rawName : `${rawName}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+          return;
+        } catch (err) {
+          console.warn('PDF blob download failed:', err);
+          showToast(state.lang === 'en' ? 'Could not download PDF.' : 'PDF indirilemedi.');
+          return;
+        }
+      }
+      if (material.pdfUrl) {
+        const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
+        const a = document.createElement('a');
+        a.href = safeUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    }
+
     // ==================== ADMIN SETTINGS MODAL CONTROLLER ====================
     const adminState = {
       activeTab: 'announcements',
@@ -7669,6 +7742,10 @@
       annActive: true,
       annTargetGroup: '',
       annTargetProg: '',
+      matMode: 'file',
+      matFileData: '',
+      matFileName: '',
+      editingMatId: '',
       addGroup: 'I',
       addLab: '',
       addLang: 'tr',
@@ -7807,8 +7884,9 @@
       } else {
         pill.style.transition = ADMIN_PILL_SPRING;
       }
-      pill.style.transform = `translate3d(${btn.offsetLeft}px, 0, 0)`;
+      pill.style.transform = `translate3d(${btn.offsetLeft}px, ${btn.offsetTop}px, 0)`;
       pill.style.width = `${btn.offsetWidth}px`;
+      pill.style.height = `${btn.offsetHeight}px`;
       if (!animate) {
         pill.getBoundingClientRect();
         pill.style.transition = ADMIN_PILL_SPRING;
@@ -7827,15 +7905,23 @@
       document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
         const isAct = btn.getAttribute('data-admin-tab') === tabKey;
         btn.className = isAct
-          ? 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold text-slate-900 dark:text-white truncate'
-          : 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 truncate';
+          ? 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold text-slate-900 dark:text-white whitespace-nowrap text-center transition'
+          : 'admin-tab-btn min-h-[44px] px-2 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap text-center transition';
       });
       const pAnn = document.getElementById('adminPaneAnnouncements');
+      const pMat = document.getElementById('adminPaneMaterials');
       const pAdd = document.getElementById('adminPaneAddStudent');
       const pStu = document.getElementById('adminPaneStudents');
       if (pAnn) {
         pAnn.classList.toggle('hidden', tabKey !== 'announcements');
         if (tabKey === 'announcements') replayAdminPaneEnter(pAnn);
+      }
+      if (pMat) {
+        pMat.classList.toggle('hidden', tabKey !== 'materials');
+        if (tabKey === 'materials') {
+          syncAdminMaterialFormDefaults();
+          replayAdminPaneEnter(pMat);
+        }
       }
       if (pAdd) {
         pAdd.classList.toggle('hidden', tabKey !== 'add-student');
@@ -7868,6 +7954,14 @@
       document.querySelectorAll('[data-ann-tone]').forEach((b) => {
         const tone = b.getAttribute('data-ann-tone');
         b.classList.toggle('group-chip-active', tone === adminState.annTone);
+      });
+      document.querySelectorAll('[data-ann-target-group]').forEach((b) => {
+        const grp = b.getAttribute('data-ann-target-group') || '';
+        b.classList.toggle('group-chip-active', grp === (adminState.annTargetGroup || ''));
+      });
+      document.querySelectorAll('[data-ann-target-prog]').forEach((b) => {
+        const prog = b.getAttribute('data-ann-target-prog') || '';
+        b.classList.toggle('group-chip-active', prog === (adminState.annTargetProg || ''));
       });
     }
 
@@ -7919,12 +8013,21 @@
           ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">${escapeHtml(loc.adminAnnLive)}</span>`
           : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/15 text-slate-500 dark:text-slate-400">${escapeHtml(loc.adminAnnDraft)}</span>`;
 
+        const targetBadges = [];
+        if (ann.targetGroup) {
+          targetBadges.push(`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">Grup ${escapeHtml(ann.targetGroup)}</span>`);
+        }
+        if (ann.targetProg) {
+          targetBadges.push(`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-600 dark:text-purple-300">${ann.targetProg.toUpperCase()}</span>`);
+        }
+
         const header = document.createElement('div');
         header.className = 'flex items-center justify-between gap-2 flex-wrap';
         header.innerHTML = `
-          <div class="flex items-center gap-1.5 min-w-0 flex-1">
+          <div class="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
             ${toneBadge}
             ${statusBadge}
+            ${targetBadges.join('')}
             <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(ann.title)}</h5>
           </div>
         `;
@@ -8230,6 +8333,83 @@
       listEl.appendChild(frag);
     }
 
+    function populateAdminMatSlotSelect(dateStr, selectedSlotNo) {
+      const slotSel = document.getElementById('adminMatSlotSelect');
+      if (!slotSel) return;
+      const days = getScheduleDays();
+      const dayObj = days.find((d) => d.date === dateStr) || days[0];
+      const slots = dayObj && Array.isArray(dayObj.slots) ? dayObj.slots : [];
+      slotSel.innerHTML = '';
+      if (slots.length > 0) {
+        slots.forEach((s) => {
+          const opt = document.createElement('option');
+          opt.value = String(s.slotNo);
+          const shortTitle = String(s.title || '').slice(0, 46);
+          opt.textContent = `${s.slotNo}. Ders (${s.time}) • ${shortTitle}`;
+          slotSel.appendChild(opt);
+        });
+      } else {
+        for (let i = 1; i <= 10; i++) {
+          const opt = document.createElement('option');
+          opt.value = String(i);
+          opt.textContent = `${i}. Ders`;
+          slotSel.appendChild(opt);
+        }
+      }
+      if (selectedSlotNo && Array.from(slotSel.options).some((o) => o.value === String(selectedSlotNo))) {
+        slotSel.value = String(selectedSlotNo);
+      }
+    }
+
+    function syncAdminMaterialModeUI() {
+      const isFile = adminState.matMode !== 'url';
+      const fileWrap = document.getElementById('adminMatFileWrap');
+      const urlWrap = document.getElementById('adminMatUrlWrap');
+      const fileLabel = document.getElementById('adminMatFileLabel');
+      const heading = document.getElementById('adminMatFormHeading');
+      const cancelBtn = document.getElementById('btnAdminMatCancelEdit');
+      const submitBtn = document.getElementById('btnAdminMatSubmit');
+      document.querySelectorAll('[data-mat-mode]').forEach((b) => {
+        b.classList.toggle('group-chip-active', b.getAttribute('data-mat-mode') === (isFile ? 'file' : 'url'));
+      });
+      if (fileWrap) fileWrap.classList.toggle('hidden', !isFile);
+      if (urlWrap) urlWrap.classList.toggle('hidden', isFile);
+      if (fileLabel) {
+        fileLabel.textContent = adminState.matFileName
+          ? `Seçili PDF: ${adminState.matFileName}`
+          : 'Cihazdan PDF dosyası seç (maks. 650 KB)...';
+      }
+      if (heading) {
+        heading.textContent = adminState.editingMatId ? 'Ders PDF\'ini Güncelle' : 'Ders Notu / PDF Ekle';
+      }
+      if (cancelBtn) cancelBtn.classList.toggle('hidden', !adminState.editingMatId);
+      if (submitBtn) {
+        submitBtn.textContent = adminState.editingMatId ? 'PDF Değişikliklerini Kaydet' : 'PDF Materyalini Kaydet';
+      }
+    }
+
+    function syncAdminMaterialFormDefaults() {
+      const dateSel = document.getElementById('adminMatDateSelect');
+      if (!dateSel) return;
+      const days = getScheduleDays();
+      const prevDate = dateSel.value;
+      dateSel.innerHTML = '';
+      days.forEach((d) => {
+        const opt = document.createElement('option');
+        opt.value = d.date;
+        opt.textContent = `${d.date} • ${d.dayName}`;
+        dateSel.appendChild(opt);
+      });
+      const targetDate =
+        (prevDate && days.some((d) => d.date === prevDate) ? prevDate : '') ||
+        (state.selectedDate && days.some((d) => d.date === state.selectedDate) ? state.selectedDate : '') ||
+        (days[0] ? days[0].date : '');
+      if (targetDate) dateSel.value = targetDate;
+      const slotSel = document.getElementById('adminMatSlotSelect');
+      populateAdminMatSlotSelect(dateSel.value, slotSel ? slotSel.value : '1');
+      syncAdminMaterialModeUI();
+    }
+
     function renderAdminMaterialsList() {
       const listEl = document.getElementById('adminMaterialsList');
       if (!listEl) return;
@@ -8239,23 +8419,64 @@
         listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">Henüz eklenmiş ders PDF'i yok.</div>`;
         return;
       }
+      const days = getScheduleDays();
       mats.forEach((mat, idx) => {
+        const dayMatch = days.find((d) => d.date === mat.date);
+        const slotMatch = dayMatch && Array.isArray(dayMatch.slots) ? dayMatch.slots.find((s) => s.slotNo === mat.slotNo) : null;
+        const lessonInfo = slotMatch ? slotMatch.title : '';
+        const isFile = Boolean(mat.pdfData) || mat.sourceType === 'file';
+        const subInfo = isFile
+          ? `Dosya: ${mat.pdfName || mat.title || 'ders.pdf'}`
+          : mat.pdfUrl;
+
         const row = document.createElement('div');
         row.className = 'ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item';
         row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 28}ms`);
         row.innerHTML = `
           <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5 flex-wrap">
               <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-300 tabular-nums">${escapeHtml(mat.date)} • ${mat.slotNo}. Ders</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isFile ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300' : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300'}">${isFile ? 'PDF Dosya' : 'URL'}</span>
               <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(mat.title)}</h5>
             </div>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">${escapeHtml(mat.pdfUrl)}</p>
+            ${lessonInfo ? `<p class="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate mt-0.5">${escapeHtml(lessonInfo)}</p>` : ''}
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">${escapeHtml(subInfo)}</p>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
-            <a href="${escapeHtml(mat.pdfUrl)}" target="_blank" rel="noopener noreferrer" class="ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">Görüntüle</a>
+            <button type="button" class="btn-view-mat ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">${isFile ? 'İndir' : 'Görüntüle'}</button>
+            <button type="button" class="btn-edit-mat ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-xs font-semibold">Düzenle</button>
             <button type="button" class="btn-del-mat ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 text-xs font-semibold" data-mat-id="${escapeHtml(mat.id)}">${adminState.deleteConfirmMatId === mat.id ? 'Emin misin? Sil' : 'Sil'}</button>
           </div>
         `;
+        row.querySelector('.btn-view-mat').addEventListener('click', () => {
+          openOrDownloadLessonMaterial(mat);
+        });
+        row.querySelector('.btn-edit-mat').addEventListener('click', () => {
+          adminState.editingMatId = mat.id;
+          adminState.matMode = isFile ? 'file' : 'url';
+          adminState.matFileData = mat.pdfData || '';
+          adminState.matFileName = mat.pdfName || (isFile ? `${mat.title}.pdf` : '');
+          const dateSel = document.getElementById('adminMatDateSelect');
+          if (dateSel) {
+            if (!Array.from(dateSel.options).some((o) => o.value === mat.date)) {
+              const opt = document.createElement('option');
+              opt.value = mat.date;
+              opt.textContent = mat.date;
+              dateSel.appendChild(opt);
+            }
+            dateSel.value = mat.date;
+          }
+          populateAdminMatSlotSelect(mat.date, mat.slotNo);
+          const titleEl = document.getElementById('adminMatTitleInput');
+          const urlEl = document.getElementById('adminMatUrlInput');
+          if (titleEl) titleEl.value = mat.title || '';
+          if (urlEl) urlEl.value = mat.pdfUrl || '';
+          syncAdminMaterialModeUI();
+          const formEl = document.getElementById('adminMaterialForm');
+          if (formEl && typeof formEl.scrollIntoView === 'function') {
+            formEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
         row.querySelector('.btn-del-mat').addEventListener('click', async () => {
           const api = window.__INONU_AUTH__;
           const secret = ensureAdminSecretReady();
@@ -8962,6 +9183,18 @@
           syncAdminAnnFormUI();
         });
       });
+      document.querySelectorAll('[data-ann-target-group]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          adminState.annTargetGroup = btn.getAttribute('data-ann-target-group') || '';
+          syncAdminAnnFormUI();
+        });
+      });
+      document.querySelectorAll('[data-ann-target-prog]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          adminState.annTargetProg = btn.getAttribute('data-ann-target-prog') || '';
+          syncAdminAnnFormUI();
+        });
+      });
       const btnAdminAnnActiveToggle = document.getElementById('btnAdminAnnActiveToggle');
       if (btnAdminAnnActiveToggle) {
         btnAdminAnnActiveToggle.addEventListener('click', () => {
@@ -8975,6 +9208,8 @@
           adminState.editingAnnId = '';
           adminState.annTone = 'info';
           adminState.annActive = true;
+          adminState.annTargetGroup = '';
+          adminState.annTargetProg = '';
           document.getElementById('adminAnnTitleInput').value = '';
           document.getElementById('adminAnnMsgInput').value = '';
           syncAdminAnnFormUI();
@@ -9003,11 +9238,15 @@
               title: titleVal,
               message: msgVal,
               tone: adminState.annTone,
-              active: adminState.annActive
+              active: adminState.annActive,
+              targetGroup: adminState.annTargetGroup || '',
+              targetProg: adminState.annTargetProg || ''
             }, secret === 'active' ? undefined : secret);
             adminState.editingAnnId = '';
             adminState.annTone = 'info';
             adminState.annActive = true;
+            adminState.annTargetGroup = '';
+            adminState.annTargetProg = '';
             document.getElementById('adminAnnTitleInput').value = '';
             document.getElementById('adminAnnMsgInput').value = '';
             syncAdminAnnFormUI();
@@ -9023,6 +9262,74 @@
         });
       }
 
+      document.querySelectorAll('[data-mat-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          adminState.matMode = btn.getAttribute('data-mat-mode') === 'url' ? 'url' : 'file';
+          syncAdminMaterialModeUI();
+        });
+      });
+
+      const adminMatDateSelect = document.getElementById('adminMatDateSelect');
+      if (adminMatDateSelect) {
+        adminMatDateSelect.addEventListener('change', () => {
+          populateAdminMatSlotSelect(adminMatDateSelect.value, '1');
+        });
+      }
+
+      const adminMatFileInput = document.getElementById('adminMatFileInput');
+      if (adminMatFileInput) {
+        adminMatFileInput.addEventListener('change', () => {
+          const file = adminMatFileInput.files && adminMatFileInput.files[0];
+          if (!file) return;
+          const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+          if (!isPdf) {
+            showToast('Lütfen geçerli bir PDF dosyası seçin.');
+            adminMatFileInput.value = '';
+            return;
+          }
+          if (file.size > 650 * 1024) {
+            showToast('Dosya 650 KB\'dan büyük. Lütfen sıkıştırın veya Web Bağlantısı (URL) kullanın.');
+            adminMatFileInput.value = '';
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = typeof reader.result === 'string' ? reader.result : '';
+            const base64 = result.replace(/^data:[^;]+;base64,/i, '');
+            if (!base64 || base64.length > 950000) {
+              showToast('PDF boyutu sınırı aşıyor. Lütfen URL seçeneğini kullanın.');
+              return;
+            }
+            adminState.matFileData = base64;
+            adminState.matFileName = file.name;
+            const titleEl = document.getElementById('adminMatTitleInput');
+            if (titleEl && !titleEl.value.trim()) {
+              titleEl.value = file.name.replace(/\.pdf$/i, '').slice(0, 120);
+            }
+            syncAdminMaterialModeUI();
+          };
+          reader.onerror = () => {
+            showToast('PDF dosyası okunamadı.');
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const btnAdminMatCancelEdit = document.getElementById('btnAdminMatCancelEdit');
+      if (btnAdminMatCancelEdit) {
+        btnAdminMatCancelEdit.addEventListener('click', () => {
+          adminState.editingMatId = '';
+          adminState.matFileData = '';
+          adminState.matFileName = '';
+          const titleEl = document.getElementById('adminMatTitleInput');
+          const urlEl = document.getElementById('adminMatUrlInput');
+          if (titleEl) titleEl.value = '';
+          if (urlEl) urlEl.value = '';
+          if (adminMatFileInput) adminMatFileInput.value = '';
+          syncAdminMaterialModeUI();
+        });
+      }
+
       const adminMaterialForm = document.getElementById('adminMaterialForm');
       if (adminMaterialForm) {
         adminMaterialForm.addEventListener('submit', async (e) => {
@@ -9030,34 +9337,56 @@
           const api = window.__INONU_AUTH__;
           const secret = ensureAdminSecretReady();
           if (!api || !secret) return;
-          const dateVal = document.getElementById('adminMatDateInput').value.trim();
-          const slotVal = parseInt(document.getElementById('adminMatSlotInput').value.trim(), 10) || 1;
-          const titleVal = document.getElementById('adminMatTitleInput').value.trim();
-          const urlVal = document.getElementById('adminMatUrlInput').value.trim();
-          if (!dateVal || !titleVal || !urlVal) {
-            showToast('Tarih, başlık ve PDF URL zorunludur.');
+          const dateVal = (document.getElementById('adminMatDateSelect')?.value || state.selectedDate || '').trim();
+          const slotVal = parseInt(document.getElementById('adminMatSlotSelect')?.value || '1', 10) || 1;
+          const titleVal = (document.getElementById('adminMatTitleInput')?.value || '').trim();
+          const urlVal = (document.getElementById('adminMatUrlInput')?.value || '').trim();
+          const isFile = adminState.matMode !== 'url';
+
+          if (!dateVal || !titleVal) {
+            showToast('Lütfen ders tarihi, saati ve PDF başlığını girin.');
             return;
           }
+          if (isFile && !adminState.matFileData) {
+            showToast('Lütfen cihazdan bir PDF dosyası seçin veya Web Bağlantısı moduna geçin.');
+            return;
+          }
+          if (!isFile && !urlVal) {
+            showToast('Lütfen geçerli bir PDF web bağlantısı (URL) girin.');
+            return;
+          }
+
           const btn = document.getElementById('btnAdminMatSubmit');
           if (btn) btn.disabled = true;
           try {
             await api.saveLessonMaterial({
+              id: adminState.editingMatId || undefined,
               date: dateVal,
               slotNo: slotVal,
               title: titleVal,
-              pdfUrl: urlVal,
-              pdfName: titleVal
+              sourceType: isFile ? 'file' : 'url',
+              pdfUrl: isFile ? '' : urlVal,
+              pdfData: isFile ? adminState.matFileData : '',
+              pdfName: isFile ? (adminState.matFileName || `${titleVal}.pdf`) : titleVal
             }, secret === 'active' ? undefined : secret);
-            document.getElementById('adminMatDateInput').value = '';
-            document.getElementById('adminMatSlotInput').value = '1';
-            document.getElementById('adminMatTitleInput').value = '';
-            document.getElementById('adminMatUrlInput').value = '';
+            adminState.editingMatId = '';
+            adminState.matFileData = '';
+            adminState.matFileName = '';
+            const titleEl = document.getElementById('adminMatTitleInput');
+            const urlEl = document.getElementById('adminMatUrlInput');
+            if (titleEl) titleEl.value = '';
+            if (urlEl) urlEl.value = '';
+            if (adminMatFileInput) adminMatFileInput.value = '';
+            syncAdminMaterialModeUI();
             await refreshAdminCloudData();
             await refreshLessonMaterials(true);
             showToast('Ders PDF\'i kaydedildi');
           } catch (err) {
             console.warn('Lesson material save error:', err);
-            showToast('PDF kaydedilemedi');
+            const msg = err instanceof Error && err.message === 'PDF_TOO_LARGE'
+              ? 'PDF dosyası çok büyük (maks. 650 KB). Lütfen Web Bağlantısı kullanın.'
+              : 'PDF kaydedilemedi. Bağlantınızı veya yönetici kilidini kontrol edin.';
+            showToast(msg);
           } finally {
             if (btn) btn.disabled = false;
           }
