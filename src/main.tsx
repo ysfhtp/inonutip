@@ -170,12 +170,16 @@ if (import.meta.env.DEV) {
         // Ignore CacheStorage errors
       }
     }
-    if ((changed || hasStaleDom) && !sessionStorage.getItem('inonu_sw_reset_done')) {
-      sessionStorage.setItem('inonu_sw_reset_done', '1');
-      window.location.reload();
-      return;
+    try {
+      if ((changed || hasStaleDom) && !sessionStorage.getItem('inonu_sw_reset_done')) {
+        sessionStorage.setItem('inonu_sw_reset_done', '1');
+        window.location.reload();
+        return;
+      }
+      sessionStorage.removeItem('inonu_sw_reset_done');
+    } catch {
+      // Ignore sessionStorage errors in restricted or sandboxed iframes
     }
-    sessionStorage.removeItem('inonu_sw_reset_done');
   };
   void cleanupDevSw();
 } else {

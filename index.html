@@ -13,6 +13,8 @@
   <meta name="apple-mobile-web-app-title" content="İnönü Tıp D1">
   <meta name="format-detection" content="telephone=no">
   <meta name="description" content="İnönü Üniversitesi Tıp Fakültesi Dönem I (2026-2027) Türkçe ve İngilizce Ders Programı">
+  <meta property="og:title" content="İnönü Tıp Dönem I Ders Programı">
+  <meta property="og:description" content="İnönü Üniversitesi Tıp Fakültesi Dönem I (2026-2027) Türkçe ve İngilizce Ders Programı">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./pwa-192x192.png">
@@ -2320,13 +2322,11 @@
 
     .ambient-top {
       position: absolute;
-      top: -16vh;
-      left: 50%;
-      transform: translate3d(-50%, 0, 0);
-      width: 165vw;
-      max-width: 1240px;
-      height: 82vh;
-      border-radius: 50% / 40%;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      border-radius: 0;
       will-change: transform, opacity;
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
@@ -2335,13 +2335,11 @@
 
     .ambient-bottom {
       position: absolute;
-      bottom: -20vh;
-      left: 50%;
-      transform: translate3d(-50%, 0, 0);
-      width: 170vw;
-      max-width: 1280px;
-      height: 84vh;
-      border-radius: 50% / 40%;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      border-radius: 0;
       will-change: transform, opacity;
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
@@ -2358,42 +2356,42 @@
     @keyframes iosAuraTopBloomA {
       0% {
         opacity: 0;
-        transform: translate3d(-50%, -44px, 0) scaleX(1.12) scaleY(0.76);
+        transform: translate3d(0, -32px, 0) scale(1.04);
       }
       100% {
         opacity: 0.96;
-        transform: translate3d(-50%, 0, 0) scale(1);
+        transform: translate3d(0, 0, 0) scale(1);
       }
     }
     @keyframes iosAuraTopBloomB {
       0% {
         opacity: 0;
-        transform: translate3d(-50%, -44px, 0) scaleX(1.12) scaleY(0.76);
+        transform: translate3d(0, -32px, 0) scale(1.04);
       }
       100% {
         opacity: 0.96;
-        transform: translate3d(-50%, 0, 0) scale(1);
+        transform: translate3d(0, 0, 0) scale(1);
       }
     }
 
     @keyframes iosAuraBottomBloomA {
       0% {
         opacity: 0;
-        transform: translate3d(-50%, 48px, 0) scaleX(1.12) scaleY(0.76);
+        transform: translate3d(0, 32px, 0) scale(1.04);
       }
       100% {
         opacity: 0.98;
-        transform: translate3d(-50%, 0, 0) scale(1);
+        transform: translate3d(0, 0, 0) scale(1);
       }
     }
     @keyframes iosAuraBottomBloomB {
       0% {
         opacity: 0;
-        transform: translate3d(-50%, 48px, 0) scaleX(1.12) scaleY(0.76);
+        transform: translate3d(0, 32px, 0) scale(1.04);
       }
       100% {
         opacity: 0.98;
-        transform: translate3d(-50%, 0, 0) scale(1);
+        transform: translate3d(0, 0, 0) scale(1);
       }
     }
 
@@ -2458,115 +2456,115 @@
       --palette-aura-opacity: 1;
     }
 
-    /* Tab colors: Çok kademeli yumuşak geçişli yayvan eliptik auralar (sıfır blur maliyeti, pürüzsüz derinlik) */
+    /* Tab colors: Tam ekran kesintisiz yayvan eliptik auralar (masaüstü köşelerde kutu izi bırakmaz) */
     /* Daily / Bugün */
     body[data-active-tab="daily"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(0, 122, 255, 0.14) 0%, rgba(56, 189, 248, 0.09) 34%, rgba(56, 189, 248, 0.045) 56%, rgba(56, 189, 248, 0.015) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(0, 122, 255, 0.14) 0%, rgba(56, 189, 248, 0.085) 36%, rgba(56, 189, 248, 0.035) 60%, transparent 86%);
     }
     body[data-active-tab="daily"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(16, 185, 129, 0.16) 0%, rgba(56, 189, 248, 0.10) 34%, rgba(56, 189, 248, 0.045) 56%, rgba(16, 185, 129, 0.015) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(16, 185, 129, 0.15) 0%, rgba(56, 189, 248, 0.09) 36%, rgba(56, 189, 248, 0.035) 60%, transparent 86%);
     }
     .dark body[data-active-tab="daily"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(10, 132, 255, 0.20) 0%, rgba(56, 189, 248, 0.13) 34%, rgba(56, 189, 248, 0.06) 56%, rgba(10, 132, 255, 0.02) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(10, 132, 255, 0.20) 0%, rgba(56, 189, 248, 0.12) 36%, rgba(56, 189, 248, 0.045) 60%, transparent 86%);
     }
     .dark body[data-active-tab="daily"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(16, 185, 129, 0.24) 0%, rgba(52, 211, 153, 0.16) 34%, rgba(52, 211, 153, 0.075) 56%, rgba(16, 185, 129, 0.024) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(16, 185, 129, 0.22) 0%, rgba(52, 211, 153, 0.14) 36%, rgba(52, 211, 153, 0.05) 60%, transparent 86%);
     }
 
     /* Palette-specific ambient glow overrides */
     :root[data-palette="surgical-navy"] body[data-active-tab="daily"] .ambient-top,
     :root[data-palette="surgical-navy"] body[data-active-tab="weekly"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(30, 64, 175, 0.17) 0%, rgba(59, 130, 246, 0.10) 34%, rgba(30, 58, 138, 0.05) 56%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(30, 64, 175, 0.17) 0%, rgba(59, 130, 246, 0.095) 36%, rgba(30, 58, 138, 0.04) 60%, transparent 86%);
     }
     .dark[data-palette="surgical-navy"] body[data-active-tab="daily"] .ambient-top,
     .dark[data-palette="surgical-navy"] body[data-active-tab="weekly"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(37, 99, 235, 0.22) 0%, rgba(30, 64, 175, 0.14) 38%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(37, 99, 235, 0.22) 0%, rgba(30, 64, 175, 0.13) 40%, transparent 86%);
     }
     :root[data-palette="surgical-navy"] body[data-active-tab="daily"] .ambient-bottom,
     .dark[data-palette="surgical-navy"] body[data-active-tab="daily"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(14, 116, 144, 0.20) 0%, rgba(30, 64, 175, 0.11) 42%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(14, 116, 144, 0.19) 0%, rgba(30, 64, 175, 0.10) 44%, transparent 86%);
     }
 
     :root[data-palette="biochem-mint"] body[data-active-tab="daily"] .ambient-top,
     :root[data-palette="biochem-mint"] body[data-active-tab="weekly"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(13, 148, 136, 0.16) 0%, rgba(45, 212, 191, 0.10) 34%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(13, 148, 136, 0.16) 0%, rgba(45, 212, 191, 0.095) 36%, transparent 86%);
     }
     .dark[data-palette="biochem-mint"] body[data-active-tab="daily"] .ambient-top,
     .dark[data-palette="biochem-mint"] body[data-active-tab="weekly"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(20, 184, 166, 0.22) 0%, rgba(16, 185, 129, 0.13) 38%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(20, 184, 166, 0.22) 0%, rgba(16, 185, 129, 0.12) 40%, transparent 86%);
     }
     :root[data-palette="biochem-mint"] body[data-active-tab="daily"] .ambient-bottom,
     .dark[data-palette="biochem-mint"] body[data-active-tab="daily"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(16, 185, 129, 0.22) 0%, rgba(45, 212, 191, 0.12) 42%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(16, 185, 129, 0.21) 0%, rgba(45, 212, 191, 0.11) 44%, transparent 86%);
     }
 
     :root[data-palette="anatomy-crimson"] body[data-active-tab="daily"] .ambient-top,
     :root[data-palette="anatomy-crimson"] body[data-active-tab="weekly"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(190, 18, 60, 0.15) 0%, rgba(244, 63, 94, 0.09) 34%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(190, 18, 60, 0.15) 0%, rgba(244, 63, 94, 0.085) 36%, transparent 86%);
     }
     .dark[data-palette="anatomy-crimson"] body[data-active-tab="daily"] .ambient-top,
     .dark[data-palette="anatomy-crimson"] body[data-active-tab="weekly"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(225, 29, 72, 0.22) 0%, rgba(159, 18, 57, 0.13) 38%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(225, 29, 72, 0.22) 0%, rgba(159, 18, 57, 0.12) 40%, transparent 86%);
     }
     :root[data-palette="anatomy-crimson"] body[data-active-tab="daily"] .ambient-bottom,
     .dark[data-palette="anatomy-crimson"] body[data-active-tab="daily"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(245, 158, 11, 0.16) 0%, rgba(190, 18, 60, 0.12) 42%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(245, 158, 11, 0.15) 0%, rgba(190, 18, 60, 0.11) 44%, transparent 86%);
     }
 
     /* Weekly / Hafta */
     body[data-active-tab="weekly"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(14, 165, 233, 0.14) 0%, rgba(59, 130, 246, 0.09) 34%, rgba(59, 130, 246, 0.045) 56%, rgba(14, 165, 233, 0.015) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(14, 165, 233, 0.14) 0%, rgba(59, 130, 246, 0.085) 36%, rgba(59, 130, 246, 0.035) 60%, transparent 86%);
     }
     body[data-active-tab="weekly"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(14, 165, 233, 0.15) 0%, rgba(34, 211, 238, 0.10) 34%, rgba(34, 211, 238, 0.045) 56%, rgba(14, 165, 233, 0.015) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(14, 165, 233, 0.15) 0%, rgba(34, 211, 238, 0.09) 36%, rgba(34, 211, 238, 0.035) 60%, transparent 86%);
     }
     .dark body[data-active-tab="weekly"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(56, 189, 248, 0.19) 0%, rgba(59, 130, 246, 0.13) 34%, rgba(59, 130, 246, 0.06) 56%, rgba(56, 189, 248, 0.02) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(56, 189, 248, 0.19) 0%, rgba(59, 130, 246, 0.12) 36%, rgba(59, 130, 246, 0.045) 60%, transparent 86%);
     }
     .dark body[data-active-tab="weekly"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(34, 211, 238, 0.21) 0%, rgba(56, 189, 248, 0.14) 34%, rgba(56, 189, 248, 0.065) 56%, rgba(34, 211, 238, 0.02) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(34, 211, 238, 0.20) 0%, rgba(56, 189, 248, 0.13) 36%, rgba(56, 189, 248, 0.05) 60%, transparent 86%);
     }
 
     /* Search / Arama */
     body[data-active-tab="search"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(99, 102, 241, 0.14) 0%, rgba(139, 92, 246, 0.09) 34%, rgba(139, 92, 246, 0.045) 56%, rgba(99, 102, 241, 0.015) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(99, 102, 241, 0.14) 0%, rgba(139, 92, 246, 0.085) 36%, rgba(139, 92, 246, 0.035) 60%, transparent 86%);
     }
     body[data-active-tab="search"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(99, 102, 241, 0.15) 0%, rgba(167, 139, 250, 0.10) 34%, rgba(167, 139, 250, 0.045) 56%, rgba(99, 102, 241, 0.015) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(99, 102, 241, 0.15) 0%, rgba(167, 139, 250, 0.09) 36%, rgba(167, 139, 250, 0.035) 60%, transparent 86%);
     }
     .dark body[data-active-tab="search"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(129, 140, 248, 0.19) 0%, rgba(139, 92, 246, 0.13) 34%, rgba(139, 92, 246, 0.06) 56%, rgba(129, 140, 248, 0.02) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(129, 140, 248, 0.19) 0%, rgba(139, 92, 246, 0.12) 36%, rgba(139, 92, 246, 0.045) 60%, transparent 86%);
     }
     .dark body[data-active-tab="search"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(167, 139, 250, 0.21) 0%, rgba(129, 140, 248, 0.14) 34%, rgba(129, 140, 248, 0.065) 56%, rgba(167, 139, 250, 0.02) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(167, 139, 250, 0.20) 0%, rgba(129, 140, 248, 0.13) 36%, rgba(129, 140, 248, 0.05) 60%, transparent 86%);
     }
 
     /* Info / Sınav */
     body[data-active-tab="info"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(79, 70, 229, 0.14) 0%, rgba(99, 102, 241, 0.09) 34%, rgba(99, 102, 241, 0.045) 56%, rgba(79, 70, 229, 0.015) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(79, 70, 229, 0.14) 0%, rgba(99, 102, 241, 0.085) 36%, rgba(99, 102, 241, 0.035) 60%, transparent 86%);
     }
     body[data-active-tab="info"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(79, 70, 229, 0.15) 0%, rgba(129, 140, 248, 0.10) 34%, rgba(129, 140, 248, 0.045) 56%, rgba(79, 70, 229, 0.015) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(79, 70, 229, 0.15) 0%, rgba(129, 140, 248, 0.09) 36%, rgba(129, 140, 248, 0.035) 60%, transparent 86%);
     }
     .dark body[data-active-tab="info"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(99, 102, 241, 0.19) 0%, rgba(79, 70, 229, 0.13) 34%, rgba(79, 70, 229, 0.06) 56%, rgba(99, 102, 241, 0.02) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(99, 102, 241, 0.19) 0%, rgba(79, 70, 229, 0.12) 36%, rgba(79, 70, 229, 0.045) 60%, transparent 86%);
     }
     .dark body[data-active-tab="info"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(129, 140, 248, 0.21) 0%, rgba(99, 102, 241, 0.14) 34%, rgba(99, 102, 241, 0.065) 56%, rgba(129, 140, 248, 0.02) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(129, 140, 248, 0.20) 0%, rgba(99, 102, 241, 0.13) 36%, rgba(99, 102, 241, 0.05) 60%, transparent 86%);
     }
 
     /* Food / Yemekhane */
     body[data-active-tab="food"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(245, 158, 11, 0.14) 0%, rgba(251, 191, 36, 0.09) 34%, rgba(251, 191, 36, 0.045) 56%, rgba(245, 158, 11, 0.015) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(245, 158, 11, 0.14) 0%, rgba(251, 191, 36, 0.085) 36%, rgba(251, 191, 36, 0.035) 60%, transparent 86%);
     }
     body[data-active-tab="food"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.10) 34%, rgba(217, 119, 6, 0.045) 56%, rgba(245, 158, 11, 0.015) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.09) 36%, rgba(217, 119, 6, 0.035) 60%, transparent 86%);
     }
     .dark body[data-active-tab="food"] .ambient-top {
-      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(245, 158, 11, 0.20) 0%, rgba(251, 191, 36, 0.13) 34%, rgba(251, 191, 36, 0.06) 56%, rgba(245, 158, 11, 0.02) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 14%, rgba(245, 158, 11, 0.20) 0%, rgba(251, 191, 36, 0.12) 36%, rgba(251, 191, 36, 0.045) 60%, transparent 86%);
     }
     .dark body[data-active-tab="food"] .ambient-bottom {
-      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.14) 34%, rgba(217, 119, 6, 0.065) 56%, rgba(245, 158, 11, 0.02) 74%, transparent 92%);
+      background: radial-gradient(ellipse 46% 38% at 50% 86%, rgba(245, 158, 11, 0.21) 0%, rgba(217, 119, 6, 0.13) 36%, rgba(217, 119, 6, 0.05) 60%, transparent 86%);
     }
 
     .ios-glass {
@@ -2970,46 +2968,27 @@
     .daily-action-bar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 0.3125rem;
-      max-width: 100%;
-    }
-    @media (min-width: 380px) {
-      .daily-action-bar {
-        gap: 0.375rem;
-      }
+      justify-content: space-between;
+      gap: 0.375rem;
+      width: 100%;
     }
     @media (min-width: 640px) {
       .daily-action-bar {
         gap: 0.5rem;
       }
     }
-    .daily-action-slot {
-      display: flex;
-      align-items: center;
-      min-width: 0;
-    }
-    .daily-action-slot--left,
-    .daily-action-slot--right {
-      flex: 0 1 auto;
-    }
-    .daily-action-slot--center {
-      flex: 0 0 auto;
-    }
     .daily-action-pill {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       height: 28px;
-      max-width: 100%;
       min-width: 0;
-      overflow: hidden;
       line-height: 1;
       vertical-align: middle;
       white-space: nowrap;
-      padding: 0 0.4375rem;
+      padding: 0 0.5rem;
       gap: 0.25rem;
-      font-size: 10px;
+      font-size: 10.5px;
     }
     .daily-action-pill svg {
       width: 0.75rem;
@@ -3017,21 +2996,8 @@
       flex-shrink: 0;
     }
     #btnDailyDatePicker.daily-action-pill {
-      padding: 0 0.5625rem;
-    }
-    @media (min-width: 380px) {
-      .daily-action-pill {
-        padding: 0 0.5rem;
-        gap: 0.3125rem;
-        font-size: 10.5px;
-      }
-      .daily-action-pill svg {
-        width: 0.875rem;
-        height: 0.875rem;
-      }
-      #btnDailyDatePicker.daily-action-pill {
-        padding: 0 0.6875rem;
-      }
+      padding: 0 0.625rem;
+      font-size: 10.5px;
     }
     @media (min-width: 640px) {
       .daily-action-pill {
@@ -3040,8 +3006,13 @@
         gap: 0.375rem;
         font-size: 11px;
       }
+      .daily-action-pill svg {
+        width: 0.875rem;
+        height: 0.875rem;
+      }
       #btnDailyDatePicker.daily-action-pill {
         padding: 0 0.75rem;
+        font-size: 11px;
       }
     }
 
@@ -3723,26 +3694,20 @@
           </div>
         </div>
 
-        <!-- Grup Seçici (MBU & LAB) (Sol), Tarih Seçici (Tam Orta) ve Giriş/Çıkış Butonu (Sağ) -->
-        <div class="daily-action-bar py-2.5 border-t border-slate-200/60 dark:border-slate-800/80">
-          <div class="daily-action-slot daily-action-slot--left">
-            <button id="btnOpenGroupModal" type="button" class="daily-action-pill ios-press rounded-full ios-pill-control hover:bg-slate-500/15 font-semibold text-slate-600 dark:text-slate-300 shadow-2xs transition">
-              <svg class="text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              <span id="btnGroupFilterLabel" class="truncate min-w-0">MBU / LAB</span>
-            </button>
-          </div>
-          <div class="daily-action-slot daily-action-slot--center">
-            <button id="btnDailyDatePicker" type="button" aria-label="Ders Takvimi" class="daily-action-pill ios-press ios-pill-control hover:bg-slate-500/15 rounded-full text-slate-800 dark:text-slate-100 font-bold shadow-2xs shrink-0">
-              <svg class="text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-              <span id="dailyDateBtnLabel" class="tabular-nums">13 Kas 2026</span>
-            </button>
-          </div>
-          <div class="daily-action-slot daily-action-slot--right">
-            <button id="btnAuthActionDaily" type="button" class="daily-action-pill ios-press rounded-full ios-pill-control hover:bg-blue-500/15 font-semibold text-blue-600 dark:text-blue-400 shadow-2xs transition">
-              <svg id="authActionDailyIcon" class="shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
-              <span id="btnAuthActionDailyLabel" class="truncate min-w-0">Giriş Yap</span>
-            </button>
-          </div>
+        <!-- Grup Seçici (MBU & LAB) (Sol), Tarih Seçici (Orta) ve Giriş/Çıkış Butonu (Sağ) -->
+        <div class="daily-action-bar py-2 border-t border-slate-200/60 dark:border-slate-800/80">
+          <button id="btnOpenGroupModal" type="button" class="daily-action-pill ios-press rounded-full ios-pill-control hover:bg-slate-500/15 font-semibold text-slate-600 dark:text-slate-300 shadow-2xs transition">
+            <svg class="text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span id="btnGroupFilterLabel" class="truncate min-w-0">MBU / LAB</span>
+          </button>
+          <button id="btnDailyDatePicker" type="button" aria-label="Ders Takvimi" class="daily-action-pill ios-press ios-pill-control hover:bg-slate-500/15 rounded-full text-slate-800 dark:text-slate-100 font-bold shadow-2xs shrink-0">
+            <svg class="text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span id="dailyDateBtnLabel" class="tabular-nums">13 Kas 2026</span>
+          </button>
+          <button id="btnAuthActionDaily" type="button" class="daily-action-pill ios-press rounded-full ios-pill-control hover:bg-blue-500/15 font-semibold text-blue-600 dark:text-blue-400 shadow-2xs transition">
+            <svg id="authActionDailyIcon" class="shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+            <span id="btnAuthActionDailyLabel" class="truncate min-w-0">Giriş Yap</span>
+          </button>
         </div>
       </div>
 
@@ -5482,6 +5447,34 @@
       return 'neutral';
     }
 
+    function normLessonMatKey(d, slotNo) {
+      if (!d) return '';
+      const s = String(d).trim().replace(/-/g, '.');
+      const parts = s.split('.');
+      let cleanD = s;
+      if (parts.length === 3 && parts[0].length === 4) {
+        cleanD = `${parts[2].padStart(2, '0')}.${parts[1].padStart(2, '0')}.${parts[0]}`;
+      } else if (parts.length === 3) {
+        cleanD = `${parts[0].padStart(2, '0')}.${parts[1].padStart(2, '0')}.${parts[2]}`;
+      }
+      return `${cleanD}_${Number(slotNo) || 1}`;
+    }
+
+    function getSlotMaterials(slot) {
+      if (!slot || typeof lessonMaterialsMap === 'undefined' || !lessonMaterialsMap) return [];
+      const k1 = `${slot.date}_${slot.slotNo}`;
+      const k2 = normLessonMatKey(slot.date, slot.slotNo);
+      const arr = lessonMaterialsMap[k1] || (k2 ? lessonMaterialsMap[k2] : null);
+      if (!Array.isArray(arr) || arr.length === 0) return [];
+      const valid = arr.filter((m) => m && (m.pdfData || m.pdfUrl || Number(m.chunkCount) > 0 || m.sourceType === 'chunks' || m.id));
+      const progMatched = valid.filter((m) => !m.targetProg || m.targetProg === state.lang);
+      return progMatched.length > 0 ? progMatched : valid;
+    }
+
+    function slotHasSharedMaterials(slot) {
+      return getSlotMaterials(slot).length > 0;
+    }
+
     function filterSlotsForGroupPreference(slots) {
       const activeLabGroup = state.lang === 'en' ? '' : state.myLabGroup;
       if (state.otherGroupMode !== 'hide' || (!state.myMbuGroup && !activeLabGroup)) {
@@ -5490,7 +5483,7 @@
       const visibleSlots = [];
       let hiddenCount = 0;
       for (const s of slots) {
-        if (getSlotGroupStatus(s) === 'other') {
+        if (getSlotGroupStatus(s) === 'other' && !slotHasSharedMaterials(s)) {
           hiddenCount++;
         } else {
           visibleSlots.push(s);
@@ -5688,8 +5681,37 @@
       },
     };
 
+    const TAB_AMBIENT_STATUS_BAR_COLORS = {
+      search: {
+        lightTop: '#eeeff8',
+        lightScrolled: '#f4f7fc',
+        darkTop: '#0a0d24',
+        darkScrolled: '#0e1422',
+      },
+      info: {
+        lightTop: '#edeff8',
+        lightScrolled: '#f4f7fc',
+        darkTop: '#080e22',
+        darkScrolled: '#0e1422',
+      },
+      food: {
+        lightTop: '#f6f1e8',
+        lightScrolled: '#f4f7fc',
+        darkTop: '#141008',
+        darkScrolled: '#0e1422',
+      },
+    };
+
     function getSystemThemeColor() {
       const y = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      const tab = state.activeTab || 'daily';
+      if (tab === 'food' || tab === 'search' || tab === 'info') {
+        const tabTheme = TAB_AMBIENT_STATUS_BAR_COLORS[tab];
+        if (!state.darkMode) {
+          return y > 15 ? tabTheme.lightScrolled : tabTheme.lightTop;
+        }
+        return y > 20 ? tabTheme.darkScrolled : tabTheme.darkTop;
+      }
       const pal = PALETTE_STATUS_BAR_COLORS[normalizePaletteKey(state.palette)] || PALETTE_STATUS_BAR_COLORS['medical-blue'];
       if (!state.darkMode) {
         return y > 15 ? pal.lightScrolled : pal.lightTop;
@@ -5697,15 +5719,7 @@
       if (y > 20) {
         return pal.darkScrolled;
       }
-      const tab = state.activeTab || 'daily';
-      switch (tab) {
-        case 'daily': return pal.darkTop;
-        case 'weekly': return pal.darkWeekly;
-        case 'search': return pal.darkSearch;
-        case 'info': return pal.darkInfo;
-        case 'food': return pal.darkFood;
-        default: return pal.darkTop;
-      }
+      return tab === 'weekly' ? pal.darkWeekly : pal.darkTop;
     }
 
     function syncSystemBarsThemeColor() {
@@ -6412,11 +6426,13 @@
       const accent = getCalmAccent(slot, category);
       const isMbuOrLab = category === 'mbu' || category === 'lab';
       const groupStatus = getSlotGroupStatus(slot, category);
+      const matList = getSlotMaterials(slot);
+      const hasMaterials = matList.length > 0;
       const isSecondaryCourse = groupStatus !== 'other' && isSecondaryCourseSlot(slot);
       const [startTime = '', endTime = ''] = (slot.time || '').split('-');
 
       const card = document.createElement('div');
-      card.className = `ios-glass slot-tilt-card rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} ${groupStatus === 'other' ? 'slot-card-dimmed' : (isSecondaryCourse ? 'slot-card-secondary' : '')}`;
+      card.className = `ios-glass slot-tilt-card rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} ${groupStatus === 'other' ? (hasMaterials ? '' : 'slot-card-dimmed') : (isSecondaryCourse ? 'slot-card-secondary' : '')}`;
 
       const row = document.createElement('div');
       row.className = 'flex items-stretch gap-2.5';
@@ -6461,11 +6477,6 @@
         rightCol.appendChild(groupWrap);
       }
 
-      const matKey = `${slot.date}_${slot.slotNo}`;
-      const rawMats = typeof lessonMaterialsMap !== 'undefined' ? lessonMaterialsMap[matKey] : null;
-      const matList = Array.isArray(rawMats)
-        ? rawMats.filter((m) => m && (!m.targetProg || m.targetProg === state.lang) && (m.pdfData || m.pdfUrl || Number(m.chunkCount) > 0 || m.sourceType === 'chunks'))
-        : [];
       if (matList.length > 0) {
         const pdfWrap = document.createElement('div');
         pdfWrap.className = 'mt-1.5 flex items-center gap-1.5 min-w-0 flex-nowrap';
@@ -6476,7 +6487,7 @@
           : '';
         const pdfBtn = document.createElement('button');
         pdfBtn.type = 'button';
-        pdfBtn.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition min-w-0 max-w-full';
+        pdfBtn.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/25 text-rose-600 dark:text-rose-300 text-xs font-semibold transition min-w-0 max-w-full shadow-2xs';
         pdfBtn.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate">${escapeHtml(pdfLabel)}</span>${sizeBadge ? `<span class="text-[10px] opacity-75 shrink-0 tabular-nums">${escapeHtml(sizeBadge)}</span>` : ''}`;
         pdfBtn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -6753,6 +6764,8 @@
       const { visibleSlots, hiddenCount } = filterSlotsForGroupPreference(dayObj.slots);
       const hasMorning = visibleSlots.some((s) => s.slotNo <= 4);
       let lunchInserted = false;
+
+
 
       const baseDelay = isTabSwitchRender ? 45 : 0;
       visibleSlots.forEach((slot, idx) => {
@@ -8745,9 +8758,14 @@
       const nextMap = {};
       (Array.isArray(list) ? list : []).forEach((m) => {
         if (!m || !m.date) return;
-        const k = `${m.date}_${m.slotNo}`;
-        if (!Array.isArray(nextMap[k])) nextMap[k] = [];
-        nextMap[k].push(m);
+        const k1 = `${m.date}_${m.slotNo}`;
+        const k2 = normLessonMatKey(m.date, m.slotNo);
+        if (!Array.isArray(nextMap[k1])) nextMap[k1] = [];
+        nextMap[k1].push(m);
+        if (k2 && k2 !== k1) {
+          if (!Array.isArray(nextMap[k2])) nextMap[k2] = [];
+          nextMap[k2].push(m);
+        }
       });
       return nextMap;
     }
@@ -8798,7 +8816,18 @@
 
     async function refreshLessonMaterials(force = false) {
       const api = window.__INONU_AUTH__;
-      if (!api || typeof api.loadAllLessonMaterials !== 'function') return;
+      if (!api || typeof api.loadAllLessonMaterials !== 'function') {
+        try {
+          const resp = await fetch('/api/materials', { cache: 'no-store' });
+          if (resp.ok) {
+            const json = await resp.json();
+            if (json && Array.isArray(json.materials)) {
+              applyLoadedLessonMaterialsList(json.materials);
+            }
+          }
+        } catch {}
+        return;
+      }
       if (lessonMaterialsInFlightPromise && !force) {
         return lessonMaterialsInFlightPromise;
       }
@@ -9047,11 +9076,14 @@
     let authLoginStep = 'id';
     let authPendingAdminId = '';
     let siteRequireStudentLogin = loadStore('siteRequireLoginCache', false) === true;
+    let siteAccessUpdatedAtMs = Number(loadStore('siteAccessUpdatedAtMs', 0)) || 0;
     let siteAccessSettingsUnsub = null;
     let authGateOpenedByLock = false;
 
     function isSiteLoginLocked() {
-      return Boolean(siteRequireStudentLogin && !getActiveAuthSession());
+      if (!siteRequireStudentLogin) return false;
+      const session = getActiveAuthSession();
+      return !session;
     }
 
     function syncAuthStepUI() {
@@ -9303,7 +9335,7 @@
         closeFoodDateModal();
         closeFoodPhotoModal();
         closeInstallModal();
-        if (authGate && authGate.classList.contains('hidden')) {
+        if (authGate && (authGate.classList.contains('hidden') || authGate.classList.contains('modal-backdrop-out'))) {
           openAuthModal(true);
         }
       } else {
@@ -9319,7 +9351,12 @@
 
     function applySiteAccessSettings(settings) {
       const nextVal = Boolean(settings && settings.requireStudentLogin);
+      const nextTs = Number(settings && settings.updatedAtMs) || 0;
       siteRequireStudentLogin = nextVal;
+      if (nextTs > 0) {
+        siteAccessUpdatedAtMs = nextTs;
+        saveStore('siteAccessUpdatedAtMs', nextTs);
+      }
       saveStore('siteRequireLoginCache', nextVal);
       syncAdminSiteAccessUI();
       syncSiteAccessGateUI();
@@ -9826,14 +9863,7 @@
     function syncAdminUnlockBarUI() {
       const bar = document.getElementById('adminReunlockBar');
       if (!bar) return;
-      const session = getActiveAuthSession();
-      const api = window.__INONU_AUTH__;
-      const hasSecret = Boolean(
-        session &&
-        session.isAdmin &&
-        (session.adminSecret || (api && typeof api.hasAdminWriteSecret === 'function' && api.hasAdminWriteSecret()))
-      );
-      bar.classList.toggle('hidden', !session || !session.isAdmin || hasSecret);
+      bar.classList.add('hidden');
     }
 
     function ensureAdminSecretReady() {
@@ -9843,24 +9873,11 @@
         showToast('Yönetici oturumu aktif değil. Lütfen yönetici numarasıyla tekrar giriş yapın.');
         return '';
       }
-      if (session.adminSecret) {
-        if (typeof api.setAdminWriteSecret === 'function') api.setAdminWriteSecret(session.adminSecret);
-        syncAdminUnlockBarUI();
+      if (session.adminSecret && typeof api.setAdminWriteSecret === 'function') {
+        api.setAdminWriteSecret(session.adminSecret);
         return session.adminSecret;
       }
-      if (typeof api.hasAdminWriteSecret === 'function' && api.hasAdminWriteSecret()) {
-        syncAdminUnlockBarUI();
-        return 'active';
-      }
-      syncAdminUnlockBarUI();
-      const bar = document.getElementById('adminReunlockBar');
-      if (bar && typeof bar.scrollIntoView === 'function') {
-        bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      const inp = document.getElementById('adminUnlockPwdInput');
-      if (inp) inp.focus();
-      showToast(I18N[state.lang].adminNeedPasswordUnlock);
-      return '';
+      return 'active';
     }
 
     function syncAdminModalLanguageUI() {
@@ -10685,10 +10702,11 @@
         adminState.matProg = state.lang === 'en' ? 'en' : 'tr';
       }
       const days = getAdminMatScheduleDays();
-      const prevDate = dateSel.value;
+      const prevDate = adminState.editingMatId ? dateSel.value : '';
       const targetDate =
         (prevDate && days.some((d) => d.date === prevDate) ? prevDate : '') ||
         (state.selectedDate && days.some((d) => d.date === state.selectedDate) ? state.selectedDate : '') ||
+        (dateSel.value && days.some((d) => d.date === dateSel.value) ? dateSel.value : '') ||
         (days[0] ? days[0].date : '');
       setAdminMatSelectedDate(targetDate);
       renderAdminMatDateOptions(document.getElementById('adminMatDateSearch')?.value || '');
@@ -11901,6 +11919,47 @@
           if (titleEl && !titleEl.value.trim()) {
             titleEl.value = file.name.replace(/\.pdf$/i, '').slice(0, 120);
           }
+          // Auto-match lesson slot on the selected date if filename/title matches a course keyword
+          try {
+            const curDate = document.getElementById('adminMatDateSelect')?.value || state.selectedDate || '';
+            const dayObj = getAdminMatScheduleDays().find((d) => d.date === curDate);
+            if (dayObj && Array.isArray(dayObj.slots)) {
+              const lowerName = (file.name || '').toLocaleLowerCase('tr-TR');
+              const keywordToCode = [
+                ['biyofizik', 'BF'],
+                ['biophysics', 'BF'],
+                ['fizyoloji', 'FİZ'],
+                ['physiology', 'FİZ'],
+                ['histoloji', 'HE'],
+                ['embriyoloji', 'HE'],
+                ['histology', 'HE'],
+                ['biyokimya', 'TB'],
+                ['biochemistry', 'TB'],
+                ['anatomi', 'ANA'],
+                ['anatomy', 'ANA'],
+                ['mikrobiyoloji', 'TMB'],
+                ['microbiology', 'TMB'],
+                ['biyoistatistik', 'Bİ'],
+                ['biostatistics', 'Bİ'],
+                ['davranış', 'DB'],
+                ['tıp tarihi', 'TT'],
+                ['tıbbi biyoloji', 'TБ'],
+              ];
+              let matchedSlot = null;
+              for (const [kw, code] of keywordToCode) {
+                if (lowerName.includes(kw)) {
+                  matchedSlot = dayObj.slots.find((s) => String(s.code || '').toUpperCase().includes(code) || String(s.title || '').toLocaleLowerCase('tr-TR').includes(kw));
+                  if (matchedSlot) break;
+                }
+              }
+              if (!matchedSlot) {
+                matchedSlot = dayObj.slots.find((s) => !s.isFree && !s.isSpecial && s.code !== 'MBU');
+              }
+              if (matchedSlot) {
+                populateAdminMatSlotSelect(curDate, matchedSlot.slotNo);
+              }
+            }
+          } catch (e) {}
           setAdminMatUploadProgress(false);
           syncAdminMaterialModeUI();
         });
@@ -12063,30 +12122,10 @@
             console.warn('Lesson material save error:', err);
             setAdminMatUploadProgress(false);
             const rawErr = err instanceof Error ? err.message : String(err || '');
-            if (rawErr.includes('ADMIN_SECRET_REQUIRED')) {
-              const savedSession = loadStore('authSession', null);
-              if (savedSession && typeof savedSession === 'object') {
-                saveStore('authSession', { ...savedSession, adminSecret: '' });
-              }
-              if (typeof api.clearAdminWriteSecret === 'function') api.clearAdminWriteSecret();
-              syncAdminUnlockBarUI();
-              const bar = document.getElementById('adminReunlockBar');
-              if (bar && typeof bar.scrollIntoView === 'function') bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              showToast('Yönetici kilidini açmak için üstteki alana şifrenizi girin.');
-            } else if (/ADMIN_SECRET|ADMIN_AUTH|UNAUTHORIZED|401/i.test(rawErr)) {
-              const savedSession = loadStore('authSession', null);
-              if (savedSession && typeof savedSession === 'object') {
-                saveStore('authSession', { ...savedSession, adminSecret: '' });
-              }
-              if (typeof api.clearAdminWriteSecret === 'function') api.clearAdminWriteSecret();
-              syncAdminUnlockBarUI();
-              const bar = document.getElementById('adminReunlockBar');
-              if (bar && typeof bar.scrollIntoView === 'function') bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              showToast('Yönetici şifresi doğrulanamadı. Üstten yönetici şifrenizi tekrar girin.');
-            } else if (rawErr === 'PDF_TOO_LARGE') {
+            if (rawErr === 'PDF_TOO_LARGE') {
               showToast('PDF dosyası en fazla 250 MB olabilir.');
             } else {
-              showToast('PDF yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+              showToast('PDF yüklenemedi. Lütfen tekrar deneyin.');
             }
           } finally {
             if (btn) btn.disabled = false;
@@ -12412,46 +12451,48 @@
         });
       }
 
+      async function setAdminSiteRequireLoginMode(nextVal) {
+        const loc = I18N[state.lang];
+        const api = window.__INONU_AUTH__;
+        const secret = ensureAdminSecretReady();
+        if (!api || !secret || typeof api.saveSiteAccessSettings !== 'function') return;
+
+        const prevVal = siteRequireStudentLogin;
+        const prevTs = siteAccessUpdatedAtMs;
+        const nowTs = Date.now();
+        siteRequireStudentLogin = Boolean(nextVal);
+        siteAccessUpdatedAtMs = nowTs;
+        saveStore('siteRequireLoginCache', siteRequireStudentLogin);
+        saveStore('siteAccessUpdatedAtMs', siteAccessUpdatedAtMs);
+        syncAdminSiteAccessUI();
+        syncSiteAccessGateUI();
+        showToast(siteRequireStudentLogin ? loc.adminSiteAccessToastLocked : loc.adminSiteAccessToastPublic);
+
+        const toggleBtn = document.getElementById('btnToggleSiteRequireLogin');
+        if (toggleBtn) toggleBtn.disabled = true;
+        try {
+          const saved = await api.saveSiteAccessSettings(siteRequireStudentLogin, secret === 'active' ? undefined : secret);
+          if (saved && typeof saved === 'object') {
+            applySiteAccessSettings(saved);
+          }
+        } catch (err) {
+          siteRequireStudentLogin = prevVal;
+          siteAccessUpdatedAtMs = prevTs;
+          saveStore('siteRequireLoginCache', prevVal);
+          saveStore('siteAccessUpdatedAtMs', prevTs);
+          syncAdminSiteAccessUI();
+          syncSiteAccessGateUI();
+          console.warn('Site access toggle save error:', err);
+          showToast(loc.adminSaveErrorToast);
+        } finally {
+          if (toggleBtn) toggleBtn.disabled = false;
+        }
+      }
+
       const btnToggleSiteRequireLogin = document.getElementById('btnToggleSiteRequireLogin');
       if (btnToggleSiteRequireLogin) {
-        btnToggleSiteRequireLogin.addEventListener('click', async () => {
-          const loc = I18N[state.lang];
-          const api = window.__INONU_AUTH__;
-          const secret = ensureAdminSecretReady();
-          if (!api || !secret || typeof api.saveSiteAccessSettings !== 'function') return;
-
-          const prevVal = siteRequireStudentLogin;
-          const nextVal = !prevVal;
-          siteRequireStudentLogin = nextVal;
-          saveStore('siteRequireLoginCache', nextVal);
-          syncAdminSiteAccessUI();
-          showToast(nextVal ? loc.adminSiteAccessToastLocked : loc.adminSiteAccessToastPublic);
-
-          btnToggleSiteRequireLogin.disabled = true;
-          try {
-            await api.saveSiteAccessSettings(nextVal, secret === 'active' ? undefined : secret);
-          } catch (err) {
-            siteRequireStudentLogin = prevVal;
-            saveStore('siteRequireLoginCache', prevVal);
-            syncAdminSiteAccessUI();
-            console.warn('Site access toggle save error:', err);
-            const rawErr = err instanceof Error ? err.message : String(err || '');
-            if (/ADMIN_SECRET|ADMIN_AUTH|UNAUTHORIZED|401/i.test(rawErr)) {
-              const savedSession = loadStore('authSession', null);
-              if (savedSession && typeof savedSession === 'object') {
-                saveStore('authSession', { ...savedSession, adminSecret: '' });
-              }
-              if (typeof api.clearAdminWriteSecret === 'function') api.clearAdminWriteSecret();
-              syncAdminUnlockBarUI();
-              const bar = document.getElementById('adminReunlockBar');
-              if (bar && typeof bar.scrollIntoView === 'function') bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              showToast(loc.adminNeedPasswordUnlock);
-            } else {
-              showToast(loc.adminSaveErrorToast);
-            }
-          } finally {
-            btnToggleSiteRequireLogin.disabled = false;
-          }
+        btnToggleSiteRequireLogin.addEventListener('click', () => {
+          void setAdminSiteRequireLoginMode(!siteRequireStudentLogin);
         });
       }
 
