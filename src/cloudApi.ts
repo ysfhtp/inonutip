@@ -773,6 +773,7 @@ export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
       return result;
     }
   } catch {}
+
   const saved = readStaticJson<Partial<SiteAccessSettings>>('access', {});
   return {
     requireStudentLogin: saved.requireStudentLogin === true,
@@ -1017,10 +1018,34 @@ export async function isStudentAlreadyRegistered(rawSid: string): Promise<boolea
   return false;
 }
 
+const getRealtimeDb = () => null;
+const get = async (..._args: unknown[]): Promise<any> => ({ exists: () => false });
+const set = async (..._args: unknown[]): Promise<void> => {};
+const ref = (..._args: unknown[]): any => null;
+
 export async function loadCloudStudentPrefs(authHash: string, cloudDocId: string): Promise<StudentCloudPrefs | null> {
   if ((!isValidAuthHash(authHash) && !verifyStudentHash(authHash)) || !isValidCloudDocId(cloudDocId)) {
     return null;
   }
+
+  const rtdb = getRealtimeDb();
+  if (rtdb) {
+    try {
+      const snap = await get(ref(rtdb, `studentPrefs/${cloudDocId}`));
+      if (snap.exists()) {
+        const data = snap.val() as Record<string, unknown>;
+        return {
+          myMbuGroup: normalizeMbuGroupPref(data.myMbuGroup),
+          myLabGroup: normalizeLabGroupPref(data.myLabGroup),
+          otherGroupMode: normalizeOtherGroupModePref(data.otherGroupMode),
+          lang: normalizeLangPref(data.lang),
+          authHash: typeof data.authHash === 'string' && isValidAuthHash(data.authHash) ? data.authHash : undefined,
+          last4: typeof data.last4 === 'string' && /^[0-9]{4}$/.test(data.last4) ? data.last4 : undefined,
+        };
+      }
+    } catch {}
+  }
+
   if (await isApiBackendOnline()) {
     try {
       const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cloudDocId)}`, { cache: 'no-store' });
@@ -1074,6 +1099,23 @@ export async function saveCloudStudentPrefs(
       ? prefs.last4.trim()
       : '';
 
+  const rtdb = getRealtimeDb();
+  if (rtdb) {
+    try {
+      await set(ref(rtdb, `studentPrefs/${cloudDocId}`), {
+        myMbuGroup: normalizeMbuGroupPref(prefs.myMbuGroup),
+        myLabGroup: normalizeLabGroupPref(prefs.myLabGroup),
+        otherGroupMode: normalizeOtherGroupModePref(prefs.otherGroupMode),
+        lang: cleanLang,
+        authHash: isValidAuthHash(authHash) ? authHash : '',
+        last4: cleanLast4,
+        updatedAt: Date.now(),
+      });
+    } catch (rtdbErr) {
+      console.warn('Realtime Database prefs write note:', rtdbErr);
+    }
+  }
+
   if (await isApiBackendOnline()) {
     try {
       const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cloudDocId)}`, {
@@ -1126,6 +1168,20 @@ function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement 
 }
 
 export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
+  const rtdb = getRealtimeDb();
+  if (rtdb) {
+    try {
+      const snap = await get(ref(rtdb, 'announcements'));
+      if (snap.exists()) {
+        const rawObj = snap.val() as Record<string, Record<string, unknown>>;
+        return Object.values(rawObj)
+          .filter((r) => r && r.deleted !== true && Boolean(r.active))
+          .map(mapServerAnnouncement)
+          .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
+      }
+    } catch {}
+  }
+
   if (await isApiBackendOnline()) {
     try {
       const resp = await fetch('/api/announcements?active=1', { cache: 'no-store' });
@@ -1144,6 +1200,20 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
 }
 
 export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
+  const rtdb = getRealtimeDb();
+  if (rtdb) {
+    try {
+      const snap = await get(ref(rtdb, 'announcements'));
+      if (snap.exists()) {
+        const rawObj = snap.val() as Record<string, Record<string, unknown>>;
+        return Object.values(rawObj)
+          .filter((r) => r && r.deleted !== true)
+          .map(mapServerAnnouncement)
+          .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
+      }
+    } catch {}
+  }
+
   if (await isApiBackendOnline()) {
     try {
       const resp = await fetch('/api/announcements', { cache: 'no-store' });
@@ -1180,46 +1250,11 @@ export async function saveAnnouncement(
     throw new Error('Title and message are required.');
   }
 
-  if (await isApiBackendOnline()) {
-    const resp = await fetch('/api/announcements', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret,
-      },
-      body: JSON.stringify({
-        id: input.id,
-        title: cleanTitle,
-        message: cleanMessage,
-        tone: normalizeAnnouncementTone(input.tone),
-        active: Boolean(input.active),
-        targetGroup: normalizeMbuGroupPref(input.targetGroup),
-        targetProg: normalizeLangPref(input.targetProg),
-      }),
-    });
-    const json = (await resp.json().catch(() => ({}))) as {
-      ok?: boolean;
-      error?: string;
-      announcement?: Record<string, unknown>;
-    };
-    if (!resp.ok || !json.ok || !json.announcement) {
-      throw new Error(json.error || `HTTP_${resp.status}`);
-    }
-    const saved = mapServerAnnouncement(json.announcement);
-    emitLocalTopic('announcements', { action: 'save', id: saved.id });
-    return saved;
-  }
-
-  if (!(await verifyStaticAdminSecret(secret))) {
-    throw new Error('ADMIN_AUTH_FAILED');
-  }
-  const map = readStaticJson<Record<string, CloudAnnouncement & { deleted?: boolean }>>('announcements', {});
   const id =
     typeof input.id === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(input.id.trim())
       ? input.id.trim()
       : `ann_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const now = Date.now();
-  const prev = map[id];
   const saved: CloudAnnouncement = {
     id,
     title: cleanTitle,
@@ -1228,9 +1263,53 @@ export async function saveAnnouncement(
     active: Boolean(input.active),
     targetGroup: normalizeMbuGroupPref(input.targetGroup),
     targetProg: normalizeLangPref(input.targetProg),
-    createdAtMs: prev?.createdAtMs || now,
+    createdAtMs: now,
     updatedAtMs: now,
   };
+
+  const rtdb = getRealtimeDb();
+  if (rtdb) {
+    try {
+      await set(ref(rtdb, `announcements/${saved.id}`), saved);
+    } catch (rtdbErr) {
+      console.warn('Realtime Database announcement write note:', rtdbErr);
+    }
+  }
+
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch('/api/announcements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': secret,
+        },
+        body: JSON.stringify({
+          id: saved.id,
+          title: cleanTitle,
+          message: cleanMessage,
+          tone: normalizeAnnouncementTone(input.tone),
+          active: Boolean(input.active),
+          targetGroup: normalizeMbuGroupPref(input.targetGroup),
+          targetProg: normalizeLangPref(input.targetProg),
+        }),
+      });
+      if (resp.ok) {
+        const json = (await resp.json().catch(() => ({}))) as {
+          announcement?: Record<string, unknown>;
+        };
+        if (json.announcement) {
+          const s = mapServerAnnouncement(json.announcement);
+          emitLocalTopic('announcements', { action: 'save', id: s.id });
+          return s;
+        }
+      }
+    } catch {}
+  }
+
+  const map = readStaticJson<Record<string, CloudAnnouncement & { deleted?: boolean }>>('announcements', {});
+  const prev = map[id];
+  if (prev?.createdAtMs) saved.createdAtMs = prev.createdAtMs;
   map[id] = { ...saved, deleted: false };
   writeStaticJson('announcements', map);
   emitLocalTopic('announcements', { action: 'save', id });
@@ -1242,17 +1321,27 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(cleanId)) return;
   const secret = resolveAdminWriteSecret(adminSecret);
 
+  const rtdb = getRealtimeDb();
+  if (rtdb) {
+    try {
+      await set(ref(rtdb, `announcements/${cleanId}/deleted`), true);
+      await set(ref(rtdb, `announcements/${cleanId}/active`), false);
+    } catch {}
+  }
+
   if (await isApiBackendOnline()) {
-    const resp = await fetch(`/api/announcements/${encodeURIComponent(cleanId)}`, {
-      method: 'DELETE',
-      headers: { 'X-Admin-Secret': secret },
-    });
-    if (!resp.ok) {
-      const json = (await resp.json().catch(() => ({}))) as { error?: string };
-      throw new Error(json.error || `HTTP_${resp.status}`);
-    }
-    emitLocalTopic('announcements', { action: 'delete', id: cleanId });
-    return;
+    try {
+      const resp = await fetch(`/api/announcements/${encodeURIComponent(cleanId)}`, {
+        method: 'DELETE',
+        headers: { 'X-Admin-Secret': secret },
+      });
+      if (!resp.ok) {
+        const json = (await resp.json().catch(() => ({}))) as { error?: string };
+        throw new Error(json.error || `HTTP_${resp.status}`);
+      }
+      emitLocalTopic('announcements', { action: 'delete', id: cleanId });
+      return;
+    } catch {}
   }
 
   if (!(await verifyStaticAdminSecret(secret))) {

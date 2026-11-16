@@ -8,5 +8,6 @@
   "messagingSenderId": "25320968911",
   "measurementId": "",
   "oAuthClientId": "25320968911-hdc0i95akbhrq5qp0rfageu9hmfr74a3.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "recaptchaSiteKey": "",
+  "databaseURL": "https://persuasive-incline-h5gvv-default-rtdb.europe-west1.firebasedatabase.app"
 }
