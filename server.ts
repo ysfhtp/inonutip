@@ -1318,6 +1318,29 @@ async function startServer() {
     res.json({ ok: true });
   });
 
+  app.get(['/', '/index.html'], (_req: Request, res: Response) => {
+    try {
+      const indexPath = process.env.NODE_ENV === 'production'
+        ? path.resolve(process.cwd(), 'dist', 'index.html')
+        : path.resolve(process.cwd(), 'index.html');
+      const htmlSource = fs.existsSync(indexPath)
+        ? fs.readFileSync(indexPath, 'utf8')
+        : fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8');
+
+      const cfg = getConfigJson<SiteAccessConfig>('access') || { requireStudentLogin: false, updatedAtMs: 0 };
+      const isLocked = Boolean(cfg.requireStudentLogin);
+
+      const injectedHtml = htmlSource.replace(
+        '<head>',
+        `<head>\n  <script>window.__INONU_INITIAL_LOCKED__ = ${isLocked}; try { if (${isLocked} && !localStorage.getItem('inonu_tip_d1_ios_v3_authSession')) { document.documentElement.classList.add('site-locked-locked'); localStorage.setItem('inonu_tip_d1_ios_v3_siteRequireLoginCache', 'true'); } else { localStorage.setItem('inonu_tip_d1_ios_v3_siteRequireLoginCache', '${isLocked}'); } } catch(e){}</script>`
+      );
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(injectedHtml);
+    } catch (err) {
+      res.status(500).send('Error loading page');
+    }
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
