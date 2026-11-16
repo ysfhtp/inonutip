@@ -3952,7 +3952,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="3">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.7.0</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v3.0.0</span>
       </div>
     </section>
 
@@ -5479,8 +5479,7 @@
       const arr = lessonMaterialsMap[k1] || (k2 ? lessonMaterialsMap[k2] : null);
       if (!Array.isArray(arr) || arr.length === 0) return [];
       const valid = arr.filter((m) => m && (m.pdfData || m.pdfUrl || Number(m.chunkCount) > 0 || m.sourceType === 'chunks' || m.id));
-      const progMatched = valid.filter((m) => !m.targetProg || m.targetProg === state.lang);
-      return progMatched.length > 0 ? progMatched : valid;
+      return valid;
     }
 
     function slotHasSharedMaterials(slot) {
