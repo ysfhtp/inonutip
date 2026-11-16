@@ -761,22 +761,18 @@ export async function updateAdminPassword(
 
 // ==================== SITE ACCESS SETTINGS ====================
 export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
-  if (await isApiBackendOnline()) {
-    try {
-      const resp = await fetch('/api/access', { cache: 'no-store' });
-      if (resp.ok) {
-        const json = (await resp.json()) as { requireStudentLogin?: boolean; updatedAtMs?: number };
-        const result: SiteAccessSettings = {
-          requireStudentLogin: json.requireStudentLogin === true,
-          updatedAtMs: Number(json.updatedAtMs) || 0,
-        };
-        writeStaticJson('access', result);
-        return result;
-      }
-    } catch {
-      // Fallback to static store
+  try {
+    const resp = await fetch('/api/access', { cache: 'no-store' });
+    if (resp.ok) {
+      const json = (await resp.json()) as { requireStudentLogin?: boolean; updatedAtMs?: number };
+      const result: SiteAccessSettings = {
+        requireStudentLogin: json.requireStudentLogin === true,
+        updatedAtMs: Number(json.updatedAtMs) || 0,
+      };
+      writeStaticJson('access', result);
+      return result;
     }
-  }
+  } catch {}
   const saved = readStaticJson<Partial<SiteAccessSettings>>('access', {});
   return {
     requireStudentLogin: saved.requireStudentLogin === true,
@@ -1492,19 +1488,21 @@ function mapServerMaterial(m: Record<string, unknown>): LessonMaterial {
 }
 
 export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
-  if (await isApiBackendOnline()) {
-    try {
-      const resp = await fetch('/api/materials', { cache: 'no-store' });
-      if (!resp.ok) return [];
+  try {
+    const resp = await fetch('/api/materials', { cache: 'no-store' });
+    if (resp.ok) {
       const json = (await resp.json()) as { ok?: boolean; materials?: Record<string, unknown>[] };
-      if (!json.ok || !Array.isArray(json.materials)) return [];
-      return json.materials
-        .map(mapServerMaterial)
-        .sort((a, b) => (a.createdAtMs || a.updatedAtMs) - (b.createdAtMs || b.updatedAtMs));
-    } catch {
-      return [];
+      if (json.ok && Array.isArray(json.materials)) {
+        const list = json.materials
+          .map(mapServerMaterial)
+          .sort((a, b) => (a.createdAtMs || a.updatedAtMs) - (b.createdAtMs || b.updatedAtMs));
+        const map: Record<string, unknown> = {};
+        list.forEach((m) => { map[m.id] = { ...m, deleted: false }; });
+        writeStaticJson('materials', map);
+        return list;
+      }
     }
-  }
+  } catch {}
   const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
   return Object.values(map)
     .filter((r) => r && r.deleted !== true)
