@@ -6432,7 +6432,7 @@
       const [startTime = '', endTime = ''] = (slot.time || '').split('-');
 
       const card = document.createElement('div');
-      card.className = `ios-glass slot-tilt-card rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} ${groupStatus === 'other' ? (hasMaterials ? '' : 'slot-card-dimmed') : (isSecondaryCourse ? 'slot-card-secondary' : '')}`;
+      card.className = `ios-glass slot-tilt-card rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} ${groupStatus === 'other' ? 'slot-card-dimmed' : (isSecondaryCourse ? 'slot-card-secondary' : '')}`;
 
       const row = document.createElement('div');
       row.className = 'flex items-stretch gap-2.5';
