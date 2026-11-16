@@ -119,43 +119,97 @@ let activeAdminWriteSecret = '';
 let cachedWrappedRosterKey = '';
 let unlockedRosterCache: UnlockedRosterCache | null = null;
 
-// ==================== SHARED SSE REAL-TIME HUB ====================
+const DEFAULT_ADMIN_PASSWORD_HASH = '25be9d153053e43e3de8b19857b85e4cd3d806568ba6e19ed5c9106f5821d527';
+const DEFAULT_PROOF_DIGEST_B64 = 'NYixg8m6D55ww5bflL1j5si5a9Yb3lurTyAKeAOKDEs=';
+const STATIC_STORE_PREFIX = 'inonu_static_db_v1_';
+const STATIC_PDF_DB_NAME = 'inonu_tip_static_pdfs_v1';
+const STATIC_PDF_STORE_NAME = 'pdfs';
+
+// ==================== BACKEND DETECTION & LOCAL EVENT HUB ====================
 type SseHandler = (data: unknown) => void;
 const sseListeners = new Map<string, Set<SseHandler>>();
 let sharedEventSource: EventSource | null = null;
+let apiBackendStatus: 'unknown' | 'online' | 'static' = 'unknown';
+let apiProbePromise: Promise<'online' | 'static'> | null = null;
+
+function emitLocalTopic(topic: string, payload?: unknown): void {
+  const handlers = sseListeners.get(topic);
+  if (!handlers || handlers.size === 0) return;
+  handlers.forEach((fn) => {
+    try {
+      fn(payload ?? null);
+    } catch {
+      // Isolate subscriber error
+    }
+  });
+}
+
+async function probeApiBackend(): Promise<'online' | 'static'> {
+  if (apiBackendStatus !== 'unknown') return apiBackendStatus;
+  if (apiProbePromise) return apiProbePromise;
+
+  apiProbePromise = (async () => {
+    if (typeof window === 'undefined' || typeof fetch === 'undefined') {
+      apiBackendStatus = 'static';
+      return 'static';
+    }
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 2500) : null;
+    try {
+      const resp = await fetch('/api/health', {
+        cache: 'no-store',
+        signal: ctrl?.signal,
+      });
+      const ct = (resp.headers.get('content-type') || '').toLowerCase();
+      if (!resp.ok || !ct.includes('application/json')) {
+        apiBackendStatus = 'static';
+        return 'static';
+      }
+      const json = (await resp.json().catch(() => null)) as { ok?: boolean } | null;
+      apiBackendStatus = json && json.ok === true ? 'online' : 'static';
+      return apiBackendStatus;
+    } catch {
+      apiBackendStatus = 'static';
+      return 'static';
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  })();
+
+  return apiProbePromise;
+}
+
+async function isApiBackendOnline(): Promise<boolean> {
+  return (await probeApiBackend()) === 'online';
+}
 
 function ensureEventSource(): void {
   if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
   if (sharedEventSource) return;
 
-  const es = new EventSource('/api/events');
-  sharedEventSource = es;
+  void probeApiBackend().then((status) => {
+    if (status !== 'online' || sharedEventSource) return;
+    const es = new EventSource('/api/events');
+    sharedEventSource = es;
 
-  const dispatchTopic = (topic: string, ev: MessageEvent) => {
-    const handlers = sseListeners.get(topic);
-    if (!handlers || handlers.size === 0) return;
-    let parsed: unknown = null;
-    try {
-      parsed = ev.data ? JSON.parse(String(ev.data)) : null;
-    } catch {
-      parsed = null;
-    }
-    handlers.forEach((fn) => {
+    const dispatchTopic = (topic: string, ev: MessageEvent) => {
+      let parsed: unknown = null;
       try {
-        fn(parsed);
+        parsed = ev.data ? JSON.parse(String(ev.data)) : null;
       } catch {
-        // Isolate subscriber error
+        parsed = null;
       }
+      emitLocalTopic(topic, parsed);
+    };
+
+    ['access', 'materials', 'announcements', 'student_status'].forEach((topic) => {
+      es.addEventListener(topic, (ev) => dispatchTopic(topic, ev as MessageEvent));
     });
-  };
 
-  ['access', 'materials', 'announcements', 'student_status'].forEach((topic) => {
-    es.addEventListener(topic, (ev) => dispatchTopic(topic, ev as MessageEvent));
+    es.onerror = () => {
+      // Native EventSource automatically reconnects
+    };
   });
-
-  es.onerror = () => {
-    // Native EventSource automatically reconnects
-  };
 }
 
 function addSseListener(topic: string, handler: SseHandler): Unsubscribe {
@@ -171,6 +225,135 @@ function addSseListener(topic: string, handler: SseHandler): Unsubscribe {
     if (!curr) return;
     curr.delete(handler);
   };
+}
+
+// ==================== STATIC BROWSER FALLBACK STORE (GITHUB PAGES / OFFLINE) ====================
+function readStaticJson<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(STATIC_STORE_PREFIX + key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as T;
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStaticJson(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(STATIC_STORE_PREFIX + key, JSON.stringify(value));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+interface StaticAdminSecurityConfig {
+  passwordHash: string;
+  proofDigestB64: string;
+  wrappedRosterKey: string;
+}
+
+function getStaticSecurityConfig(): StaticAdminSecurityConfig {
+  const saved = readStaticJson<Partial<StaticAdminSecurityConfig>>('security', {});
+  return {
+    passwordHash:
+      typeof saved.passwordHash === 'string' && ADMIN_SECRET_RE.test(saved.passwordHash)
+        ? saved.passwordHash
+        : DEFAULT_ADMIN_PASSWORD_HASH,
+    proofDigestB64:
+      typeof saved.proofDigestB64 === 'string' && saved.proofDigestB64.length === 44
+        ? saved.proofDigestB64
+        : DEFAULT_PROOF_DIGEST_B64,
+    wrappedRosterKey:
+      typeof saved.wrappedRosterKey === 'string' && ADMIN_SECRET_RE.test(saved.wrappedRosterKey)
+        ? saved.wrappedRosterKey
+        : WRAPPED_DEFAULT_ROSTER_KEY,
+  };
+}
+
+async function verifyStaticAdminSecret(secret: string): Promise<boolean> {
+  if (!ADMIN_SECRET_RE.test(secret)) return false;
+  const sec = getStaticSecurityConfig();
+  const digest = await deriveAdminProofDigestB64(secret);
+  return digest === sec.proofDigestB64;
+}
+
+function openStaticPdfDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') {
+      reject(new Error('INDEXEDDB_UNAVAILABLE'));
+      return;
+    }
+    const req = indexedDB.open(STATIC_PDF_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STATIC_PDF_STORE_NAME)) {
+        db.createObjectStore(STATIC_PDF_STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('INDEXEDDB_OPEN_FAILED'));
+  });
+}
+
+async function saveStaticPdfBlob(id: string, fileName: string, blob: Blob): Promise<void> {
+  const db = await openStaticPdfDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STATIC_PDF_STORE_NAME, 'readwrite');
+    tx.objectStore(STATIC_PDF_STORE_NAME).put({
+      id,
+      fileName,
+      size: blob.size,
+      mimeType: blob.type || 'application/pdf',
+      blob,
+      createdAt: Date.now(),
+    });
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error || new Error('INDEXEDDB_SAVE_FAILED'));
+    };
+  });
+}
+
+async function loadStaticPdfBlob(id: string): Promise<Blob | null> {
+  const db = await openStaticPdfDb();
+  return new Promise<Blob | null>((resolve, reject) => {
+    const tx = db.transaction(STATIC_PDF_STORE_NAME, 'readonly');
+    const req = tx.objectStore(STATIC_PDF_STORE_NAME).get(id);
+    req.onsuccess = () => {
+      db.close();
+      const rec = req.result as { blob?: Blob } | undefined;
+      resolve(rec?.blob instanceof Blob ? rec.blob : null);
+    };
+    req.onerror = () => {
+      db.close();
+      reject(req.error || new Error('INDEXEDDB_READ_FAILED'));
+    };
+  });
+}
+
+async function deleteStaticPdfBlob(id: string): Promise<void> {
+  try {
+    const db = await openStaticPdfDb();
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STATIC_PDF_STORE_NAME, 'readwrite');
+      tx.objectStore(STATIC_PDF_STORE_NAME).delete(id);
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+      tx.onerror = () => {
+        db.close();
+        resolve();
+      };
+    });
+  } catch {
+    // Ignore cleanup errors
+  }
 }
 
 // ==================== ADMIN SECRET & ROSTER CRYPTO ====================
@@ -297,7 +480,7 @@ async function resolveUnlockedRosterData(explicitSecret?: string, serverWrappedK
   }
 
   let wrappedFromServer = serverWrappedKey || cachedWrappedRosterKey;
-  if (!wrappedFromServer) {
+  if (!wrappedFromServer && (await isApiBackendOnline())) {
     try {
       const resp = await fetch('/api/admin/verify', {
         method: 'POST',
@@ -316,8 +499,13 @@ async function resolveUnlockedRosterData(explicitSecret?: string, serverWrappedK
     }
   }
 
-  const candidates = wrappedFromServer ? [wrappedFromServer, WRAPPED_DEFAULT_ROSTER_KEY] : [WRAPPED_DEFAULT_ROSTER_KEY];
-  for (const cand of candidates) {
+  const staticSec = getStaticSecurityConfig();
+  const candidateSet = new Set<string>();
+  if (wrappedFromServer) candidateSet.add(wrappedFromServer);
+  if (staticSec.wrappedRosterKey) candidateSet.add(staticSec.wrappedRosterKey);
+  candidateSet.add(WRAPPED_DEFAULT_ROSTER_KEY);
+
+  for (const cand of candidateSet) {
     try {
       const unlocked = await tryDecryptRosterWithWrappedHex(cand, secret);
       unlockedRosterCache = unlocked;
@@ -403,21 +591,34 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
   const pwd = String(password || '');
   if (!pwd) return false;
   const candidateHash = await hashAdminPassword(pwd);
-  try {
-    const resp = await fetch('/api/admin/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passwordHash: candidateHash }),
-    });
-    if (!resp.ok) return false;
-    const json = (await resp.json()) as { ok?: boolean; wrappedRosterKey?: string };
-    if (json.ok && typeof json.wrappedRosterKey === 'string' && ADMIN_SECRET_RE.test(json.wrappedRosterKey)) {
-      cachedWrappedRosterKey = json.wrappedRosterKey;
+
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch('/api/admin/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passwordHash: candidateHash }),
+      });
+      const ct = (resp.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('application/json')) {
+        if (!resp.ok) return false;
+        const json = (await resp.json()) as { ok?: boolean; wrappedRosterKey?: string };
+        if (json.ok && typeof json.wrappedRosterKey === 'string' && ADMIN_SECRET_RE.test(json.wrappedRosterKey)) {
+          cachedWrappedRosterKey = json.wrappedRosterKey;
+        }
+        return Boolean(json.ok);
+      }
+    } catch {
+      // Fall through to static verification if backend is unreachable
     }
-    return Boolean(json.ok);
-  } catch {
-    return false;
   }
+
+  const sec = getStaticSecurityConfig();
+  if (candidateHash === sec.passwordHash) {
+    cachedWrappedRosterKey = sec.wrappedRosterKey;
+    return true;
+  }
+  return false;
 }
 
 export async function verifyAndUnlockAdmin(password: string): Promise<{ ok: boolean; writeSecret: string }> {
@@ -453,46 +654,70 @@ export async function updateAdminPassword(
     // Keep going even if roster key wasn't unlocked yet
   }
 
-  try {
-    const resp = await fetch('/api/admin/password', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret,
-      },
-      body: JSON.stringify({
-        passwordHash: digest,
-        proofDigestB64,
-        wrappedRosterKey,
-      }),
-    });
-    const json = (await resp.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-    if (!resp.ok || !json.ok) {
-      return { ok: false, error: json.error || 'ADMIN_AUTH_FAILED' };
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch('/api/admin/password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': secret,
+        },
+        body: JSON.stringify({
+          passwordHash: digest,
+          proofDigestB64,
+          wrappedRosterKey,
+        }),
+      });
+      const json = (await resp.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!resp.ok || !json.ok) {
+        return { ok: false, error: json.error || 'ADMIN_AUTH_FAILED' };
+      }
+      if (wrappedRosterKey) {
+        cachedWrappedRosterKey = wrappedRosterKey;
+      }
+      setAdminWriteSecret(newWriteSecret);
+      return { ok: true, newWriteSecret };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : 'save_failed' };
     }
-    if (wrappedRosterKey) {
-      cachedWrappedRosterKey = wrappedRosterKey;
-    }
-    setAdminWriteSecret(newWriteSecret);
-    return { ok: true, newWriteSecret };
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : 'save_failed' };
   }
+
+  if (!(await verifyStaticAdminSecret(secret))) {
+    return { ok: false, error: 'ADMIN_AUTH_FAILED' };
+  }
+  const prev = getStaticSecurityConfig();
+  const nextWrapped = wrappedRosterKey || prev.wrappedRosterKey;
+  writeStaticJson('security', {
+    passwordHash: digest,
+    proofDigestB64,
+    wrappedRosterKey: nextWrapped,
+  } satisfies StaticAdminSecurityConfig);
+  cachedWrappedRosterKey = nextWrapped;
+  setAdminWriteSecret(newWriteSecret);
+  return { ok: true, newWriteSecret };
 }
 
 // ==================== SITE ACCESS SETTINGS ====================
 export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
-  try {
-    const resp = await fetch('/api/access', { cache: 'no-store' });
-    if (!resp.ok) return { requireStudentLogin: false, updatedAtMs: 0 };
-    const json = (await resp.json()) as { requireStudentLogin?: boolean; updatedAtMs?: number };
-    return {
-      requireStudentLogin: json.requireStudentLogin === true,
-      updatedAtMs: Number(json.updatedAtMs) || 0,
-    };
-  } catch {
-    return { requireStudentLogin: false, updatedAtMs: 0 };
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch('/api/access', { cache: 'no-store' });
+      if (resp.ok) {
+        const json = (await resp.json()) as { requireStudentLogin?: boolean; updatedAtMs?: number };
+        return {
+          requireStudentLogin: json.requireStudentLogin === true,
+          updatedAtMs: Number(json.updatedAtMs) || 0,
+        };
+      }
+    } catch {
+      // Fallback to static store
+    }
   }
+  const saved = readStaticJson<Partial<SiteAccessSettings>>('access', {});
+  return {
+    requireStudentLogin: saved.requireStudentLogin === true,
+    updatedAtMs: Number(saved.updatedAtMs) || 0,
+  };
 }
 
 export function subscribeSiteAccessSettings(onChange: (settings: SiteAccessSettings) => void): Unsubscribe {
@@ -515,27 +740,40 @@ export async function saveSiteAccessSettings(
   adminSecret?: string,
 ): Promise<SiteAccessSettings> {
   const secret = resolveAdminWriteSecret(adminSecret);
-  const resp = await fetch('/api/access', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Secret': secret,
-    },
-    body: JSON.stringify({ requireStudentLogin: Boolean(requireStudentLogin) }),
-  });
-  const json = (await resp.json().catch(() => ({}))) as {
-    ok?: boolean;
-    error?: string;
-    requireStudentLogin?: boolean;
-    updatedAtMs?: number;
-  };
-  if (!resp.ok || !json.ok) {
-    throw new Error(json.error || `HTTP_${resp.status}`);
+  if (await isApiBackendOnline()) {
+    const resp = await fetch('/api/access', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': secret,
+      },
+      body: JSON.stringify({ requireStudentLogin: Boolean(requireStudentLogin) }),
+    });
+    const json = (await resp.json().catch(() => ({}))) as {
+      ok?: boolean;
+      error?: string;
+      requireStudentLogin?: boolean;
+      updatedAtMs?: number;
+    };
+    if (!resp.ok || !json.ok) {
+      throw new Error(json.error || `HTTP_${resp.status}`);
+    }
+    return {
+      requireStudentLogin: Boolean(json.requireStudentLogin),
+      updatedAtMs: Number(json.updatedAtMs) || Date.now(),
+    };
   }
-  return {
-    requireStudentLogin: Boolean(json.requireStudentLogin),
-    updatedAtMs: Number(json.updatedAtMs) || Date.now(),
+
+  if (!(await verifyStaticAdminSecret(secret))) {
+    throw new Error('ADMIN_AUTH_FAILED');
+  }
+  const next: SiteAccessSettings = {
+    requireStudentLogin: Boolean(requireStudentLogin),
+    updatedAtMs: Date.now(),
   };
+  writeStaticJson('access', next);
+  emitLocalTopic('access', next);
+  return next;
 }
 
 // ==================== STUDENT LOGIN & PREFS ====================
@@ -562,40 +800,67 @@ export async function checkStudentLoginStatus(rawSid: string): Promise<StudentLo
   const allowlistMatch = verifyStudentId(sid);
   const authHash = hashStudentId(sid);
 
-  try {
-    const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
-    if (resp.ok) {
-      const json = (await resp.json()) as ServerStudentStatusResponse;
-      if (json.custom) {
-        if (json.custom.deleted === true) return { ok: false, reason: 'deleted' };
-        if (json.custom.active === false) return { ok: false, reason: 'inactive' };
-        const decryptedCustomName =
-          typeof json.custom.encName === 'string' && json.custom.encName
-            ? decryptStudentName(sid, json.custom.encName)
-            : '';
-        const prog: 'tr' | 'en' =
-          json.custom.prog === 'en' ? 'en' : json.custom.prog === 'tr' ? 'tr' : allowlistMatch?.prog || 'tr';
-        return {
-          ok: true,
-          match: {
-            hash: authHash,
-            last4: sid.slice(-4),
-            group: normalizeAssignedGroup(json.custom.group || allowlistMatch?.group || 'I'),
-            prog,
-            labGroup: prog === 'en' ? '' : normalizeLabGroupPref(json.custom.labGroup),
-            name: decryptedCustomName || allowlistMatch?.name || '',
-            source: allowlistMatch ? 'allowlist' : 'custom',
-            isAdmin: isAdminStudentId(sid),
-          },
-        };
+  let custom: Record<string, unknown> | null = null;
+  let directory: Record<string, unknown> | null = null;
+
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
+      if (resp.ok) {
+        const json = (await resp.json()) as ServerStudentStatusResponse;
+        custom = (json.custom as Record<string, unknown> | null) ?? null;
+        directory = (json.directory as Record<string, unknown> | null) ?? null;
       }
-      if (allowlistMatch && json.directory) {
-        if (json.directory.deleted === true) return { ok: false, reason: 'deleted' };
-        if (json.directory.active === false) return { ok: false, reason: 'inactive' };
-      }
+    } catch {
+      // Offline fallback to built-in allowlist / static store
     }
-  } catch {
-    // Offline fallback to built-in allowlist
+  } else {
+    const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+    const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+    const cRow = customMap[authHash];
+    const dRow = dirMap[authHash];
+    if (cRow) {
+      custom = {
+        group: cRow.group_name,
+        labGroup: cRow.lab_group,
+        prog: cRow.prog,
+        encName: cRow.enc_name,
+        active: cRow.active !== 0 && cRow.active !== false,
+        deleted: cRow.deleted === 1 || cRow.deleted === true,
+      };
+    }
+    if (dRow) {
+      directory = {
+        active: dRow.active !== 0 && dRow.active !== false,
+        deleted: dRow.deleted === 1 || dRow.deleted === true,
+      };
+    }
+  }
+
+  if (custom) {
+    if (custom.deleted === true) return { ok: false, reason: 'deleted' };
+    if (custom.active === false) return { ok: false, reason: 'inactive' };
+    const decryptedCustomName =
+      typeof custom.encName === 'string' && custom.encName ? decryptStudentName(sid, custom.encName) : '';
+    const prog: 'tr' | 'en' =
+      custom.prog === 'en' ? 'en' : custom.prog === 'tr' ? 'tr' : allowlistMatch?.prog || 'tr';
+    return {
+      ok: true,
+      match: {
+        hash: authHash,
+        last4: sid.slice(-4),
+        group: normalizeAssignedGroup(custom.group || allowlistMatch?.group || 'I'),
+        prog,
+        labGroup: prog === 'en' ? '' : normalizeLabGroupPref(custom.labGroup),
+        name: decryptedCustomName || allowlistMatch?.name || '',
+        source: allowlistMatch ? 'allowlist' : 'custom',
+        isAdmin: isAdminStudentId(sid),
+      },
+    };
+  }
+  if (allowlistMatch && directory) {
+    if (directory.deleted === true) return { ok: false, reason: 'deleted' };
+    if (directory.active === false) return { ok: false, reason: 'inactive' };
   }
 
   if (allowlistMatch) {
@@ -613,21 +878,38 @@ export async function checkStudentSessionActive(authHash: string): Promise<Stude
   if (!isValidAuthHash(authHash) || isAdminStudentHash(authHash)) {
     return 'active';
   }
-  try {
-    const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
-    if (!resp.ok) return 'active';
-    const json = (await resp.json()) as ServerStudentStatusResponse;
-    if (json.custom) {
-      if (json.custom.deleted === true) return 'deleted';
-      if (json.custom.active === false) return 'inactive';
-      return 'active';
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
+      if (!resp.ok) return 'active';
+      const json = (await resp.json()) as ServerStudentStatusResponse;
+      if (json.custom) {
+        if (json.custom.deleted === true) return 'deleted';
+        if (json.custom.active === false) return 'inactive';
+        return 'active';
+      }
+      if (json.directory) {
+        if (json.directory.deleted === true) return 'deleted';
+        if (json.directory.active === false) return 'inactive';
+      }
+    } catch {
+      // Ignore transient offline error
     }
-    if (json.directory) {
-      if (json.directory.deleted === true) return 'deleted';
-      if (json.directory.active === false) return 'inactive';
-    }
-  } catch {
-    // Ignore transient offline error
+    return 'active';
+  }
+
+  const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+  const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+  const cRow = customMap[authHash];
+  const dRow = dirMap[authHash];
+  if (cRow) {
+    if (cRow.deleted === 1 || cRow.deleted === true) return 'deleted';
+    if (cRow.active === 0 || cRow.active === false) return 'inactive';
+    return 'active';
+  }
+  if (dRow) {
+    if (dRow.deleted === 1 || dRow.deleted === true) return 'deleted';
+    if (dRow.active === 0 || dRow.active === false) return 'inactive';
   }
   return 'active';
 }
@@ -654,45 +936,72 @@ export async function isStudentAlreadyRegistered(rawSid: string): Promise<boolea
   const authHash = hashStudentId(sid);
   const inAllowlist = Boolean(verifyStudentId(sid));
 
-  try {
-    const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
-    if (!resp.ok) return inAllowlist;
-    const json = (await resp.json()) as ServerStudentStatusResponse;
-    const customExists = Boolean(json.custom);
-    const dirExists = Boolean(json.directory);
-    const customDeleted = Boolean(json.custom && json.custom.deleted === true);
-    const dirDeleted = Boolean(json.directory && json.directory.deleted === true);
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
+      if (!resp.ok) return inAllowlist;
+      const json = (await resp.json()) as ServerStudentStatusResponse;
+      const customExists = Boolean(json.custom);
+      const dirExists = Boolean(json.directory);
+      const customDeleted = Boolean(json.custom && json.custom.deleted === true);
+      const dirDeleted = Boolean(json.directory && json.directory.deleted === true);
 
-    if (customExists && !customDeleted) return true;
-    if (dirExists && !dirDeleted) return true;
-    if (inAllowlist && !customDeleted && !dirDeleted) return true;
-    return false;
-  } catch {
-    return inAllowlist;
+      if (customExists && !customDeleted) return true;
+      if (dirExists && !dirDeleted) return true;
+      if (inAllowlist && !customDeleted && !dirDeleted) return true;
+      return false;
+    } catch {
+      return inAllowlist;
+    }
   }
+
+  const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+  const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+  const cRow = customMap[authHash];
+  const dRow = dirMap[authHash];
+  const customDeleted = Boolean(cRow && (cRow.deleted === 1 || cRow.deleted === true));
+  const dirDeleted = Boolean(dRow && (dRow.deleted === 1 || dRow.deleted === true));
+  if (cRow && !customDeleted) return true;
+  if (dRow && !dirDeleted) return true;
+  if (inAllowlist && !customDeleted && !dirDeleted) return true;
+  return false;
 }
 
 export async function loadCloudStudentPrefs(authHash: string, cloudDocId: string): Promise<StudentCloudPrefs | null> {
   if ((!isValidAuthHash(authHash) && !verifyStudentHash(authHash)) || !isValidCloudDocId(cloudDocId)) {
     return null;
   }
-  try {
-    const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cloudDocId)}`, { cache: 'no-store' });
-    if (!resp.ok) return null;
-    const json = (await resp.json()) as { prefs?: Record<string, unknown> | null };
-    const data = json.prefs;
-    if (!data) return null;
-    return {
-      myMbuGroup: normalizeMbuGroupPref(data.myMbuGroup),
-      myLabGroup: normalizeLabGroupPref(data.myLabGroup),
-      otherGroupMode: normalizeOtherGroupModePref(data.otherGroupMode),
-      lang: normalizeLangPref(data.lang),
-      authHash: typeof data.authHash === 'string' && isValidAuthHash(data.authHash) ? data.authHash : undefined,
-      last4: typeof data.last4 === 'string' && /^[0-9]{4}$/.test(data.last4) ? data.last4 : undefined,
-    };
-  } catch {
-    return null;
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cloudDocId)}`, { cache: 'no-store' });
+      if (!resp.ok) return null;
+      const json = (await resp.json()) as { prefs?: Record<string, unknown> | null };
+      const data = json.prefs;
+      if (!data) return null;
+      return {
+        myMbuGroup: normalizeMbuGroupPref(data.myMbuGroup),
+        myLabGroup: normalizeLabGroupPref(data.myLabGroup),
+        otherGroupMode: normalizeOtherGroupModePref(data.otherGroupMode),
+        lang: normalizeLangPref(data.lang),
+        authHash: typeof data.authHash === 'string' && isValidAuthHash(data.authHash) ? data.authHash : undefined,
+        last4: typeof data.last4 === 'string' && /^[0-9]{4}$/.test(data.last4) ? data.last4 : undefined,
+      };
+    } catch {
+      return null;
+    }
   }
+
+  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+  const data = prefsMap[cloudDocId];
+  if (!data) return null;
+  return {
+    myMbuGroup: normalizeMbuGroupPref(data.my_mbu_group ?? data.myMbuGroup),
+    myLabGroup: normalizeLabGroupPref(data.my_lab_group ?? data.myLabGroup),
+    otherGroupMode: normalizeOtherGroupModePref(data.other_group_mode ?? data.otherGroupMode),
+    lang: normalizeLangPref(data.lang),
+    authHash: typeof data.auth_hash === 'string' && isValidAuthHash(data.auth_hash) ? data.auth_hash : undefined,
+    last4: typeof data.last4 === 'string' && /^[0-9]{4}$/.test(data.last4) ? data.last4 : undefined,
+  };
 }
 
 export async function saveCloudStudentPrefs(
@@ -715,23 +1024,40 @@ export async function saveCloudStudentPrefs(
       ? prefs.last4.trim()
       : '';
 
-  try {
-    const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cloudDocId)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        myMbuGroup: normalizeMbuGroupPref(prefs.myMbuGroup),
-        myLabGroup: normalizeLabGroupPref(prefs.myLabGroup),
-        otherGroupMode: normalizeOtherGroupModePref(prefs.otherGroupMode),
-        lang: cleanLang,
-        authHash: isValidAuthHash(authHash) ? authHash : '',
-        last4: cleanLast4,
-      }),
-    });
-    return resp.ok;
-  } catch {
-    return false;
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cloudDocId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          myMbuGroup: normalizeMbuGroupPref(prefs.myMbuGroup),
+          myLabGroup: normalizeLabGroupPref(prefs.myLabGroup),
+          otherGroupMode: normalizeOtherGroupModePref(prefs.otherGroupMode),
+          lang: cleanLang,
+          authHash: isValidAuthHash(authHash) ? authHash : '',
+          last4: cleanLast4,
+        }),
+      });
+      return resp.ok;
+    } catch {
+      return false;
+    }
   }
+
+  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+  const prev = prefsMap[cloudDocId] || {};
+  prefsMap[cloudDocId] = {
+    cloud_key: cloudDocId,
+    auth_hash: (isValidAuthHash(authHash) ? authHash : '') || prev.auth_hash || '',
+    last4: cleanLast4 || prev.last4 || '',
+    my_mbu_group: normalizeMbuGroupPref(prefs.myMbuGroup),
+    my_lab_group: normalizeLabGroupPref(prefs.myLabGroup),
+    other_group_mode: normalizeOtherGroupModePref(prefs.otherGroupMode),
+    lang: cleanLang || (typeof prev.lang === 'string' ? prev.lang : ''),
+    updated_at: Date.now(),
+  };
+  writeStaticJson('student_prefs', prefsMap);
+  return true;
 }
 
 // ==================== ANNOUNCEMENTS ====================
@@ -750,25 +1076,39 @@ function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement 
 }
 
 export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
-  try {
-    const resp = await fetch('/api/announcements?active=1', { cache: 'no-store' });
-    if (!resp.ok) return [];
-    const json = (await resp.json()) as { announcements?: Record<string, unknown>[] };
-    return Array.isArray(json.announcements) ? json.announcements.map(mapServerAnnouncement) : [];
-  } catch {
-    return [];
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch('/api/announcements?active=1', { cache: 'no-store' });
+      if (!resp.ok) return [];
+      const json = (await resp.json()) as { announcements?: Record<string, unknown>[] };
+      return Array.isArray(json.announcements) ? json.announcements.map(mapServerAnnouncement) : [];
+    } catch {
+      return [];
+    }
   }
+  const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
+  return Object.values(map)
+    .filter((r) => r && r.deleted !== true && Boolean(r.active))
+    .map(mapServerAnnouncement)
+    .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
 }
 
 export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
-  try {
-    const resp = await fetch('/api/announcements', { cache: 'no-store' });
-    if (!resp.ok) return [];
-    const json = (await resp.json()) as { announcements?: Record<string, unknown>[] };
-    return Array.isArray(json.announcements) ? json.announcements.map(mapServerAnnouncement) : [];
-  } catch {
-    return [];
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch('/api/announcements', { cache: 'no-store' });
+      if (!resp.ok) return [];
+      const json = (await resp.json()) as { announcements?: Record<string, unknown>[] };
+      return Array.isArray(json.announcements) ? json.announcements.map(mapServerAnnouncement) : [];
+    } catch {
+      return [];
+    }
   }
+  const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
+  return Object.values(map)
+    .filter((r) => r && r.deleted !== true)
+    .map(mapServerAnnouncement)
+    .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
 }
 
 export async function saveAnnouncement(
@@ -790,45 +1130,87 @@ export async function saveAnnouncement(
     throw new Error('Title and message are required.');
   }
 
-  const resp = await fetch('/api/announcements', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Secret': secret,
-    },
-    body: JSON.stringify({
-      id: input.id,
-      title: cleanTitle,
-      message: cleanMessage,
-      tone: normalizeAnnouncementTone(input.tone),
-      active: Boolean(input.active),
-      targetGroup: normalizeMbuGroupPref(input.targetGroup),
-      targetProg: normalizeLangPref(input.targetProg),
-    }),
-  });
-  const json = (await resp.json().catch(() => ({}))) as {
-    ok?: boolean;
-    error?: string;
-    announcement?: Record<string, unknown>;
-  };
-  if (!resp.ok || !json.ok || !json.announcement) {
-    throw new Error(json.error || `HTTP_${resp.status}`);
+  if (await isApiBackendOnline()) {
+    const resp = await fetch('/api/announcements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': secret,
+      },
+      body: JSON.stringify({
+        id: input.id,
+        title: cleanTitle,
+        message: cleanMessage,
+        tone: normalizeAnnouncementTone(input.tone),
+        active: Boolean(input.active),
+        targetGroup: normalizeMbuGroupPref(input.targetGroup),
+        targetProg: normalizeLangPref(input.targetProg),
+      }),
+    });
+    const json = (await resp.json().catch(() => ({}))) as {
+      ok?: boolean;
+      error?: string;
+      announcement?: Record<string, unknown>;
+    };
+    if (!resp.ok || !json.ok || !json.announcement) {
+      throw new Error(json.error || `HTTP_${resp.status}`);
+    }
+    return mapServerAnnouncement(json.announcement);
   }
-  return mapServerAnnouncement(json.announcement);
+
+  if (!(await verifyStaticAdminSecret(secret))) {
+    throw new Error('ADMIN_AUTH_FAILED');
+  }
+  const map = readStaticJson<Record<string, CloudAnnouncement & { deleted?: boolean }>>('announcements', {});
+  const id =
+    typeof input.id === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(input.id.trim())
+      ? input.id.trim()
+      : `ann_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const now = Date.now();
+  const prev = map[id];
+  const saved: CloudAnnouncement = {
+    id,
+    title: cleanTitle,
+    message: cleanMessage,
+    tone: normalizeAnnouncementTone(input.tone),
+    active: Boolean(input.active),
+    targetGroup: normalizeMbuGroupPref(input.targetGroup),
+    targetProg: normalizeLangPref(input.targetProg),
+    createdAtMs: prev?.createdAtMs || now,
+    updatedAtMs: now,
+  };
+  map[id] = { ...saved, deleted: false };
+  writeStaticJson('announcements', map);
+  emitLocalTopic('announcements', { action: 'save', id });
+  return saved;
 }
 
 export async function deleteAnnouncement(id: string, adminSecret?: string): Promise<void> {
   const cleanId = String(id || '').trim();
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(cleanId)) return;
   const secret = resolveAdminWriteSecret(adminSecret);
-  const resp = await fetch(`/api/announcements/${encodeURIComponent(cleanId)}`, {
-    method: 'DELETE',
-    headers: { 'X-Admin-Secret': secret },
-  });
-  if (!resp.ok) {
-    const json = (await resp.json().catch(() => ({}))) as { error?: string };
-    throw new Error(json.error || `HTTP_${resp.status}`);
+
+  if (await isApiBackendOnline()) {
+    const resp = await fetch(`/api/announcements/${encodeURIComponent(cleanId)}`, {
+      method: 'DELETE',
+      headers: { 'X-Admin-Secret': secret },
+    });
+    if (!resp.ok) {
+      const json = (await resp.json().catch(() => ({}))) as { error?: string };
+      throw new Error(json.error || `HTTP_${resp.status}`);
+    }
+    return;
   }
+
+  if (!(await verifyStaticAdminSecret(secret))) {
+    throw new Error('ADMIN_AUTH_FAILED');
+  }
+  const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
+  if (map[cleanId]) {
+    map[cleanId] = { ...map[cleanId], deleted: true, active: false, updatedAtMs: Date.now() };
+    writeStaticJson('announcements', map);
+  }
+  emitLocalTopic('announcements', { action: 'delete', id: cleanId });
 }
 
 // ==================== LESSON MATERIALS & SERVER PDF HOSTING ====================
@@ -843,6 +1225,7 @@ export function generateLessonMaterialId(date: string, slotNo: number): string {
 export async function deleteServerPdfByUrl(pdfUrl: string, adminSecret?: string): Promise<void> {
   const clean = typeof pdfUrl === 'string' ? pdfUrl.trim() : '';
   if (!clean.startsWith('/api/lesson-pdf/')) return;
+  if (!(await isApiBackendOnline())) return;
   const fileId = clean.slice('/api/lesson-pdf/'.length).split('?')[0].trim();
   if (!/^[a-zA-Z0-9_-]{8,96}$/.test(fileId)) return;
   try {
@@ -862,7 +1245,7 @@ export async function uploadLessonPdfFile(
   onProgress?: (percent: number, loadedBytes: number, totalBytes: number) => void,
   materialId?: string,
 ): Promise<{
-  sourceType: 'server';
+  sourceType: 'server' | 'chunks';
   materialId: string;
   url: string;
   fileId: string;
@@ -886,6 +1269,23 @@ export async function uploadLessonPdfFile(
   const cleanFileName = (file.name || 'ders.pdf').trim().slice(0, 120);
 
   onProgress?.(2, 0, file.size);
+
+  if (!(await isApiBackendOnline())) {
+    if (!(await verifyStaticAdminSecret(secret))) {
+      throw new Error('ADMIN_AUTH_FAILED');
+    }
+    await saveStaticPdfBlob(cleanMatId, cleanFileName, file);
+    onProgress?.(100, file.size, file.size);
+    return {
+      sourceType: 'chunks',
+      materialId: cleanMatId,
+      url: '',
+      fileId: cleanMatId,
+      fileName: cleanFileName,
+      size: file.size,
+      chunkCount: 1,
+    };
+  }
 
   const serverChunkSize = 2 * 1024 * 1024;
   const totalChunks = Math.max(1, Math.ceil(file.size / serverChunkSize));
@@ -979,6 +1379,12 @@ export async function downloadLessonMaterialChunks(
   _chunkCount: number,
   onProgress?: (percent: number, loadedChunks: number, totalChunks: number) => void,
 ): Promise<Blob> {
+  if (!(await isApiBackendOnline())) {
+    const blob = await loadStaticPdfBlob(materialId);
+    if (!blob) throw new Error('STATIC_PDF_NOT_FOUND');
+    onProgress?.(100, 1, 1);
+    return blob;
+  }
   const resp = await fetch(`/api/lesson-pdf/${encodeURIComponent(materialId)}?download=1`, { cache: 'no-store' });
   if (!resp.ok) throw new Error(`HTTP_${resp.status}`);
   onProgress?.(100, 1, 1);
@@ -1016,17 +1422,24 @@ function mapServerMaterial(m: Record<string, unknown>): LessonMaterial {
 }
 
 export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
-  try {
-    const resp = await fetch('/api/materials', { cache: 'no-store' });
-    if (!resp.ok) return [];
-    const json = (await resp.json()) as { ok?: boolean; materials?: Record<string, unknown>[] };
-    if (!json.ok || !Array.isArray(json.materials)) return [];
-    return json.materials
-      .map(mapServerMaterial)
-      .sort((a, b) => (a.createdAtMs || a.updatedAtMs) - (b.createdAtMs || b.updatedAtMs));
-  } catch {
-    return [];
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch('/api/materials', { cache: 'no-store' });
+      if (!resp.ok) return [];
+      const json = (await resp.json()) as { ok?: boolean; materials?: Record<string, unknown>[] };
+      if (!json.ok || !Array.isArray(json.materials)) return [];
+      return json.materials
+        .map(mapServerMaterial)
+        .sort((a, b) => (a.createdAtMs || a.updatedAtMs) - (b.createdAtMs || b.updatedAtMs));
+    } catch {
+      return [];
+    }
   }
+  const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
+  return Object.values(map)
+    .filter((r) => r && r.deleted !== true)
+    .map(mapServerMaterial)
+    .sort((a, b) => (a.createdAtMs || a.updatedAtMs) - (b.createdAtMs || b.updatedAtMs));
 }
 
 export function subscribeLessonMaterials(onUpdate: (materials: LessonMaterial[]) => void): Unsubscribe {
@@ -1058,6 +1471,7 @@ export async function saveLessonMaterial(
   const targetProg = normalizeLangPref(input.targetProg);
   const cleanTitle = String(input.title || '').trim().slice(0, 120);
   const rawData = typeof input.pdfData === 'string' ? input.pdfData.trim().replace(/^data:[^;]+;base64,/i, '') : '';
+  const cleanChunkCount = Math.max(0, Math.round(Number(input.chunkCount) || 0));
   let cleanUrl = String(input.pdfUrl || '').trim();
   if (cleanUrl && !cleanUrl.startsWith('/api/lesson-pdf/') && !/^https?:\/\//i.test(cleanUrl)) {
     cleanUrl = `https://${cleanUrl}`;
@@ -1067,9 +1481,11 @@ export async function saveLessonMaterial(
   const sourceType: 'url' | 'file' | 'server' | 'chunks' =
     cleanUrl.startsWith('/api/lesson-pdf/') || input.sourceType === 'server'
       ? 'server'
-      : input.sourceType === 'file' || (rawData.length > 0 && !cleanUrl)
-        ? 'file'
-        : 'url';
+      : input.sourceType === 'chunks' && cleanChunkCount > 0
+        ? 'chunks'
+        : input.sourceType === 'file' || (rawData.length > 0 && !cleanUrl)
+          ? 'file'
+          : 'url';
 
   if (!cleanDate || !cleanTitle) {
     throw new Error('Date and title are required.');
@@ -1085,49 +1501,92 @@ export async function saveLessonMaterial(
     ? input.id.trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 110)
     : generateLessonMaterialId(cleanDate, slotNo);
 
-  const resp = await fetch('/api/materials', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Secret': secret,
-    },
-    body: JSON.stringify({
-      id: candidateId,
-      date: cleanDate,
-      slotNo,
-      targetProg,
-      title: cleanTitle,
-      sourceType,
-      pdfUrl: sourceType === 'file' ? '' : cleanUrl,
-      pdfData: sourceType === 'file' ? rawData : '',
-      chunkCount: 0,
-      pdfName: String(input.pdfName || '').trim().slice(0, 120),
-      fileSize: typeof input.fileSize === 'number' ? Math.round(input.fileSize) : 0,
-    }),
-  });
-  const json = (await resp.json().catch(() => ({}))) as {
-    ok?: boolean;
-    error?: string;
-    material?: Record<string, unknown>;
-  };
-  if (!resp.ok || !json.ok || !json.material) {
-    throw new Error(json.error || `HTTP_${resp.status}`);
+  if (await isApiBackendOnline()) {
+    const resp = await fetch('/api/materials', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': secret,
+      },
+      body: JSON.stringify({
+        id: candidateId,
+        date: cleanDate,
+        slotNo,
+        targetProg,
+        title: cleanTitle,
+        sourceType,
+        pdfUrl: sourceType === 'file' || sourceType === 'chunks' ? '' : cleanUrl,
+        pdfData: sourceType === 'file' ? rawData : '',
+        chunkCount: sourceType === 'chunks' ? cleanChunkCount : 0,
+        pdfName: String(input.pdfName || '').trim().slice(0, 120),
+        fileSize: typeof input.fileSize === 'number' ? Math.round(input.fileSize) : 0,
+      }),
+    });
+    const json = (await resp.json().catch(() => ({}))) as {
+      ok?: boolean;
+      error?: string;
+      material?: Record<string, unknown>;
+    };
+    if (!resp.ok || !json.ok || !json.material) {
+      throw new Error(json.error || `HTTP_${resp.status}`);
+    }
+    return mapServerMaterial(json.material);
   }
-  return mapServerMaterial(json.material);
+
+  if (!(await verifyStaticAdminSecret(secret))) {
+    throw new Error('ADMIN_AUTH_FAILED');
+  }
+  const map = readStaticJson<Record<string, LessonMaterial & { deleted?: boolean }>>('materials', {});
+  const now = Date.now();
+  const prev = map[candidateId];
+  const saved: LessonMaterial = {
+    id: candidateId,
+    date: cleanDate,
+    slotNo,
+    targetProg,
+    title: cleanTitle,
+    sourceType,
+    pdfUrl: sourceType === 'file' || sourceType === 'chunks' ? '' : cleanUrl,
+    pdfData: sourceType === 'file' ? rawData : undefined,
+    chunkCount: sourceType === 'chunks' ? cleanChunkCount : undefined,
+    pdfName: String(input.pdfName || '').trim().slice(0, 120) || undefined,
+    fileSize: typeof input.fileSize === 'number' && input.fileSize > 0 ? Math.round(input.fileSize) : undefined,
+    createdAtMs: prev?.createdAtMs || now,
+    updatedAtMs: now,
+  };
+  map[candidateId] = { ...saved, deleted: false };
+  writeStaticJson('materials', map);
+  emitLocalTopic('materials', { action: 'save', id: candidateId });
+  return saved;
 }
 
 export async function deleteLessonMaterial(id: string, adminSecret?: string): Promise<void> {
   const cleanId = String(id || '').trim();
   if (!cleanId) return;
   const secret = resolveAdminWriteSecret(adminSecret);
-  const resp = await fetch(`/api/materials/${encodeURIComponent(cleanId)}`, {
-    method: 'DELETE',
-    headers: { 'X-Admin-Secret': secret },
-  });
-  if (!resp.ok) {
-    const json = (await resp.json().catch(() => ({}))) as { error?: string };
-    throw new Error(json.error || `HTTP_${resp.status}`);
+
+  if (await isApiBackendOnline()) {
+    const resp = await fetch(`/api/materials/${encodeURIComponent(cleanId)}`, {
+      method: 'DELETE',
+      headers: { 'X-Admin-Secret': secret },
+    });
+    if (!resp.ok) {
+      const json = (await resp.json().catch(() => ({}))) as { error?: string };
+      throw new Error(json.error || `HTTP_${resp.status}`);
+    }
+    return;
   }
+
+  if (!(await verifyStaticAdminSecret(secret))) {
+    throw new Error('ADMIN_AUTH_FAILED');
+  }
+  const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
+  if (map[cleanId]) {
+    map[cleanId] = { ...map[cleanId], deleted: true, updatedAtMs: Date.now() };
+    writeStaticJson('materials', map);
+  }
+  await deleteStaticPdfBlob(cleanId);
+  emitLocalTopic('materials', { action: 'delete', id: cleanId });
 }
 
 // ==================== ADMIN STUDENT MANAGEMENT ====================
@@ -1189,33 +1648,117 @@ export async function addOrUpdateCustomStudent(
     // Optional encSid
   }
 
-  const resp = await fetch('/api/admin/students', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Secret': secret,
-    },
-    body: JSON.stringify({
+  if (await isApiBackendOnline()) {
+    const resp = await fetch('/api/admin/students', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': secret,
+      },
+      body: JSON.stringify({
+        authHash,
+        cloudKey,
+        last4,
+        group,
+        labGroup,
+        prog,
+        otherGroupMode,
+        encName,
+        encFullName,
+        encSid,
+        source,
+        active,
+        rejectIfExists: Boolean(options?.rejectIfExists),
+        builtInAllowlist: Boolean(verifyStudentId(sid)),
+      }),
+    });
+    const json = (await resp.json().catch(() => ({}))) as { ok?: boolean; error?: string; updatedAtMs?: number };
+    if (!resp.ok || !json.ok) {
+      throw new Error(json.error || `HTTP_${resp.status}`);
+    }
+
+    return {
       authHash,
       cloudKey,
+      studentId: sid,
       last4,
+      fullName: cleanName,
       group,
-      labGroup,
       prog,
+      myMbuGroup: group,
+      myLabGroup: labGroup,
       otherGroupMode,
-      encName,
-      encFullName,
-      encSid,
+      lang: prog,
       source,
       active,
-      rejectIfExists: Boolean(options?.rejectIfExists),
-      builtInAllowlist: Boolean(verifyStudentId(sid)),
-    }),
-  });
-  const json = (await resp.json().catch(() => ({}))) as { ok?: boolean; error?: string; updatedAtMs?: number };
-  if (!resp.ok || !json.ok) {
-    throw new Error(json.error || `HTTP_${resp.status}`);
+      updatedAtMs: Number(json.updatedAtMs) || Date.now(),
+    };
   }
+
+  if (!(await verifyStaticAdminSecret(secret))) {
+    throw new Error('ADMIN_AUTH_FAILED');
+  }
+  const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+  const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+  const existingCustom = customMap[authHash];
+  const existingDir = dirMap[authHash];
+
+  if (options?.rejectIfExists) {
+    const customLive = Boolean(existingCustom && existingCustom.deleted !== 1 && existingCustom.deleted !== true);
+    const dirLive = Boolean(existingDir && existingDir.deleted !== 1 && existingDir.deleted !== true);
+    const customDeleted = Boolean(existingCustom && (existingCustom.deleted === 1 || existingCustom.deleted === true));
+    const dirDeleted = Boolean(existingDir && (existingDir.deleted === 1 || existingDir.deleted === true));
+    const builtInNotDeleted = Boolean(verifyStudentId(sid)) && !customDeleted && !dirDeleted;
+    if (customLive || dirLive || builtInNotDeleted) {
+      throw new Error('DUPLICATE_STUDENT_ID');
+    }
+  }
+
+  const now = Date.now();
+  customMap[authHash] = {
+    auth_hash: authHash,
+    cloud_key: cloudKey,
+    last4,
+    group_name: group,
+    lab_group: labGroup,
+    prog,
+    enc_name: encName || existingCustom?.enc_name || '',
+    enc_sid: encSid || existingCustom?.enc_sid || '',
+    active: active ? 1 : 0,
+    deleted: 0,
+    created_at: existingCustom?.created_at || now,
+    updated_at: now,
+  };
+  dirMap[authHash] = {
+    auth_hash: authHash,
+    cloud_key: cloudKey,
+    last4,
+    enc_full_name: encFullName || existingDir?.enc_full_name || '',
+    enc_sid: encSid || existingDir?.enc_sid || '',
+    group_name: group,
+    lab_group: labGroup,
+    prog,
+    source,
+    active: active ? 1 : 0,
+    deleted: 0,
+    created_at: existingDir?.created_at || now,
+    updated_at: now,
+  };
+  prefsMap[cloudKey] = {
+    cloud_key: cloudKey,
+    auth_hash: authHash,
+    last4,
+    my_mbu_group: group,
+    my_lab_group: labGroup,
+    other_group_mode: otherGroupMode,
+    lang: prog,
+    updated_at: now,
+  };
+  writeStaticJson('custom_students', customMap);
+  writeStaticJson('admin_dir', dirMap);
+  writeStaticJson('student_prefs', prefsMap);
+  emitLocalTopic('student_status', { authHash, active, deleted: false });
 
   return {
     authHash,
@@ -1231,7 +1774,7 @@ export async function addOrUpdateCustomStudent(
     lang: prog,
     source,
     active,
-    updatedAtMs: Number(json.updatedAtMs) || Date.now(),
+    updatedAtMs: now,
   };
 }
 
@@ -1291,29 +1834,76 @@ export async function deleteCustomStudent(
     encSid = await encryptAdminSid(unlockedRoster.aesKey, effectiveSid).catch(() => '');
   }
 
-  const resp = await fetch('/api/admin/students/delete', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Secret': secret,
-    },
-    body: JSON.stringify({
-      authHash,
-      cloudKey: derivedCloudKey,
+  const encName = effectiveSid && resolvedName ? encryptStudentName(effectiveSid, resolvedName.slice(0, 120)) : '';
+  const encFullName = encryptDirectoryName(authHash, resolvedName.slice(0, 120) || `Öğrenci •••${effectiveLast4}`);
+
+  if (await isApiBackendOnline()) {
+    const resp = await fetch('/api/admin/students/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': secret,
+      },
+      body: JSON.stringify({
+        authHash,
+        cloudKey: derivedCloudKey,
+        last4: effectiveLast4,
+        group: effectiveGroup,
+        labGroup: effectiveLabGroup,
+        prog: effectiveProg,
+        source: effectiveSource,
+        encName,
+        encFullName,
+        encSid,
+      }),
+    });
+    if (!resp.ok) {
+      const json = (await resp.json().catch(() => ({}))) as { error?: string };
+      throw new Error(json.error || `HTTP_${resp.status}`);
+    }
+    return;
+  }
+
+  if (!(await verifyStaticAdminSecret(secret))) {
+    throw new Error('ADMIN_AUTH_FAILED');
+  }
+  const now = Date.now();
+  const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+  const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+  customMap[authHash] = {
+    ...(customMap[authHash] || {}),
+    auth_hash: authHash,
+    cloud_key: derivedCloudKey,
+    last4: effectiveLast4,
+    group_name: effectiveGroup,
+    lab_group: effectiveLabGroup,
+    prog: effectiveProg,
+    enc_name: customMap[authHash]?.enc_name || encName,
+    enc_sid: customMap[authHash]?.enc_sid || encSid,
+    active: 0,
+    deleted: 1,
+    updated_at: now,
+  };
+  if (isValidCloudDocId(derivedCloudKey)) {
+    dirMap[authHash] = {
+      ...(dirMap[authHash] || {}),
+      auth_hash: authHash,
+      cloud_key: derivedCloudKey,
       last4: effectiveLast4,
-      group: effectiveGroup,
-      labGroup: effectiveLabGroup,
+      enc_full_name: dirMap[authHash]?.enc_full_name || encFullName,
+      enc_sid: dirMap[authHash]?.enc_sid || encSid,
+      group_name: effectiveGroup,
+      lab_group: effectiveLabGroup,
       prog: effectiveProg,
       source: effectiveSource,
-      encName: effectiveSid && resolvedName ? encryptStudentName(effectiveSid, resolvedName.slice(0, 120)) : '',
-      encFullName: encryptDirectoryName(authHash, resolvedName.slice(0, 120) || `Öğrenci •••${effectiveLast4}`),
-      encSid,
-    }),
-  });
-  if (!resp.ok) {
-    const json = (await resp.json().catch(() => ({}))) as { error?: string };
-    throw new Error(json.error || `HTTP_${resp.status}`);
+      active: 0,
+      deleted: 1,
+      updated_at: now,
+    };
   }
+  writeStaticJson('custom_students', customMap);
+  writeStaticJson('admin_dir', dirMap);
+  emitLocalTopic('student_status', { authHash, active: false, deleted: true });
 }
 
 export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStudentListItem | null> {
@@ -1328,54 +1918,72 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
   let customData: Record<string, unknown> | null = null;
   let prefsData: Record<string, unknown> | null = null;
 
-  if (hasAdminWriteSecret()) {
-    try {
-      const resp = await fetch(`/api/admin/students/lookup/${encodeURIComponent(authHash)}/${encodeURIComponent(cloudKey)}`, {
-        headers: { 'X-Admin-Secret': activeAdminWriteSecret },
-        cache: 'no-store',
-      });
-      if (resp.ok) {
-        const json = (await resp.json()) as {
-          directory?: Record<string, unknown> | null;
-          custom?: Record<string, unknown> | null;
-          prefs?: Record<string, unknown> | null;
-        };
-        if (json.directory) {
-          if (json.directory.deleted === 1) return null;
-          dirData = json.directory;
+  if (await isApiBackendOnline()) {
+    if (hasAdminWriteSecret()) {
+      try {
+        const resp = await fetch(`/api/admin/students/lookup/${encodeURIComponent(authHash)}/${encodeURIComponent(cloudKey)}`, {
+          headers: { 'X-Admin-Secret': activeAdminWriteSecret },
+          cache: 'no-store',
+        });
+        if (resp.ok) {
+          const json = (await resp.json()) as {
+            directory?: Record<string, unknown> | null;
+            custom?: Record<string, unknown> | null;
+            prefs?: Record<string, unknown> | null;
+          };
+          if (json.directory) {
+            if (json.directory.deleted === 1) return null;
+            dirData = json.directory;
+          }
+          if (json.custom) {
+            if (json.custom.deleted === 1) return null;
+            customData = json.custom;
+          }
+          if (json.prefs) prefsData = json.prefs;
         }
-        if (json.custom) {
-          if (json.custom.deleted === 1) return null;
-          customData = json.custom;
-        }
-        if (json.prefs) prefsData = json.prefs;
+      } catch {
+        // Fallback to local allowlist
       }
-    } catch {
-      // Fallback to local allowlist
+    } else {
+      // Public status + prefs lookup if unlocked isn't present yet
+      try {
+        const [statusResp, prefsResp] = await Promise.all([
+          fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' }),
+          fetch(`/api/student/prefs/${encodeURIComponent(cloudKey)}`, { cache: 'no-store' }),
+        ]);
+        if (statusResp.ok) {
+          const sJson = (await statusResp.json()) as {
+            custom?: Record<string, unknown> | null;
+            directory?: Record<string, unknown> | null;
+          };
+          if (sJson.custom?.deleted === true || sJson.directory?.deleted === true) return null;
+          if (sJson.custom) customData = sJson.custom;
+          if (sJson.directory) dirData = sJson.directory;
+        }
+        if (prefsResp.ok) {
+          const pJson = (await prefsResp.json()) as { prefs?: Record<string, unknown> | null };
+          if (pJson.prefs) prefsData = pJson.prefs;
+        }
+      } catch {
+        // Fallback
+      }
     }
   } else {
-    // Public status + prefs lookup if unlocked isn't present yet
-    try {
-      const [statusResp, prefsResp] = await Promise.all([
-        fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' }),
-        fetch(`/api/student/prefs/${encodeURIComponent(cloudKey)}`, { cache: 'no-store' }),
-      ]);
-      if (statusResp.ok) {
-        const sJson = (await statusResp.json()) as {
-          custom?: Record<string, unknown> | null;
-          directory?: Record<string, unknown> | null;
-        };
-        if (sJson.custom?.deleted === true || sJson.directory?.deleted === true) return null;
-        if (sJson.custom) customData = sJson.custom;
-        if (sJson.directory) dirData = sJson.directory;
-      }
-      if (prefsResp.ok) {
-        const pJson = (await prefsResp.json()) as { prefs?: Record<string, unknown> | null };
-        if (pJson.prefs) prefsData = pJson.prefs;
-      }
-    } catch {
-      // Fallback
+    const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+    const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+    const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+    const dRow = dirMap[authHash];
+    const cRow = customMap[authHash];
+    const pRow = prefsMap[cloudKey];
+    if (dRow) {
+      if (dRow.deleted === 1 || dRow.deleted === true) return null;
+      dirData = dRow;
     }
+    if (cRow) {
+      if (cRow.deleted === 1 || cRow.deleted === true) return null;
+      customData = cRow;
+    }
+    if (pRow) prefsData = pRow;
   }
 
   if (!allowMatch && !dirData && !customData && !prefsData) {
@@ -1425,11 +2033,7 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
 
 export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminStudentListItem[]> {
   const secret = resolveAdminWriteSecret(adminSecret);
-  const resp = await fetch('/api/admin/students', {
-    headers: { 'X-Admin-Secret': secret },
-    cache: 'no-store',
-  });
-  const json = (await resp.json().catch(() => ({}))) as {
+  let json: {
     ok?: boolean;
     error?: string;
     wrappedRosterKey?: string;
@@ -1437,8 +2041,31 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
     custom?: Record<string, unknown>[];
     prefs?: Record<string, unknown>[];
   };
-  if (!resp.ok || !json.ok) {
-    throw new Error(json.error || `HTTP_${resp.status}`);
+
+  if (await isApiBackendOnline()) {
+    const resp = await fetch('/api/admin/students', {
+      headers: { 'X-Admin-Secret': secret },
+      cache: 'no-store',
+    });
+    json = (await resp.json().catch(() => ({}))) as typeof json;
+    if (!resp.ok || !json.ok) {
+      throw new Error(json.error || `HTTP_${resp.status}`);
+    }
+  } else {
+    if (!(await verifyStaticAdminSecret(secret))) {
+      throw new Error('ADMIN_AUTH_FAILED');
+    }
+    const sec = getStaticSecurityConfig();
+    const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+    const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+    const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+    json = {
+      ok: true,
+      wrappedRosterKey: sec.wrappedRosterKey,
+      directory: Object.values(dirMap),
+      custom: Object.values(customMap),
+      prefs: Object.values(prefsMap),
+    };
   }
 
   const unlockedRoster = await resolveUnlockedRosterData(secret, json.wrappedRosterKey).catch(() => null);
@@ -1706,30 +2333,98 @@ export async function adminSaveStudentSettings(
   const encName = effectiveSid && resolvedName ? encryptStudentName(effectiveSid, resolvedName) : '';
   const encFullName = resolvedName ? encryptDirectoryName(authHash, resolvedName) : '';
 
-  const resp = await fetch('/api/admin/students/settings', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Secret': secret,
-    },
-    body: JSON.stringify({
-      cloudKey: input.cloudKey,
-      authHash,
-      last4: effectiveLast4,
-      myMbuGroup: mbu,
-      myLabGroup: lab,
-      otherGroupMode: mode,
-      lang,
-      assignedGroup,
-      active: isActive,
-      encName,
-      encFullName,
-      encSid,
-      source: input.source === 'custom' || !verifyStudentHash(authHash) ? 'custom' : 'allowlist',
-    }),
-  });
-  if (!resp.ok) {
-    const json = (await resp.json().catch(() => ({}))) as { error?: string };
-    throw new Error(json.error || `HTTP_${resp.status}`);
+  const sourceVal: 'allowlist' | 'custom' =
+    input.source === 'custom' || !verifyStudentHash(authHash) ? 'custom' : 'allowlist';
+
+  if (await isApiBackendOnline()) {
+    const resp = await fetch('/api/admin/students/settings', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': secret,
+      },
+      body: JSON.stringify({
+        cloudKey: input.cloudKey,
+        authHash,
+        last4: effectiveLast4,
+        myMbuGroup: mbu,
+        myLabGroup: lab,
+        otherGroupMode: mode,
+        lang,
+        assignedGroup,
+        active: isActive,
+        encName,
+        encFullName,
+        encSid,
+        source: sourceVal,
+      }),
+    });
+    if (!resp.ok) {
+      const json = (await resp.json().catch(() => ({}))) as { error?: string };
+      throw new Error(json.error || `HTTP_${resp.status}`);
+    }
+    return;
+  }
+
+  if (!(await verifyStaticAdminSecret(secret))) {
+    throw new Error('ADMIN_AUTH_FAILED');
+  }
+  const now = Date.now();
+  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+  const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+  const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+
+  const prevPref = prefsMap[input.cloudKey] || {};
+  prefsMap[input.cloudKey] = {
+    cloud_key: input.cloudKey,
+    auth_hash: authHash || prevPref.auth_hash || '',
+    last4: effectiveLast4 || prevPref.last4 || '',
+    my_mbu_group: mbu,
+    my_lab_group: lab,
+    other_group_mode: mode,
+    lang,
+    updated_at: now,
+  };
+
+  if (authHash) {
+    const prevCustom = customMap[authHash] || {};
+    customMap[authHash] = {
+      auth_hash: authHash,
+      cloud_key: input.cloudKey,
+      last4: effectiveLast4 !== '0000' ? effectiveLast4 : (prevCustom.last4 || '0000'),
+      group_name: assignedGroup,
+      lab_group: lab,
+      prog: lang,
+      enc_name: encName || prevCustom.enc_name || '',
+      enc_sid: encSid || prevCustom.enc_sid || '',
+      active: isActive ? 1 : 0,
+      deleted: 0,
+      created_at: prevCustom.created_at || now,
+      updated_at: now,
+    };
+
+    const prevDir = dirMap[authHash] || {};
+    dirMap[authHash] = {
+      auth_hash: authHash,
+      cloud_key: input.cloudKey,
+      last4: effectiveLast4 !== '0000' ? effectiveLast4 : (prevDir.last4 || '0000'),
+      enc_full_name: encFullName || prevDir.enc_full_name || '',
+      enc_sid: encSid || prevDir.enc_sid || '',
+      group_name: assignedGroup,
+      lab_group: lab,
+      prog: lang,
+      source: sourceVal,
+      active: isActive ? 1 : 0,
+      deleted: 0,
+      created_at: prevDir.created_at || now,
+      updated_at: now,
+    };
+  }
+
+  writeStaticJson('student_prefs', prefsMap);
+  writeStaticJson('custom_students', customMap);
+  writeStaticJson('admin_dir', dirMap);
+  if (authHash) {
+    emitLocalTopic('student_status', { authHash, active: isActive, deleted: false });
   }
 }
