@@ -3462,7 +3462,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.5</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.6</span>
       </div>
     </section>
 
@@ -4520,6 +4520,19 @@
         localStorage.setItem(STORE_KEY + k, JSON.stringify(v));
       } catch (e) {}
     }
+    function loadSessionStore(k, def) {
+      try {
+        const val = sessionStorage.getItem(STORE_KEY + k);
+        return val ? JSON.parse(val) : def;
+      } catch (e) {
+        return def;
+      }
+    }
+    function saveSessionStore(k, v) {
+      try {
+        sessionStorage.setItem(STORE_KEY + k, JSON.stringify(v));
+      } catch (e) {}
+    }
 
     const state = {
       lang: loadStore('lang', 'tr') === 'en' ? 'en' : 'tr',
@@ -4549,7 +4562,7 @@
     function persistNavViewState() {
       if (!navStateReady) return;
       const qInp = document.getElementById('inputSearchQuery');
-      saveStore('navViewState', {
+      saveSessionStore('navViewState', {
         activeTab: VALID_NAV_TABS.has(state.activeTab) ? state.activeTab : 'daily',
         selectedDate: typeof state.selectedDate === 'string' ? state.selectedDate : '',
         weeklyFilterKurul: state.weeklyFilterKurul || 'all',
@@ -8982,7 +8995,8 @@
     // ==================== BOOTSTRAP ====================
     document.addEventListener('DOMContentLoaded', () => {
       applyTheme();
-      const savedNav = loadStore('navViewState', null);
+      try { localStorage.removeItem(STORE_KEY + 'navViewState'); } catch (e) {}
+      const savedNav = loadSessionStore('navViewState', null);
       const scheduleDays = getScheduleDays();
       const restoredTab = (savedNav && typeof savedNav.activeTab === 'string' && VALID_NAV_TABS.has(savedNav.activeTab))
         ? savedNav.activeTab
