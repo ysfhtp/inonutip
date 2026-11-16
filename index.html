@@ -39,6 +39,13 @@
         }
         root.classList.toggle('dark', isDark);
         root.setAttribute('data-palette', savedPalette);
+
+        var requireLogin = localStorage.getItem('inonu_tip_d1_ios_v3_siteRequireLoginCache');
+        var authSession = localStorage.getItem('inonu_tip_d1_ios_v3_authSession');
+        if (requireLogin === 'true' && !authSession) {
+          root.classList.add('site-locked-locked');
+        }
+
         var paletteBootColors = {
           'medical-blue': { dark: '#071022', light: '#eef2f7' },
           'surgical-navy': { dark: '#040b1e', light: '#e4ecfb' },
@@ -2274,6 +2281,11 @@
     .dark body {
       background-color: transparent;
       color: #f2f2f7;
+    }
+    html.site-locked-locked #appHeader,
+    html.site-locked-locked #appMain,
+    html.site-locked-locked #appNav {
+      display: none !important;
     }
     #appNav {
       transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
@@ -8792,6 +8804,13 @@
     }
 
     function hydrateCachedLessonMaterials() {
+      try {
+        const fullCached = loadStore('lessonMaterialsFullCache', null);
+        if (Array.isArray(fullCached) && fullCached.length > 0) {
+          lessonMaterialsMap = buildLessonMaterialsMap(fullCached);
+          return;
+        }
+      } catch {}
       const cached = loadStore('lessonMaterialsMetaCache', null);
       if (!Array.isArray(cached) || cached.length === 0) return;
       if (Object.keys(lessonMaterialsMap).length > 0) return;
@@ -8807,6 +8826,9 @@
         lessonMaterialsRetryTimer = null;
       }
       saveCachedLessonMaterialsMeta(safeList);
+      try {
+        saveStore('lessonMaterialsFullCache', safeList);
+      } catch {}
       runWithStaggerSuppressed(() => {
         renderDailyView();
         renderWeeklyView();
