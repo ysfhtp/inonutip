@@ -3462,7 +3462,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.4</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.5</span>
       </div>
     </section>
 
@@ -4543,6 +4543,24 @@
       calcHedefYil: loadStore('calcHedefYil', 60)
     };
 
+    const VALID_NAV_TABS = new Set(['daily', 'weekly', 'food', 'search', 'info']);
+    let navStateReady = false;
+
+    function persistNavViewState() {
+      if (!navStateReady) return;
+      const qInp = document.getElementById('inputSearchQuery');
+      saveStore('navViewState', {
+        activeTab: VALID_NAV_TABS.has(state.activeTab) ? state.activeTab : 'daily',
+        selectedDate: typeof state.selectedDate === 'string' ? state.selectedDate : '',
+        weeklyFilterKurul: state.weeklyFilterKurul || 'all',
+        weeklySelectedWeekKey: state.weeklySelectedWeekKey || null,
+        foodDateISO: typeof state.foodDateISO === 'string' ? state.foodDateISO : '',
+        foodViewMode: state.foodViewMode === 'weekly' ? 'weekly' : 'daily',
+        searchQuery: qInp ? qInp.value : '',
+        scrollY: Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0))
+      });
+    }
+
     function getScheduleDays() {
       return state.lang === 'en' ? SCHEDULE_DAYS_EN : SCHEDULE_DAYS_TR;
     }
@@ -5168,22 +5186,24 @@
       aura.setAttribute('data-bloom', next);
     }
 
-    function activateTabView(tabName) {
+    function activateTabView(tabName, preserveScroll = false) {
       const prevTab = state.activeTab;
       const changed = prevTab !== tabName;
 
-      if (changed) {
+      if (changed && !preserveScroll) {
         window.scrollTo({ top: 0, behavior: 'auto' });
         updateHeaderScrollState();
         if (tabName === 'daily' || tabName === 'food') {
           forceInstantCarouselSync = true;
         }
+      } else if (preserveScroll && (tabName === 'daily' || tabName === 'food')) {
+        forceInstantCarouselSync = true;
       }
 
       state.activeTab = tabName;
       document.body.setAttribute('data-active-tab', tabName);
       syncSystemBarsThemeColor();
-      if (changed) {
+      if (changed && !preserveScroll) {
         triggerAmbientBloom();
       }
       let wasTargetHidden = false;
@@ -5208,7 +5228,7 @@
         });
       });
 
-      isTabSwitchRender = changed || wasTargetHidden;
+      isTabSwitchRender = (changed || wasTargetHidden) && !preserveScroll;
       if (tabName === 'daily') renderDailyView();
       if (tabName === 'weekly') renderWeeklyView();
       if (tabName === 'food') renderFoodView();
@@ -5217,6 +5237,7 @@
       isTabSwitchRender = false;
       forceInstantCarouselSync = false;
 
+      persistNavViewState();
       requestAnimationFrame(updateHeaderScrollState);
     }
 
@@ -5386,9 +5407,9 @@
       dock.addEventListener('pointercancel', endDrag);
     }
 
-    function switchTab(tabName, animate = true) {
+    function switchTab(tabName, animate = true, preserveScroll = false) {
       updateTabIndicator(tabName, animate);
-      activateTabView(tabName);
+      activateTabView(tabName, preserveScroll);
     }
 
     // ==================== CLEAN SLOT CARD ====================
@@ -5679,6 +5700,7 @@
       const idx = days.findIndex((d) => d.date === state.selectedDate);
       const dayObj = idx >= 0 ? days[idx] : days[0];
       state.selectedDate = dayObj.date;
+      persistNavViewState();
 
       document.getElementById('selectedDayHeaderTitle').textContent = formatDateDayMonthYear(dayObj.date);
       document.getElementById('selectedDayHeaderWeekday').textContent = formatDateWeekday(dayObj.date);
@@ -5766,6 +5788,7 @@
         const curKey = curDay ? `${curDay.kurulNo}-${curDay.haftaNo}` : weeks[0].key;
         state.weeklySelectedWeekKey = weeks.some((w) => w.key === curKey) ? curKey : weeks[0].key;
       }
+      persistNavViewState();
 
       const pillsContainer = document.getElementById('weekSelectorPills');
       pillsContainer.innerHTML = '';
@@ -5874,6 +5897,7 @@
       const lang = state.lang;
       const loc = I18N[lang];
       const q = document.getElementById('inputSearchQuery').value.trim();
+      persistNavViewState();
       const clearBtn = document.getElementById('btnClearSearch');
       clearBtn.classList.toggle('hidden', q.length === 0);
 
@@ -6879,6 +6903,7 @@
       const loc = I18N[state.lang];
       const isWeekly = state.foodViewMode === 'weekly';
       const weekdays = getWeekdaysForISO(targetIso);
+      persistNavViewState();
 
       const activePill = 'px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition';
       const inactivePill = 'px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition';
@@ -8957,7 +8982,33 @@
     // ==================== BOOTSTRAP ====================
     document.addEventListener('DOMContentLoaded', () => {
       applyTheme();
-      state.selectedDate = getBestDefaultDate();
+      const savedNav = loadStore('navViewState', null);
+      const scheduleDays = getScheduleDays();
+      const restoredTab = (savedNav && typeof savedNav.activeTab === 'string' && VALID_NAV_TABS.has(savedNav.activeTab))
+        ? savedNav.activeTab
+        : 'daily';
+      const restoredDate = (savedNav && typeof savedNav.selectedDate === 'string' && scheduleDays.some((d) => d.date === savedNav.selectedDate))
+        ? savedNav.selectedDate
+        : getBestDefaultDate();
+      state.selectedDate = restoredDate;
+      if (savedNav && typeof savedNav === 'object') {
+        if (savedNav.weeklyFilterKurul === 'all' || savedNav.weeklyFilterKurul === '1' || savedNav.weeklyFilterKurul === '2') {
+          state.weeklyFilterKurul = savedNav.weeklyFilterKurul;
+        }
+        if (typeof savedNav.weeklySelectedWeekKey === 'string' && savedNav.weeklySelectedWeekKey) {
+          state.weeklySelectedWeekKey = savedNav.weeklySelectedWeekKey;
+        }
+        if (typeof savedNav.foodDateISO === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(savedNav.foodDateISO)) {
+          state.foodDateISO = savedNav.foodDateISO;
+        }
+        if (savedNav.foodViewMode === 'weekly' || savedNav.foodViewMode === 'daily') {
+          state.foodViewMode = savedNav.foodViewMode;
+        }
+        if (typeof savedNav.searchQuery === 'string' && savedNav.searchQuery) {
+          const qInp = document.getElementById('inputSearchQuery');
+          if (qInp) qInp.value = savedNav.searchQuery;
+        }
+      }
       applyLanguageUI();
 
       const appHeaderEl = document.getElementById('appHeader');
@@ -10283,11 +10334,31 @@
         }
       });
 
-      switchTab('daily', false);
+      let navScrollPersistTimer = null;
+      window.addEventListener('scroll', () => {
+        if (!navStateReady) return;
+        clearTimeout(navScrollPersistTimer);
+        navScrollPersistTimer = setTimeout(persistNavViewState, 220);
+      }, { passive: true });
+      window.addEventListener('pagehide', persistNavViewState);
+      window.addEventListener('beforeunload', persistNavViewState);
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) persistNavViewState();
+      });
+
+      const initialScrollY = (savedNav && typeof savedNav.scrollY === 'number' && savedNav.scrollY > 0) ? savedNav.scrollY : 0;
+      navStateReady = true;
+      switchTab(restoredTab, false, true);
       updateAuthSessionSummary();
       syncActiveStudentCloudPrefs();
       refreshDailyAnnouncements(true);
-      requestAnimationFrame(() => updateTabIndicator('daily', false));
+      requestAnimationFrame(() => {
+        updateTabIndicator(restoredTab, false);
+        if (initialScrollY > 0) {
+          window.scrollTo(0, initialScrollY);
+          updateHeaderScrollState();
+        }
+      });
 
       let inonuAuthHooksBound = false;
       function bindInonuAuthHooks() {
