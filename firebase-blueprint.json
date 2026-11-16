@@ -395,6 +395,30 @@
       },
       "required": ["passwordHash", "proofDigestB64", "proofOpId", "updatedAt"]
     },
+    "SiteAccessConfig": {
+      "title": "SiteAccessConfig",
+      "description": "Global site access policy (public guest browsing vs student-ID-only login required), writable only with valid admin proof.",
+      "type": "object",
+      "properties": {
+        "requireStudentLogin": {
+          "type": "boolean",
+          "description": "When true, only signed-in students or admins can view the site."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest access policy update."
+        }
+      },
+      "required": ["requireStudentLogin", "proofOpId", "updatedAt"]
+    },
     "AdminProof": {
       "title": "AdminProof",
       "description": "Write-only atomic proof document verifying admin password knowledge in write batches.",
@@ -482,7 +506,7 @@
     },
     "/admin_config/{configId}": {
       "schema": { "$ref": "#/entities/AdminSecurityConfig" },
-      "description": "Stores salted SHA-256 admin password hash and write proof verifier for 01260102038."
+      "description": "Stores salted SHA-256 admin password hash and write proof verifier ('security') and site-wide student-login access toggle ('access')."
     },
     "/admin_proofs/{opId}": {
       "schema": { "$ref": "#/entities/AdminProof" },

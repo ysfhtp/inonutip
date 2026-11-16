@@ -3462,7 +3462,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.6</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.7</span>
       </div>
     </section>
 
@@ -3834,6 +3834,26 @@
 
         <!-- PANE 3: TÜM ÖĞRENCİLERİN AYARLARINI KONTROL ETME -->
         <div id="adminPaneStudents" class="hidden space-y-3.5">
+          <!-- Site Erişim Modu (Herkese Açık / Sadece Öğrenci No) -->
+          <div id="adminSiteAccessCard" class="ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+              <span id="adminSiteAccessIconWrap" class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0 transition">
+                <svg id="iconSiteAccessPublic" class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <svg id="iconSiteAccessLocked" class="w-4.5 h-4.5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+              </span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <h4 id="lblAdminSiteAccessTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Sadece Öğrenci No ile Giriş</h4>
+                  <span id="adminSiteAccessStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0">Herkese Açık</span>
+                </div>
+                <p id="lblAdminSiteAccessDesc" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug mt-0.5">Kapalıyken site herkese açıktır; misafirler giriş yapmadan görebilir.</p>
+              </div>
+            </div>
+            <button id="btnToggleSiteRequireLogin" type="button" role="switch" aria-checked="false" class="ios-press relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full bg-slate-300 dark:bg-slate-700 p-0.5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40" aria-label="Sadece öğrenci numarası ile girişi aç veya kapat">
+              <span id="siteAccessSwitchKnob" class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 translate-x-0"></span>
+            </button>
+          </div>
+
           <!-- Seçili Öğrenci Ayar Düzenleyici -->
           <div id="adminStudentEditorCard" class="hidden ios-glass rounded-2xl p-3.5 space-y-3 border border-blue-500/30">
             <div class="flex items-center justify-between gap-2">
@@ -4267,6 +4287,14 @@
         adminPwdUpdatedToast: 'Yönetici şifresi güncellendi',
         adminPwdInvalidToast: 'Şifre en az 4 karakter olmalıdır.',
         adminSaveErrorToast: 'Kayıt sırasında hata oluştu. Tekrar deneyin.',
+        authLockedSubtitle: 'Bu site yönetici tarafından yalnızca kayıtlı öğrenci numaralarıyla erişime açılmıştır. Devam etmek için 11 haneli öğrenci numaranla giriş yap.',
+        adminSiteAccessTitle: 'Sadece Öğrenci No ile Giriş',
+        adminSiteAccessDescPublic: 'Kapalıyken site herkese açıktır; misafirler giriş yapmadan görebilir.',
+        adminSiteAccessDescLocked: 'Açıkken giriş yapmayan kullanıcılar site içeriğini göremez.',
+        adminSiteAccessBadgePublic: 'Herkese Açık',
+        adminSiteAccessBadgeLocked: 'Giriş Zorunlu',
+        adminSiteAccessToastPublic: 'Site herkese açık moda alındı',
+        adminSiteAccessToastLocked: 'Site artık sadece öğrenci numarasıyla girişe açık',
         months: MONTHS_TR,
         monthsShort: MONTHS_SHORT_TR,
         days: DAYS_TR,
@@ -4499,6 +4527,14 @@
         adminPwdUpdatedToast: 'Admin password updated',
         adminPwdInvalidToast: 'Password must be at least 4 characters.',
         adminSaveErrorToast: 'Could not save changes. Please try again.',
+        authLockedSubtitle: 'Access to this site is restricted to registered student IDs by the administrator. Sign in with your 11-digit student ID to continue.',
+        adminSiteAccessTitle: 'Require Student ID Login',
+        adminSiteAccessDescPublic: 'When off, anyone can browse the schedule as a guest.',
+        adminSiteAccessDescLocked: 'When on, visitors must sign in with a valid student ID to access the site.',
+        adminSiteAccessBadgePublic: 'Public',
+        adminSiteAccessBadgeLocked: 'Login Only',
+        adminSiteAccessToastPublic: 'Site switched to public access mode',
+        adminSiteAccessToastLocked: 'Site is now restricted to student ID login',
         months: MONTHS_EN,
         monthsShort: MONTHS_SHORT_EN,
         days: DAYS_EN,
@@ -5159,6 +5195,7 @@
       if (!btn || !pill) return;
 
       setDockActiveVisual(tabName, !animate);
+      if (btn.offsetWidth === 0) return;
       const bounds = getDockPillBounds(dock, btn);
 
       pill.setAttribute('data-active-tab', tabName);
@@ -7628,6 +7665,13 @@
 
     let authLoginStep = 'id';
     let authPendingAdminId = '';
+    let siteRequireStudentLogin = loadStore('siteRequireLoginCache', false) === true;
+    let siteAccessSettingsUnsub = null;
+    let authGateOpenedByLock = false;
+
+    function isSiteLoginLocked() {
+      return Boolean(siteRequireStudentLogin && !getActiveAuthSession());
+    }
 
     function syncAuthStepUI() {
       const loc = I18N[state.lang];
@@ -7638,10 +7682,15 @@
       const backBtnEl = document.getElementById('btnAuthBackToId');
       const chipEl = document.getElementById('authStep2IdChip');
       const isPwdStep = authLoginStep === 'password';
+      const isLockedGate = isSiteLoginLocked();
 
       if (idWrap) idWrap.classList.toggle('hidden', isPwdStep);
       if (pwdWrap) pwdWrap.classList.toggle('hidden', !isPwdStep);
-      if (subtitleEl) subtitleEl.textContent = isPwdStep ? loc.authAdminStepSubtitle : loc.authSubtitle;
+      if (subtitleEl) {
+        subtitleEl.textContent = isPwdStep
+          ? loc.authAdminStepSubtitle
+          : (isLockedGate ? loc.authLockedSubtitle : loc.authSubtitle);
+      }
       if (submitEl) submitEl.textContent = isPwdStep ? loc.authAdminVerifyBtn : loc.authSubmitBtn;
       if (backBtnEl) backBtnEl.textContent = loc.authAdminChangeIdBtn;
       if (chipEl && authPendingAdminId) {
@@ -7779,11 +7828,14 @@
       } catch (e) {}
     }
 
-    function openAuthModal() {
+    function openAuthModal(byLock = false) {
+      authGateOpenedByLock = Boolean(byLock);
       clearAuthError();
       const authGate = document.getElementById('authGate');
       const authGateCard = document.getElementById('authGateCard');
       const inp = document.getElementById('authStudentIdInput');
+      const closeBtn = document.getElementById('btnCloseAuthModal');
+      if (closeBtn) closeBtn.classList.toggle('hidden', isSiteLoginLocked());
       setAuthLoginStep('id');
       document.documentElement.classList.add('overflow-hidden');
       document.body.classList.add('overflow-hidden');
@@ -7792,7 +7844,9 @@
       });
     }
 
-    function closeAuthModal() {
+    function closeAuthModal(force = false) {
+      if (!force && isSiteLoginLocked()) return;
+      authGateOpenedByLock = false;
       const authGate = document.getElementById('authGate');
       const authGateCard = document.getElementById('authGateCard');
       closeAnimatedModal(authGate, authGateCard, () => {
@@ -7801,6 +7855,93 @@
         clearAuthError();
         setAuthLoginStep('id');
       });
+    }
+
+    function syncAdminSiteAccessUI() {
+      const loc = I18N[state.lang];
+      const lockedOnly = Boolean(siteRequireStudentLogin);
+      const titleEl = document.getElementById('lblAdminSiteAccessTitle');
+      const descEl = document.getElementById('lblAdminSiteAccessDesc');
+      const badgeEl = document.getElementById('adminSiteAccessStatusBadge');
+      const iconWrap = document.getElementById('adminSiteAccessIconWrap');
+      const iconPublic = document.getElementById('iconSiteAccessPublic');
+      const iconLocked = document.getElementById('iconSiteAccessLocked');
+      const toggleBtn = document.getElementById('btnToggleSiteRequireLogin');
+      const knobEl = document.getElementById('siteAccessSwitchKnob');
+
+      if (titleEl) titleEl.textContent = loc.adminSiteAccessTitle;
+      if (descEl) descEl.textContent = lockedOnly ? loc.adminSiteAccessDescLocked : loc.adminSiteAccessDescPublic;
+      if (badgeEl) {
+        badgeEl.textContent = lockedOnly ? loc.adminSiteAccessBadgeLocked : loc.adminSiteAccessBadgePublic;
+        badgeEl.className = lockedOnly
+          ? 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0'
+          : 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0';
+      }
+      if (iconWrap) {
+        iconWrap.className = lockedOnly
+          ? 'w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0 transition'
+          : 'w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0 transition';
+      }
+      if (iconPublic) iconPublic.classList.toggle('hidden', lockedOnly);
+      if (iconLocked) iconLocked.classList.toggle('hidden', !lockedOnly);
+      if (toggleBtn) {
+        toggleBtn.setAttribute('aria-checked', lockedOnly ? 'true' : 'false');
+        toggleBtn.className = lockedOnly
+          ? 'ios-press relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full bg-amber-500 p-0.5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40'
+          : 'ios-press relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full bg-slate-300 dark:bg-slate-700 p-0.5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40';
+      }
+      if (knobEl) {
+        knobEl.className = lockedOnly
+          ? 'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 translate-x-5'
+          : 'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 translate-x-0';
+      }
+    }
+
+    function syncSiteAccessGateUI() {
+      const locked = isSiteLoginLocked();
+      const headerEl = document.getElementById('appHeader');
+      const spacerEl = document.getElementById('headerSpacer');
+      const mainEl = document.getElementById('appMain');
+      const navEl = document.getElementById('appNav');
+      const closeBtn = document.getElementById('btnCloseAuthModal');
+      const authGate = document.getElementById('authGate');
+
+      if (headerEl) headerEl.classList.toggle('hidden', locked);
+      if (spacerEl) spacerEl.classList.toggle('hidden', locked);
+      if (mainEl) mainEl.classList.toggle('hidden', locked);
+      if (navEl) navEl.classList.toggle('hidden', locked);
+      if (closeBtn) closeBtn.classList.toggle('hidden', locked);
+
+      syncAuthStepUI();
+
+      if (locked) {
+        closeAdminModal();
+        closeGroupModal();
+        closeNoteModal();
+        closeLessonPdfsModal();
+        closeFoodDateModal();
+        closeFoodPhotoModal();
+        closeInstallModal();
+        if (authGate && authGate.classList.contains('hidden')) {
+          openAuthModal(true);
+        }
+      } else {
+        if (headerEl && spacerEl && !headerEl.classList.contains('hidden')) {
+          spacerEl.style.height = `${headerEl.offsetHeight}px`;
+        }
+        if (authGate && !authGate.classList.contains('hidden') && authGateOpenedByLock) {
+          closeAuthModal(true);
+        }
+        requestAnimationFrame(() => updateTabIndicator(state.activeTab || 'daily', false));
+      }
+    }
+
+    function applySiteAccessSettings(settings) {
+      const nextVal = Boolean(settings && settings.requireStudentLogin);
+      siteRequireStudentLogin = nextVal;
+      saveStore('siteRequireLoginCache', nextVal);
+      syncAdminSiteAccessUI();
+      syncSiteAccessGateUI();
     }
 
     function refreshAllVisibleTabsAfterAuthChange() {
@@ -7895,6 +8036,7 @@
       if (inp) inp.value = '';
       setAuthLoginStep('id');
       refreshAllVisibleTabsAfterAuthChange();
+      syncSiteAccessGateUI();
       showToast(customToastMsg || t('authLogoutToast'));
     }
 
@@ -8237,6 +8379,7 @@
 
       syncAdminUnlockBarUI();
       syncAdminAnnFormUI();
+      syncAdminSiteAccessUI();
 
       const modalEl = document.getElementById('adminModal');
       if (modalEl && !modalEl.classList.contains('hidden')) {
@@ -8948,11 +9091,17 @@
       }
       if (icon) icon.classList.add('animate-spin-ios');
       try {
-        const [anns, mats, students] = await Promise.all([
+        const [anns, mats, students, accessSettings] = await Promise.all([
           api.listAllAnnouncements().catch((err) => { console.warn('Admin announcements load failed:', err); return []; }),
           api.loadAllLessonMaterials().catch((err) => { console.warn('Admin materials load failed:', err); return []; }),
-          api.loadAllAdminStudents(session.adminSecret || undefined).catch((err) => { console.warn('Admin students load failed:', err); return []; })
+          api.loadAllAdminStudents(session.adminSecret || undefined).catch((err) => { console.warn('Admin students load failed:', err); return []; }),
+          typeof api.loadSiteAccessSettings === 'function'
+            ? api.loadSiteAccessSettings().catch(() => null)
+            : Promise.resolve(null)
         ]);
+        if (accessSettings && typeof accessSettings === 'object') {
+          applySiteAccessSettings(accessSettings);
+        }
         adminState.announcements = anns;
         adminState.materials = mats;
         adminState.students = students;
@@ -9302,7 +9451,8 @@
             if (authInputEl) authInputEl.value = '';
             if (authPwdInputEl) authPwdInputEl.value = '';
             setAuthLoginStep('id');
-            closeAuthModal();
+            closeAuthModal(true);
+            syncSiteAccessGateUI();
             syncActiveStudentAccountWatch();
             refreshAllVisibleTabsAfterAuthChange();
             showToast(I18N[state.lang].authWelcomeToast(match.group, match.name));
@@ -9317,7 +9467,7 @@
           cloudStartupSyncDoneForHash = '';
           signOutStudent();
         } else {
-          openAuthModal();
+          openAuthModal(false);
         }
       };
       const btnAuthActionInfo = document.getElementById('btnAuthActionInfo');
@@ -9330,7 +9480,7 @@
       }
       const btnCloseAuthModal = document.getElementById('btnCloseAuthModal');
       if (btnCloseAuthModal) {
-        btnCloseAuthModal.addEventListener('click', closeAuthModal);
+        btnCloseAuthModal.addEventListener('click', () => closeAuthModal());
       }
       const authGateOverlay = document.getElementById('authGate');
       if (authGateOverlay) {
@@ -10268,6 +10418,49 @@
         });
       }
 
+      const btnToggleSiteRequireLogin = document.getElementById('btnToggleSiteRequireLogin');
+      if (btnToggleSiteRequireLogin) {
+        btnToggleSiteRequireLogin.addEventListener('click', async () => {
+          const loc = I18N[state.lang];
+          const api = window.__INONU_AUTH__;
+          const secret = ensureAdminSecretReady();
+          if (!api || !secret || typeof api.saveSiteAccessSettings !== 'function') return;
+
+          const prevVal = siteRequireStudentLogin;
+          const nextVal = !prevVal;
+          siteRequireStudentLogin = nextVal;
+          saveStore('siteRequireLoginCache', nextVal);
+          syncAdminSiteAccessUI();
+          showToast(nextVal ? loc.adminSiteAccessToastLocked : loc.adminSiteAccessToastPublic);
+
+          btnToggleSiteRequireLogin.disabled = true;
+          try {
+            await api.saveSiteAccessSettings(nextVal, secret === 'active' ? undefined : secret);
+          } catch (err) {
+            siteRequireStudentLogin = prevVal;
+            saveStore('siteRequireLoginCache', prevVal);
+            syncAdminSiteAccessUI();
+            console.warn('Site access toggle save error:', err);
+            const rawErr = err instanceof Error ? err.message : String(err || '');
+            if (/permission|PERMISSION_DENIED|admin_proofs|ADMIN_SECRET_REQUIRED/i.test(rawErr)) {
+              const savedSession = loadStore('authSession', null);
+              if (savedSession && typeof savedSession === 'object') {
+                saveStore('authSession', { ...savedSession, adminSecret: '' });
+              }
+              if (typeof api.clearAdminWriteSecret === 'function') api.clearAdminWriteSecret();
+              syncAdminUnlockBarUI();
+              const bar = document.getElementById('adminReunlockBar');
+              if (bar && typeof bar.scrollIntoView === 'function') bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              showToast(loc.adminNeedPasswordUnlock);
+            } else {
+              showToast(loc.adminSaveErrorToast);
+            }
+          } finally {
+            btnToggleSiteRequireLogin.disabled = false;
+          }
+        });
+      }
+
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           closeAdminModal();
@@ -10364,11 +10557,15 @@
       navStateReady = true;
       switchTab(restoredTab, false, true);
       updateAuthSessionSummary();
+      syncAdminSiteAccessUI();
+      syncSiteAccessGateUI();
       syncActiveStudentCloudPrefs();
       refreshDailyAnnouncements(true);
       requestAnimationFrame(() => {
-        updateTabIndicator(restoredTab, false);
-        if (initialScrollY > 0) {
+        if (!isSiteLoginLocked()) {
+          updateTabIndicator(restoredTab, false);
+        }
+        if (initialScrollY > 0 && !isSiteLoginLocked()) {
           window.scrollTo(0, initialScrollY);
           updateHeaderScrollState();
         }
@@ -10387,6 +10584,16 @@
         syncActiveStudentAccountWatch();
         syncActiveStudentCloudPrefs();
         refreshDailyAnnouncements(true);
+        if (typeof api.loadSiteAccessSettings === 'function') {
+          api.loadSiteAccessSettings()
+            .then((settings) => applySiteAccessSettings(settings))
+            .catch(() => {});
+        }
+        if (typeof api.subscribeSiteAccessSettings === 'function' && !siteAccessSettingsUnsub) {
+          siteAccessSettingsUnsub = api.subscribeSiteAccessSettings((settings) => {
+            applySiteAccessSettings(settings);
+          });
+        }
       }
 
       if (window.__INONU_AUTH__) {

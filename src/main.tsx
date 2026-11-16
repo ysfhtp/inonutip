@@ -21,12 +21,15 @@ import {
   loadAllAdminStudents,
   loadAllLessonMaterials,
   loadCloudStudentPrefs,
+  loadSiteAccessSettings,
   lookupStudentForAdmin,
   lookupStudentWithCloud,
   saveAnnouncement,
   saveCloudStudentPrefs,
   saveLessonMaterial,
+  saveSiteAccessSettings,
   setAdminWriteSecret,
+  subscribeSiteAccessSettings,
   subscribeStudentAccountStatus,
   updateAdminPassword,
   uploadLessonPdfFile,
@@ -68,6 +71,9 @@ declare global {
       clearAdminWriteSecret: typeof clearAdminWriteSecret;
       hasAdminWriteSecret: typeof hasAdminWriteSecret;
       updateAdminPassword: typeof updateAdminPassword;
+      loadSiteAccessSettings: typeof loadSiteAccessSettings;
+      subscribeSiteAccessSettings: typeof subscribeSiteAccessSettings;
+      saveSiteAccessSettings: typeof saveSiteAccessSettings;
       loadCloudStudentPrefs: typeof loadCloudStudentPrefs;
       saveCloudStudentPrefs: typeof saveCloudStudentPrefs;
       loadActiveAnnouncements: typeof loadActiveAnnouncements;
@@ -111,6 +117,9 @@ window.__INONU_AUTH__ = {
   clearAdminWriteSecret,
   hasAdminWriteSecret,
   updateAdminPassword,
+  loadSiteAccessSettings,
+  subscribeSiteAccessSettings,
+  saveSiteAccessSettings,
   loadCloudStudentPrefs,
   saveCloudStudentPrefs,
   loadActiveAnnouncements,

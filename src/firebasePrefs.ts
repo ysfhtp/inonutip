@@ -466,6 +466,81 @@ export async function updateAdminPassword(
   }
 }
 
+export interface SiteAccessSettings {
+  requireStudentLogin: boolean;
+  updatedAtMs: number;
+}
+
+export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
+  const path = 'admin_config/access';
+  try {
+    const snap = await getDocPreferServer(doc(db, 'admin_config', 'access'));
+    if (!snap.exists()) {
+      return { requireStudentLogin: false, updatedAtMs: 0 };
+    }
+    const data = snap.data();
+    return {
+      requireStudentLogin: data?.requireStudentLogin === true,
+      updatedAtMs: tsToMillis(data?.updatedAt),
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message.toLowerCase().includes('permission')) {
+      handleFirestoreError(error, OperationType.GET, path);
+    }
+    return { requireStudentLogin: false, updatedAtMs: 0 };
+  }
+}
+
+export function subscribeSiteAccessSettings(
+  onChange: (settings: SiteAccessSettings) => void,
+): Unsubscribe {
+  const path = 'admin_config/access';
+  return onSnapshot(
+    doc(db, 'admin_config', 'access'),
+    (snap) => {
+      if (!snap.exists()) {
+        onChange({ requireStudentLogin: false, updatedAtMs: 0 });
+        return;
+      }
+      const data = snap.data();
+      onChange({
+        requireStudentLogin: data?.requireStudentLogin === true,
+        updatedAtMs: tsToMillis(data?.updatedAt),
+      });
+    },
+    (error) => {
+      if (error instanceof Error && error.message.toLowerCase().includes('permission')) {
+        handleFirestoreError(error, OperationType.GET, path);
+      }
+      console.warn('Site access settings listener warning:', error);
+    },
+  );
+}
+
+export async function saveSiteAccessSettings(
+  requireStudentLogin: boolean,
+  adminSecret?: string,
+): Promise<SiteAccessSettings> {
+  const secret = resolveAdminWriteSecret(adminSecret);
+  const path = 'admin_config/access';
+  try {
+    const batch = writeBatch(db);
+    const opId = appendAdminProofToBatch(batch, secret, path);
+    batch.set(doc(db, 'admin_config', 'access'), {
+      requireStudentLogin: Boolean(requireStudentLogin),
+      proofOpId: opId,
+      updatedAt: serverTimestamp(),
+    });
+    await batch.commit();
+    return {
+      requireStudentLogin: Boolean(requireStudentLogin),
+      updatedAtMs: Date.now(),
+    };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
 export type StudentAccountStatus = 'active' | 'inactive' | 'deleted';
 
 export type StudentLoginCheckResult =

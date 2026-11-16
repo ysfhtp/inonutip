@@ -244,6 +244,14 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidSiteAccessConfig(data) {
+      return data.keys().hasAll(['requireStudentLogin', 'proofOpId', 'updatedAt'])
+        && data.keys().hasOnly(['requireStudentLogin', 'proofOpId', 'updatedAt'])
+        && data.requireStudentLogin is bool
+        && isValidId(data.proofOpId)
+        && data.updatedAt is timestamp;
+    }
+
     // Write-only atomic admin proof collection (unreadable and non-replayable).
     match /admin_proofs/{opId} {
       allow read: if false;
@@ -359,21 +367,40 @@ service cloud.firestore {
       allow delete: if isAdmin() && isValidAuthHash(authHash);
     }
 
-    // Salted SHA-256 admin password verification digest & proof verifier.
+    // Admin security config ('security') & site-wide access toggle ('access').
     match /admin_config/{configId} {
-      allow get: if isValidId(configId) && configId == 'security';
+      allow get: if isValidId(configId) && (configId == 'security' || configId == 'access');
       allow list: if false;
       allow create: if isValidId(configId)
-        && configId == 'security'
-        && isValidAdminSecurityConfig(incoming())
         && incoming().updatedAt == request.time
-        && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'admin_config/security'));
+        && (
+          (
+            configId == 'security'
+            && isValidAdminSecurityConfig(incoming())
+            && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'admin_config/security'))
+          )
+          || (
+            configId == 'access'
+            && isValidSiteAccessConfig(incoming())
+            && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'admin_config/access'))
+          )
+        );
       allow update: if isValidId(configId)
-        && configId == 'security'
-        && isValidAdminSecurityConfig(incoming())
-        && incoming().diff(existing()).affectedKeys().hasOnly(['passwordHash', 'proofDigestB64', 'wrappedRosterKey', 'proofOpId', 'updatedAt'])
         && incoming().updatedAt == request.time
-        && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'admin_config/security'));
+        && (
+          (
+            configId == 'security'
+            && isValidAdminSecurityConfig(incoming())
+            && incoming().diff(existing()).affectedKeys().hasOnly(['passwordHash', 'proofDigestB64', 'wrappedRosterKey', 'proofOpId', 'updatedAt'])
+            && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'admin_config/security'))
+          )
+          || (
+            configId == 'access'
+            && isValidSiteAccessConfig(incoming())
+            && incoming().diff(existing()).affectedKeys().hasOnly(['requireStudentLogin', 'proofOpId', 'updatedAt'])
+            && (isAdmin() || hasValidAdminBatchOp(incoming().proofOpId, 'admin_config/access'))
+          )
+        );
       allow delete: if false;
     }
 
