@@ -3932,14 +3932,14 @@
                 <button type="button" data-mat-mode="url" class="group-chip min-h-[38px] px-3.5">Web Bağlantısı (URL)</button>
               </div>
               <div id="adminMatFileWrap" class="space-y-1.5">
-                <label for="adminMatFileInput" class="ios-press cursor-pointer flex items-center justify-between gap-2 w-full ios-pill-control rounded-xl px-3.5 py-2.5 border border-dashed border-blue-500/40 hover:border-blue-500/70 transition">
-                  <div class="flex items-center gap-2 min-w-0">
+                <div id="adminMatFileDropzone" class="ios-press relative overflow-hidden cursor-pointer flex items-center justify-between gap-2 w-full ios-pill-control rounded-xl px-3.5 py-2.5 border border-dashed border-blue-500/40 hover:border-blue-500/70 transition">
+                  <div class="flex items-center gap-2 min-w-0 pointer-events-none">
                     <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <span id="adminMatFileLabel" class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">Cihazdan PDF dosyası seç (maks. 250 MB)...</span>
                   </div>
-                  <span class="px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-[11px] font-bold shrink-0">Dosya Seç</span>
-                </label>
-                <input id="adminMatFileInput" type="file" accept="application/pdf,.pdf" class="sr-only">
+                  <span class="pointer-events-none px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-[11px] font-bold shrink-0">Dosya Seç</span>
+                  <input id="adminMatFileInput" type="file" accept="application/pdf,.pdf" aria-label="Cihazdan PDF dosyası seç" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                </div>
                 <div id="adminMatUploadProgressWrap" class="hidden space-y-1 pt-0.5">
                   <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 tabular-nums">
                     <span id="adminMatUploadStatusText">Yükleniyor...</span>
@@ -4143,8 +4143,8 @@
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
         <div id="pdfDownloadReadyActions" class="hidden flex items-center gap-1.5">
-          <a id="pdfDownloadSaveLink" href="#" download="ders.pdf" class="ios-press inline-flex items-center px-2.5 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition">İndir</a>
-          <a id="pdfDownloadOpenLink" href="#" target="_blank" rel="noopener noreferrer" class="ios-press inline-flex items-center px-2.5 py-1.5 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition">Aç</a>
+          <a id="pdfDownloadOpenLink" href="#" target="_blank" rel="noopener noreferrer" class="ios-press inline-flex items-center px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold whitespace-nowrap transition">Aç</a>
+          <button id="pdfDownloadShareBtn" type="button" class="ios-press inline-flex items-center px-2.5 py-1.5 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-[11px] font-semibold whitespace-nowrap transition">Paylaş</button>
         </div>
         <button id="btnClosePdfBanner" type="button" aria-label="Kapat" class="ios-press w-7 h-7 rounded-full ios-pill-control flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -8478,6 +8478,7 @@
     let activePdfDownloadHideTimer = null;
     let activePdfDownloadBlobUrl = '';
     let activePdfDownloadBlob = null;
+    let activePdfDownloadExternalUrl = '';
     let activePdfDownloadFileName = 'ders.pdf';
     let activePdfDownloadTitle = 'PDF';
     const activePdfDownloadInFlight = new Set();
@@ -8500,11 +8501,13 @@
         const oldUrl = activePdfDownloadBlobUrl;
         activePdfDownloadBlobUrl = '';
         activePdfDownloadBlob = null;
+        activePdfDownloadExternalUrl = '';
         setTimeout(() => {
           try { URL.revokeObjectURL(oldUrl); } catch {}
         }, 5000);
       } else if (revokeUrl) {
         activePdfDownloadBlob = null;
+        activePdfDownloadExternalUrl = '';
       }
     }
 
@@ -8550,25 +8553,25 @@
       const blobUrl = URL.createObjectURL(blob);
       activePdfDownloadBlobUrl = blobUrl;
       activePdfDownloadBlob = blob;
+      activePdfDownloadExternalUrl = '';
       activePdfDownloadFileName = fileName || 'ders.pdf';
       activePdfDownloadTitle = displayTitle || activePdfDownloadFileName;
 
-      const saveLink = document.getElementById('pdfDownloadSaveLink');
       const openLink = document.getElementById('pdfDownloadOpenLink');
+      const shareBtn = document.getElementById('pdfDownloadShareBtn');
       const banner = document.getElementById('pdfDownloadBanner');
       const titleEl = document.getElementById('pdfDownloadBannerTitle');
       const statusEl = document.getElementById('pdfDownloadBannerStatus');
       const progWrap = document.getElementById('pdfDownloadProgressWrap');
       const readyWrap = document.getElementById('pdfDownloadReadyActions');
 
-      if (saveLink) {
-        saveLink.href = blobUrl;
-        saveLink.download = activePdfDownloadFileName;
-        saveLink.textContent = state.lang === 'en' ? 'Download' : 'İndir';
-      }
       if (openLink) {
         openLink.href = blobUrl;
+        openLink.removeAttribute('download');
         openLink.textContent = state.lang === 'en' ? 'Open' : 'Aç';
+      }
+      if (shareBtn) {
+        shareBtn.textContent = state.lang === 'en' ? 'Share' : 'Paylaş';
       }
       if (titleEl) titleEl.textContent = activePdfDownloadTitle;
       if (statusEl) {
@@ -8601,29 +8604,29 @@
         }, 5000);
       }
       activePdfDownloadBlob = null;
+      activePdfDownloadExternalUrl = openHref || downloadHref || '';
       activePdfDownloadFileName = fileName || 'ders.pdf';
       activePdfDownloadTitle = displayTitle || activePdfDownloadFileName;
 
-      const saveLink = document.getElementById('pdfDownloadSaveLink');
       const openLink = document.getElementById('pdfDownloadOpenLink');
+      const shareBtn = document.getElementById('pdfDownloadShareBtn');
       const banner = document.getElementById('pdfDownloadBanner');
       const titleEl = document.getElementById('pdfDownloadBannerTitle');
       const statusEl = document.getElementById('pdfDownloadBannerStatus');
       const progWrap = document.getElementById('pdfDownloadProgressWrap');
       const readyWrap = document.getElementById('pdfDownloadReadyActions');
 
-      if (saveLink) {
-        saveLink.href = downloadHref;
-        saveLink.download = activePdfDownloadFileName;
-        saveLink.textContent = state.lang === 'en' ? 'Download' : 'İndir';
-      }
       if (openLink) {
-        openLink.href = openHref;
+        openLink.href = openHref || downloadHref || '#';
+        openLink.removeAttribute('download');
         openLink.textContent = state.lang === 'en' ? 'Open' : 'Aç';
+      }
+      if (shareBtn) {
+        shareBtn.textContent = state.lang === 'en' ? 'Share' : 'Paylaş';
       }
       if (titleEl) titleEl.textContent = activePdfDownloadTitle;
       if (statusEl) {
-        statusEl.textContent = state.lang === 'en' ? 'Ready to download or open' : 'İndirmeye veya açmaya hazır';
+        statusEl.textContent = state.lang === 'en' ? 'Ready to open or share' : 'Açmaya veya paylaşmaya hazır';
       }
       if (progWrap) progWrap.classList.add('hidden');
       if (readyWrap) readyWrap.classList.remove('hidden');
@@ -8644,14 +8647,20 @@
       }
     }
 
-    function handlePdfBannerOpenClick(e) {
+    function handlePdfBannerOpenClick() {
+      schedulePdfDownloadBannerAutoHide(4500);
+    }
+
+    function handlePdfBannerShareClick(e) {
+      if (e) e.preventDefault();
       const blob = activePdfDownloadBlob;
       const blobUrl = activePdfDownloadBlobUrl;
+      const extUrl = activePdfDownloadExternalUrl;
+
       if (blob && typeof navigator.share === 'function') {
         try {
           const pdfFile = new File([blob], activePdfDownloadFileName || 'ders.pdf', { type: 'application/pdf' });
           if (!navigator.canShare || navigator.canShare({ files: [pdfFile] })) {
-            e.preventDefault();
             if (activePdfDownloadHideTimer) {
               clearTimeout(activePdfDownloadHideTimer);
               activePdfDownloadHideTimer = null;
@@ -8672,6 +8681,39 @@
             return;
           }
         } catch {}
+      }
+
+      if (extUrl && typeof navigator.share === 'function') {
+        if (activePdfDownloadHideTimer) {
+          clearTimeout(activePdfDownloadHideTimer);
+          activePdfDownloadHideTimer = null;
+        }
+        Promise.resolve(
+          navigator.share({
+            title: activePdfDownloadTitle || activePdfDownloadFileName || 'PDF',
+            url: extUrl
+          })
+        )
+          .catch((err) => {
+            if (err && err.name === 'AbortError') return;
+            openPdfBlobInNewTabFallback(extUrl);
+          })
+          .finally(() => {
+            schedulePdfDownloadBannerAutoHide(4500);
+          });
+        return;
+      }
+
+      if (blobUrl) {
+        openPdfBlobInNewTabFallback(blobUrl);
+      } else if (extUrl) {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard.writeText(extUrl).then(() => {
+            showToast(state.lang === 'en' ? 'Link copied' : 'Bağlantı kopyalandı');
+          }).catch(() => openPdfBlobInNewTabFallback(extUrl));
+        } else {
+          openPdfBlobInNewTabFallback(extUrl);
+        }
       }
       schedulePdfDownloadBannerAutoHide(4500);
     }
@@ -8696,6 +8738,7 @@
       const rawName = (mat.pdfName || mat.title || `ders_${mat.date}_${mat.slotNo}`).trim();
       const fileName = rawName.toLowerCase().endsWith('.pdf') ? rawName : `${rawName}.pdf`;
       const displayTitle = mat.title || fileName;
+      const shouldAutoSaveDownload = !(/iPad|iPhone|iPod/i.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
       if (mat.pdfData) {
         try {
@@ -8706,7 +8749,7 @@
             bytes[i] = bin.charCodeAt(i);
           }
           const blob = new Blob([bytes], { type: 'application/pdf' });
-          triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, true);
+          triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload);
           return;
         } catch (err) {
           console.warn('PDF blob decode failed:', err);
@@ -8736,7 +8779,7 @@
               pct
             );
           });
-          triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, true);
+          triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload);
         } catch (err) {
           console.warn('Cloud chunk PDF download failed:', err);
           closePdfDownloadBanner(true);
@@ -8760,7 +8803,7 @@
               throw new Error(resp.status === 404 || ct.includes('text/html') ? 'LEGACY_SERVER_FILE_MISSING' : `HTTP_${resp.status}`);
             }
             const blob = await resp.blob();
-            triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, true);
+            triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload);
           } catch (err) {
             console.warn('Server PDF download failed:', err);
             closePdfDownloadBanner(true);
@@ -8784,7 +8827,7 @@
               const ct = (resp.headers.get('content-type') || '').toLowerCase();
               if (ct.includes('pdf') || ct.includes('octet-stream')) {
                 const blob = await resp.blob();
-                triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, true);
+                triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload);
                 return;
               }
             }
@@ -8998,8 +9041,15 @@
       if (pMat) {
         pMat.classList.toggle('hidden', tabKey !== 'materials');
         if (tabKey === 'materials') {
+          if (adminState.materials.length === 0 && lessonMaterialsMap && Object.keys(lessonMaterialsMap).length > 0) {
+            adminState.materials = Object.values(lessonMaterialsMap).flat();
+          }
           syncAdminMaterialFormDefaults();
+          renderAdminMaterialsList();
           replayAdminPaneEnter(pMat);
+          if (adminCloudDirty.materials) {
+            void refreshAdminCloudData('materials');
+          }
         }
       }
       if (pAdd) {
@@ -9008,7 +9058,17 @@
       }
       if (pStu) {
         pStu.classList.toggle('hidden', tabKey !== 'students');
-        if (tabKey === 'students') replayAdminPaneEnter(pStu);
+        if (tabKey === 'students') {
+          replayAdminPaneEnter(pStu);
+          if (adminCloudDirty.students) {
+            void refreshAdminCloudData('students');
+          } else {
+            renderAdminStudentsList();
+          }
+        }
+      }
+      if (tabKey === 'announcements' && adminCloudDirty.announcements) {
+        void refreshAdminCloudData('announcements');
       }
       const scrollBody = document.getElementById('adminModalScrollBody');
       if (scrollBody) scrollBody.scrollTop = 0;
@@ -9127,7 +9187,7 @@
           if (!api || !secret) return;
           try {
             await api.saveAnnouncement({ ...ann, active: !ann.active }, secret === 'active' ? undefined : secret);
-            await refreshAdminCloudData();
+            await refreshAdminCloudData('announcements');
             await refreshDailyAnnouncements(true);
             showToast(loc.adminAnnSavedToast);
           } catch (err) {
@@ -9174,7 +9234,7 @@
           adminState.deleteConfirmAnnId = '';
           try {
             await api.deleteAnnouncement(ann.id, secret === 'active' ? undefined : secret);
-            await refreshAdminCloudData();
+            await refreshAdminCloudData('announcements');
             await refreshDailyAnnouncements(true);
             showToast(loc.adminAnnDeletedToast);
           } catch (err) {
@@ -9416,6 +9476,12 @@
       listEl.appendChild(frag);
     }
 
+    const adminCloudDirty = {
+      announcements: true,
+      materials: true,
+      students: true
+    };
+
     function getAdminMatScheduleDays(progOverride) {
       const p = progOverride || adminState.matProg || state.lang || 'tr';
       return p === 'en' ? SCHEDULE_DAYS_EN : SCHEDULE_DAYS_TR;
@@ -9446,7 +9512,7 @@
         setState(slotPanel, slotBtn, false);
         setState(datePanel, dateBtn, nextOpen);
         if (nextOpen) {
-          renderAdminMatDateOptions(document.getElementById('adminMatDateSearch')?.value || '');
+          renderAdminMatDateOptions(document.getElementById('adminMatDateSearch')?.value || '', true);
           const listEl = document.getElementById('adminMatDateOptions');
           if (listEl) listEl.scrollTop = 0;
         }
@@ -9457,6 +9523,13 @@
         const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : (slotPanel ? slotPanel.classList.contains('hidden') : false);
         setState(datePanel, dateBtn, false);
         setState(slotPanel, slotBtn, nextOpen);
+        if (nextOpen) {
+          populateAdminMatSlotSelect(
+            document.getElementById('adminMatDateSelect')?.value || '',
+            document.getElementById('adminMatSlotSelect')?.value || '1',
+            true
+          );
+        }
       }
     }
 
@@ -9471,7 +9544,9 @@
       }
     }
 
-    function renderAdminMatDateOptions(query = '') {
+    function renderAdminMatDateOptions(query = '', forceRender = false) {
+      const datePanel = document.getElementById('adminMatDatePickerPanel');
+      if (!forceRender && datePanel && datePanel.classList.contains('hidden')) return;
       const listEl = document.getElementById('adminMatDateOptions');
       const dateInp = document.getElementById('adminMatDateSelect');
       if (!listEl) return;
@@ -9534,9 +9609,10 @@
       if (!norm) listEl.scrollTop = 0;
     }
 
-    function populateAdminMatSlotSelect(dateStr, selectedSlotNo) {
+    function populateAdminMatSlotSelect(dateStr, selectedSlotNo, forceRender = false) {
       const slotInp = document.getElementById('adminMatSlotSelect');
       const slotLbl = document.getElementById('adminMatSlotLabel');
+      const slotPanel = document.getElementById('adminMatSlotPickerPanel');
       const slotOptsEl = document.getElementById('adminMatSlotOptions');
       const days = getAdminMatScheduleDays();
       const dayObj = days.find((d) => d.date === dateStr) || days[0];
@@ -9565,6 +9641,8 @@
       if (slotLbl) slotLbl.textContent = selectedItem ? selectedItem.label : `${targetVal}. Ders`;
 
       if (!slotOptsEl) return;
+      if (!forceRender && slotPanel && slotPanel.classList.contains('hidden')) return;
+
       slotOptsEl.innerHTML = '';
       const frag = document.createDocumentFragment();
       items.forEach((item) => {
@@ -9758,7 +9836,7 @@
           adminState.deleteConfirmMatId = '';
           try {
             await api.deleteLessonMaterial(mat.id, secret === 'active' ? undefined : secret);
-            await refreshAdminCloudData();
+            await refreshAdminCloudData('materials');
             await refreshLessonMaterials(true);
             showToast('Ders PDF\'i silindi');
           } catch (err) {
@@ -9770,48 +9848,67 @@
       });
     }
 
-    async function refreshAdminCloudData() {
+    async function refreshAdminCloudData(scope = 'all', options = {}) {
       const api = window.__INONU_AUTH__;
       const session = getActiveAuthSession();
       const icon = document.getElementById('iconAdminRefresh');
       if (!api || !session || !session.isAdmin) {
-        renderAdminAnnouncementsList();
-        renderAdminMaterialsList();
-        renderAdminStudentsList();
+        if (scope === 'all' || scope === 'announcements') renderAdminAnnouncementsList();
+        if (scope === 'all' || scope === 'materials') renderAdminMaterialsList();
+        if (scope === 'all' || scope === 'students') renderAdminStudentsList();
         return;
       }
       if (session.adminSecret && typeof api.setAdminWriteSecret === 'function') {
         api.setAdminWriteSecret(session.adminSecret);
       }
+      if (options && options.markAllDirty) {
+        adminCloudDirty.announcements = true;
+        adminCloudDirty.materials = true;
+        adminCloudDirty.students = true;
+      }
+      const wantAnn = scope === 'all' || scope === 'announcements';
+      const wantMat = scope === 'all' || scope === 'materials';
+      const wantStu = scope === 'all' || scope === 'students';
+      const wantAccess = scope === 'all' || scope === 'students' || (options && options.includeAccess);
+
       if (icon) icon.classList.add('animate-spin-ios');
       try {
         const [anns, mats, students, accessSettings] = await Promise.all([
-          api.listAllAnnouncements().catch((err) => { console.warn('Admin announcements load failed:', err); return []; }),
-          api.loadAllLessonMaterials().catch((err) => { console.warn('Admin materials load failed:', err); return []; }),
-          api.loadAllAdminStudents(session.adminSecret || undefined).catch((err) => { console.warn('Admin students load failed:', err); return []; }),
-          typeof api.loadSiteAccessSettings === 'function'
+          wantAnn ? api.listAllAnnouncements().catch((err) => { console.warn('Admin announcements load failed:', err); return null; }) : Promise.resolve(null),
+          wantMat ? api.loadAllLessonMaterials().catch((err) => { console.warn('Admin materials load failed:', err); return null; }) : Promise.resolve(null),
+          wantStu ? api.loadAllAdminStudents(session.adminSecret || undefined).catch((err) => { console.warn('Admin students load failed:', err); return null; }) : Promise.resolve(null),
+          wantAccess && typeof api.loadSiteAccessSettings === 'function'
             ? api.loadSiteAccessSettings().catch(() => null)
             : Promise.resolve(null)
         ]);
         if (accessSettings && typeof accessSettings === 'object') {
           applySiteAccessSettings(accessSettings);
         }
-        adminState.announcements = anns;
-        adminState.materials = mats;
-        adminState.students = students;
-        lessonMaterialsMap = {};
-        mats.forEach((m) => {
-          const k = `${m.date}_${m.slotNo}`;
-          if (!Array.isArray(lessonMaterialsMap[k])) lessonMaterialsMap[k] = [];
-          lessonMaterialsMap[k].push(m);
-        });
-        renderAdminAnnouncementsList();
-        renderAdminMaterialsList();
-        renderAdminStudentsList();
-        runWithStaggerSuppressed(() => {
-          renderDailyView();
-          renderWeeklyView();
-        });
+        if (Array.isArray(anns)) {
+          adminState.announcements = anns;
+          adminCloudDirty.announcements = false;
+          renderAdminAnnouncementsList();
+        }
+        if (Array.isArray(mats)) {
+          adminState.materials = mats;
+          adminCloudDirty.materials = false;
+          lessonMaterialsMap = {};
+          mats.forEach((m) => {
+            const k = `${m.date}_${m.slotNo}`;
+            if (!Array.isArray(lessonMaterialsMap[k])) lessonMaterialsMap[k] = [];
+            lessonMaterialsMap[k].push(m);
+          });
+          renderAdminMaterialsList();
+          runWithStaggerSuppressed(() => {
+            renderDailyView();
+            renderWeeklyView();
+          });
+        }
+        if (Array.isArray(students)) {
+          adminState.students = students;
+          adminCloudDirty.students = false;
+          renderAdminStudentsList();
+        }
       } finally {
         if (icon) icon.classList.remove('animate-spin-ios');
       }
@@ -9823,18 +9920,22 @@
       if (session.adminSecret && window.__INONU_AUTH__ && typeof window.__INONU_AUTH__.setAdminWriteSecret === 'function') {
         window.__INONU_AUTH__.setAdminWriteSecret(session.adminSecret);
       }
+      adminCloudDirty.announcements = true;
+      adminCloudDirty.materials = true;
+      adminCloudDirty.students = true;
       toggleAdminMatPicker(null, false);
       const sFilterEl = document.getElementById('adminStudentFilterInput');
       const sClearBtn = document.getElementById('btnClearAdminStudentFilter');
       if (sClearBtn) sClearBtn.classList.toggle('hidden', !String(sFilterEl?.value || '').trim());
       syncAdminModalLanguageUI();
       syncAdminAddStudentChips();
-      switchAdminTab(adminState.activeTab || 'announcements', false);
+      const targetTab = adminState.activeTab || 'announcements';
+      switchAdminTab(targetTab, false);
       openAnimatedModal(document.getElementById('adminModal'), document.getElementById('adminModalCard'), () => {
-        updateAdminTabIndicator(adminState.activeTab || 'announcements', false);
+        updateAdminTabIndicator(targetTab, false);
       });
-      requestAnimationFrame(() => updateAdminTabIndicator(adminState.activeTab || 'announcements', false));
-      refreshAdminCloudData();
+      requestAnimationFrame(() => updateAdminTabIndicator(targetTab, false));
+      void refreshAdminCloudData(targetTab, { includeAccess: true });
     }
 
     function closeAdminModal() {
@@ -10513,7 +10614,9 @@
 
       const btnAdminRefreshAll = document.getElementById('btnAdminRefreshAll');
       if (btnAdminRefreshAll) {
-        btnAdminRefreshAll.addEventListener('click', () => refreshAdminCloudData());
+        btnAdminRefreshAll.addEventListener('click', () => {
+          void refreshAdminCloudData(adminState.activeTab || 'announcements', { markAllDirty: true, includeAccess: true });
+        });
       }
 
       document.querySelectorAll('[data-ann-tone]').forEach((btn) => {
@@ -10589,7 +10692,7 @@
             document.getElementById('adminAnnTitleInput').value = '';
             document.getElementById('adminAnnMsgInput').value = '';
             syncAdminAnnFormUI();
-            await refreshAdminCloudData();
+            await refreshAdminCloudData('announcements');
             await refreshDailyAnnouncements(true);
             showToast(loc.adminAnnSavedToast);
           } catch (err) {
@@ -10639,7 +10742,7 @@
       const adminMatDateSearch = document.getElementById('adminMatDateSearch');
       if (adminMatDateSearch) {
         adminMatDateSearch.addEventListener('input', () => {
-          renderAdminMatDateOptions(adminMatDateSearch.value);
+          renderAdminMatDateOptions(adminMatDateSearch.value, true);
         });
       }
       document.addEventListener('click', (e) => {
@@ -10693,11 +10796,9 @@
       if (pdfDownloadOpenLink) {
         pdfDownloadOpenLink.addEventListener('click', handlePdfBannerOpenClick);
       }
-      const pdfDownloadSaveLink = document.getElementById('pdfDownloadSaveLink');
-      if (pdfDownloadSaveLink) {
-        pdfDownloadSaveLink.addEventListener('click', () => {
-          schedulePdfDownloadBannerAutoHide(4500);
-        });
+      const pdfDownloadShareBtn = document.getElementById('pdfDownloadShareBtn');
+      if (pdfDownloadShareBtn) {
+        pdfDownloadShareBtn.addEventListener('click', handlePdfBannerShareClick);
       }
 
       const btnAdminMatCancelEdit = document.getElementById('btnAdminMatCancelEdit');
@@ -10775,6 +10876,7 @@
 
             if (isFile && adminState.matFileObj) {
               setAdminMatUploadProgress(true, 1, 0, adminState.matFileObj.size, 'Bulut yüklemesi başlatılıyor...');
+              await new Promise((r) => requestAnimationFrame(() => r()));
               const uploaded = await api.uploadLessonPdfFile(
                 adminState.matFileObj,
                 explicitSecret,
@@ -10828,7 +10930,7 @@
             if (adminMatFileInput) adminMatFileInput.value = '';
             setAdminMatUploadProgress(false);
             syncAdminMaterialModeUI();
-            await refreshAdminCloudData();
+            await refreshAdminCloudData('materials');
             await refreshLessonMaterials(true);
             showToast(`Ders PDF'i (${targetProg.toUpperCase()}) kaydedildi`);
           } catch (err) {
@@ -10937,7 +11039,8 @@
             }, secret === 'active' ? undefined : secret, { rejectIfExists: true });
             document.getElementById('adminAddSid').value = '';
             document.getElementById('adminAddName').value = '';
-            await refreshAdminCloudData();
+            adminCloudDirty.students = true;
+            await refreshAdminCloudData('students');
             showToast(loc.adminStudentSavedToast);
           } catch (err) {
             if (err && err.message === 'DUPLICATE_STUDENT_ID') {
