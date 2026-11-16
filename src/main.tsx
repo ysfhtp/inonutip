@@ -36,7 +36,7 @@ import {
   uploadLessonPdfFile,
   verifyAdminPassword,
   verifyAndUnlockAdmin,
-} from './firebasePrefs.ts';
+} from './cloudApi.ts';
 import {
   deriveAdminWriteSecret,
   deriveCloudDocId,

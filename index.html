@@ -27,7 +27,16 @@
         var root = document.documentElement;
         var savedDark = localStorage.getItem('inonu_tip_d1_ios_v3_darkMode');
         var isDark = savedDark === null ? true : JSON.parse(savedDark) !== false;
+        var savedPaletteRaw = localStorage.getItem('inonu_tip_d1_ios_v3_palette');
+        var savedPalette = 'medical-blue';
+        if (savedPaletteRaw) {
+          var parsedPal = JSON.parse(savedPaletteRaw);
+          if (parsedPal === 'surgical-navy' || parsedPal === 'biochem-mint' || parsedPal === 'anatomy-crimson' || parsedPal === 'medical-blue') {
+            savedPalette = parsedPal;
+          }
+        }
         root.classList.toggle('dark', isDark);
+        root.setAttribute('data-palette', savedPalette);
         var color = isDark ? '#070d19' : '#eef2f7';
         var metas = document.querySelectorAll('meta[name="theme-color"]');
         for (var i = 0; i < metas.length; i++) {
@@ -2225,6 +2234,9 @@
 </style>
   <style>
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    button:not(.nav-tab-btn), a, summary, [role="button"] {
+      touch-action: manipulation;
+    }
     html {
       background-color: #eef2f7;
       min-height: 100%;
@@ -2233,6 +2245,11 @@
     }
     html.dark {
       background-color: #070d19;
+    }
+    html.modal-open,
+    html.modal-open body {
+      overflow: hidden !important;
+      overscroll-behavior: none !important;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
@@ -2248,6 +2265,14 @@
     .dark body {
       background-color: transparent;
       color: #f2f2f7;
+    }
+    #appNav {
+      transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    #appNav.is-keyboard-open {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translate3d(0, 26px, 0) !important;
     }
     main {
       position: relative;
@@ -2365,6 +2390,67 @@
       }
     }
 
+    /* ==================== TIP TEMALI RENK PALETLERI & AMBIENT AURALAR ==================== */
+    :root,
+    :root[data-palette="medical-blue"] {
+      --palette-accent: #2563eb;
+      --palette-accent-active-light: #007aff;
+      --palette-accent-active-dark: #38bdf8;
+      --palette-accent-shadow: rgba(37, 99, 235, 0.34);
+      --palette-aura-opacity: 1;
+    }
+
+    :root[data-palette="surgical-navy"] {
+      --color-blue-200: #bfdbfe;
+      --color-blue-300: #93c5fd;
+      --color-blue-400: #60a5fa;
+      --color-blue-500: #1d4ed8;
+      --color-blue-600: #1e40af;
+      --color-blue-700: #1e3a8a;
+      --color-indigo-400: #60a5fa;
+      --color-indigo-500: #1d4ed8;
+      --color-indigo-600: #1e3a8a;
+      --palette-accent: #1e40af;
+      --palette-accent-active-light: #1e40af;
+      --palette-accent-active-dark: #60a5fa;
+      --palette-accent-shadow: rgba(30, 64, 175, 0.38);
+      --palette-aura-opacity: 1;
+    }
+
+    :root[data-palette="biochem-mint"] {
+      --color-blue-200: #99f6e4;
+      --color-blue-300: #5eead4;
+      --color-blue-400: #2dd4bf;
+      --color-blue-500: #14b8a6;
+      --color-blue-600: #0d9488;
+      --color-blue-700: #0f766e;
+      --color-indigo-400: #34d399;
+      --color-indigo-500: #10b981;
+      --color-indigo-600: #059669;
+      --palette-accent: #0d9488;
+      --palette-accent-active-light: #0d9488;
+      --palette-accent-active-dark: #2dd4bf;
+      --palette-accent-shadow: rgba(13, 148, 136, 0.35);
+      --palette-aura-opacity: 1;
+    }
+
+    :root[data-palette="anatomy-crimson"] {
+      --color-blue-200: #fecdd3;
+      --color-blue-300: #fda4af;
+      --color-blue-400: #fb7185;
+      --color-blue-500: #e11d48;
+      --color-blue-600: #be123c;
+      --color-blue-700: #9f1239;
+      --color-indigo-400: #fb7185;
+      --color-indigo-500: #e11d48;
+      --color-indigo-600: #be123c;
+      --palette-accent: #be123c;
+      --palette-accent-active-light: #be123c;
+      --palette-accent-active-dark: #fb7185;
+      --palette-accent-shadow: rgba(190, 18, 60, 0.35);
+      --palette-aura-opacity: 1;
+    }
+
     /* Tab colors: Çok kademeli yumuşak geçişli yayvan eliptik auralar (sıfır blur maliyeti, pürüzsüz derinlik) */
     /* Daily / Bugün */
     body[data-active-tab="daily"] .ambient-top {
@@ -2378,6 +2464,46 @@
     }
     .dark body[data-active-tab="daily"] .ambient-bottom {
       background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(16, 185, 129, 0.24) 0%, rgba(52, 211, 153, 0.16) 34%, rgba(52, 211, 153, 0.075) 56%, rgba(16, 185, 129, 0.024) 74%, transparent 92%);
+    }
+
+    /* Palette-specific ambient glow overrides */
+    :root[data-palette="surgical-navy"] body[data-active-tab="daily"] .ambient-top,
+    :root[data-palette="surgical-navy"] body[data-active-tab="weekly"] .ambient-top {
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(30, 64, 175, 0.17) 0%, rgba(59, 130, 246, 0.10) 34%, rgba(30, 58, 138, 0.05) 56%, transparent 92%);
+    }
+    .dark[data-palette="surgical-navy"] body[data-active-tab="daily"] .ambient-top,
+    .dark[data-palette="surgical-navy"] body[data-active-tab="weekly"] .ambient-top {
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(37, 99, 235, 0.22) 0%, rgba(30, 64, 175, 0.14) 38%, transparent 92%);
+    }
+    :root[data-palette="surgical-navy"] body[data-active-tab="daily"] .ambient-bottom,
+    .dark[data-palette="surgical-navy"] body[data-active-tab="daily"] .ambient-bottom {
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(14, 116, 144, 0.20) 0%, rgba(30, 64, 175, 0.11) 42%, transparent 92%);
+    }
+
+    :root[data-palette="biochem-mint"] body[data-active-tab="daily"] .ambient-top,
+    :root[data-palette="biochem-mint"] body[data-active-tab="weekly"] .ambient-top {
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(13, 148, 136, 0.16) 0%, rgba(45, 212, 191, 0.10) 34%, transparent 92%);
+    }
+    .dark[data-palette="biochem-mint"] body[data-active-tab="daily"] .ambient-top,
+    .dark[data-palette="biochem-mint"] body[data-active-tab="weekly"] .ambient-top {
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(20, 184, 166, 0.22) 0%, rgba(16, 185, 129, 0.13) 38%, transparent 92%);
+    }
+    :root[data-palette="biochem-mint"] body[data-active-tab="daily"] .ambient-bottom,
+    .dark[data-palette="biochem-mint"] body[data-active-tab="daily"] .ambient-bottom {
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(16, 185, 129, 0.22) 0%, rgba(45, 212, 191, 0.12) 42%, transparent 92%);
+    }
+
+    :root[data-palette="anatomy-crimson"] body[data-active-tab="daily"] .ambient-top,
+    :root[data-palette="anatomy-crimson"] body[data-active-tab="weekly"] .ambient-top {
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(190, 18, 60, 0.15) 0%, rgba(244, 63, 94, 0.09) 34%, transparent 92%);
+    }
+    .dark[data-palette="anatomy-crimson"] body[data-active-tab="daily"] .ambient-top,
+    .dark[data-palette="anatomy-crimson"] body[data-active-tab="weekly"] .ambient-top {
+      background: radial-gradient(ellipse 72% 58% at 50% 24%, rgba(225, 29, 72, 0.22) 0%, rgba(159, 18, 57, 0.13) 38%, transparent 92%);
+    }
+    :root[data-palette="anatomy-crimson"] body[data-active-tab="daily"] .ambient-bottom,
+    .dark[data-palette="anatomy-crimson"] body[data-active-tab="daily"] .ambient-bottom {
+      background: radial-gradient(ellipse 72% 58% at 50% 76%, rgba(245, 158, 11, 0.16) 0%, rgba(190, 18, 60, 0.12) 42%, transparent 92%);
     }
 
     /* Weekly / Hafta */
@@ -2522,23 +2648,23 @@
       bottom: 4px;
       left: 0;
       border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.92);
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.9);
       will-change: transform, width;
       pointer-events: none;
       z-index: 0;
     }
     .dark #tabIndicatorPill {
-      background: rgba(255, 255, 255, 0.14);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.42);
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.14);
     }
     #tabIndicatorPill.is-dragging {
       background: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.14);
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 1);
     }
     .dark #tabIndicatorPill.is-dragging {
-      background: rgba(255, 255, 255, 0.22);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
+      background: rgba(255, 255, 255, 0.24);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.22);
     }
     .masked-id-dots {
       display: inline-block;
@@ -2610,22 +2736,22 @@
     }
 
     .nav-tab-btn.is-active {
-      color: #007aff !important;
+      color: var(--palette-accent-active-light, #007aff) !important;
     }
     .dark .nav-tab-btn.is-active {
-      color: #38bdf8 !important;
+      color: var(--palette-accent-active-dark, #38bdf8) !important;
     }
 
     #dockContainer.is-dock-dragging .nav-tab-btn,
     #dockContainer.is-dock-dragging .nav-icon-wrap {
-      transition: none !important;
+      transition: transform 0.08s linear, color 0.14s ease !important;
     }
 
     .nav-tab-btn:active .nav-icon-wrap {
-      transform: scale(0.90) !important;
+      transform: scale(0.88) !important;
     }
     .nav-icon-wrap {
-      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: transform 0.38s cubic-bezier(0.32, 1.38, 0.56, 1);
       will-change: transform;
     }
 
@@ -2811,19 +2937,180 @@
     }
 
     .ios-press {
-      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
+      transition: transform 0.26s cubic-bezier(0.34, 1.45, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.22s ease, opacity 0.2s ease, filter 0.18s ease;
+      will-change: transform;
     }
     .ios-press:active {
-      transform: scale(0.96);
+      transform: scale(0.945) !important;
+      filter: brightness(0.96);
+    }
+    @media (hover: hover) {
+      .ios-press:hover {
+        filter: brightness(1.035);
+      }
     }
 
     .week-day-btn,
     .food-day-btn {
-      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, color 0.2s ease, box-shadow 0.22s ease;
+      transition: transform 0.26s cubic-bezier(0.34, 1.45, 0.64, 1), background-color 0.22s ease, color 0.2s ease, box-shadow 0.22s ease, filter 0.18s ease;
     }
     .week-day-btn:active,
     .food-day-btn:active {
-      transform: scale(0.93);
+      transform: scale(0.91) !important;
+    }
+
+    /* Daily Action Row (MBU/LAB — Date — Sign In/Out) */
+    .daily-action-bar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 0.375rem;
+    }
+    @media (min-width: 640px) {
+      .daily-action-bar {
+        gap: 0.5rem;
+      }
+    }
+    .daily-action-slot {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+    .daily-action-slot--left {
+      justify-content: flex-end;
+    }
+    .daily-action-slot--center {
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .daily-action-slot--right {
+      justify-content: flex-start;
+    }
+    .daily-action-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 28px;
+      line-height: 1;
+      vertical-align: middle;
+      white-space: nowrap;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    @media (min-width: 640px) {
+      .daily-action-pill {
+        height: 30px;
+      }
+    }
+
+    /* Card 3D Tilt & Parallax */
+    .slot-tilt-card {
+      position: relative;
+      overflow: hidden;
+      transform: perspective(820px) rotateX(var(--tilt-rx, 0deg)) rotateY(var(--tilt-ry, 0deg)) scale3d(var(--tilt-s, 1), var(--tilt-s, 1), 1);
+      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.28s ease;
+    }
+    .slot-tilt-card.is-tilting {
+      transition: transform 0.08s linear, box-shadow 0.16s ease;
+      will-change: transform;
+    }
+    .slot-tilt-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: var(--glare-o, 0);
+      background: radial-gradient(circle 190px at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 42%, transparent 72%);
+      transition: opacity 0.26s ease;
+      z-index: 2;
+    }
+    .dark .slot-tilt-card::after {
+      background: radial-gradient(circle 190px at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.13) 0%, rgba(56, 189, 248, 0.05) 45%, transparent 72%);
+    }
+
+    /* Directional Tab Page Transitions */
+    @keyframes tabEnterFromRight {
+      from {
+        opacity: 0;
+        transform: translate3d(22px, 0, 0) scale(0.992);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
+    @keyframes tabEnterFromLeft {
+      from {
+        opacity: 0;
+        transform: translate3d(-22px, 0, 0) scale(0.992);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
+    .tab-enter-right {
+      animation: tabEnterFromRight 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .tab-enter-left {
+      animation: tabEnterFromLeft 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    /* Yemekhane & Daily Directional Day Slide Animations */
+    @keyframes daySlideNext {
+      from {
+        opacity: 0;
+        transform: translate3d(24px, 0, 0) scale(0.992);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
+    @keyframes daySlidePrev {
+      from {
+        opacity: 0;
+        transform: translate3d(-24px, 0, 0) scale(0.992);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
+    @keyframes foodModeMorph {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 14px, 0) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
+    .food-slide-next,
+    .daily-slots-next {
+      animation: daySlideNext 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .food-slide-prev,
+    .daily-slots-prev {
+      animation: daySlidePrev 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .food-mode-morph {
+      animation: foodModeMorph 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .food-header-next {
+      animation: foodCalLabelNext 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .food-header-prev {
+      animation: foodCalLabelPrev 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .palette-card {
+      transition: transform 0.24s cubic-bezier(0.34, 1.45, 0.64, 1), border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .palette-card:active {
+      transform: scale(0.96);
     }
 
     .food-week-card {
@@ -3053,8 +3340,8 @@
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
     }
     .segmented-pill-indicator-blue {
-      background: #2563eb !important;
-      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.34) !important;
+      background: var(--palette-accent, #2563eb) !important;
+      box-shadow: 0 2px 10px var(--palette-accent-shadow, rgba(37, 99, 235, 0.34)) !important;
     }
     .segmented-pill-bar > button {
       position: relative;
@@ -3076,20 +3363,20 @@
       font-weight: 600;
       background: rgba(118, 118, 128, 0.12);
       color: #334155;
-      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+      transition: transform 0.24s cubic-bezier(0.34, 1.45, 0.64, 1), background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
       cursor: pointer;
     }
     .group-chip:active {
-      transform: scale(0.94);
+      transform: scale(0.93);
     }
     .dark .group-chip {
       background: rgba(255, 255, 255, 0.10);
       color: #cbd5e1;
     }
     .group-chip-active {
-      background: #2563eb !important;
+      background: var(--palette-accent, #2563eb) !important;
       color: #ffffff !important;
-      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+      box-shadow: 0 2px 8px var(--palette-accent-shadow, rgba(37, 99, 235, 0.28));
     }
 
     .calc-grid-3 {
@@ -3335,10 +3622,13 @@
         <button id="btnJumpTodayTop" type="button" class="hidden min-[420px]:inline-flex px-3 py-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-xs font-semibold text-blue-600 dark:text-blue-400 transition">
           Bugün
         </button>
-        <button id="btnOpenInstallModal" type="button" class="flex w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Uygulamayı Kur" title="Uygulamayı Kur">
+        <button id="btnOpenInstallModal" type="button" class="ios-press flex w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control items-center justify-center text-slate-700 dark:text-slate-200 transition" aria-label="Uygulamayı Kur" title="Uygulamayı Kur">
           <svg class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
         </button>
-        <button id="btnToggleTheme" type="button" class="w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-95" aria-label="Tema Değiştir">
+        <button id="btnOpenPaletteModal" type="button" class="ios-press w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition" aria-label="Renk Paleti Seç" title="Renk Paleti">
+          <span id="headerPaletteOrb" class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4 rounded-full ring-2 ring-white/80 dark:ring-slate-900/80 shadow-xs" style="background: linear-gradient(135deg, var(--palette-accent, #2563eb) 0%, var(--color-blue-400, #60a5fa) 100%);"></span>
+        </button>
+        <button id="btnToggleTheme" type="button" class="ios-press w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition" aria-label="Tema Değiştir">
           <svg id="iconSun" class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
           <svg id="iconMoon" class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
         </button>
@@ -3370,17 +3660,17 @@
             <p id="selectedDaySubInfo" class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">Kurul 2 • 4. Hafta • 8 Ayrı Ders Saati</p>
           </div>
 
-          <div id="dailyBannerSegmentedBar" class="hidden min-[360px]:flex segmented-pill-bar ios-pill-control p-1 rounded-full items-center gap-1 shadow-2xs shrink-0">
+          <div id="dailyBannerSegmentedBar" class="flex segmented-pill-bar ios-pill-control p-1 rounded-full items-center gap-1 shadow-2xs shrink-0">
             <div id="dailyBannerSegmentedIndicator" class="segmented-pill-indicator"></div>
-            <button id="btnBannerToday" type="button" class="px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-semibold text-slate-900 dark:text-white transition-colors whitespace-nowrap">Bugün</button>
-            <button id="btnBannerTomorrow" type="button" class="px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap">Yarın</button>
+            <button id="btnBannerToday" type="button" class="px-2 min-[360px]:px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-semibold text-slate-900 dark:text-white transition-colors whitespace-nowrap">Bugün</button>
+            <button id="btnBannerTomorrow" type="button" class="px-2 min-[360px]:px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap">Yarın</button>
           </div>
         </div>
 
         <!-- 5 Günlük Kaydırma (Çıkıntısız ve Tam Hizalı) -->
         <div class="w-full">
           <div class="overflow-hidden rounded-2xl w-full">
-            <div id="weekCarousel" class="w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex" style=""></div>
+            <div id="weekCarousel" class="w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex" style="touch-action: pan-x pan-y; overscroll-behavior-x: contain;"></div>
           </div>
           <div class="flex items-center justify-between px-1 pt-1.5 text-[10px] text-slate-400 dark:text-slate-500 select-none">
             <span id="carouselWeekIndicator">Kurul 2 • 4. Hafta</span>
@@ -3391,16 +3681,26 @@
           </div>
         </div>
 
-        <!-- Kişisel Grup Seçici (MBU & LAB) ve Giriş/Çıkış Butonu -->
-        <div class="flex items-center justify-center gap-2 py-2.5 border-t border-slate-200/60 dark:border-slate-800/80 flex-wrap">
-          <button id="btnOpenGroupModal" type="button" class="w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition flex items-center gap-1.5 active:scale-95">
-            <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            <span id="btnGroupFilterLabel">Grubunu Seç (MBU / LAB)</span>
-          </button>
-          <button id="btnAuthActionDaily" type="button" class="w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-blue-500/15 text-[11px] font-semibold text-blue-600 dark:text-blue-400 transition flex items-center gap-1.5 active:scale-95">
-            <svg id="authActionDailyIcon" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
-            <span id="btnAuthActionDailyLabel">Öğrenci Girişi</span>
-          </button>
+        <!-- Grup Seçici (MBU & LAB) (Sol), Tarih Seçici (Tam Orta) ve Giriş/Çıkış Butonu (Sağ) -->
+        <div class="daily-action-bar py-2.5 border-t border-slate-200/60 dark:border-slate-800/80">
+          <div class="daily-action-slot daily-action-slot--left">
+            <button id="btnOpenGroupModal" type="button" class="daily-action-pill ios-press max-w-full min-w-0 px-2 sm:px-3 rounded-full ios-pill-control hover:bg-slate-500/15 text-[10.5px] sm:text-[11px] font-semibold text-slate-600 dark:text-slate-300 shadow-2xs transition gap-1 sm:gap-1.5">
+              <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              <span id="btnGroupFilterLabel" class="truncate">MBU / LAB</span>
+            </button>
+          </div>
+          <div class="daily-action-slot daily-action-slot--center">
+            <button id="btnDailyDatePicker" type="button" aria-label="Ders Takvimi" class="daily-action-pill ios-press ios-pill-control hover:bg-slate-500/15 px-2.5 sm:px-3 rounded-full gap-1 sm:gap-1.5 text-slate-800 dark:text-slate-100 text-[10.5px] sm:text-[11px] font-bold shadow-2xs shrink-0">
+              <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              <span id="dailyDateBtnLabel" class="tabular-nums">13 Kas 2026</span>
+            </button>
+          </div>
+          <div class="daily-action-slot daily-action-slot--right">
+            <button id="btnAuthActionDaily" type="button" class="daily-action-pill ios-press max-w-full min-w-0 px-2 sm:px-3 rounded-full ios-pill-control hover:bg-blue-500/15 text-[10.5px] sm:text-[11px] font-semibold text-blue-600 dark:text-blue-400 shadow-2xs transition gap-1 sm:gap-1.5">
+              <svg id="authActionDailyIcon" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+              <span id="btnAuthActionDailyLabel" class="truncate">Giriş Yap</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -3475,7 +3775,7 @@
         <!-- 5 Günlük Kaydırma (Bugün Menüsüyle Birebir Aynı) -->
         <div class="w-full">
           <div class="overflow-hidden rounded-2xl w-full">
-            <div id="foodWeekCarousel" class="w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex"></div>
+            <div id="foodWeekCarousel" class="w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex" style="touch-action: pan-x pan-y; overscroll-behavior-x: contain;"></div>
           </div>
           <div class="flex items-center justify-between px-1 pt-1.5 text-[10px] text-slate-400 dark:text-slate-500 select-none">
             <span id="foodCarouselWeekIndicator">Bu Hafta</span>
@@ -3632,8 +3932,8 @@
           Admin Ayarları
         </button>
       </div>
-      <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.8</span>
+      <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="3">
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.7.0</span>
       </div>
     </section>
 
@@ -3790,6 +4090,109 @@
         <div class="overflow-hidden rounded-2xl w-full">
           <div id="foodCalCarousel" class="w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex select-none" style="touch-action: pan-x; overscroll-behavior-x: contain;"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Schedule Date Picker Modal (Custom In-Site iOS Calendar) -->
+  <div id="dailyDateModal" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md ios-safe-modal flex items-center justify-center p-3 min-[360px]:p-4">
+    <div id="dailyDateModalCard" class="ios-glass rounded-3xl max-w-sm w-full p-3.5 min-[360px]:p-4 space-y-3 shadow-2xl">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-7 h-7 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          </span>
+          <h3 id="dailyDateModalTitle" class="text-sm font-bold text-slate-900 dark:text-white truncate">Ders Takvimi</h3>
+        </div>
+        <button id="btnCloseDailyDateModal" type="button" class="ios-press w-7 h-7 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0" aria-label="Kapat">✕</button>
+      </div>
+
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button id="btnDailyCalJumpToday" type="button" class="ios-press px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-[11px] font-bold transition">Bugün</button>
+        <button id="btnDailyCalJumpK1" type="button" class="ios-press px-2.5 py-1 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition">Kurul I</button>
+        <button id="btnDailyCalJumpK2" type="button" class="ios-press px-2.5 py-1 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition">Kurul II</button>
+      </div>
+
+      <div class="flex items-center justify-between gap-2 pt-0.5">
+        <button id="btnDailyCalPrevMonth" type="button" class="ios-press w-8 h-8 rounded-full ios-pill-control hover:bg-slate-500/15 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0" aria-label="Önceki Ay">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <span id="dailyCalMonthLabel" class="text-sm font-bold text-slate-900 dark:text-white tracking-tight text-center">Kasım 2026</span>
+        <button id="btnDailyCalNextMonth" type="button" class="ios-press w-8 h-8 rounded-full ios-pill-control hover:bg-slate-500/15 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0" aria-label="Sonraki Ay">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+      </div>
+
+      <div class="space-y-1">
+        <div id="dailyCalWeekdays" class="food-cal-grid px-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 py-1"></div>
+        <div class="overflow-hidden rounded-2xl w-full">
+          <div id="dailyCalCarousel" class="w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex select-none" style="touch-action: pan-x; overscroll-behavior-x: contain;"></div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-center gap-4 pt-1 text-[10px] font-medium text-slate-500 dark:text-slate-400">
+        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span><span id="dailyCalLegendClass">Ders günü</span></span>
+        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span><span id="dailyCalLegendExam">Sınav</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Medical Theme & Color Palette Modal -->
+  <div id="paletteModal" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md ios-safe-modal flex items-center justify-center p-3 min-[360px]:p-4">
+    <div id="paletteModalCard" class="ios-glass rounded-3xl max-w-md w-full p-4 min-[360px]:p-5 space-y-3.5 shadow-2xl">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style="background: linear-gradient(135deg, var(--palette-accent, #2563eb) 0%, var(--color-blue-400, #60a5fa) 100%);"></span>
+          <h3 id="paletteModalTitle" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">Tıp Renk Paletleri</h3>
+        </div>
+        <button id="btnClosePaletteModal" type="button" class="ios-press w-7 h-7 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0" aria-label="Kapat">✕</button>
+      </div>
+      <p id="paletteModalDesc" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Arayüz için uyumlu vurgu renk paletini seçebilirsin.</p>
+
+      <div id="paletteGrid" class="space-y-2">
+        <button type="button" data-palette-choice="medical-blue" class="palette-card w-full ios-pill-control rounded-2xl p-2.5 flex items-center justify-between gap-3 text-left border border-transparent">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="w-8 h-8 rounded-xl shrink-0 shadow-sm ring-1 ring-white/40" style="background: linear-gradient(135deg, #2563eb 0%, #38bdf8 100%);"></span>
+            <div class="min-w-0">
+              <p id="palNameMedicalBlue" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Klinik Mavi</p>
+              <p id="palDescMedicalBlue" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Ferah klinik mavi ve yumuşak zümrüt geçişi</p>
+            </div>
+          </div>
+          <span class="palette-check w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center opacity-0 transition-opacity">✓</span>
+        </button>
+
+        <button type="button" data-palette-choice="surgical-navy" class="palette-card w-full ios-pill-control rounded-2xl p-2.5 flex items-center justify-between gap-3 text-left border border-transparent">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="w-8 h-8 rounded-xl shrink-0 shadow-sm ring-1 ring-white/40" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);"></span>
+            <div class="min-w-0">
+              <p id="palNameSurgicalNavy" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Derin Lacivert</p>
+              <p id="palDescSurgicalNavy" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Doygun kobalt ve okyanus laciverti tonları</p>
+            </div>
+          </div>
+          <span class="palette-check w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center opacity-0 transition-opacity">✓</span>
+        </button>
+
+        <button type="button" data-palette-choice="biochem-mint" class="palette-card w-full ios-pill-control rounded-2xl p-2.5 flex items-center justify-between gap-3 text-left border border-transparent">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="w-8 h-8 rounded-xl shrink-0 shadow-sm ring-1 ring-white/40" style="background: linear-gradient(135deg, #0d9488 0%, #34d399 100%);"></span>
+            <div class="min-w-0">
+              <p id="palNameBiochemMint" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Zümrüt Yeşili</p>
+              <p id="palDescBiochemMint" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Yumuşak adaçayı yeşili ve berrak turkuaz</p>
+            </div>
+          </div>
+          <span class="palette-check w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center opacity-0 transition-opacity">✓</span>
+        </button>
+
+        <button type="button" data-palette-choice="anatomy-crimson" class="palette-card w-full ios-pill-control rounded-2xl p-2.5 flex items-center justify-between gap-3 text-left border border-transparent">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="w-8 h-8 rounded-xl shrink-0 shadow-sm ring-1 ring-white/40" style="background: linear-gradient(135deg, #9f1239 0%, #fb7185 100%);"></span>
+            <div class="min-w-0">
+              <p id="palNameAnatomyCrimson" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Akademik Bordo</p>
+              <p id="palDescAnatomyCrimson" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Sıcak yakut kırmızısı ve gül vurguları</p>
+            </div>
+          </div>
+          <span class="palette-check w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center opacity-0 transition-opacity">✓</span>
+        </button>
       </div>
     </div>
   </div>
@@ -4161,7 +4564,7 @@
   <nav id="appNav" class="fixed inset-x-2 min-[360px]:inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[440px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
     <div id="dockContainer" class="ios-floating-dock rounded-full p-1 grid grid-cols-5 relative touch-none" style="touch-action: none;">
       <!-- Continuous Gliding Pill -->
-      <div id="tabIndicatorPill" data-active-tab="daily" style="transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1); transform: translate3d(4px, 0px, 0px); width: 70px;"></div>
+      <div id="tabIndicatorPill" data-active-tab="daily" style="transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), width 0.36s cubic-bezier(0.22, 1, 0.36, 1); transform: translate3d(4px, 0px, 0px); width: 70px;"></div>
 
       <button type="button" data-tab="daily" data-tab-index="0" class="nav-tab-btn is-active w-full min-w-0 py-1.5 px-0.5 sm:px-1 flex flex-col items-center justify-center gap-0.5 font-semibold relative z-10 select-none">
         <div class="nav-icon-wrap flex items-center justify-center h-5" style="transform: scale(1.1);">
@@ -4294,7 +4697,7 @@
         finalStatusEasy: (req, proj50) => `Final barajı (50) yeterli — Finalden 50 alsan bile yıl sonu ${proj50} oluyor (hedef için gereken: ${req}).`,
         finalStatusNeed: (req, target) => `${target} yıl sonu ortalaması için Finalden en az ${req} alman gerekiyor.`,
         finalStatusHard: (req, target) => `${target} hedefi için Finalden ${req} gerekiyor; 100 üzerinden mümkün görünmüyor.`,
-        groupSelectDefault: 'Grubunu Seç (MBU / LAB)',
+        groupSelectDefault: 'MBU / LAB',
         groupAllLabel: 'Tümü',
         groupModalTitle: 'Gruplarını Seç',
         groupModalDesc: 'Kendi MBU ve LAB gruplarını seçerek programda derslerini öne çıkarabilir veya diğer grupları gizleyebilirsin.',
@@ -4483,6 +4886,24 @@
         adminSiteAccessToastPublic: 'Site herkese açık moda alındı',
         adminSiteAccessToastLocked: 'Site artık sadece öğrenci numarasıyla girişe açık',
         adminMatSearchDatePlaceholder: 'Tarih, gün veya hafta ara...',
+        dailyDatePickerTitle: 'Ders Takvimi',
+        dailyCalLegendClass: 'Ders günü',
+        dailyCalLegendExam: 'Sınav',
+        paletteModalTitle: 'Renk Paletleri',
+        paletteModalDesc: 'Arayüz için uyumlu vurgu renk paletini seçebilirsin.',
+        paletteNames: {
+          'medical-blue': 'Klinik Mavi',
+          'surgical-navy': 'Derin Lacivert',
+          'biochem-mint': 'Zümrüt Yeşili',
+          'anatomy-crimson': 'Akademik Bordo'
+        },
+        paletteDescs: {
+          'medical-blue': 'Ferah klinik mavi ve yumuşak zümrüt geçişi',
+          'surgical-navy': 'Doygun kobalt ve okyanus laciverti tonları',
+          'biochem-mint': 'Yumuşak adaçayı yeşili ve berrak turkuaz',
+          'anatomy-crimson': 'Sıcak yakut kırmızısı ve gül vurguları'
+        },
+        paletteChangedToast: (name) => `${name} paleti uygulandı`,
         months: MONTHS_TR,
         monthsShort: MONTHS_SHORT_TR,
         days: DAYS_TR,
@@ -4535,7 +4956,7 @@
         finalStatusEasy: (req, proj50) => `Final minimum (50) is enough — scoring 50 yields ${proj50} year-end (needed for target: ${req}).`,
         finalStatusNeed: (req, target) => `You need at least ${req} on the Final exam to reach ${target} year-end.`,
         finalStatusHard: (req, target) => `Reaching ${target} requires ${req} on the Final exam (above 100).`,
-        groupSelectDefault: 'Select Your Group (PSP)',
+        groupSelectDefault: 'Group (PSP)',
         groupAllLabel: 'All',
         groupModalTitle: 'Select Your Group',
         groupModalDesc: 'Pick your PSP/MBU group to highlight your own sessions or hide other groups.',
@@ -4724,6 +5145,24 @@
         adminSiteAccessToastPublic: 'Site switched to public access mode',
         adminSiteAccessToastLocked: 'Site is now restricted to student ID login',
         adminMatSearchDatePlaceholder: 'Search date, day, or week...',
+        dailyDatePickerTitle: 'Academic Calendar',
+        dailyCalLegendClass: 'Class day',
+        dailyCalLegendExam: 'Exam',
+        paletteModalTitle: 'Color Palettes',
+        paletteModalDesc: 'Choose a harmonious accent color palette for the interface.',
+        paletteNames: {
+          'medical-blue': 'Clinical Blue',
+          'surgical-navy': 'Deep Navy',
+          'biochem-mint': 'Emerald Mint',
+          'anatomy-crimson': 'Academic Crimson'
+        },
+        paletteDescs: {
+          'medical-blue': 'Crisp clinical blue with gentle emerald accents',
+          'surgical-navy': 'Rich cobalt and deep ocean navy tones',
+          'biochem-mint': 'Fresh mint green with clear turquoise highlights',
+          'anatomy-crimson': 'Warm crimson ruby and subtle rose accents'
+        },
+        paletteChangedToast: (name) => `${name} palette applied`,
         months: MONTHS_EN,
         monthsShort: MONTHS_SHORT_EN,
         days: DAYS_EN,
@@ -4770,6 +5209,7 @@
       weeklySelectedWeekKey: null,
       modalSlotKey: null,
       darkMode: loadStore('darkMode', true),
+      palette: loadStore('palette', 'medical-blue'),
       myMbuGroup: loadStore('myMbuGroup', ''),
       myLabGroup: loadStore('myLabGroup', ''),
       otherGroupMode: loadStore('otherGroupMode', 'dim') === 'hide' ? 'hide' : 'dim',
@@ -5022,16 +5462,22 @@
       const btn = document.getElementById('btnOpenGroupModal');
       if (!lbl || !btn) return;
       const loc = I18N[state.lang];
-      const parts = [];
-      if (state.myMbuGroup) parts.push(`${state.lang === 'en' ? 'PSP' : 'MBU'}: ${state.myMbuGroup}`);
-      if (state.lang !== 'en' && state.myLabGroup) parts.push(`LAB: ${state.myLabGroup}`);
-      if (parts.length > 0) {
-        lbl.textContent = parts.join(' • ');
-        btn.classList.add('text-blue-600', 'dark:text-blue-400');
-      } else {
-        lbl.textContent = loc.groupSelectDefault;
-        btn.classList.remove('text-blue-600', 'dark:text-blue-400');
+      const mbuPrefix = state.lang === 'en' ? 'PSP' : 'MBU';
+      const hasMbu = Boolean(state.myMbuGroup);
+      const hasLab = state.lang !== 'en' && Boolean(state.myLabGroup);
+      let labelText = loc.groupSelectDefault;
+      if (hasMbu && hasLab) {
+        labelText = `${mbuPrefix} ${state.myMbuGroup} • LAB ${state.myLabGroup}`;
+      } else if (hasMbu) {
+        labelText = `${mbuPrefix}: ${state.myMbuGroup}`;
+      } else if (hasLab) {
+        labelText = `LAB: ${state.myLabGroup}`;
       }
+      lbl.textContent = labelText;
+      btn.title = labelText;
+      btn.setAttribute('aria-label', labelText);
+      btn.classList.toggle('text-blue-600', hasMbu || hasLab);
+      btn.classList.toggle('dark:text-blue-400', hasMbu || hasLab);
     }
 
     function syncGroupModalUI() {
@@ -5057,6 +5503,11 @@
 
     const modalCloseTimers = new WeakMap();
 
+    function syncModalScrollLock() {
+      const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden)'));
+      document.documentElement.classList.toggle('modal-open', hasOpenModal);
+    }
+
     function openAnimatedModal(modal, card, onOpenFocus) {
       if (!modal) return;
       const prevTimer = modalCloseTimers.get(modal);
@@ -5066,6 +5517,7 @@
       }
       modal.classList.remove('hidden', 'modal-backdrop-out', 'modal-backdrop-in');
       if (card) card.classList.remove('modal-card-out', 'modal-card-in');
+      syncModalScrollLock();
       void modal.offsetWidth;
       modal.classList.add('modal-backdrop-in');
       if (card) card.classList.add('modal-card-in');
@@ -5076,6 +5528,7 @@
 
     function closeAnimatedModal(modal, card, onClosed) {
       if (!modal || modal.classList.contains('hidden')) {
+        syncModalScrollLock();
         if (typeof onClosed === 'function') onClosed();
         return;
       }
@@ -5093,6 +5546,7 @@
         modal.classList.add('hidden');
         modal.classList.remove('modal-backdrop-out');
         if (card) card.classList.remove('modal-card-out');
+        syncModalScrollLock();
         if (typeof onClosed === 'function') onClosed();
       }, 205);
       modalCloseTimers.set(modal, timer);
@@ -5143,6 +5597,12 @@
       }, 2200);
     }
 
+    const VALID_PALETTES = ['medical-blue', 'surgical-navy', 'biochem-mint', 'anatomy-crimson'];
+
+    function normalizePaletteKey(raw) {
+      return VALID_PALETTES.includes(raw) ? raw : 'medical-blue';
+    }
+
     function getSystemThemeColor() {
       const y = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
       if (!state.darkMode) {
@@ -5170,24 +5630,27 @@
     }
 
     let themeTransitionTimer = null;
+    function triggerThemeTransitionWindow() {
+      const html = document.documentElement;
+      clearTimeout(themeTransitionTimer);
+      html.classList.add('theme-transitioning');
+      themeTransitionTimer = setTimeout(() => {
+        html.classList.remove('theme-transitioning');
+      }, 480);
+    }
+
     function applyTheme(animate = false) {
       const html = document.documentElement;
       const sun = document.getElementById('iconSun');
       const moon = document.getElementById('iconMoon');
       const meta = document.getElementById('themeColorMeta');
 
-      if (animate) {
-        clearTimeout(themeTransitionTimer);
-        html.classList.add('theme-transitioning');
-        themeTransitionTimer = setTimeout(() => {
-          html.classList.remove('theme-transitioning');
-        }, 480);
-      }
+      if (animate) triggerThemeTransitionWindow();
 
       if (state.darkMode) {
         html.classList.add('dark');
-        sun.classList.remove('hidden');
-        moon.classList.add('hidden');
+        if (sun) sun.classList.remove('hidden');
+        if (moon) moon.classList.add('hidden');
         if (animate && sun) {
           sun.classList.remove('theme-icon-morph');
           void sun.offsetWidth;
@@ -5196,8 +5659,8 @@
         if (meta) meta.setAttribute('content', '#070d19');
       } else {
         html.classList.remove('dark');
-        sun.classList.add('hidden');
-        moon.classList.remove('hidden');
+        if (sun) sun.classList.add('hidden');
+        if (moon) moon.classList.remove('hidden');
         if (animate && moon) {
           moon.classList.remove('theme-icon-morph');
           void moon.offsetWidth;
@@ -5207,6 +5670,40 @@
       }
       syncSystemBarsThemeColor();
       saveStore('darkMode', state.darkMode);
+      syncPaletteModalUI();
+    }
+
+    function applyPalette(paletteKey, animate = false) {
+      const key = normalizePaletteKey(paletteKey);
+      state.palette = key;
+      if (animate) triggerThemeTransitionWindow();
+      document.documentElement.setAttribute('data-palette', key);
+      saveStore('palette', key);
+      syncSystemBarsThemeColor();
+      syncPaletteModalUI();
+    }
+
+    function syncPaletteModalUI() {
+      const key = normalizePaletteKey(state.palette);
+
+      document.querySelectorAll('[data-palette-choice]').forEach((btn) => {
+        const choice = btn.getAttribute('data-palette-choice');
+        const active = choice === key;
+        btn.classList.toggle('border-blue-500/60', active);
+        btn.classList.toggle('bg-blue-500/10', active);
+        btn.classList.toggle('border-transparent', !active);
+        const chk = btn.querySelector('.palette-check');
+        if (chk) chk.style.opacity = active ? '1' : '0';
+      });
+    }
+
+    function openPaletteModal() {
+      syncPaletteModalUI();
+      openAnimatedModal(document.getElementById('paletteModal'), document.getElementById('paletteModalCard'));
+    }
+
+    function closePaletteModal() {
+      closeAnimatedModal(document.getElementById('paletteModal'), document.getElementById('paletteModalCard'));
     }
 
     function updateSegmentedIndicator(barEl, indicatorEl, activeBtn, animate = true, extraClass = '') {
@@ -5386,6 +5883,44 @@
       document.getElementById('btnFoodNextLabel').textContent = loc.nextDay;
       document.getElementById('foodReserveLink').textContent = loc.foodReserveLabel;
 
+      const dailyDatePickerBtn = document.getElementById('btnDailyDatePicker');
+      if (dailyDatePickerBtn) dailyDatePickerBtn.setAttribute('aria-label', loc.dailyDatePickerTitle);
+      const dailyDateTitle = document.getElementById('dailyDateModalTitle');
+      if (dailyDateTitle) dailyDateTitle.textContent = loc.dailyDatePickerTitle;
+      const btnDailyCalToday = document.getElementById('btnDailyCalJumpToday');
+      if (btnDailyCalToday) btnDailyCalToday.textContent = loc.today;
+      const btnDailyCalK1 = document.getElementById('btnDailyCalJumpK1');
+      if (btnDailyCalK1) btnDailyCalK1.textContent = loc.filterK1;
+      const btnDailyCalK2 = document.getElementById('btnDailyCalJumpK2');
+      if (btnDailyCalK2) btnDailyCalK2.textContent = loc.filterK2;
+      const dailyLegendCls = document.getElementById('dailyCalLegendClass');
+      if (dailyLegendCls) dailyLegendCls.textContent = loc.dailyCalLegendClass;
+      const dailyLegendEx = document.getElementById('dailyCalLegendExam');
+      if (dailyLegendEx) dailyLegendEx.textContent = loc.dailyCalLegendExam;
+      const dailyPrevMonthBtn = document.getElementById('btnDailyCalPrevMonth');
+      if (dailyPrevMonthBtn) dailyPrevMonthBtn.setAttribute('aria-label', loc.foodPrevMonthAria);
+      const dailyNextMonthBtn = document.getElementById('btnDailyCalNextMonth');
+      if (dailyNextMonthBtn) dailyNextMonthBtn.setAttribute('aria-label', loc.foodNextMonthAria);
+      const dailyDateModalEl = document.getElementById('dailyDateModal');
+      if (dailyDateModalEl && !dailyDateModalEl.classList.contains('hidden')) {
+        renderDailyDateModalCarousel(true);
+      }
+
+      const palModalTitle = document.getElementById('paletteModalTitle');
+      if (palModalTitle) palModalTitle.textContent = loc.paletteModalTitle;
+      const palModalDesc = document.getElementById('paletteModalDesc');
+      if (palModalDesc) palModalDesc.textContent = loc.paletteModalDesc;
+      const setPalTxt = (id, val) => { const el = document.getElementById(id); if (el && val) el.textContent = val; };
+      setPalTxt('palNameMedicalBlue', loc.paletteNames['medical-blue']);
+      setPalTxt('palDescMedicalBlue', loc.paletteDescs['medical-blue']);
+      setPalTxt('palNameSurgicalNavy', loc.paletteNames['surgical-navy']);
+      setPalTxt('palDescSurgicalNavy', loc.paletteDescs['surgical-navy']);
+      setPalTxt('palNameBiochemMint', loc.paletteNames['biochem-mint']);
+      setPalTxt('palDescBiochemMint', loc.paletteDescs['biochem-mint']);
+      setPalTxt('palNameAnatomyCrimson', loc.paletteNames['anatomy-crimson']);
+      setPalTxt('palDescAnatomyCrimson', loc.paletteDescs['anatomy-crimson']);
+      syncPaletteModalUI();
+
       const foodDatePickerBtn = document.getElementById('btnFoodDatePicker');
       if (foodDatePickerBtn) {
         foodDatePickerBtn.setAttribute('aria-label', loc.foodDatePickerTitle);
@@ -5440,7 +5975,7 @@
     // ==================== iOS 18 LIQUID GLASS DOCK INDICATOR ====================
     const TAB_ORDER = ['daily', 'weekly', 'search', 'info', 'food'];
 
-    const PILL_SPRING = 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, box-shadow 0.22s ease';
+    const PILL_SPRING = 'transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), width 0.36s cubic-bezier(0.22, 1, 0.36, 1)';
     let lastVisualActiveTab = null;
 
     function getDockPillBounds(dock, btn) {
@@ -5461,13 +5996,14 @@
 
       pill.setAttribute('data-active-tab', tabName);
       pill.classList.remove('is-dragging');
+
       if (!animate) {
         pill.style.transition = 'none';
       } else {
         pill.style.transition = PILL_SPRING;
       }
 
-      pill.style.transform = `translate3d(${bounds.left}px, 0, 0) scale(1)`;
+      pill.style.transform = `translate3d(${bounds.left}px, 0, 0)`;
       pill.style.width = `${bounds.width}px`;
 
       if (!animate) {
@@ -5511,6 +6047,11 @@
     function activateTabView(tabName, preserveScroll = false) {
       const prevTab = state.activeTab;
       const changed = prevTab !== tabName;
+      const prevTabIdx = TAB_ORDER.indexOf(prevTab);
+      const nextTabIdx = TAB_ORDER.indexOf(tabName);
+      const tabDir = (changed && !preserveScroll && prevTabIdx >= 0 && nextTabIdx >= 0)
+        ? (nextTabIdx > prevTabIdx ? 1 : -1)
+        : 0;
 
       if (changed && !preserveScroll) {
         window.scrollTo({ top: 0, behavior: 'auto' });
@@ -5535,7 +6076,15 @@
         const isTarget = tKey === tabName;
         const wasHidden = el.classList.contains('hidden');
         if (isTarget && wasHidden) wasTargetHidden = true;
+        el.classList.remove('tab-enter-right', 'tab-enter-left');
         el.classList.toggle('hidden', !isTarget);
+        if (isTarget && tabDir !== 0) {
+          void el.offsetWidth;
+          el.classList.add(tabDir > 0 ? 'tab-enter-right' : 'tab-enter-left');
+          el.addEventListener('animationend', () => {
+            el.classList.remove('tab-enter-right', 'tab-enter-left');
+          }, { once: true });
+        }
         el.querySelectorAll('.ios-tab-card').forEach((card) => {
           if (!isTarget || preserveScroll) {
             card.classList.remove('ios-stagger-item', 'ios-lang-swap');
@@ -5649,7 +6198,7 @@
         }
         const diff = targetPillX - currentPillX;
         currentPillX += Math.abs(diff) < 0.2 ? diff : diff * 0.45;
-        pill.style.transform = `translate3d(${currentPillX.toFixed(2)}px, 0, 0) scale(1.03)`;
+        pill.style.transform = `translate3d(${currentPillX.toFixed(2)}px, 0, 0)`;
         rafId = requestAnimationFrame(tickDrag);
       }
 
@@ -5712,7 +6261,8 @@
           document.activeElement.blur();
         }
         document.querySelectorAll('.nav-tab-btn').forEach((b) => {
-          if (b.getAttribute('data-tab') !== currentTargetTab) {
+          const isTarget = b.getAttribute('data-tab') === currentTargetTab;
+          if (!isTarget) {
             b.classList.remove('is-active');
           }
           if (typeof b.blur === 'function') b.blur();
@@ -5783,7 +6333,7 @@
       const [startTime = '', endTime = ''] = (slot.time || '').split('-');
 
       const card = document.createElement('div');
-      card.className = `ios-glass rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} ${groupStatus === 'other' ? 'slot-card-dimmed' : (isSecondaryCourse ? 'slot-card-secondary' : '')} transition-colors`;
+      card.className = `ios-glass slot-tilt-card rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} ${groupStatus === 'other' ? 'slot-card-dimmed' : (isSecondaryCourse ? 'slot-card-secondary' : '')}`;
 
       const row = document.createElement('div');
       row.className = 'flex items-stretch gap-2.5';
@@ -6039,18 +6589,44 @@
       }, { passive: true });
     }
 
-    // ==================== DAILY VIEW ====================
+    // ==================== DAILY VIEW & QUICK SCHEDULE CALENDAR ====================
+    let lastDailyRenderedDate = '';
+
     function renderDailyView() {
       const days = getScheduleDays();
       const loc = I18N[state.lang];
       const idx = days.findIndex((d) => d.date === state.selectedDate);
       const dayObj = idx >= 0 ? days[idx] : days[0];
+      const prevDate = lastDailyRenderedDate;
+      let dailyDir = 0;
+      if (prevDate && prevDate !== dayObj.date && !suppressEntryStagger && !isTabSwitchRender) {
+        dailyDir = parseDMY(dayObj.date) > parseDMY(prevDate) ? 1 : -1;
+      }
+      lastDailyRenderedDate = dayObj.date;
       state.selectedDate = dayObj.date;
       persistNavViewState();
 
-      document.getElementById('selectedDayHeaderTitle').textContent = formatDateDayMonthYear(dayObj.date);
-      document.getElementById('selectedDayHeaderWeekday').textContent = formatDateWeekday(dayObj.date);
+      const hdrTitle = document.getElementById('selectedDayHeaderTitle');
+      const hdrWeekday = document.getElementById('selectedDayHeaderWeekday');
+      hdrTitle.textContent = formatDateDayMonthYear(dayObj.date);
+      hdrWeekday.textContent = formatDateWeekday(dayObj.date);
       document.getElementById('selectedDaySubInfo').textContent = `${loc.committeeShort(dayObj.kurulNo)} • ${loc.weekLabel(dayObj.haftaNo)} • ${loc.slotCount(dayObj.slots.length)}`;
+
+      const dailyDateBtnLabel = document.getElementById('dailyDateBtnLabel');
+      if (dailyDateBtnLabel) {
+        const dt = parseDMY(dayObj.date);
+        dailyDateBtnLabel.textContent = `${dt.getDate()} ${loc.monthsShort[dt.getMonth()]} ${dt.getFullYear()}`;
+      }
+
+      if (dailyDir !== 0) {
+        const hCls = dailyDir > 0 ? 'food-header-next' : 'food-header-prev';
+        [hdrTitle, hdrWeekday].forEach((el) => {
+          if (!el) return;
+          el.classList.remove('food-header-next', 'food-header-prev');
+          void el.offsetWidth;
+          el.classList.add(hCls);
+        });
+      }
 
       const tomTarget = getTomorrowTargetDate();
       const todayTarget = getBestDefaultDate();
@@ -6066,8 +6642,8 @@
       const btnToday = document.getElementById('btnBannerToday');
       const btnTom = document.getElementById('btnBannerTomorrow');
 
-      const activePill = 'px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-semibold text-slate-900 dark:text-white transition-colors whitespace-nowrap';
-      const inactivePill = 'px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap';
+      const activePill = 'px-2 min-[360px]:px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-semibold text-slate-900 dark:text-white transition-colors whitespace-nowrap';
+      const inactivePill = 'px-2 min-[360px]:px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap';
       btnToday.className = isToday ? activePill : inactivePill;
       btnTom.className = isTomorrow ? activePill : inactivePill;
       updateSegmentedIndicator(
@@ -6080,7 +6656,16 @@
       renderWeekCarousel(dayObj);
 
       const container = document.getElementById('dailySlotsContainer');
+      container.classList.remove('daily-slots-next', 'daily-slots-prev');
       container.innerHTML = '';
+
+      if (dailyDir !== 0) {
+        void container.offsetWidth;
+        container.classList.add(dailyDir > 0 ? 'daily-slots-next' : 'daily-slots-prev');
+        container.addEventListener('animationend', () => {
+          container.classList.remove('daily-slots-next', 'daily-slots-prev');
+        }, { once: true });
+      }
 
       const { visibleSlots, hiddenCount } = filterSlotsForGroupPreference(dayObj.slots);
       const hasMorning = visibleSlots.some((s) => s.slotNo <= 4);
@@ -6097,7 +6682,7 @@
           const lunch = document.createElement('div');
           lunch.className = `${suppressEntryStagger ? '' : 'ios-stagger-item '}flex items-center gap-3 py-1 px-2`;
           if (!suppressEntryStagger) {
-            lunch.style.setProperty('--stagger-delay', `${baseDelay + Math.min(idx, 8) * 28}ms`);
+            lunch.style.setProperty('--stagger-delay', `${baseDelay + Math.min(idx, 8) * 24}ms`);
           }
           lunch.innerHTML = `<div class="h-px flex-1 bg-slate-300/60 dark:bg-slate-800"></div><span class="text-[11px] font-medium text-slate-400 dark:text-slate-500 tabular-nums">${loc.lunchBreak} (${escapeHtml(lunchStart)} - ${escapeHtml(lunchEnd)})</span><div class="h-px flex-1 bg-slate-300/60 dark:bg-slate-800"></div>`;
           container.appendChild(lunch);
@@ -6105,7 +6690,7 @@
         const cardEl = createSlotCardElement(slot);
         if (!suppressEntryStagger) {
           cardEl.classList.add('ios-stagger-item');
-          cardEl.style.setProperty('--stagger-delay', `${baseDelay + Math.min(idx + (lunchInserted ? 1 : 0), 9) * 28}ms`);
+          cardEl.style.setProperty('--stagger-delay', `${baseDelay + Math.min(idx + (lunchInserted ? 1 : 0), 9) * 24}ms`);
         }
         container.appendChild(cardEl);
       });
@@ -6122,6 +6707,251 @@
         container.appendChild(hiddenNote);
       }
       updateGroupFilterButtonUI();
+    }
+
+    const DAILY_CAL_RADIUS = 5;
+    let dailyPickerYear = 2026;
+    let dailyPickerMonth = 8;
+    let dailyCalAnchorMonthNum = 2026 * 12 + 8;
+    let dailyCalNavTargetMonthNum = null;
+    let dailyCalSuppressClick = false;
+
+    function getScheduleDaysLookupMap() {
+      const map = Object.create(null);
+      for (const day of getScheduleDays()) {
+        const hasExam = Array.isArray(day.slots) && day.slots.some((s) => getSlotCategory(s) === 'exam');
+        map[day.date] = { day, hasExam };
+      }
+      return map;
+    }
+
+    function updateDailyCalMonthLabel(direction = 0) {
+      const monthLabel = document.getElementById('dailyCalMonthLabel');
+      if (!monthLabel) return;
+      const loc = I18N[state.lang];
+      const nextText = `${loc.months[dailyPickerMonth]} ${dailyPickerYear}`;
+      if (monthLabel.textContent === nextText) return;
+      monthLabel.textContent = nextText;
+      monthLabel.classList.remove('food-cal-label-next', 'food-cal-label-prev');
+      if (direction !== 0) {
+        void monthLabel.offsetWidth;
+        monthLabel.classList.add(direction > 0 ? 'food-cal-label-next' : 'food-cal-label-prev');
+      }
+    }
+
+    function createDailyCalMonthSlide(year, month, selectedDmy, todayDmy, dayMap) {
+      const slide = document.createElement('div');
+      slide.className = 'w-full shrink-0 snap-center food-cal-grid px-1.5 py-1 box-border';
+      slide.setAttribute('data-month-num', String(year * 12 + month));
+
+      const firstDay = new Date(year, month, 1);
+      const startOffset = (firstDay.getDay() + 6) % 7;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < startOffset; i++) {
+        const spacer = document.createElement('div');
+        spacer.setAttribute('aria-hidden', 'true');
+        slide.appendChild(spacer);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dt = new Date(year, month, day);
+        const dmy = formatDMY(dt);
+        const info = dayMap[dmy] || null;
+        const isClassDay = Boolean(info);
+        const isSelected = dmy === selectedDmy;
+        const isToday = dmy === todayDmy;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        let cls = 'food-cal-day ';
+        if (isSelected) {
+          cls += 'bg-blue-600 text-white shadow-sm';
+        } else if (isToday) {
+          cls += 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/35';
+        } else if (isClassDay) {
+          cls += 'text-slate-800 dark:text-slate-100 hover:bg-slate-500/15';
+        } else {
+          cls += 'text-slate-400/65 dark:text-slate-600 cursor-default';
+          btn.disabled = true;
+        }
+        btn.className = cls;
+
+        const numSpan = document.createElement('span');
+        numSpan.textContent = String(day);
+        btn.appendChild(numSpan);
+
+        if (isClassDay) {
+          const dot = document.createElement('span');
+          if (info.hasExam) {
+            dot.className = `food-cal-dot ${isSelected ? 'bg-white/95' : 'bg-rose-500'}`;
+          } else {
+            dot.className = `food-cal-dot ${isSelected ? 'bg-white/90' : 'bg-blue-500'}`;
+          }
+          btn.appendChild(dot);
+
+          btn.addEventListener('click', () => {
+            if (dailyCalSuppressClick) return;
+            state.selectedDate = dmy;
+            closeDailyDateModal();
+            renderDailyView();
+          });
+        }
+
+        slide.appendChild(btn);
+      }
+
+      const trailingCount = 42 - (startOffset + daysInMonth);
+      for (let i = 0; i < trailingCount; i++) {
+        const spacer = document.createElement('div');
+        spacer.setAttribute('aria-hidden', 'true');
+        slide.appendChild(spacer);
+      }
+
+      return slide;
+    }
+
+    function renderDailyDateModalCarousel(instantSync = true) {
+      const loc = I18N[state.lang];
+      const weekdaysEl = document.getElementById('dailyCalWeekdays');
+      const carousel = document.getElementById('dailyCalCarousel');
+      if (!weekdaysEl || !carousel) return;
+
+      const mondayFirstOrder = [1, 2, 3, 4, 5, 6, 0];
+      weekdaysEl.innerHTML = '';
+      mondayFirstOrder.forEach((dow) => {
+        const sp = document.createElement('span');
+        sp.textContent = loc.daysShort[dow];
+        if (dow === 0 || dow === 6) sp.className = 'opacity-65';
+        weekdaysEl.appendChild(sp);
+      });
+
+      const activeMonthNum = dailyPickerYear * 12 + dailyPickerMonth;
+      dailyCalAnchorMonthNum = activeMonthNum;
+      updateDailyCalMonthLabel(0);
+
+      const selectedDmy = state.selectedDate || getBestDefaultDate();
+      const todayDmy = formatDMY(getTodayDateObj());
+      const dayMap = getScheduleDaysLookupMap();
+
+      carousel.innerHTML = '';
+      for (let offset = -DAILY_CAL_RADIUS; offset <= DAILY_CAL_RADIUS; offset++) {
+        const mNum = dailyCalAnchorMonthNum + offset;
+        const yr = Math.floor(mNum / 12);
+        const mo = ((mNum % 12) + 12) % 12;
+        carousel.appendChild(createDailyCalMonthSlide(yr, mo, selectedDmy, todayDmy, dayMap));
+      }
+
+      if (instantSync && carousel.clientWidth > 0) {
+        const prevSnap = carousel.style.scrollSnapType;
+        const prevBeh = carousel.style.scrollBehavior;
+        carousel.style.scrollSnapType = 'none';
+        carousel.style.scrollBehavior = 'auto';
+        carousel.scrollLeft = DAILY_CAL_RADIUS * carousel.clientWidth;
+        void carousel.offsetWidth;
+        carousel.style.scrollSnapType = prevSnap || '';
+        carousel.style.scrollBehavior = prevBeh || '';
+      }
+    }
+
+    function setupDailyCalSwipe() {
+      const carousel = document.getElementById('dailyCalCarousel');
+      if (!carousel) return;
+      let settleTimer = null;
+
+      carousel.addEventListener('scroll', () => {
+        const width = carousel.clientWidth;
+        if (!width) return;
+        const idx = Math.max(0, Math.min(DAILY_CAL_RADIUS * 2, Math.round(carousel.scrollLeft / width)));
+        const newMonthNum = dailyCalAnchorMonthNum - DAILY_CAL_RADIUS + idx;
+        const curMonthNum = dailyPickerYear * 12 + dailyPickerMonth;
+        if (newMonthNum !== curMonthNum) {
+          const dir = newMonthNum > curMonthNum ? 1 : -1;
+          dailyPickerYear = Math.floor(newMonthNum / 12);
+          dailyPickerMonth = ((newMonthNum % 12) + 12) % 12;
+          updateDailyCalMonthLabel(dir);
+        }
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+          dailyCalNavTargetMonthNum = null;
+          const settledIdx = Math.max(0, Math.min(DAILY_CAL_RADIUS * 2, Math.round(carousel.scrollLeft / width)));
+          if (settledIdx <= 1 || settledIdx >= DAILY_CAL_RADIUS * 2 - 1) {
+            renderDailyDateModalCarousel(true);
+          }
+        }, 140);
+      }, { passive: true });
+
+      let isMouseDown = false;
+      let dragStartX = 0;
+      let dragStartScrollLeft = 0;
+      let didDrag = false;
+
+      carousel.addEventListener('pointerdown', (e) => {
+        dailyCalNavTargetMonthNum = null;
+        if (e.pointerType !== 'mouse' || e.button !== 0) return;
+        isMouseDown = true;
+        didDrag = false;
+        dragStartX = e.clientX;
+        dragStartScrollLeft = carousel.scrollLeft;
+      });
+      carousel.addEventListener('pointermove', (e) => {
+        if (!isMouseDown) return;
+        const dx = e.clientX - dragStartX;
+        if (!didDrag && Math.abs(dx) > 6) {
+          didDrag = true;
+          carousel.style.scrollSnapType = 'none';
+          try { carousel.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+        if (didDrag) carousel.scrollLeft = dragStartScrollLeft - dx;
+      });
+      const endMouseDrag = (e) => {
+        if (!isMouseDown) return;
+        isMouseDown = false;
+        if (didDrag) {
+          dailyCalSuppressClick = true;
+          setTimeout(() => { dailyCalSuppressClick = false; }, 60);
+          try { carousel.releasePointerCapture(e.pointerId); } catch (err) {}
+          const width = carousel.clientWidth;
+          const targetIdx = width > 0 ? Math.max(0, Math.min(DAILY_CAL_RADIUS * 2, Math.round(carousel.scrollLeft / width))) : DAILY_CAL_RADIUS;
+          carousel.style.scrollSnapType = '';
+          if (width > 0) carousel.scrollTo({ left: targetIdx * width, behavior: 'smooth' });
+        }
+      };
+      carousel.addEventListener('pointerup', endMouseDrag);
+      carousel.addEventListener('pointercancel', endMouseDrag);
+    }
+
+    function stepDailyCalMonth(delta) {
+      const carousel = document.getElementById('dailyCalCarousel');
+      const baseMonthNum = dailyCalNavTargetMonthNum !== null ? dailyCalNavTargetMonthNum : (dailyPickerYear * 12 + dailyPickerMonth);
+      const targetMonthNum = baseMonthNum + delta;
+      const targetIdx = targetMonthNum - (dailyCalAnchorMonthNum - DAILY_CAL_RADIUS);
+
+      if (carousel && carousel.clientWidth > 0 && targetIdx >= 0 && targetIdx <= DAILY_CAL_RADIUS * 2) {
+        dailyCalNavTargetMonthNum = targetMonthNum;
+        carousel.scrollTo({ left: targetIdx * carousel.clientWidth, behavior: 'smooth' });
+      } else {
+        dailyCalNavTargetMonthNum = null;
+        dailyPickerYear = Math.floor(targetMonthNum / 12);
+        dailyPickerMonth = ((targetMonthNum % 12) + 12) % 12;
+        renderDailyDateModalCarousel(true);
+      }
+    }
+
+    function openDailyDateModal() {
+      const activeDmy = state.selectedDate || getBestDefaultDate();
+      const dt = parseDMY(activeDmy);
+      dailyPickerYear = dt.getFullYear();
+      dailyPickerMonth = dt.getMonth();
+      dailyCalNavTargetMonthNum = null;
+      const modal = document.getElementById('dailyDateModal');
+      const card = document.getElementById('dailyDateModalCard');
+      openAnimatedModal(modal, card);
+      renderDailyDateModalCarousel(true);
+    }
+
+    function closeDailyDateModal() {
+      closeAnimatedModal(document.getElementById('dailyDateModal'), document.getElementById('dailyDateModalCard'));
     }
 
     // ==================== WEEKLY VIEW ====================
@@ -6738,7 +7568,7 @@
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.setAttribute('data-iso', curIso);
-            btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none';
+            btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center select-none';
 
             const dShort = document.createElement('span');
             dShort.className = 'text-[10px] font-semibold uppercase tracking-wide opacity-75 leading-tight';
@@ -6783,11 +7613,11 @@
         const isToday = curIso === todayIso;
 
         if (isSel) {
-          btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-600 text-white shadow-sm';
+          btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center select-none bg-blue-600 text-white shadow-sm';
         } else if (isToday) {
-          btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/35';
+          btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center select-none bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/35';
         } else {
-          btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none ios-pill-control text-slate-700 dark:text-slate-200 hover:bg-slate-500/15';
+          btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center select-none ios-pill-control text-slate-700 dark:text-slate-200 hover:bg-slate-500/15';
         }
       });
 
@@ -7290,6 +8120,9 @@
       } catch (e) {}
     }
 
+    let lastFoodRenderedISO = '';
+    let lastFoodRenderedMode = '';
+
     async function renderFoodView(forceRefresh = false) {
       const todayDate = getTodayDateObj();
       const todayIso = formatISODate(todayDate);
@@ -7302,6 +8135,21 @@
       const loc = I18N[state.lang];
       const isWeekly = state.foodViewMode === 'weekly';
       const weekdays = getWeekdaysForISO(targetIso);
+
+      let foodAnimClass = '';
+      let foodHdrAnimClass = '';
+      if (!suppressEntryStagger && !isTabSwitchRender && !forceRefresh) {
+        if (lastFoodRenderedMode && lastFoodRenderedMode !== state.foodViewMode) {
+          foodAnimClass = 'food-mode-morph';
+        } else if (lastFoodRenderedISO && lastFoodRenderedISO !== targetIso) {
+          const isNext = targetIso > lastFoodRenderedISO;
+          foodAnimClass = isNext ? 'food-slide-next' : 'food-slide-prev';
+          foodHdrAnimClass = isNext ? 'food-header-next' : 'food-header-prev';
+        }
+      }
+      lastFoodRenderedISO = targetIso;
+      lastFoodRenderedMode = state.foodViewMode;
+
       persistNavViewState();
 
       const activePill = 'px-2.5 min-[360px]:px-3 py-1 rounded-full text-xs font-semibold text-slate-900 dark:text-white transition-colors';
@@ -7331,12 +8179,34 @@
       const refreshIcon = document.getElementById('iconFoodRefresh');
       if (refreshIcon && forceRefresh) refreshIcon.classList.add('animate-spin-ios');
 
+      const foodHeaderTitleEl = document.getElementById('foodHeaderTitle');
       const foodWeekdayEl = document.getElementById('foodHeaderWeekday');
+      const foodRelBadgeEl = document.getElementById('foodRelativeBadge');
+      const foodContainerEl = document.getElementById('foodMenuContainer');
+
+      const triggerFoodTransition = () => {
+        if (foodHdrAnimClass) {
+          [foodHeaderTitleEl, foodWeekdayEl, foodRelBadgeEl].forEach((el) => {
+            if (!el) return;
+            el.classList.remove('food-header-next', 'food-header-prev');
+            void el.offsetWidth;
+            el.classList.add(foodHdrAnimClass);
+          });
+        }
+        if (foodContainerEl && foodAnimClass) {
+          foodContainerEl.classList.remove('food-slide-next', 'food-slide-prev', 'food-mode-morph');
+          void foodContainerEl.offsetWidth;
+          foodContainerEl.classList.add(foodAnimClass);
+          foodContainerEl.addEventListener('animationend', () => {
+            foodContainerEl.classList.remove('food-slide-next', 'food-slide-prev', 'food-mode-morph');
+          }, { once: true });
+        }
+      };
 
       if (isWeekly) {
-        document.getElementById('foodHeaderTitle').textContent = formatFoodWeekRange(weekdays);
+        foodHeaderTitleEl.textContent = formatFoodWeekRange(weekdays);
         if (foodWeekdayEl) foodWeekdayEl.classList.add('hidden');
-        document.getElementById('foodRelativeBadge').textContent = getFoodWeekRelativeLabel(weekdays[0].dateObj);
+        foodRelBadgeEl.textContent = getFoodWeekRelativeLabel(weekdays[0].dateObj);
 
         const cachedWeek = weekdays.map((w) => {
           const entry = cache[w.iso];
@@ -7349,6 +8219,7 @@
         } else {
           renderFoodSkeleton(true);
         }
+        triggerFoodTransition();
 
         try {
           const liveWeek = await Promise.all(weekdays.map((w) => fetchFoodDay(w.iso)));
@@ -7372,12 +8243,12 @@
         return;
       }
 
-      document.getElementById('foodHeaderTitle').textContent = formatDateDayMonthYear(dmy);
+      foodHeaderTitleEl.textContent = formatDateDayMonthYear(dmy);
       if (foodWeekdayEl) {
         foodWeekdayEl.textContent = formatDateWeekday(dmy);
         foodWeekdayEl.classList.remove('hidden');
       }
-      document.getElementById('foodRelativeBadge').textContent = formatRelativeDay(dmy);
+      foodRelBadgeEl.textContent = formatRelativeDay(dmy);
 
       const cachedEntry = cache[targetIso];
       const hasCached = cachedEntry && Array.isArray(cachedEntry.items);
@@ -7387,6 +8258,7 @@
       } else {
         renderFoodSkeleton(false);
       }
+      triggerFoodTransition();
 
       try {
         const items = await fetchFoodDay(targetIso);
@@ -8023,12 +8895,12 @@
           infoBtn.className = 'ios-press w-full min-[360px]:w-auto min-h-[44px] justify-center px-3.5 py-2 rounded-full bg-indigo-500/12 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-semibold transition text-center';
         }
         if (dailyBtn) {
-          dailyBtn.className = 'w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-blue-500/15 text-[11px] font-semibold text-blue-600 dark:text-blue-400 transition flex items-center gap-1.5 active:scale-95';
+          dailyBtn.className = 'daily-action-pill ios-press max-w-full min-w-0 px-2 sm:px-3 rounded-full ios-pill-control hover:bg-blue-500/15 text-[10.5px] sm:text-[11px] font-semibold text-blue-600 dark:text-blue-400 shadow-2xs transition gap-1 sm:gap-1.5';
         }
         if (dailyIcon) {
           dailyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>';
         }
-        if (dailyLabel) dailyLabel.textContent = loc.authLoginBtn;
+        if (dailyLabel) dailyLabel.textContent = loc.authLoginShortBtn;
         if (welcomeBarEl) welcomeBarEl.classList.add('hidden');
         if (welcomeTextEl) welcomeTextEl.textContent = '';
         if (welcomeGroupEl) welcomeGroupEl.textContent = '';
@@ -8049,7 +8921,7 @@
         infoBtn.className = 'ios-press w-full min-[360px]:w-auto min-h-[44px] justify-center px-3.5 py-2 rounded-full bg-rose-500/12 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold transition text-center';
       }
       if (dailyBtn) {
-        dailyBtn.className = 'w-full min-[360px]:w-auto justify-center px-3 py-1.5 min-[360px]:py-1 rounded-full ios-pill-control hover:bg-rose-500/15 text-[11px] font-semibold text-rose-600 dark:text-rose-400 transition flex items-center gap-1.5 active:scale-95';
+        dailyBtn.className = 'daily-action-pill ios-press max-w-full min-w-0 px-2 sm:px-3 rounded-full ios-pill-control hover:bg-rose-500/15 text-[10.5px] sm:text-[11px] font-semibold text-rose-600 dark:text-rose-400 shadow-2xs transition gap-1 sm:gap-1.5';
       }
       if (dailyIcon) {
         dailyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>';
@@ -8543,7 +9415,7 @@
       a.remove();
     }
 
-    function triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, triggerAnchorClick = true) {
+    function triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, triggerAnchorClick = true, directOpenUrl = '') {
       if (activePdfDownloadBlobUrl) {
         const staleUrl = activePdfDownloadBlobUrl;
         setTimeout(() => {
@@ -8553,7 +9425,7 @@
       const blobUrl = URL.createObjectURL(blob);
       activePdfDownloadBlobUrl = blobUrl;
       activePdfDownloadBlob = blob;
-      activePdfDownloadExternalUrl = '';
+      activePdfDownloadExternalUrl = directOpenUrl || '';
       activePdfDownloadFileName = fileName || 'ders.pdf';
       activePdfDownloadTitle = displayTitle || activePdfDownloadFileName;
 
@@ -8566,7 +9438,7 @@
       const readyWrap = document.getElementById('pdfDownloadReadyActions');
 
       if (openLink) {
-        openLink.href = blobUrl;
+        openLink.href = (!triggerAnchorClick && directOpenUrl) ? directOpenUrl : blobUrl;
         openLink.removeAttribute('download');
         openLink.textContent = state.lang === 'en' ? 'Open' : 'Aç';
       }
@@ -8803,7 +9675,7 @@
               throw new Error(resp.status === 404 || ct.includes('text/html') ? 'LEGACY_SERVER_FILE_MISSING' : `HTTP_${resp.status}`);
             }
             const blob = await resp.blob();
-            triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload);
+            triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload, mat.pdfUrl);
           } catch (err) {
             console.warn('Server PDF download failed:', err);
             closePdfDownloadBanner(true);
@@ -9944,6 +10816,7 @@
 
     // ==================== BOOTSTRAP ====================
     document.addEventListener('DOMContentLoaded', () => {
+      applyPalette(state.palette, false);
       applyTheme();
       try { localStorage.removeItem(STORE_KEY + 'navViewState'); } catch (e) {}
       const savedNav = loadSessionStore('navViewState', null);
@@ -10026,10 +10899,127 @@
       setupDockInteractiveDrag();
       setupCarouselScrollIndicator();
       setupFoodCarouselScrollIndicator();
+      setupDailyCalSwipe();
+
+      // Delegated Card 3D Tilt & Parallax
+      (() => {
+        const mainEl = document.getElementById('appMain');
+        if (!mainEl) return;
+        let activeCard = null;
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        const clearTilt = (card) => {
+          if (!card) return;
+          card.classList.remove('is-tilting');
+          card.style.setProperty('--tilt-rx', '0deg');
+          card.style.setProperty('--tilt-ry', '0deg');
+          card.style.setProperty('--tilt-s', '1');
+          card.style.setProperty('--glare-o', '0');
+          if (activeCard === card) activeCard = null;
+        };
+
+        const applyTilt = (card, clientX, clientY) => {
+          const rect = card.getBoundingClientRect();
+          if (!rect.width || !rect.height) return;
+          const px = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+          const py = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+          const rx = (0.5 - py) * 7.5;
+          const ry = (px - 0.5) * 7.5;
+          card.classList.add('is-tilting');
+          card.style.setProperty('--tilt-rx', `${rx.toFixed(2)}deg`);
+          card.style.setProperty('--tilt-ry', `${ry.toFixed(2)}deg`);
+          card.style.setProperty('--tilt-s', '1.012');
+          card.style.setProperty('--glare-x', `${(px * 100).toFixed(1)}%`);
+          card.style.setProperty('--glare-y', `${(py * 100).toFixed(1)}%`);
+          card.style.setProperty('--glare-o', '1');
+        };
+
+        mainEl.addEventListener('pointerdown', (e) => {
+          const card = e.target && e.target.closest && e.target.closest('.slot-tilt-card');
+          if (!card) return;
+          if (activeCard && activeCard !== card) clearTilt(activeCard);
+          activeCard = card;
+          touchStartX = e.clientX;
+          touchStartY = e.clientY;
+          if (e.pointerType !== 'mouse') {
+            applyTilt(card, e.clientX, e.clientY);
+          }
+        }, { passive: true });
+
+        mainEl.addEventListener('pointermove', (e) => {
+          const card = e.target && e.target.closest && e.target.closest('.slot-tilt-card');
+          if (e.pointerType === 'mouse') {
+            if (activeCard && activeCard !== card) clearTilt(activeCard);
+            if (!card) return;
+            activeCard = card;
+            applyTilt(card, e.clientX, e.clientY);
+          } else if (activeCard) {
+            if (Math.abs(e.clientY - touchStartY) > 10 || Math.abs(e.clientX - touchStartX) > 14) {
+              clearTilt(activeCard);
+            } else {
+              applyTilt(activeCard, e.clientX, e.clientY);
+            }
+          }
+        }, { passive: true });
+
+        const handleLeave = (e) => {
+          if (!activeCard) return;
+          if (e.type === 'pointerout' && activeCard.contains(e.relatedTarget)) return;
+          clearTilt(activeCard);
+        };
+        mainEl.addEventListener('pointerup', handleLeave, { passive: true });
+        mainEl.addEventListener('pointercancel', handleLeave, { passive: true });
+        mainEl.addEventListener('pointerout', handleLeave, { passive: true });
+      })();
+
+      // Hide fixed bottom dock when Android/iPhone virtual keyboard opens on main form inputs
+      (() => {
+        const navEl = document.getElementById('appNav');
+        if (!navEl) return;
+        const baseViewportHeight = window.innerHeight;
+        const isEditable = (el) => Boolean(
+          el && el.tagName && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !/^(checkbox|radio|file|button|submit|reset)$/i.test(el.type || '')))
+        );
+        const syncKeyboardDock = () => {
+          const activeEl = document.activeElement;
+          const editableFocused = isEditable(activeEl);
+          const vv = window.visualViewport;
+          const heightDrop = vv ? (baseViewportHeight - vv.height > 140) : false;
+          const mainInputFocused = editableFocused && Boolean(activeEl.closest('#appMain'));
+          const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+          navEl.classList.toggle('is-keyboard-open', (isTouch && mainInputFocused) || (editableFocused && heightDrop));
+        };
+        document.addEventListener('focusin', syncKeyboardDock, { passive: true });
+        document.addEventListener('focusout', () => setTimeout(syncKeyboardDock, 60), { passive: true });
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', syncKeyboardDock, { passive: true });
+        }
+      })();
 
       document.getElementById('btnToggleTheme').addEventListener('click', () => {
         state.darkMode = !state.darkMode;
         applyTheme(true);
+      });
+
+      const btnOpenPaletteModal = document.getElementById('btnOpenPaletteModal');
+      if (btnOpenPaletteModal) btnOpenPaletteModal.addEventListener('click', openPaletteModal);
+      const btnClosePaletteModal = document.getElementById('btnClosePaletteModal');
+      if (btnClosePaletteModal) btnClosePaletteModal.addEventListener('click', closePaletteModal);
+      const paletteModalEl = document.getElementById('paletteModal');
+      if (paletteModalEl) {
+        paletteModalEl.addEventListener('click', (e) => {
+          if (e.target.id === 'paletteModal') closePaletteModal();
+        });
+      }
+      document.querySelectorAll('[data-palette-choice]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const choice = normalizePaletteKey(btn.getAttribute('data-palette-choice'));
+          applyPalette(choice, true);
+          const loc = I18N[state.lang];
+          const pName = (loc.paletteNames && loc.paletteNames[choice]) || choice;
+          showToast(loc.paletteChangedToast(pName));
+        });
       });
 
       const authInputEl = document.getElementById('authStudentIdInput');
@@ -10319,6 +11309,51 @@
         state.selectedDate = getTomorrowTargetDate();
         switchTab('daily');
       });
+
+      const btnDailyDatePicker = document.getElementById('btnDailyDatePicker');
+      if (btnDailyDatePicker) btnDailyDatePicker.addEventListener('click', openDailyDateModal);
+      const btnCloseDailyDateModal = document.getElementById('btnCloseDailyDateModal');
+      if (btnCloseDailyDateModal) btnCloseDailyDateModal.addEventListener('click', closeDailyDateModal);
+      const dailyDateModalEl = document.getElementById('dailyDateModal');
+      if (dailyDateModalEl) {
+        dailyDateModalEl.addEventListener('click', (e) => {
+          if (e.target.id === 'dailyDateModal') closeDailyDateModal();
+        });
+      }
+      const btnDailyCalPrevMonth = document.getElementById('btnDailyCalPrevMonth');
+      if (btnDailyCalPrevMonth) btnDailyCalPrevMonth.addEventListener('click', () => stepDailyCalMonth(-1));
+      const btnDailyCalNextMonth = document.getElementById('btnDailyCalNextMonth');
+      if (btnDailyCalNextMonth) btnDailyCalNextMonth.addEventListener('click', () => stepDailyCalMonth(1));
+      const btnDailyCalJumpToday = document.getElementById('btnDailyCalJumpToday');
+      if (btnDailyCalJumpToday) {
+        btnDailyCalJumpToday.addEventListener('click', () => {
+          state.selectedDate = getBestDefaultDate();
+          closeDailyDateModal();
+          renderDailyView();
+        });
+      }
+      const btnDailyCalJumpK1 = document.getElementById('btnDailyCalJumpK1');
+      if (btnDailyCalJumpK1) {
+        btnDailyCalJumpK1.addEventListener('click', () => {
+          const firstK1 = getScheduleDays().find((d) => Number(d.kurulNo) === 1);
+          if (firstK1) {
+            state.selectedDate = firstK1.date;
+            closeDailyDateModal();
+            renderDailyView();
+          }
+        });
+      }
+      const btnDailyCalJumpK2 = document.getElementById('btnDailyCalJumpK2');
+      if (btnDailyCalJumpK2) {
+        btnDailyCalJumpK2.addEventListener('click', () => {
+          const firstK2 = getScheduleDays().find((d) => Number(d.kurulNo) === 2);
+          if (firstK2) {
+            state.selectedDate = firstK2.date;
+            closeDailyDateModal();
+            renderDailyView();
+          }
+        });
+      }
 
       document.getElementById('btnExportDayIcs').addEventListener('click', () => {
         const dayObj = getScheduleDays().find((d) => d.date === state.selectedDate);
@@ -10875,7 +11910,7 @@
             };
 
             if (isFile && adminState.matFileObj) {
-              setAdminMatUploadProgress(true, 1, 0, adminState.matFileObj.size, 'Bulut yüklemesi başlatılıyor...');
+              setAdminMatUploadProgress(true, 1, 0, adminState.matFileObj.size, 'Sunucuya yükleniyor...');
               await new Promise((r) => requestAnimationFrame(() => r()));
               const uploaded = await api.uploadLessonPdfFile(
                 adminState.matFileObj,
@@ -10892,6 +11927,13 @@
                 savePayload.chunkCount = 0;
                 savePayload.pdfUrl = '';
                 savePayload.pdfData = uploaded.fallbackBase64;
+                savePayload.pdfName = uploaded.fileName;
+                savePayload.fileSize = uploaded.size;
+              } else if (uploaded.sourceType === 'server' && uploaded.url) {
+                savePayload.sourceType = 'server';
+                savePayload.chunkCount = 0;
+                savePayload.pdfUrl = uploaded.url;
+                savePayload.pdfData = '';
                 savePayload.pdfName = uploaded.fileName;
                 savePayload.fileSize = uploaded.size;
               } else {
@@ -10947,7 +11989,7 @@
               const bar = document.getElementById('adminReunlockBar');
               if (bar && typeof bar.scrollIntoView === 'function') bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
               showToast('Yönetici kilidini açmak için üstteki alana şifrenizi girin.');
-            } else if (/permission|PERMISSION_DENIED|admin_proofs/i.test(rawErr)) {
+            } else if (/ADMIN_SECRET|UNAUTHORIZED|401/i.test(rawErr)) {
               const savedSession = loadStore('authSession', null);
               if (savedSession && typeof savedSession === 'object') {
                 saveStore('authSession', { ...savedSession, adminSecret: '' });
@@ -11310,7 +12352,7 @@
             syncAdminSiteAccessUI();
             console.warn('Site access toggle save error:', err);
             const rawErr = err instanceof Error ? err.message : String(err || '');
-            if (/permission|PERMISSION_DENIED|admin_proofs|ADMIN_SECRET_REQUIRED/i.test(rawErr)) {
+            if (/ADMIN_SECRET_REQUIRED|UNAUTHORIZED|401/i.test(rawErr)) {
               const savedSession = loadStore('authSession', null);
               if (savedSession && typeof savedSession === 'object') {
                 saveStore('authSession', { ...savedSession, adminSecret: '' });
