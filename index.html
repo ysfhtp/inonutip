@@ -2987,6 +2987,109 @@
       .slot-card-dimmed:hover > div { opacity: 0.88; }
     }
 
+    .slot-card-secondary {
+      background: rgba(255, 255, 255, 0.56);
+    }
+    .dark .slot-card-secondary {
+      background: rgba(18, 22, 31, 0.54);
+    }
+    .slot-card-secondary > div {
+      opacity: 0.58;
+      transition: opacity 0.22s ease;
+    }
+    @media (hover: hover) {
+      .slot-card-secondary:hover > div { opacity: 0.92; }
+    }
+
+    @keyframes themeIconMorph {
+      0% { transform: scale(0.58) rotate(-75deg); opacity: 0.25; }
+      65% { transform: scale(1.12) rotate(10deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .theme-icon-morph {
+      animation: themeIconMorph 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .theme-transitioning .ios-glass,
+    .theme-transitioning .ios-glass-bar,
+    .theme-transitioning .ios-glass-bar::before,
+    .theme-transitioning .ios-floating-dock,
+    .theme-transitioning .ios-pill-control,
+    .theme-transitioning .ios-ambient-bg,
+    .theme-transitioning .ambient-top,
+    .theme-transitioning .ambient-bottom,
+    .theme-transitioning .segmented-pill-indicator,
+    .theme-transitioning #tabIndicatorPill,
+    .theme-transitioning #adminTabIndicator,
+    .theme-transitioning body,
+    .theme-transitioning h1,
+    .theme-transitioning h2,
+    .theme-transitioning h3,
+    .theme-transitioning h4,
+    .theme-transitioning p,
+    .theme-transitioning span,
+    .theme-transitioning button,
+    .theme-transitioning a {
+      transition: background-color 0.44s cubic-bezier(0.22, 1, 0.36, 1), background 0.44s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.44s cubic-bezier(0.22, 1, 0.36, 1), color 0.34s ease, box-shadow 0.44s ease !important;
+    }
+
+    .segmented-pill-bar {
+      position: relative;
+      isolation: isolate;
+    }
+    .segmented-pill-indicator {
+      position: absolute;
+      top: 0;
+      left: 0;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.10);
+      pointer-events: none;
+      z-index: 0;
+      will-change: transform, width;
+      transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), width 0.36s cubic-bezier(0.22, 1, 0.36, 1), height 0.36s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.24s ease;
+    }
+    .dark .segmented-pill-indicator {
+      background: rgba(30, 41, 59, 0.95);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    }
+    .segmented-pill-indicator-blue {
+      background: #2563eb !important;
+      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.34) !important;
+    }
+    .segmented-pill-bar > button {
+      position: relative;
+      z-index: 1;
+      touch-action: manipulation;
+    }
+
+    #pdfViewerModalCard {
+      max-height: 92vh;
+      max-height: calc(100dvh - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    }
+    #pdfViewerFrameWrap {
+      height: 68vh;
+      height: min(68dvh, 660px);
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+    .pdf-canvas-page {
+      border-radius: 14px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.12);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+    .dark .pdf-canvas-page {
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+      border-color: rgba(255, 255, 255, 0.10);
+    }
+    .admin-picker-panel {
+      max-height: 240px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
     .group-chip {
       padding: 6px 10px;
       border-radius: 9999px;
@@ -3179,9 +3282,10 @@
           İnönü Tıp • Dönem I
         </span>
         <div class="flex items-center gap-1.5 shrink-0">
-          <div class="ios-pill-control p-0.5 rounded-full flex items-center text-[11px]" role="group" aria-label="Dil Seçimi">
-            <button id="btnAuthLangTr" type="button" class="px-2 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">TR</button>
-            <button id="btnAuthLangEn" type="button" class="px-2 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition">EN</button>
+          <div id="authLangSegmentedBar" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full flex items-center text-[11px]" role="group" aria-label="Dil Seçimi">
+            <div id="authLangSegmentedIndicator" class="segmented-pill-indicator"></div>
+            <button id="btnAuthLangTr" type="button" class="px-2 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">TR</button>
+            <button id="btnAuthLangEn" type="button" class="px-2 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">EN</button>
           </div>
           <button id="btnCloseAuthModal" type="button" class="w-8 h-8 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center transition active:scale-95" aria-label="Kapat">✕</button>
         </div>
@@ -3244,9 +3348,10 @@
       </div>
 
       <div class="flex items-center gap-1.5 min-[360px]:gap-2 shrink-0">
-        <div class="ios-pill-control p-0.5 rounded-full flex items-center text-[10.5px] min-[360px]:text-[11px]" role="group" aria-label="Dil Seçimi">
-          <button id="btnLangTr" type="button" class="px-1.5 min-[360px]:px-2 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">TR</button>
-          <button id="btnLangEn" type="button" class="px-1.5 min-[360px]:px-2 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition">EN</button>
+        <div id="langSegmentedBar" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full flex items-center text-[10.5px] min-[360px]:text-[11px]" role="group" aria-label="Dil Seçimi">
+          <div id="langSegmentedIndicator" class="segmented-pill-indicator"></div>
+          <button id="btnLangTr" type="button" class="px-1.5 min-[360px]:px-2 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">TR</button>
+          <button id="btnLangEn" type="button" class="px-1.5 min-[360px]:px-2 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">EN</button>
         </div>
         <button id="btnJumpTodayTop" type="button" class="hidden min-[420px]:inline-flex px-3 py-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-xs font-semibold text-blue-600 dark:text-blue-400 transition">
           Bugün
@@ -3280,15 +3385,16 @@
           <div class="min-w-0 flex-1">
             <h2 id="selectedDayHeaderTitle" class="text-base sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight truncate">13 Kasım 2026</h2>
             <div class="flex items-center gap-1.5 mt-0.5">
-              <p id="selectedDayHeaderWeekday" class="text-xs sm:text-base font-bold text-slate-700 dark:text-slate-200 leading-tight">Cuma</p>
+              <p id="selectedDayHeaderWeekday" class="text-[13.5px] sm:text-[17px] font-bold text-slate-700 dark:text-slate-200 leading-tight">Cuma</p>
               <span id="selectedDayRelativeBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300 whitespace-nowrap">Bugün</span>
             </div>
             <p id="selectedDaySubInfo" class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">Kurul 2 • 4. Hafta • 8 Ayrı Ders Saati</p>
           </div>
 
-          <div class="hidden min-[360px]:flex ios-pill-control p-1 rounded-full items-center gap-1 shadow-2xs shrink-0">
-            <button id="btnBannerToday" type="button" class="px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition whitespace-nowrap">Bugün</button>
-            <button id="btnBannerTomorrow" type="button" class="px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition whitespace-nowrap">Yarın</button>
+          <div id="dailyBannerSegmentedBar" class="hidden min-[360px]:flex segmented-pill-bar ios-pill-control p-1 rounded-full items-center gap-1 shadow-2xs shrink-0">
+            <div id="dailyBannerSegmentedIndicator" class="segmented-pill-indicator"></div>
+            <button id="btnBannerToday" type="button" class="px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-semibold text-slate-900 dark:text-white transition-colors whitespace-nowrap">Bugün</button>
+            <button id="btnBannerTomorrow" type="button" class="px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap">Yarın</button>
           </div>
         </div>
 
@@ -3342,13 +3448,14 @@
             <h2 id="weeklyViewTitle" class="text-base font-bold text-slate-900 dark:text-white truncate">Haftalık Program</h2>
             <p id="weeklyViewSubtitle" class="text-xs text-slate-500 dark:text-slate-400 truncate">13 Hafta • 65 Gün</p>
           </div>
-          <div class="ios-pill-control p-0.5 rounded-full flex items-center text-[11px] sm:text-xs shrink-0">
-            <button id="btnFilterKurulAll" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs">Tümü</button>
-            <button id="btnFilterKurul1" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300">Kurul I</button>
-            <button id="btnFilterKurul2" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300">Kurul II</button>
+          <div id="weeklyKurulSegmentedBar" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full flex items-center text-[11px] sm:text-xs shrink-0">
+            <div id="weeklyKurulSegmentedIndicator" class="segmented-pill-indicator"></div>
+            <button id="btnFilterKurulAll" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">Tümü</button>
+            <button id="btnFilterKurul1" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">Kurul I</button>
+            <button id="btnFilterKurul2" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">Kurul II</button>
           </div>
         </div>
-        <div id="weekSelectorPills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5"></div>
+        <div id="weekSelectorPills" class="segmented-pill-bar flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5"></div>
       </div>
       <div id="weeklyDaysContainer" class="space-y-3.5"></div>
       <div class="ios-tab-card pt-2 pb-1 flex justify-center" data-tab-stagger="last">
@@ -3363,10 +3470,13 @@
     <section id="viewFood" class="hidden space-y-3.5">
       <div class="ios-glass ios-tab-card rounded-3xl px-3.5 pt-3.5 min-[360px]:px-4 min-[360px]:pt-4 pb-0 space-y-3" data-tab-stagger="0">
         <div class="space-y-2">
-          <div class="flex items-center justify-between gap-2">
-            <div class="min-w-0 flex items-center gap-1.5 flex-1">
-              <h2 id="foodHeaderTitle" class="text-base min-[360px]:text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white truncate">13 Kasım 2026 Cuma</h2>
-              <span id="foodRelativeBadge" class="px-2 py-0.5 rounded-full text-[10.5px] sm:text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0">Bugün</span>
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <h2 id="foodHeaderTitle" class="text-base sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">13 Kasım 2026</h2>
+              <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                <p id="foodHeaderWeekday" class="text-[13.5px] sm:text-[17px] font-bold text-slate-700 dark:text-slate-200 leading-tight">Cuma</p>
+                <span id="foodRelativeBadge" class="px-2 py-0.5 rounded-full text-[10.5px] sm:text-[11px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0">Bugün</span>
+              </div>
             </div>
             <button id="btnFoodRefresh" type="button" aria-label="Menüyü Yenile" title="Menüyü Yenile" class="w-7 h-7 rounded-full ios-pill-control hover:bg-slate-500/15 flex items-center justify-center text-slate-700 dark:text-slate-200 transition active:scale-90 shrink-0">
               <svg id="iconFoodRefresh" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -3375,9 +3485,10 @@
 
           <div class="flex items-center justify-between gap-2">
             <p id="foodSubInfo" class="text-xs text-slate-500 dark:text-slate-400 leading-snug truncate">İnönü Üniversitesi Yemekhane Menüsü</p>
-            <div class="ios-pill-control p-0.5 rounded-full flex items-center text-xs shrink-0">
-              <button id="btnFoodModeDaily" type="button" class="px-2.5 min-[360px]:px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition">Günlük</button>
-              <button id="btnFoodModeWeekly" type="button" class="px-2.5 min-[360px]:px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition">Haftalık</button>
+            <div id="foodModeSegmentedBar" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full flex items-center text-xs shrink-0">
+              <div id="foodModeSegmentedIndicator" class="segmented-pill-indicator"></div>
+              <button id="btnFoodModeDaily" type="button" class="px-2.5 min-[360px]:px-3 py-1 rounded-full text-xs font-semibold text-slate-900 dark:text-white transition-colors">Günlük</button>
+              <button id="btnFoodModeWeekly" type="button" class="px-2.5 min-[360px]:px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition-colors">Haftalık</button>
             </div>
           </div>
         </div>
@@ -3807,13 +3918,28 @@
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="space-y-1">
-                <label id="lblAdminMatDate" for="adminMatDateSelect" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ders Tarihi</label>
-                <select id="adminMatDateSelect" class="w-full ios-pill-control rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold tabular-nums text-slate-900 dark:text-white bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/40"></select>
+              <div class="space-y-1 relative">
+                <label id="lblAdminMatDate" for="btnAdminMatDateTrigger" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ders Tarihi</label>
+                <input id="adminMatDateSelect" type="hidden" value="">
+                <button id="btnAdminMatDateTrigger" type="button" aria-expanded="false" class="ios-press w-full ios-pill-control rounded-xl px-3 py-2.5 text-left flex items-center justify-between gap-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                  <span id="adminMatDateLabel" class="truncate tabular-nums">Tarih seç...</span>
+                  <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="adminMatDatePickerPanel" class="hidden mt-1.5 ios-glass rounded-2xl p-2 space-y-1.5 border border-blue-500/20 shadow-xl">
+                  <input id="adminMatDateSearch" type="text" placeholder="Tarih, gün veya hafta ara..." class="w-full ios-pill-control rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                  <div id="adminMatDateOptions" class="admin-picker-panel space-y-1 pr-0.5"></div>
+                </div>
               </div>
-              <div class="space-y-1">
-                <label id="lblAdminMatSlot" for="adminMatSlotSelect" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ders Saati</label>
-                <select id="adminMatSlotSelect" class="w-full ios-pill-control rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/40"></select>
+              <div class="space-y-1 relative">
+                <label id="lblAdminMatSlot" for="btnAdminMatSlotTrigger" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ders Saati</label>
+                <input id="adminMatSlotSelect" type="hidden" value="1">
+                <button id="btnAdminMatSlotTrigger" type="button" aria-expanded="false" class="ios-press w-full ios-pill-control rounded-xl px-3 py-2.5 text-left flex items-center justify-between gap-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                  <span id="adminMatSlotLabel" class="truncate">Ders seç...</span>
+                  <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="adminMatSlotPickerPanel" class="hidden mt-1.5 ios-glass rounded-2xl p-2 space-y-1 border border-blue-500/20 shadow-xl">
+                  <div id="adminMatSlotOptions" class="admin-picker-panel space-y-1 pr-0.5"></div>
+                </div>
               </div>
             </div>
             <div class="space-y-1">
@@ -3996,8 +4122,9 @@
 
           <!-- Kayıtlı Tüm Öğrenciler Listesi & Hızlı Filtre -->
           <div class="space-y-2.5">
-            <div class="flex items-center gap-2">
-              <input id="adminStudentFilterInput" type="text" placeholder="İsim, 11 haneli numara veya grup ara..." class="flex-1 min-w-0 ios-pill-control rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            <div class="relative flex items-center">
+              <input id="adminStudentFilterInput" type="text" placeholder="İsim, 11 haneli numara veya grup ara..." class="w-full ios-pill-control rounded-xl pl-3.5 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              <button id="btnClearAdminStudentFilter" type="button" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-xs font-bold transition active:scale-90" aria-label="Aramayı temizle">✕</button>
             </div>
             <div id="adminStudentGroupFilterChips" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
               <button type="button" data-filter-sgroup="" class="group-chip min-h-[44px] px-3 shrink-0">Tümü</button>
@@ -4019,6 +4146,70 @@
               <button id="btnAdminSaveNewPwd" type="submit" class="ios-press min-h-[44px] w-full sm:w-auto px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold shrink-0 transition">Şifreyi Kaydet</button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-App PDF Viewer & Download Modal -->
+  <div id="pdfViewerModal" class="fixed inset-0 z-50 hidden bg-black/55 backdrop-blur-md ios-safe-modal flex items-center justify-center p-2.5 min-[360px]:p-4">
+    <div id="pdfViewerModalCard" class="ios-glass rounded-3xl max-w-2xl w-full flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-3.5 sm:px-5 py-3 border-b border-slate-200/60 dark:border-slate-800/80 space-y-2.5 shrink-0">
+        <div class="flex items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <span class="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <h3 id="pdfViewerModalTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">PDF</h3>
+              <p id="pdfViewerModalMeta" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate tabular-nums"></p>
+            </div>
+          </div>
+          <button id="btnClosePdfViewerModal" type="button" class="ios-press w-8 h-8 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0" aria-label="Kapat">✕</button>
+        </div>
+
+        <div id="pdfViewerActionBar" class="hidden flex items-center justify-between gap-2 flex-wrap">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <a id="pdfViewerDownloadBtn" href="#" download="ders.pdf" class="hidden ios-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              <span id="pdfViewerDownloadLabel">İndir</span>
+            </a>
+            <button id="pdfViewerShareBtn" type="button" class="hidden ios-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-xs font-semibold transition">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+              <span id="pdfViewerShareLabel">Paylaş</span>
+            </button>
+            <a id="pdfViewerExternalBtn" href="#" target="_blank" rel="noopener noreferrer" class="hidden ios-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-xs font-semibold transition">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+              <span id="pdfViewerExternalLabel">Birlikte Aç</span>
+            </a>
+          </div>
+          <span id="pdfViewerPageBadge" class="hidden px-2.5 py-1 rounded-full ios-pill-control text-[11px] font-bold text-slate-600 dark:text-slate-300 tabular-nums shrink-0"></span>
+        </div>
+      </div>
+
+      <div id="pdfViewerLoadingWrap" class="hidden px-5 py-10 flex flex-col items-center justify-center gap-3 text-center">
+        <div class="w-9 h-9 rounded-2xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <svg class="w-5 h-5 animate-spin-ios" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        </div>
+        <div class="w-full max-w-xs space-y-1.5">
+          <p id="pdfViewerLoadingStatus" class="text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">PDF hazırlanıyor...</p>
+          <div class="w-full h-1.5 rounded-full bg-slate-200/70 dark:bg-slate-800 overflow-hidden">
+            <div id="pdfViewerLoadingBar" class="h-full bg-blue-600 transition-all duration-150" style="width: 10%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pdfViewerFrameWrap" class="hidden relative w-full overflow-y-auto bg-slate-100/70 dark:bg-slate-950/65 p-2.5 sm:p-4">
+        <div id="pdfViewerCanvasList" class="space-y-3 mx-auto max-w-full flex flex-col items-center"></div>
+        <iframe id="pdfViewerIframe" title="PDF Görüntüleyici" class="hidden w-full h-full border-0 rounded-2xl bg-white dark:bg-slate-900"></iframe>
+      </div>
+
+      <div id="pdfViewerFallbackWrap" class="hidden px-5 py-8 text-center space-y-3">
+        <p id="pdfViewerFallbackText" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed"></p>
+        <div class="flex items-center justify-center gap-2 flex-wrap">
+          <a id="pdfViewerFallbackDownload" href="#" download="ders.pdf" class="hidden ios-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition">İndir</a>
+          <button id="pdfViewerFallbackShare" type="button" class="hidden ios-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-xs font-semibold transition">Paylaş</button>
+          <a id="pdfViewerFallbackExternal" href="#" target="_blank" rel="noopener noreferrer" class="hidden ios-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-xs font-semibold transition">Birlikte Aç ↗</a>
         </div>
       </div>
     </div>
@@ -4376,6 +4567,14 @@
         adminSiteAccessBadgeLocked: 'Giriş Zorunlu',
         adminSiteAccessToastPublic: 'Site herkese açık moda alındı',
         adminSiteAccessToastLocked: 'Site artık sadece öğrenci numarasıyla girişe açık',
+        pdfPreviewDownload: 'İndir',
+        pdfPreviewShare: 'Paylaş',
+        pdfPreviewNewTab: 'Birlikte Aç',
+        pdfPreviewCopied: 'Bağlantı kopyalandı',
+        pdfPreviewPages: (n) => `${n} Sayfa`,
+        pdfPreviewPreparing: 'PDF önizleme hazırlanıyor...',
+        pdfPreviewExternalHint: 'Bu bağlantı harici bir web adresinde barındırılıyor. Doğrudan açabilir, paylaşabilir veya cihazınıza kaydedebilirsiniz.',
+        adminMatSearchDatePlaceholder: 'Tarih, gün veya hafta ara...',
         months: MONTHS_TR,
         monthsShort: MONTHS_SHORT_TR,
         days: DAYS_TR,
@@ -4616,6 +4815,14 @@
         adminSiteAccessBadgeLocked: 'Login Only',
         adminSiteAccessToastPublic: 'Site switched to public access mode',
         adminSiteAccessToastLocked: 'Site is now restricted to student ID login',
+        pdfPreviewDownload: 'Download',
+        pdfPreviewShare: 'Share',
+        pdfPreviewNewTab: 'Open With',
+        pdfPreviewCopied: 'Link copied',
+        pdfPreviewPages: (n) => `${n} Pages`,
+        pdfPreviewPreparing: 'Preparing PDF preview...',
+        pdfPreviewExternalHint: 'This PDF is hosted externally. Open it directly, share it, or save it to your device.',
+        adminMatSearchDatePlaceholder: 'Search date, day, or week...',
         months: MONTHS_EN,
         monthsShort: MONTHS_SHORT_EN,
         days: DAYS_EN,
@@ -5061,24 +5268,84 @@
       });
     }
 
-    function applyTheme() {
+    let themeTransitionTimer = null;
+    function applyTheme(animate = false) {
       const html = document.documentElement;
       const sun = document.getElementById('iconSun');
       const moon = document.getElementById('iconMoon');
       const meta = document.getElementById('themeColorMeta');
+
+      if (animate) {
+        clearTimeout(themeTransitionTimer);
+        html.classList.add('theme-transitioning');
+        themeTransitionTimer = setTimeout(() => {
+          html.classList.remove('theme-transitioning');
+        }, 480);
+      }
+
       if (state.darkMode) {
         html.classList.add('dark');
         sun.classList.remove('hidden');
         moon.classList.add('hidden');
+        if (animate && sun) {
+          sun.classList.remove('theme-icon-morph');
+          void sun.offsetWidth;
+          sun.classList.add('theme-icon-morph');
+        }
         if (meta) meta.setAttribute('content', '#070d19');
       } else {
         html.classList.remove('dark');
         sun.classList.add('hidden');
         moon.classList.remove('hidden');
+        if (animate && moon) {
+          moon.classList.remove('theme-icon-morph');
+          void moon.offsetWidth;
+          moon.classList.add('theme-icon-morph');
+        }
         if (meta) meta.setAttribute('content', '#eef2f7');
       }
       syncSystemBarsThemeColor();
       saveStore('darkMode', state.darkMode);
+    }
+
+    function updateSegmentedIndicator(barEl, indicatorEl, activeBtn, animate = true, extraClass = '') {
+      if (!barEl || !indicatorEl) return;
+      if (!activeBtn || activeBtn.offsetWidth === 0 || activeBtn.offsetHeight === 0) {
+        indicatorEl.style.opacity = '0';
+        return;
+      }
+      const left = activeBtn.offsetLeft;
+      const top = activeBtn.offsetTop;
+      const width = activeBtn.offsetWidth;
+      const height = activeBtn.offsetHeight;
+      const prev = barEl._lastSegPos;
+      barEl._lastSegPos = { left, top, width, height };
+
+      indicatorEl.className = `segmented-pill-indicator${extraClass ? ' ' + extraClass : ''}`;
+      indicatorEl.style.opacity = '1';
+
+      if (animate && prev && (prev.left !== left || prev.width !== width)) {
+        indicatorEl.style.transition = 'none';
+        indicatorEl.style.width = `${prev.width}px`;
+        indicatorEl.style.height = `${prev.height}px`;
+        indicatorEl.style.transform = `translate3d(${prev.left}px, ${prev.top}px, 0)`;
+        indicatorEl.getBoundingClientRect();
+        indicatorEl.style.transition = '';
+        requestAnimationFrame(() => {
+          indicatorEl.style.width = `${width}px`;
+          indicatorEl.style.height = `${height}px`;
+          indicatorEl.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+        });
+      } else {
+        if (!animate) indicatorEl.style.transition = 'none';
+        indicatorEl.style.width = `${width}px`;
+        indicatorEl.style.height = `${height}px`;
+        indicatorEl.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+        if (!animate) {
+          indicatorEl.getBoundingClientRect();
+          indicatorEl.style.transition = '';
+        }
+      }
     }
 
     function updateHeaderClock() {
@@ -5089,7 +5356,7 @@
     }
 
     // ==================== LANGUAGE SWITCHER ====================
-    function applyLanguageUI() {
+    function applyLanguageUI(animateLangIndicator = false) {
       const loc = I18N[state.lang];
       document.documentElement.lang = state.lang;
       document.title = loc.pageTitle;
@@ -5098,15 +5365,27 @@
       const btnEn = document.getElementById('btnLangEn');
       const btnAuthTr = document.getElementById('btnAuthLangTr');
       const btnAuthEn = document.getElementById('btnAuthLangEn');
-      const activeLangCls = 'px-2 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition';
-      const inactiveLangCls = 'px-2 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition';
+      const activeLangCls = 'px-2 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors';
+      const inactiveLangCls = 'px-2 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors';
       if (btnTr && btnEn) {
         btnTr.className = state.lang === 'tr' ? activeLangCls : inactiveLangCls;
         btnEn.className = state.lang === 'en' ? activeLangCls : inactiveLangCls;
+        updateSegmentedIndicator(
+          document.getElementById('langSegmentedBar'),
+          document.getElementById('langSegmentedIndicator'),
+          state.lang === 'tr' ? btnTr : btnEn,
+          animateLangIndicator
+        );
       }
       if (btnAuthTr && btnAuthEn) {
         btnAuthTr.className = state.lang === 'tr' ? activeLangCls : inactiveLangCls;
         btnAuthEn.className = state.lang === 'en' ? activeLangCls : inactiveLangCls;
+        updateSegmentedIndicator(
+          document.getElementById('authLangSegmentedBar'),
+          document.getElementById('authLangSegmentedIndicator'),
+          state.lang === 'tr' ? btnAuthTr : btnAuthEn,
+          animateLangIndicator
+        );
       }
 
       const authBadgeEl = document.getElementById('authFacultyBadge');
@@ -5247,7 +5526,7 @@
       state.lang = lang;
       saveStore('lang', lang);
       saveCurrentStudentPrefs(true);
-      applyLanguageUI();
+      applyLanguageUI(true);
       if (state.activeTab === 'daily') renderDailyView();
       if (state.activeTab === 'weekly') renderWeeklyView();
       if (state.activeTab === 'food') renderFoodView();
@@ -5298,6 +5577,17 @@
 
     let forceInstantCarouselSync = false;
     let isTabSwitchRender = false;
+    let suppressEntryStagger = false;
+
+    function runWithStaggerSuppressed(fn) {
+      const prev = suppressEntryStagger;
+      suppressEntryStagger = true;
+      try {
+        return fn();
+      } finally {
+        suppressEntryStagger = prev;
+      }
+    }
 
     function updateHeaderScrollState() {
       const header = document.getElementById('appHeader');
@@ -5346,7 +5636,7 @@
         if (isTarget && wasHidden) wasTargetHidden = true;
         el.classList.toggle('hidden', !isTarget);
         el.querySelectorAll('.ios-tab-card').forEach((card) => {
-          if (!isTarget) {
+          if (!isTarget || preserveScroll) {
             card.classList.remove('ios-stagger-item', 'ios-lang-swap');
             card.style.removeProperty('--stagger-delay');
           } else if (changed || wasHidden) {
@@ -5359,14 +5649,20 @@
         });
       });
 
+      const prevSuppress = suppressEntryStagger;
+      if (preserveScroll) suppressEntryStagger = true;
       isTabSwitchRender = (changed || wasTargetHidden) && !preserveScroll;
-      if (tabName === 'daily') renderDailyView();
-      if (tabName === 'weekly') renderWeeklyView();
-      if (tabName === 'food') renderFoodView();
-      if (tabName === 'search') renderSearchView();
-      if (tabName === 'info') renderInfoView();
-      isTabSwitchRender = false;
-      forceInstantCarouselSync = false;
+      try {
+        if (tabName === 'daily') renderDailyView();
+        if (tabName === 'weekly') renderWeeklyView();
+        if (tabName === 'food') renderFoodView();
+        if (tabName === 'search') renderSearchView();
+        if (tabName === 'info') renderInfoView();
+      } finally {
+        isTabSwitchRender = false;
+        forceInstantCarouselSync = false;
+        suppressEntryStagger = prevSuppress;
+      }
 
       persistNavViewState();
       requestAnimationFrame(updateHeaderScrollState);
@@ -5543,6 +5839,36 @@
       activateTabView(tabName, preserveScroll);
     }
 
+    function isSecondaryCourseSlot(slot) {
+      if (!slot) return false;
+      const code = String(slot.code || '').trim().toLocaleUpperCase('tr-TR');
+      const title = String(slot.title || '').trim().toLocaleUpperCase('tr-TR');
+      if (
+        code === 'BÇ' ||
+        code === 'BC' ||
+        /^(İNG|ING|ENG|TD|TL|AİİT|AIIT|APHR)\s*10[12]\b/.test(code)
+      ) {
+        return true;
+      }
+      if (
+        title === 'BAĞIMSIZ ÇALIŞMA' ||
+        title === 'SELF STUDY' ||
+        title.startsWith('BAĞIMSIZ ÇALIŞMA ') ||
+        title.startsWith('SELF STUDY ') ||
+        /^TÜRK DİLİ\b/.test(title) ||
+        /^TURKISH LANGUAGE\b/.test(title) ||
+        /^İNGİLİZCE\b/.test(title) ||
+        /^ENGLISH\b/.test(title) ||
+        title.includes('ATATÜRK İLKELERİ VE İNKILAP TARİHİ') ||
+        title.includes("ATURK'S PRINCIPLES") ||
+        title.includes("ATATURK'S PRINCIPLES AND HISTORY OF REVOLUTION") ||
+        title.includes('PRINCIPLES AND HISTORY OF REVOLUTION')
+      ) {
+        return true;
+      }
+      return false;
+    }
+
     // ==================== CLEAN SLOT CARD ====================
     function createSlotCardElement(slot, options = {}) {
       const key = `${slot.date}_${slot.slotNo}`;
@@ -5552,10 +5878,11 @@
       const accent = getCalmAccent(slot, category);
       const isMbuOrLab = category === 'mbu' || category === 'lab';
       const groupStatus = getSlotGroupStatus(slot, category);
+      const isSecondaryCourse = groupStatus !== 'other' && isSecondaryCourseSlot(slot);
       const [startTime = '', endTime = ''] = (slot.time || '').split('-');
 
       const card = document.createElement('div');
-      card.className = `ios-glass rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} ${groupStatus === 'other' ? 'slot-card-dimmed' : ''} transition-colors`;
+      card.className = `ios-glass rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} ${groupStatus === 'other' ? 'slot-card-dimmed' : (isSecondaryCourse ? 'slot-card-secondary' : '')} transition-colors`;
 
       const row = document.createElement('div');
       row.className = 'flex items-stretch gap-2.5';
@@ -5613,28 +5940,15 @@
         const sizeBadge = typeof material.fileSize === 'number' && material.fileSize > 0
           ? ` (${formatPdfBytesLabel(material.fileSize)})`
           : '';
-        const isDirectDownload = Boolean(material.pdfData) || Number(material.chunkCount) > 0 || material.sourceType === 'chunks' || (typeof material.pdfUrl === 'string' && material.pdfUrl.startsWith('/api/lesson-pdf/'));
-        if (isDirectDownload) {
-          const pdfBtn = document.createElement('button');
-          pdfBtn.type = 'button';
-          pdfBtn.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition min-w-0 max-w-full';
-          pdfBtn.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate">${escapeHtml(pdfLabel)}</span>${sizeBadge ? `<span class="text-[10px] opacity-75 shrink-0 tabular-nums">${escapeHtml(sizeBadge)}</span>` : ''}`;
-          pdfBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openOrDownloadLessonMaterial(material);
-          });
-          pdfWrap.appendChild(pdfBtn);
-        } else {
-          const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
-          const pdfLink = document.createElement('a');
-          pdfLink.href = safeUrl;
-          pdfLink.target = '_blank';
-          pdfLink.rel = 'noopener noreferrer';
-          pdfLink.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition min-w-0 max-w-full';
-          pdfLink.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate">${escapeHtml(pdfLabel)}</span>`;
-          pdfLink.addEventListener('click', (e) => e.stopPropagation());
-          pdfWrap.appendChild(pdfLink);
-        }
+        const pdfBtn = document.createElement('button');
+        pdfBtn.type = 'button';
+        pdfBtn.className = 'ios-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-semibold transition min-w-0 max-w-full';
+        pdfBtn.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="truncate">${escapeHtml(pdfLabel)}</span>${sizeBadge ? `<span class="text-[10px] opacity-75 shrink-0 tabular-nums">${escapeHtml(sizeBadge)}</span>` : ''}`;
+        pdfBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openOrDownloadLessonMaterial(material);
+        });
+        pdfWrap.appendChild(pdfBtn);
         if (matList.length > 1) {
           const extraCount = matList.length - 1;
           const moreBtn = document.createElement('button');
@@ -5743,7 +6057,7 @@
         carousel.setAttribute('data-lang', state.lang);
         for (const week of weeks) {
           const slide = document.createElement('div');
-          slide.className = 'week-slide w-full shrink-0 snap-center grid grid-cols-5 gap-1.5 px-[3px] box-border';
+          slide.className = 'week-slide w-full shrink-0 snap-center grid grid-cols-5 gap-1.5 px-1.5 py-1 box-border';
           slide.setAttribute('data-week-key', week.key);
 
           for (const d of week.days) {
@@ -5789,7 +6103,7 @@
         if (isSelected) {
           btn.className = 'week-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center select-none bg-blue-600 text-white shadow-sm';
         } else if (isToday) {
-          btn.className = 'week-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center select-none bg-blue-500/15 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/30';
+          btn.className = 'week-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center select-none bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/35';
         } else {
           btn.className = 'week-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center select-none ios-pill-control text-slate-700 dark:text-slate-200 hover:bg-slate-500/15';
         }
@@ -5851,10 +6165,16 @@
       const btnToday = document.getElementById('btnBannerToday');
       const btnTom = document.getElementById('btnBannerTomorrow');
 
-      const activePill = 'px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition whitespace-nowrap';
-      const inactivePill = 'px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition whitespace-nowrap';
+      const activePill = 'px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-semibold text-slate-900 dark:text-white transition-colors whitespace-nowrap';
+      const inactivePill = 'px-2.5 sm:px-3.5 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap';
       btnToday.className = isToday ? activePill : inactivePill;
       btnTom.className = isTomorrow ? activePill : inactivePill;
+      updateSegmentedIndicator(
+        document.getElementById('dailyBannerSegmentedBar'),
+        document.getElementById('dailyBannerSegmentedIndicator'),
+        isToday ? btnToday : (isTomorrow ? btnTom : null),
+        !suppressEntryStagger && !isTabSwitchRender
+      );
 
       renderWeekCarousel(dayObj);
 
@@ -5874,14 +6194,18 @@
           const lunchStart = prevSlot && prevSlot.time ? prevSlot.time.split('-')[1] : '12.00';
           const lunchEnd = slot5 && slot5.time ? slot5.time.split('-')[0] : '13.10';
           const lunch = document.createElement('div');
-          lunch.className = 'ios-stagger-item flex items-center gap-3 py-1 px-2';
-          lunch.style.setProperty('--stagger-delay', `${baseDelay + Math.min(idx, 8) * 28}ms`);
+          lunch.className = `${suppressEntryStagger ? '' : 'ios-stagger-item '}flex items-center gap-3 py-1 px-2`;
+          if (!suppressEntryStagger) {
+            lunch.style.setProperty('--stagger-delay', `${baseDelay + Math.min(idx, 8) * 28}ms`);
+          }
           lunch.innerHTML = `<div class="h-px flex-1 bg-slate-300/60 dark:bg-slate-800"></div><span class="text-[11px] font-medium text-slate-400 dark:text-slate-500 tabular-nums">${loc.lunchBreak} (${escapeHtml(lunchStart)} - ${escapeHtml(lunchEnd)})</span><div class="h-px flex-1 bg-slate-300/60 dark:bg-slate-800"></div>`;
           container.appendChild(lunch);
         }
         const cardEl = createSlotCardElement(slot);
-        cardEl.classList.add('ios-stagger-item');
-        cardEl.style.setProperty('--stagger-delay', `${baseDelay + Math.min(idx + (lunchInserted ? 1 : 0), 9) * 28}ms`);
+        if (!suppressEntryStagger) {
+          cardEl.classList.add('ios-stagger-item');
+          cardEl.style.setProperty('--stagger-delay', `${baseDelay + Math.min(idx + (lunchInserted ? 1 : 0), 9) * 28}ms`);
+        }
         container.appendChild(cardEl);
       });
 
@@ -5914,21 +6238,30 @@
         }
       }
 
+      const bestDate = getBestDefaultDate();
+      const bestDay = days.find((d) => d.date === bestDate) || days.find((d) => d.date === state.selectedDate);
+      const bestWeekKey = bestDay ? `${bestDay.kurulNo}-${bestDay.haftaNo}` : (weeks[0] ? weeks[0].key : '');
+
       if (!state.weeklySelectedWeekKey || !weeks.some((w) => w.key === state.weeklySelectedWeekKey)) {
-        const curDay = days.find((d) => d.date === state.selectedDate);
-        const curKey = curDay ? `${curDay.kurulNo}-${curDay.haftaNo}` : weeks[0].key;
-        state.weeklySelectedWeekKey = weeks.some((w) => w.key === curKey) ? curKey : weeks[0].key;
+        state.weeklySelectedWeekKey = weeks.some((w) => w.key === bestWeekKey) ? bestWeekKey : (weeks[0] ? weeks[0].key : '');
       }
       persistNavViewState();
 
       const pillsContainer = document.getElementById('weekSelectorPills');
+      const hadWeekPillPos = Boolean(pillsContainer._lastSegPos);
       pillsContainer.innerHTML = '';
+      const weekIndicator = document.createElement('div');
+      weekIndicator.id = 'weekSelectorIndicator';
+      weekIndicator.className = 'segmented-pill-indicator segmented-pill-indicator-blue';
+      pillsContainer.appendChild(weekIndicator);
+
+      let activeWeekBtn = null;
       for (const wk of weeks) {
         const btn = document.createElement('button');
         btn.type = 'button';
         const isSel = wk.key === state.weeklySelectedWeekKey;
-        btn.className = `ios-press shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
-          isSel ? 'bg-blue-600 text-white shadow-2xs' : 'ios-pill-control text-slate-700 dark:text-slate-200'
+        btn.className = `ios-press shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+          isSel ? 'text-white' : 'ios-pill-control text-slate-700 dark:text-slate-200'
         }`;
         btn.textContent = `K${wk.kurulNo} • ${state.lang === 'en' ? 'W' : 'H'}${wk.haftaNo}`;
         btn.addEventListener('click', () => {
@@ -5936,13 +6269,39 @@
           renderWeeklyView();
         });
         pillsContainer.appendChild(btn);
+        if (isSel) activeWeekBtn = btn;
       }
 
-      const activeBtnCls = 'px-2.5 py-1 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition';
-      const inactBtnCls = 'px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition';
-      document.getElementById('btnFilterKurulAll').className = state.weeklyFilterKurul === 'all' ? activeBtnCls : inactBtnCls;
-      document.getElementById('btnFilterKurul1').className = state.weeklyFilterKurul === '1' ? activeBtnCls : inactBtnCls;
-      document.getElementById('btnFilterKurul2').className = state.weeklyFilterKurul === '2' ? activeBtnCls : inactBtnCls;
+      const activeBtnCls = 'px-2 min-[360px]:px-2.5 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors';
+      const inactBtnCls = 'px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors';
+      const btnKAll = document.getElementById('btnFilterKurulAll');
+      const btnK1 = document.getElementById('btnFilterKurul1');
+      const btnK2 = document.getElementById('btnFilterKurul2');
+      btnKAll.className = state.weeklyFilterKurul === 'all' ? activeBtnCls : inactBtnCls;
+      btnK1.className = state.weeklyFilterKurul === '1' ? activeBtnCls : inactBtnCls;
+      btnK2.className = state.weeklyFilterKurul === '2' ? activeBtnCls : inactBtnCls;
+
+      const animateWeeklyControls = !suppressEntryStagger && !isTabSwitchRender;
+      updateSegmentedIndicator(
+        document.getElementById('weeklyKurulSegmentedBar'),
+        document.getElementById('weeklyKurulSegmentedIndicator'),
+        state.weeklyFilterKurul === '1' ? btnK1 : (state.weeklyFilterKurul === '2' ? btnK2 : btnKAll),
+        animateWeeklyControls
+      );
+
+      requestAnimationFrame(() => {
+        updateSegmentedIndicator(
+          pillsContainer,
+          weekIndicator,
+          activeWeekBtn,
+          hadWeekPillPos && animateWeeklyControls,
+          'segmented-pill-indicator-blue'
+        );
+        if (activeWeekBtn && pillsContainer.scrollWidth > pillsContainer.clientWidth) {
+          const targetScroll = Math.max(0, activeWeekBtn.offsetLeft - (pillsContainer.clientWidth - activeWeekBtn.offsetWidth) / 2);
+          pillsContainer.scrollTo({ left: targetScroll, behavior: (hadWeekPillPos && animateWeeklyControls) ? 'smooth' : 'auto' });
+        }
+      });
 
       const weekDays = days.filter((d) => `${d.kurulNo}-${d.haftaNo}` === state.weeklySelectedWeekKey);
       const container = document.getElementById('weeklyDaysContainer');
@@ -5952,7 +6311,7 @@
       weekDays.forEach((day, dayIdx) => {
         const sec = document.createElement('div');
         sec.className = 'space-y-2';
-        const animateDay = dayIdx < 2;
+        const animateDay = !suppressEntryStagger && dayIdx < 2;
         const baseDelay = weekSwitchOffset + dayIdx * 55;
 
         const header = document.createElement('div');
@@ -6063,7 +6422,7 @@
       const searchBaseDelay = isTabSwitchRender ? 45 : 0;
       for (let i = 0; i < firstLimit; i++) {
         const cardEl = createSlotCardElement(matches[i], { showDayFooter: true });
-        if (i < 10) {
+        if (!suppressEntryStagger && i < 10) {
           cardEl.classList.add('ios-stagger-item');
           cardEl.style.setProperty('--stagger-delay', `${searchBaseDelay + i * 28}ms`);
         }
@@ -6293,8 +6652,10 @@
         const displayTime =
           item.startTime && item.endTime ? `${item.startTime}-${item.endTime}` : item.rawTime;
         const row = document.createElement('div');
-        row.className = 'ios-stagger-item ios-pill-control rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2';
-        row.style.setProperty('--stagger-delay', `${examBaseDelay + Math.min(examIdx, 8) * 28}ms`);
+        row.className = `${suppressEntryStagger ? '' : 'ios-stagger-item '}ios-pill-control rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2`;
+        if (!suppressEntryStagger) {
+          row.style.setProperty('--stagger-delay', `${examBaseDelay + Math.min(examIdx, 8) * 28}ms`);
+        }
         row.innerHTML = `
           <div class="min-w-0">
             <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400">${escapeHtml(formatDateLong(item.day.date))} • ${escapeHtml(displayTime)}</p>
@@ -6469,7 +6830,7 @@
 
         weeks.forEach((week) => {
           const slide = document.createElement('div');
-          slide.className = 'week-slide w-full shrink-0 snap-center grid grid-cols-5 gap-1.5 px-[3px] box-border';
+          slide.className = 'week-slide w-full shrink-0 snap-center grid grid-cols-5 gap-1.5 px-1.5 py-1 box-border';
           slide.setAttribute('data-week-key', week[0].iso);
 
           week.forEach(({ dateObj: cur, iso: curIso }) => {
@@ -6523,7 +6884,7 @@
         if (isSel) {
           btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-600 text-white shadow-sm';
         } else if (isToday) {
-          btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-500/15 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/30';
+          btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/35';
         } else {
           btn.className = 'food-day-btn rounded-2xl py-1.5 px-1 flex flex-col items-center justify-center transition-all select-none ios-pill-control text-slate-700 dark:text-slate-200 hover:bg-slate-500/15';
         }
@@ -6594,7 +6955,7 @@
 
     function createFoodDishCard(item, isoDate = '', animIndex = 0, options = {}) {
       const card = document.createElement('div');
-      if (options.skipStagger) {
+      if (options.skipStagger || suppressEntryStagger) {
         card.className = 'ios-glass rounded-2xl overflow-hidden flex flex-col';
       } else {
         card.className = 'ios-glass ios-stagger-item rounded-2xl overflow-hidden flex flex-col';
@@ -6730,7 +7091,7 @@
         const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
 
         const emptyBox = document.createElement('div');
-        emptyBox.className = 'ios-glass ios-stagger-item rounded-3xl p-6 text-center space-y-2.5';
+        emptyBox.className = `ios-glass ${suppressEntryStagger ? '' : 'ios-stagger-item '}rounded-3xl p-6 text-center space-y-2.5`;
         emptyBox.innerHTML = `
           <div class="w-10 h-10 rounded-2xl ios-pill-control mx-auto flex items-center justify-center text-amber-600 dark:text-amber-300">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>
@@ -6765,8 +7126,10 @@
         const sec = document.createElement('div');
         sec.className = 'space-y-2';
         const hdr = document.createElement('h3');
-        hdr.className = 'ios-stagger-item text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5';
-        hdr.style.setProperty('--stagger-delay', `${foodBaseDelay}ms`);
+        hdr.className = `${suppressEntryStagger ? '' : 'ios-stagger-item '}text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5`;
+        if (!suppressEntryStagger) {
+          hdr.style.setProperty('--stagger-delay', `${foodBaseDelay}ms`);
+        }
         hdr.textContent = loc.foodMainMenu;
         sec.appendChild(hdr);
 
@@ -6781,8 +7144,10 @@
         const sec = document.createElement('div');
         sec.className = 'space-y-2 pt-1';
         const hdr = document.createElement('h3');
-        hdr.className = 'ios-stagger-item text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5';
-        hdr.style.setProperty('--stagger-delay', `${foodBaseDelay + (gIdx + 1) * 35}ms`);
+        hdr.className = `${suppressEntryStagger ? '' : 'ios-stagger-item '}text-xs sm:text-sm font-bold text-slate-900 dark:text-white px-1.5`;
+        if (!suppressEntryStagger) {
+          hdr.style.setProperty('--stagger-delay', `${foodBaseDelay + (gIdx + 1) * 35}ms`);
+        }
         hdr.textContent = getFoodTypeLabel(typeKey);
         sec.appendChild(hdr);
 
@@ -6816,7 +7181,7 @@
       if (activeDaysCount === 0) {
         subInfo.textContent = loc.foodSourceSub;
         const emptyBox = document.createElement('div');
-        emptyBox.className = 'ios-glass ios-stagger-item rounded-3xl p-6 text-center space-y-2.5';
+        emptyBox.className = `ios-glass ${suppressEntryStagger ? '' : 'ios-stagger-item '}rounded-3xl p-6 text-center space-y-2.5`;
         emptyBox.innerHTML = `
           <div class="w-10 h-10 rounded-2xl ios-pill-control mx-auto flex items-center justify-center text-amber-600 dark:text-amber-300">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14h18M5 14a7 7 0 0114 0M12 4v3m-6 7v2a3 3 0 003 3h6a3 3 0 003-3v-2"></path></svg>
@@ -6838,8 +7203,10 @@
 
         const daySection = document.createElement('div');
         daySection.id = `foodWeekDay_${iso}`;
-        daySection.className = `ios-glass ios-stagger-item food-week-card rounded-3xl p-3.5 space-y-2.5${isToday ? ' ring-1 ring-blue-500/40' : ''}`;
-        daySection.style.setProperty('--stagger-delay', `${weekFoodOffset + Math.min(idx, 4) * 45}ms`);
+        daySection.className = `ios-glass ${suppressEntryStagger ? '' : 'ios-stagger-item '}food-week-card rounded-3xl p-3.5 space-y-2.5${isToday ? ' ring-1 ring-blue-500/40' : ''}`;
+        if (!suppressEntryStagger) {
+          daySection.style.setProperty('--stagger-delay', `${weekFoodOffset + Math.min(idx, 4) * 45}ms`);
+        }
 
         const header = document.createElement('div');
         header.className = 'flex items-center justify-between gap-2';
@@ -7036,10 +7403,19 @@
       const weekdays = getWeekdaysForISO(targetIso);
       persistNavViewState();
 
-      const activePill = 'px-3 py-1 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs transition';
-      const inactivePill = 'px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition';
-      document.getElementById('btnFoodModeDaily').className = isWeekly ? inactivePill : activePill;
-      document.getElementById('btnFoodModeWeekly').className = isWeekly ? activePill : inactivePill;
+      const activePill = 'px-2.5 min-[360px]:px-3 py-1 rounded-full text-xs font-semibold text-slate-900 dark:text-white transition-colors';
+      const inactivePill = 'px-2.5 min-[360px]:px-3 py-1 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition-colors';
+      const btnFoodDaily = document.getElementById('btnFoodModeDaily');
+      const btnFoodWeekly = document.getElementById('btnFoodModeWeekly');
+      btnFoodDaily.className = isWeekly ? inactivePill : activePill;
+      btnFoodWeekly.className = isWeekly ? activePill : inactivePill;
+      updateSegmentedIndicator(
+        document.getElementById('foodModeSegmentedBar'),
+        document.getElementById('foodModeSegmentedIndicator'),
+        isWeekly ? btnFoodWeekly : btnFoodDaily,
+        !suppressEntryStagger && !isTabSwitchRender
+      );
+
       const foodDateBtnLabel = document.getElementById('foodDateBtnLabel');
       if (foodDateBtnLabel) {
         const dt = parseISODate(targetIso);
@@ -7054,8 +7430,11 @@
       const refreshIcon = document.getElementById('iconFoodRefresh');
       if (refreshIcon && forceRefresh) refreshIcon.classList.add('animate-spin-ios');
 
+      const foodWeekdayEl = document.getElementById('foodHeaderWeekday');
+
       if (isWeekly) {
         document.getElementById('foodHeaderTitle').textContent = formatFoodWeekRange(weekdays);
+        if (foodWeekdayEl) foodWeekdayEl.classList.add('hidden');
         document.getElementById('foodRelativeBadge').textContent = getFoodWeekRelativeLabel(weekdays[0].dateObj);
 
         const cachedWeek = weekdays.map((w) => {
@@ -7074,14 +7453,14 @@
           const liveWeek = await Promise.all(weekdays.map((w) => fetchFoodDay(w.iso)));
           if (seq === foodFetchSeq && state.foodDateISO === targetIso && state.foodViewMode === 'weekly') {
             if (!hasFullWeekCached || forceRefresh || JSON.stringify(cachedWeek) !== JSON.stringify(liveWeek)) {
-              renderFoodWeeklyItems(liveWeek, weekdays);
+              runWithStaggerSuppressed(() => renderFoodWeeklyItems(liveWeek, weekdays));
             }
             if (forceRefresh) showToast(loc.foodRefreshedToast);
           }
         } catch (err) {
           if (seq === foodFetchSeq && state.foodDateISO === targetIso && state.foodViewMode === 'weekly' && (!hasFullWeekCached || forceRefresh)) {
             if (hasFullWeekCached) {
-              renderFoodWeeklyItems(cachedWeek, weekdays);
+              runWithStaggerSuppressed(() => renderFoodWeeklyItems(cachedWeek, weekdays));
             } else {
               renderFoodErrorCard();
             }
@@ -7092,7 +7471,11 @@
         return;
       }
 
-      document.getElementById('foodHeaderTitle').textContent = formatDateLong(dmy);
+      document.getElementById('foodHeaderTitle').textContent = formatDateDayMonthYear(dmy);
+      if (foodWeekdayEl) {
+        foodWeekdayEl.textContent = formatDateWeekday(dmy);
+        foodWeekdayEl.classList.remove('hidden');
+      }
       document.getElementById('foodRelativeBadge').textContent = formatRelativeDay(dmy);
 
       const cachedEntry = cache[targetIso];
@@ -7110,7 +7493,7 @@
           const prevStr = hasCached ? JSON.stringify(cachedEntry.items) : '';
           const nextStr = JSON.stringify(items);
           if (!hasCached || forceRefresh || prevStr !== nextStr) {
-            renderFoodItems(items, targetIso);
+            runWithStaggerSuppressed(() => renderFoodItems(items, targetIso));
           }
           if (forceRefresh) showToast(loc.foodRefreshedToast);
         }
@@ -7124,7 +7507,7 @@
       } catch (err) {
         if (seq === foodFetchSeq && state.foodDateISO === targetIso && state.foodViewMode === 'daily' && (!hasCached || forceRefresh)) {
           if (hasCached) {
-            renderFoodItems(cachedEntry.items, targetIso);
+            runWithStaggerSuppressed(() => renderFoodItems(cachedEntry.items, targetIso));
           } else {
             renderFoodErrorCard();
           }
@@ -7441,25 +7824,14 @@
           </div>
         `;
 
-        if (isDirectDownload) {
-          const dlBtn = document.createElement('button');
-          dlBtn.type = 'button';
-          dlBtn.className = 'ios-press shrink-0 px-3 py-1.5 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-bold transition';
-          dlBtn.textContent = state.lang === 'en' ? 'Download' : 'İndir';
-          dlBtn.addEventListener('click', () => {
-            openOrDownloadLessonMaterial(material);
-          });
-          row.appendChild(dlBtn);
-        } else {
-          const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
-          const linkBtn = document.createElement('a');
-          linkBtn.href = safeUrl;
-          linkBtn.target = '_blank';
-          linkBtn.rel = 'noopener noreferrer';
-          linkBtn.className = 'ios-press shrink-0 px-3 py-1.5 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-bold transition';
-          linkBtn.textContent = state.lang === 'en' ? 'Open' : 'Aç';
-          row.appendChild(linkBtn);
-        }
+        const openBtn = document.createElement('button');
+        openBtn.type = 'button';
+        openBtn.className = 'ios-press shrink-0 px-3 py-1.5 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-bold transition';
+        openBtn.textContent = state.lang === 'en' ? 'Open' : 'Aç';
+        openBtn.addEventListener('click', () => {
+          openOrDownloadLessonMaterial(material);
+        });
+        row.appendChild(openBtn);
         listEl.appendChild(row);
       });
 
@@ -7514,8 +7886,10 @@
       const api = window.__INONU_AUTH__;
       if (!api || typeof api.loadAllLessonMaterials !== 'function') return;
       if (lessonMaterialsInitialFetchDone && !force) {
-        renderDailyView();
-        renderWeeklyView();
+        runWithStaggerSuppressed(() => {
+          renderDailyView();
+          renderWeeklyView();
+        });
         return;
       }
       lessonMaterialsInitialFetchDone = true;
@@ -7527,8 +7901,10 @@
           if (!Array.isArray(lessonMaterialsMap[k])) lessonMaterialsMap[k] = [];
           lessonMaterialsMap[k].push(m);
         });
-        renderDailyView();
-        renderWeeklyView();
+        runWithStaggerSuppressed(() => {
+          renderDailyView();
+          renderWeeklyView();
+        });
       } catch {
         lessonMaterialsMap = {};
       }
@@ -7567,8 +7943,10 @@
           tone === 'urgent' ? loc.adminAnnBadgeUrgent : tone === 'warn' ? loc.adminAnnBadgeWarn : loc.adminAnnBadgeInfo;
 
         const card = document.createElement('div');
-        card.className = 'ios-glass ios-stagger-item rounded-2xl px-3.5 py-3 space-y-1';
-        card.style.setProperty('--stagger-delay', `${Math.min(idx, 4) * 35}ms`);
+        card.className = `ios-glass ${suppressEntryStagger ? '' : 'ios-stagger-item '}rounded-2xl px-3.5 py-3 space-y-1`;
+        if (!suppressEntryStagger) {
+          card.style.setProperty('--stagger-delay', `${Math.min(idx, 4) * 35}ms`);
+        }
         card.innerHTML = `
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
@@ -7586,7 +7964,7 @@
       const api = window.__INONU_AUTH__;
       if (!api || typeof api.loadActiveAnnouncements !== 'function') return;
       if (announcementsInitialFetchDone && !force) {
-        renderDailyAnnouncements();
+        runWithStaggerSuppressed(() => renderDailyAnnouncements());
         void refreshLessonMaterials(false);
         return;
       }
@@ -7596,7 +7974,7 @@
       } catch (e) {
         activeAnnouncementsList = [];
       }
-      renderDailyAnnouncements();
+      runWithStaggerSuppressed(() => renderDailyAnnouncements());
       void refreshLessonMaterials(true);
     }
 
@@ -8000,6 +8378,7 @@
         closeGroupModal();
         closeNoteModal();
         closeLessonPdfsModal();
+        closePdfViewerModal();
         closeFoodDateModal();
         closeFoodPhotoModal();
         closeInstallModal();
@@ -8026,13 +8405,15 @@
     }
 
     function refreshAllVisibleTabsAfterAuthChange() {
-      applyLanguageUI();
-      renderDailyAnnouncements();
-      if (state.activeTab === 'daily') renderDailyView();
-      if (state.activeTab === 'weekly') renderWeeklyView();
-      if (state.activeTab === 'food') renderFoodView();
-      if (state.activeTab === 'search') renderSearchView();
-      if (state.activeTab === 'info') renderInfoView();
+      runWithStaggerSuppressed(() => {
+        applyLanguageUI();
+        renderDailyAnnouncements();
+        if (state.activeTab === 'daily') renderDailyView();
+        if (state.activeTab === 'weekly') renderWeeklyView();
+        if (state.activeTab === 'food') renderFoodView();
+        if (state.activeTab === 'search') renderSearchView();
+        if (state.activeTab === 'info') renderInfoView();
+      });
       requestAnimationFrame(() => updateTabIndicator(state.activeTab || 'daily', false));
     }
 
@@ -8106,6 +8487,7 @@
       closeGroupModal();
       closeNoteModal();
       closeLessonPdfsModal();
+      closePdfViewerModal();
       state.myMbuGroup = '';
       state.myLabGroup = '';
       state.otherGroupMode = 'dim';
@@ -8168,7 +8550,7 @@
       banner.classList.remove('hidden');
     }
 
-    function triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle) {
+    function triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, triggerAnchorClick = true) {
       if (activePdfDownloadBlobUrl) {
         const staleUrl = activePdfDownloadBlobUrl;
         setTimeout(() => {
@@ -8204,18 +8586,306 @@
       if (readyWrap) readyWrap.classList.remove('hidden');
       if (banner) banner.classList.remove('hidden');
 
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      if (triggerAnchorClick) {
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
 
       if (activePdfDownloadHideTimer) clearTimeout(activePdfDownloadHideTimer);
       activePdfDownloadHideTimer = setTimeout(() => {
         closePdfDownloadBanner(true);
-      }, 18000);
+      }, 4500);
+    }
+
+    let activePdfViewerSeq = 0;
+    let activePdfViewerBlobUrl = '';
+    let activePdfViewerBlob = null;
+    let activePdfViewerFileName = 'ders.pdf';
+    let activePdfViewerTitle = 'PDF';
+    let activePdfViewerShareUrl = '';
+    let activePdfViewerHandle = null;
+    let activePdfViewerObserver = null;
+
+    function resetPdfViewerResources() {
+      activePdfViewerSeq++;
+      if (activePdfViewerObserver) {
+        try { activePdfViewerObserver.disconnect(); } catch {}
+        activePdfViewerObserver = null;
+      }
+      if (activePdfViewerHandle && typeof activePdfViewerHandle.destroy === 'function') {
+        try { void activePdfViewerHandle.destroy(); } catch {}
+        activePdfViewerHandle = null;
+      }
+      const canvasList = document.getElementById('pdfViewerCanvasList');
+      if (canvasList) {
+        canvasList.querySelectorAll('canvas').forEach((c) => {
+          c.width = 0;
+          c.height = 0;
+        });
+        canvasList.innerHTML = '';
+      }
+      const iframe = document.getElementById('pdfViewerIframe');
+      if (iframe) {
+        iframe.src = 'about:blank';
+        iframe.classList.add('hidden');
+      }
+      if (activePdfViewerBlobUrl) {
+        const oldUrl = activePdfViewerBlobUrl;
+        activePdfViewerBlobUrl = '';
+        setTimeout(() => {
+          try { URL.revokeObjectURL(oldUrl); } catch {}
+        }, 4000);
+      }
+      activePdfViewerBlob = null;
+      activePdfViewerShareUrl = '';
+    }
+
+    function closePdfViewerModal() {
+      closeAnimatedModal(document.getElementById('pdfViewerModal'), document.getElementById('pdfViewerModalCard'), () => {
+        resetPdfViewerResources();
+      });
+    }
+
+    function openPdfViewerModalSkeleton(title, metaText = '') {
+      const modal = document.getElementById('pdfViewerModal');
+      const card = document.getElementById('pdfViewerModalCard');
+      if (!modal || !card) return false;
+      resetPdfViewerResources();
+      const loc = I18N[state.lang];
+
+      activePdfViewerTitle = title || 'PDF';
+      const titleEl = document.getElementById('pdfViewerModalTitle');
+      const metaEl = document.getElementById('pdfViewerModalMeta');
+      const actionBar = document.getElementById('pdfViewerActionBar');
+      const loadingWrap = document.getElementById('pdfViewerLoadingWrap');
+      const loadingBar = document.getElementById('pdfViewerLoadingBar');
+      const loadingStatus = document.getElementById('pdfViewerLoadingStatus');
+      const frameWrap = document.getElementById('pdfViewerFrameWrap');
+      const fallbackWrap = document.getElementById('pdfViewerFallbackWrap');
+      const pageBadge = document.getElementById('pdfViewerPageBadge');
+
+      if (titleEl) titleEl.textContent = title || 'PDF';
+      if (metaEl) metaEl.textContent = metaText || '';
+      if (actionBar) actionBar.classList.add('hidden');
+      if (pageBadge) pageBadge.classList.add('hidden');
+      if (frameWrap) frameWrap.classList.add('hidden');
+      if (fallbackWrap) fallbackWrap.classList.add('hidden');
+      if (loadingWrap) loadingWrap.classList.remove('hidden');
+      if (loadingBar) loadingBar.style.width = '12%';
+      if (loadingStatus) loadingStatus.textContent = loc.pdfPreviewPreparing;
+
+      const dlLbl = document.getElementById('pdfViewerDownloadLabel');
+      const shLbl = document.getElementById('pdfViewerShareLabel');
+      const extLbl = document.getElementById('pdfViewerExternalLabel');
+      if (dlLbl) dlLbl.textContent = loc.pdfPreviewDownload;
+      if (shLbl) shLbl.textContent = loc.pdfPreviewShare;
+      if (extLbl) extLbl.textContent = loc.pdfPreviewNewTab;
+
+      openAnimatedModal(modal, card);
+      return true;
+    }
+
+    async function shareActivePdf() {
+      const loc = I18N[state.lang];
+      const title = activePdfViewerTitle || activePdfViewerFileName || 'PDF';
+      if (activePdfViewerBlob && typeof navigator.share === 'function') {
+        try {
+          const pdfFile = new File([activePdfViewerBlob], activePdfViewerFileName || 'ders.pdf', { type: 'application/pdf' });
+          if (!navigator.canShare || navigator.canShare({ files: [pdfFile] })) {
+            await navigator.share({ title, files: [pdfFile] });
+            return;
+          }
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+        }
+      }
+      if (activePdfViewerShareUrl && typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ title, url: activePdfViewerShareUrl });
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+        }
+      }
+      if (activePdfViewerShareUrl && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        try {
+          await navigator.clipboard.writeText(activePdfViewerShareUrl);
+          showToast(loc.pdfPreviewCopied);
+          return;
+        } catch {}
+      }
+      if (activePdfViewerBlob && activePdfViewerBlobUrl) {
+        const a = document.createElement('a');
+        a.href = activePdfViewerBlobUrl;
+        a.download = activePdfViewerFileName || 'ders.pdf';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        triggerBlobDownloadWithReadyBanner(activePdfViewerBlob, activePdfViewerFileName || 'ders.pdf', title);
+      }
+    }
+
+    async function renderPdfBlobInViewer(blob, fileName, displayTitle, reqSeq) {
+      if (reqSeq !== activePdfViewerSeq) return;
+      const loc = I18N[state.lang];
+      const blobUrl = URL.createObjectURL(blob);
+      activePdfViewerBlobUrl = blobUrl;
+      activePdfViewerBlob = blob;
+      activePdfViewerFileName = fileName || 'ders.pdf';
+      activePdfViewerTitle = displayTitle || activePdfViewerFileName;
+
+      const dlBtn = document.getElementById('pdfViewerDownloadBtn');
+      const shareBtn = document.getElementById('pdfViewerShareBtn');
+      const extBtn = document.getElementById('pdfViewerExternalBtn');
+      const actionBar = document.getElementById('pdfViewerActionBar');
+      const pageBadge = document.getElementById('pdfViewerPageBadge');
+      const loadingWrap = document.getElementById('pdfViewerLoadingWrap');
+      const frameWrap = document.getElementById('pdfViewerFrameWrap');
+      const canvasList = document.getElementById('pdfViewerCanvasList');
+      const iframe = document.getElementById('pdfViewerIframe');
+      const fallbackWrap = document.getElementById('pdfViewerFallbackWrap');
+      const metaEl = document.getElementById('pdfViewerModalMeta');
+
+      if (metaEl) {
+        const sz = formatPdfBytesLabel(blob.size);
+        metaEl.textContent = sz ? `${activePdfViewerFileName} • ${sz}` : activePdfViewerFileName;
+      }
+
+      if (dlBtn) {
+        dlBtn.href = blobUrl;
+        dlBtn.download = activePdfViewerFileName;
+        dlBtn.classList.remove('hidden');
+      }
+      if (shareBtn) {
+        shareBtn.classList.remove('hidden');
+      }
+      if (extBtn) {
+        extBtn.href = blobUrl;
+        extBtn.classList.remove('hidden');
+      }
+      if (actionBar) actionBar.classList.remove('hidden');
+      if (fallbackWrap) fallbackWrap.classList.add('hidden');
+
+      const pdfApi = window.__INONU_PDF__;
+      if (pdfApi && typeof pdfApi.openPdfBlobDocument === 'function' && canvasList && frameWrap) {
+        try {
+          const handle = await pdfApi.openPdfBlobDocument(blob);
+          if (reqSeq !== activePdfViewerSeq) {
+            void handle.destroy();
+            return;
+          }
+          activePdfViewerHandle = handle;
+          if (pageBadge) {
+            pageBadge.textContent = loc.pdfPreviewPages(handle.numPages);
+            pageBadge.classList.remove('hidden');
+          }
+          if (loadingWrap) loadingWrap.classList.add('hidden');
+          frameWrap.classList.remove('hidden');
+          frameWrap.scrollTop = 0;
+
+          const wrapW = Math.max(260, (frameWrap.clientWidth || Math.min(window.innerWidth - 36, 620)) - 24);
+          const canvases = [];
+          for (let p = 1; p <= handle.numPages; p++) {
+            const cWrap = document.createElement('div');
+            cWrap.className = 'w-full flex justify-center';
+            const canvas = document.createElement('canvas');
+            canvas.className = 'pdf-canvas-page max-w-full h-auto block';
+            canvas.setAttribute('data-pdf-page', String(p));
+            cWrap.appendChild(canvas);
+            canvasList.appendChild(cWrap);
+            canvases.push({ pageNo: p, canvas, rendered: false });
+          }
+
+          const eagerCount = Math.min(handle.numPages, handle.numPages <= 15 ? handle.numPages : 4);
+          for (let i = 0; i < eagerCount; i++) {
+            if (reqSeq !== activePdfViewerSeq) return;
+            await handle.renderPageToCanvas(canvases[i].pageNo, canvases[i].canvas, wrapW, 1);
+            canvases[i].rendered = true;
+          }
+
+          if (handle.numPages > eagerCount && typeof IntersectionObserver !== 'undefined') {
+            const observer = new IntersectionObserver((entries) => {
+              entries.forEach((entry) => {
+                if (!entry.isIntersecting || reqSeq !== activePdfViewerSeq) return;
+                const targetCanvas = entry.target;
+                const pNo = Number(targetCanvas.getAttribute('data-pdf-page') || '0');
+                const rec = canvases.find((x) => x.pageNo === pNo);
+                if (rec && !rec.rendered) {
+                  rec.rendered = true;
+                  observer.unobserve(targetCanvas);
+                  void handle.renderPageToCanvas(rec.pageNo, rec.canvas, wrapW, 1);
+                }
+              });
+            }, { root: frameWrap, rootMargin: '900px 0px' });
+            activePdfViewerObserver = observer;
+            for (let i = eagerCount; i < canvases.length; i++) {
+              observer.observe(canvases[i].canvas);
+            }
+          }
+          return;
+        } catch (err) {
+          console.warn('PDF.js canvas render failed, using fallback frame:', err);
+        }
+      }
+
+      if (loadingWrap) loadingWrap.classList.add('hidden');
+      if (frameWrap && iframe) {
+        frameWrap.classList.remove('hidden');
+        iframe.classList.remove('hidden');
+        iframe.src = blobUrl;
+      }
+    }
+
+    function showExternalUrlInPdfViewer(safeUrl, fileName, displayTitle) {
+      const loc = I18N[state.lang];
+      activePdfViewerShareUrl = safeUrl;
+      activePdfViewerFileName = fileName || 'ders.pdf';
+      activePdfViewerTitle = displayTitle || fileName || 'PDF';
+
+      const loadingWrap = document.getElementById('pdfViewerLoadingWrap');
+      const frameWrap = document.getElementById('pdfViewerFrameWrap');
+      const actionBar = document.getElementById('pdfViewerActionBar');
+      const dlBtn = document.getElementById('pdfViewerDownloadBtn');
+      const shareBtn = document.getElementById('pdfViewerShareBtn');
+      const extBtn = document.getElementById('pdfViewerExternalBtn');
+      const fallbackWrap = document.getElementById('pdfViewerFallbackWrap');
+      const fallbackText = document.getElementById('pdfViewerFallbackText');
+      const fallbackDl = document.getElementById('pdfViewerFallbackDownload');
+      const fallbackShare = document.getElementById('pdfViewerFallbackShare');
+      const fallbackExt = document.getElementById('pdfViewerFallbackExternal');
+
+      if (loadingWrap) loadingWrap.classList.add('hidden');
+      if (frameWrap) frameWrap.classList.add('hidden');
+      if (actionBar) actionBar.classList.remove('hidden');
+      if (dlBtn) dlBtn.classList.add('hidden');
+      if (shareBtn) shareBtn.classList.remove('hidden');
+      if (extBtn) {
+        extBtn.href = safeUrl;
+        extBtn.classList.remove('hidden');
+      }
+      if (fallbackWrap) fallbackWrap.classList.remove('hidden');
+      if (fallbackText) fallbackText.textContent = loc.pdfPreviewExternalHint;
+      if (fallbackDl) {
+        fallbackDl.href = safeUrl;
+        fallbackDl.download = activePdfViewerFileName;
+        fallbackDl.textContent = loc.pdfPreviewDownload;
+        fallbackDl.classList.remove('hidden');
+      }
+      if (fallbackShare) {
+        fallbackShare.textContent = loc.pdfPreviewShare;
+        fallbackShare.classList.remove('hidden');
+      }
+      if (fallbackExt) {
+        fallbackExt.href = safeUrl;
+        fallbackExt.textContent = `${loc.pdfPreviewNewTab} ↗`;
+        fallbackExt.classList.remove('hidden');
+      }
     }
 
     async function openOrDownloadLessonMaterial(material) {
@@ -8223,6 +8893,10 @@
       const rawName = (material.pdfName || material.title || `ders_${material.date}_${material.slotNo}`).trim();
       const fileName = rawName.toLowerCase().endsWith('.pdf') ? rawName : `${rawName}.pdf`;
       const displayTitle = material.title || fileName;
+      const metaHint = material.fileSize > 0 ? `${fileName} • ${formatPdfBytesLabel(material.fileSize)}` : fileName;
+
+      openPdfViewerModalSkeleton(displayTitle, metaHint);
+      const reqSeq = activePdfViewerSeq;
 
       if (material.pdfData) {
         try {
@@ -8233,11 +8907,12 @@
             bytes[i] = bin.charCodeAt(i);
           }
           const blob = new Blob([bytes], { type: 'application/pdf' });
-          triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle);
+          await renderPdfBlobInViewer(blob, fileName, displayTitle, reqSeq);
           return;
         } catch (err) {
-          console.warn('PDF blob download failed:', err);
-          showToast(state.lang === 'en' ? 'Could not download PDF.' : 'PDF indirilemedi.');
+          console.warn('PDF blob decode failed:', err);
+          closePdfViewerModal();
+          showToast(state.lang === 'en' ? 'Could not open PDF.' : 'PDF açılamadı.');
           return;
         }
       }
@@ -8246,31 +8921,29 @@
       if (chunkTotal > 0 && material.id) {
         const api = window.__INONU_AUTH__;
         if (!api || typeof api.downloadLessonMaterialChunks !== 'function') {
-          showToast(state.lang === 'en' ? 'Downloader module not ready.' : 'İndirme modülü henüz hazır değil.');
+          closePdfViewerModal();
+          showToast(state.lang === 'en' ? 'Downloader module not ready.' : 'PDF modülü henüz hazır değil.');
           return;
         }
         if (activePdfDownloadInFlight.has(material.id)) return;
         activePdfDownloadInFlight.add(material.id);
         try {
-          showPdfDownloadProgressBanner(
-            displayTitle,
-            state.lang === 'en' ? 'Preparing PDF...' : 'PDF indiriliyor...',
-            4
-          );
+          const loadingBar = document.getElementById('pdfViewerLoadingBar');
+          const loadingStatus = document.getElementById('pdfViewerLoadingStatus');
           const blob = await api.downloadLessonMaterialChunks(material.id, chunkTotal, (pct, done, total) => {
-            showPdfDownloadProgressBanner(
-              displayTitle,
-              state.lang === 'en'
-                ? `Downloading... %${pct} (${done}/${total})`
-                : `İndiriliyor... %${pct} (${done}/${total})`,
-              pct
-            );
+            if (reqSeq !== activePdfViewerSeq) return;
+            if (loadingBar) loadingBar.style.width = `${Math.min(100, Math.max(4, pct))}%`;
+            if (loadingStatus) {
+              loadingStatus.textContent = state.lang === 'en'
+                ? `Loading PDF... %${pct} (${done}/${total})`
+                : `PDF yükleniyor... %${pct} (${done}/${total})`;
+            }
           });
-          triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle);
+          await renderPdfBlobInViewer(blob, fileName, displayTitle, reqSeq);
         } catch (err) {
-          console.warn('Cloud chunk PDF download failed:', err);
-          closePdfDownloadBanner(true);
-          showToast(state.lang === 'en' ? 'Could not download PDF from cloud.' : 'PDF buluttan indirilemedi. Bağlantınızı kontrol edin.');
+          console.warn('Cloud chunk PDF open failed:', err);
+          if (reqSeq === activePdfViewerSeq) closePdfViewerModal();
+          showToast(state.lang === 'en' ? 'Could not load PDF from cloud.' : 'PDF buluttan yüklenemedi. Bağlantınızı kontrol edin.');
         } finally {
           activePdfDownloadInFlight.delete(material.id);
         }
@@ -8283,26 +8956,25 @@
           if (activePdfDownloadInFlight.has(dlUrl)) return;
           activePdfDownloadInFlight.add(dlUrl);
           try {
-            showPdfDownloadProgressBanner(
-              displayTitle,
-              state.lang === 'en' ? 'Fetching PDF...' : 'Sunucudan alınıyor...',
-              35
-            );
+            const loadingBar = document.getElementById('pdfViewerLoadingBar');
+            const loadingStatus = document.getElementById('pdfViewerLoadingStatus');
+            if (loadingBar) loadingBar.style.width = '40%';
+            if (loadingStatus) loadingStatus.textContent = state.lang === 'en' ? 'Fetching PDF...' : 'Sunucudan alınıyor...';
             const resp = await fetch(dlUrl, { cache: 'no-store' });
             const ct = (resp.headers.get('content-type') || '').toLowerCase();
             if (!resp.ok || ct.includes('text/html')) {
               throw new Error(resp.status === 404 || ct.includes('text/html') ? 'LEGACY_SERVER_FILE_MISSING' : `HTTP_${resp.status}`);
             }
             const blob = await resp.blob();
-            triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle);
+            await renderPdfBlobInViewer(blob, fileName, displayTitle, reqSeq);
           } catch (err) {
-            console.warn('Server PDF download failed:', err);
-            closePdfDownloadBanner(true);
+            console.warn('Server PDF open failed:', err);
+            if (reqSeq === activePdfViewerSeq) closePdfViewerModal();
             const msg = err instanceof Error && err.message === 'LEGACY_SERVER_FILE_MISSING'
               ? (state.lang === 'en'
                   ? 'This older PDF needs to be re-uploaded from the admin panel.'
                   : 'Bu eski PDF dosyası bulunamadı. Yönetici panelinden yeniden yükleyin.')
-              : (state.lang === 'en' ? 'Could not download PDF.' : 'PDF indirilemedi.');
+              : (state.lang === 'en' ? 'Could not open PDF.' : 'PDF açılamadı.');
             showToast(msg);
           } finally {
             activePdfDownloadInFlight.delete(dlUrl);
@@ -8310,13 +8982,7 @@
           return;
         }
         const safeUrl = /^https?:\/\//i.test(material.pdfUrl) ? material.pdfUrl : `https://${material.pdfUrl}`;
-        const a = document.createElement('a');
-        a.href = safeUrl;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        showExternalUrlInPdfViewer(safeUrl, fileName, displayTitle);
       }
     }
 
@@ -8450,6 +9116,11 @@
       setTxt('btnAdminSaveStudentEdit', loc.adminEditSaveBtn);
 
       setPh('adminStudentFilterInput', loc.adminStudentFilterPlaceholder);
+      setPh('adminMatDateSearch', loc.adminMatSearchDatePlaceholder);
+      const clearStudentBtnEl = document.getElementById('btnClearAdminStudentFilter');
+      if (clearStudentBtnEl) {
+        clearStudentBtnEl.setAttribute('aria-label', loc.clearSearch);
+      }
       document.querySelectorAll('[data-filter-sgroup]').forEach((b) => {
         const g = b.getAttribute('data-filter-sgroup') || '';
         b.textContent = g ? (state.lang === 'en' ? `Group ${g}` : `Grup ${g}`) : loc.groupAllLabel;
@@ -8826,6 +9497,10 @@
 
       const allStudents = adminState.students || [];
       const rawQuery = (filterInp ? filterInp.value : '').trim();
+      const clearStudentBtn = document.getElementById('btnClearAdminStudentFilter');
+      if (clearStudentBtn) {
+        clearStudentBtn.classList.toggle('hidden', rawQuery.length === 0);
+      }
       const q = rawQuery.toLocaleLowerCase('tr-TR');
       const filtered = allStudents.filter((st) => {
         const effGroup = st.myMbuGroup || st.group || '';
@@ -8938,32 +9613,160 @@
       return p === 'en' ? SCHEDULE_DAYS_EN : SCHEDULE_DAYS_TR;
     }
 
+    function toggleAdminMatPicker(which, forceOpen) {
+      const datePanel = document.getElementById('adminMatDatePickerPanel');
+      const slotPanel = document.getElementById('adminMatSlotPickerPanel');
+      const dateBtn = document.getElementById('btnAdminMatDateTrigger');
+      const slotBtn = document.getElementById('btnAdminMatSlotTrigger');
+
+      const setState = (panel, btn, open) => {
+        if (!panel || !btn) return;
+        panel.classList.toggle('hidden', !open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        const arrow = btn.querySelector('svg');
+        if (arrow) arrow.style.transform = open ? 'rotate(180deg)' : '';
+      };
+
+      if (!which) {
+        setState(datePanel, dateBtn, false);
+        setState(slotPanel, slotBtn, false);
+        return;
+      }
+
+      if (which === 'date') {
+        const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : (datePanel ? datePanel.classList.contains('hidden') : false);
+        setState(slotPanel, slotBtn, false);
+        setState(datePanel, dateBtn, nextOpen);
+        if (nextOpen) {
+          renderAdminMatDateOptions(document.getElementById('adminMatDateSearch')?.value || '');
+          const searchEl = document.getElementById('adminMatDateSearch');
+          if (searchEl) requestAnimationFrame(() => searchEl.focus());
+        }
+        return;
+      }
+
+      if (which === 'slot') {
+        const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : (slotPanel ? slotPanel.classList.contains('hidden') : false);
+        setState(datePanel, dateBtn, false);
+        setState(slotPanel, slotBtn, nextOpen);
+      }
+    }
+
+    function setAdminMatSelectedDate(dateStr) {
+      const dateInp = document.getElementById('adminMatDateSelect');
+      const dateLbl = document.getElementById('adminMatDateLabel');
+      const days = getAdminMatScheduleDays();
+      const match = days.find((d) => d.date === dateStr);
+      if (dateInp) dateInp.value = dateStr || '';
+      if (dateLbl) {
+        dateLbl.textContent = match ? `${match.date} • ${match.dayName}` : (dateStr || (state.lang === 'en' ? 'Select date...' : 'Tarih seç...'));
+      }
+    }
+
+    function renderAdminMatDateOptions(query = '') {
+      const listEl = document.getElementById('adminMatDateOptions');
+      const dateInp = document.getElementById('adminMatDateSelect');
+      if (!listEl) return;
+      const days = getAdminMatScheduleDays();
+      const curVal = dateInp ? dateInp.value : '';
+      const norm = String(query || '').trim().toLocaleLowerCase('tr-TR');
+
+      const filtered = norm
+        ? days.filter((d) => {
+            const hay = `${d.date} ${d.dayName} K${d.kurulNo} H${d.haftaNo} W${d.haftaNo} ${formatDateLong(d.date)}`.toLocaleLowerCase('tr-TR');
+            return hay.includes(norm);
+          })
+        : days;
+
+      listEl.innerHTML = '';
+      if (filtered.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'text-[11px] text-slate-500 dark:text-slate-400 text-center py-3';
+        empty.textContent = I18N[state.lang].searchNoResults;
+        listEl.appendChild(empty);
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      filtered.forEach((d) => {
+        const isSel = d.date === curVal;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 transition ${
+          isSel
+            ? 'bg-blue-600 text-white shadow-xs'
+            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-500/12'
+        }`;
+        btn.innerHTML = `
+          <span class="truncate tabular-nums">${escapeHtml(d.date)} • ${escapeHtml(d.dayName)}</span>
+          <span class="text-[10px] font-bold shrink-0 ${isSel ? 'text-white/85' : 'text-slate-400 dark:text-slate-500'}">K${d.kurulNo}•${adminState.matProg === 'en' ? 'W' : 'H'}${d.haftaNo}</span>
+        `;
+        btn.addEventListener('click', () => {
+          setAdminMatSelectedDate(d.date);
+          populateAdminMatSlotSelect(d.date, '1');
+          toggleAdminMatPicker(null, false);
+        });
+        frag.appendChild(btn);
+      });
+      listEl.appendChild(frag);
+    }
+
     function populateAdminMatSlotSelect(dateStr, selectedSlotNo) {
-      const slotSel = document.getElementById('adminMatSlotSelect');
-      if (!slotSel) return;
+      const slotInp = document.getElementById('adminMatSlotSelect');
+      const slotLbl = document.getElementById('adminMatSlotLabel');
+      const slotOptsEl = document.getElementById('adminMatSlotOptions');
       const days = getAdminMatScheduleDays();
       const dayObj = days.find((d) => d.date === dateStr) || days[0];
       const slots = dayObj && Array.isArray(dayObj.slots) ? dayObj.slots : [];
-      slotSel.innerHTML = '';
-      if (slots.length > 0) {
-        slots.forEach((s) => {
-          const opt = document.createElement('option');
-          opt.value = String(s.slotNo);
-          const shortTitle = String(s.title || '').slice(0, 46);
-          opt.textContent = `${s.slotNo}. Ders (${s.time}) • ${shortTitle}`;
-          slotSel.appendChild(opt);
+
+      const items = slots.length > 0
+        ? slots.map((s) => ({
+            value: String(s.slotNo),
+            title: String(s.title || ''),
+            time: String(s.time || ''),
+            label: `${s.slotNo}. Ders (${s.time}) • ${String(s.title || '').slice(0, 46)}`
+          }))
+        : Array.from({ length: 10 }, (_, idx) => ({
+            value: String(idx + 1),
+            title: `${idx + 1}. Ders`,
+            time: '',
+            label: `${idx + 1}. Ders`
+          }));
+
+      const targetVal = selectedSlotNo && items.some((x) => x.value === String(selectedSlotNo))
+        ? String(selectedSlotNo)
+        : (items[0] ? items[0].value : '1');
+      const selectedItem = items.find((x) => x.value === targetVal) || items[0];
+
+      if (slotInp) slotInp.value = targetVal;
+      if (slotLbl) slotLbl.textContent = selectedItem ? selectedItem.label : `${targetVal}. Ders`;
+
+      if (!slotOptsEl) return;
+      slotOptsEl.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      items.forEach((item) => {
+        const isSel = item.value === targetVal;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-start justify-between gap-2 ${
+          isSel
+            ? 'bg-blue-600 text-white shadow-xs'
+            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-500/12'
+        }`;
+        btn.innerHTML = `
+          <div class="min-w-0 flex-1">
+            <div class="font-bold tabular-nums">${escapeHtml(item.value)}. Ders ${item.time ? `<span class="opacity-80 font-semibold">(${escapeHtml(item.time)})</span>` : ''}</div>
+            ${item.title && item.title !== `${item.value}. Ders` ? `<div class="text-[11px] truncate ${isSel ? 'text-white/90' : 'text-slate-500 dark:text-slate-400'}">${escapeHtml(item.title)}</div>` : ''}
+          </div>
+          ${isSel ? '<span class="text-xs font-bold shrink-0">✓</span>' : ''}
+        `;
+        btn.addEventListener('click', () => {
+          populateAdminMatSlotSelect(dateStr, item.value);
+          toggleAdminMatPicker(null, false);
         });
-      } else {
-        for (let i = 1; i <= 10; i++) {
-          const opt = document.createElement('option');
-          opt.value = String(i);
-          opt.textContent = `${i}. Ders`;
-          slotSel.appendChild(opt);
-        }
-      }
-      if (selectedSlotNo && Array.from(slotSel.options).some((o) => o.value === String(selectedSlotNo))) {
-        slotSel.value = String(selectedSlotNo);
-      }
+        frag.appendChild(btn);
+      });
+      slotOptsEl.appendChild(frag);
     }
 
     function setAdminMatUploadProgress(visible, pct = 0, loadedBytes = 0, totalBytes = 0, statusLabel = '') {
@@ -9027,20 +9830,14 @@
       }
       const days = getAdminMatScheduleDays();
       const prevDate = dateSel.value;
-      dateSel.innerHTML = '';
-      days.forEach((d) => {
-        const opt = document.createElement('option');
-        opt.value = d.date;
-        opt.textContent = `${d.date} • ${d.dayName}`;
-        dateSel.appendChild(opt);
-      });
       const targetDate =
         (prevDate && days.some((d) => d.date === prevDate) ? prevDate : '') ||
         (state.selectedDate && days.some((d) => d.date === state.selectedDate) ? state.selectedDate : '') ||
         (days[0] ? days[0].date : '');
-      if (targetDate) dateSel.value = targetDate;
+      setAdminMatSelectedDate(targetDate);
+      renderAdminMatDateOptions(document.getElementById('adminMatDateSearch')?.value || '');
       const slotSel = document.getElementById('adminMatSlotSelect');
-      populateAdminMatSlotSelect(dateSel.value, slotSel ? slotSel.value : '1');
+      populateAdminMatSlotSelect(targetDate, slotSel ? slotSel.value : '1');
       syncAdminMaterialModeUI();
     }
 
@@ -9111,17 +9908,10 @@
           adminState.matExistingChunkCount = Number(mat.chunkCount) || 0;
           adminState.matFileName = mat.pdfName || (isFile ? `${mat.title}.pdf` : '');
           syncAdminMaterialFormDefaults();
-          const dateSel = document.getElementById('adminMatDateSelect');
-          if (dateSel) {
-            if (!Array.from(dateSel.options).some((o) => o.value === mat.date)) {
-              const opt = document.createElement('option');
-              opt.value = mat.date;
-              opt.textContent = mat.date;
-              dateSel.appendChild(opt);
-            }
-            dateSel.value = mat.date;
-          }
+          setAdminMatSelectedDate(mat.date);
+          renderAdminMatDateOptions(document.getElementById('adminMatDateSearch')?.value || '');
           populateAdminMatSlotSelect(mat.date, mat.slotNo);
+          toggleAdminMatPicker(null, false);
           const titleEl = document.getElementById('adminMatTitleInput');
           const urlEl = document.getElementById('adminMatUrlInput');
           if (titleEl) titleEl.value = mat.title || '';
@@ -9195,8 +9985,10 @@
         renderAdminAnnouncementsList();
         renderAdminMaterialsList();
         renderAdminStudentsList();
-        renderDailyView();
-        renderWeeklyView();
+        runWithStaggerSuppressed(() => {
+          renderDailyView();
+          renderWeeklyView();
+        });
       } finally {
         if (icon) icon.classList.remove('animate-spin-ios');
       }
@@ -9208,6 +10000,10 @@
       if (session.adminSecret && window.__INONU_AUTH__ && typeof window.__INONU_AUTH__.setAdminWriteSecret === 'function') {
         window.__INONU_AUTH__.setAdminWriteSecret(session.adminSecret);
       }
+      toggleAdminMatPicker(null, false);
+      const sFilterEl = document.getElementById('adminStudentFilterInput');
+      const sClearBtn = document.getElementById('btnClearAdminStudentFilter');
+      if (sClearBtn) sClearBtn.classList.toggle('hidden', !String(sFilterEl?.value || '').trim());
       syncAdminModalLanguageUI();
       syncAdminAddStudentChips();
       switchAdminTab(adminState.activeTab || 'announcements', false);
@@ -9309,7 +10105,7 @@
 
       document.getElementById('btnToggleTheme').addEventListener('click', () => {
         state.darkMode = !state.darkMode;
-        applyTheme();
+        applyTheme(true);
       });
 
       const authInputEl = document.getElementById('authStudentIdInput');
@@ -10003,12 +10799,38 @@
         });
       });
 
-      const adminMatDateSelect = document.getElementById('adminMatDateSelect');
-      if (adminMatDateSelect) {
-        adminMatDateSelect.addEventListener('change', () => {
-          populateAdminMatSlotSelect(adminMatDateSelect.value, '1');
+      const btnAdminMatDateTrigger = document.getElementById('btnAdminMatDateTrigger');
+      if (btnAdminMatDateTrigger) {
+        btnAdminMatDateTrigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleAdminMatPicker('date');
         });
       }
+      const btnAdminMatSlotTrigger = document.getElementById('btnAdminMatSlotTrigger');
+      if (btnAdminMatSlotTrigger) {
+        btnAdminMatSlotTrigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleAdminMatPicker('slot');
+        });
+      }
+      const adminMatDateSearch = document.getElementById('adminMatDateSearch');
+      if (adminMatDateSearch) {
+        adminMatDateSearch.addEventListener('input', () => {
+          renderAdminMatDateOptions(adminMatDateSearch.value);
+        });
+      }
+      document.addEventListener('click', (e) => {
+        const target = e.target;
+        if (!target || typeof target.closest !== 'function') return;
+        if (
+          !target.closest('#adminMatDatePickerPanel') &&
+          !target.closest('#btnAdminMatDateTrigger') &&
+          !target.closest('#adminMatSlotPickerPanel') &&
+          !target.closest('#btnAdminMatSlotTrigger')
+        ) {
+          toggleAdminMatPicker(null, false);
+        }
+      });
 
       const adminMatFileInput = document.getElementById('adminMatFileInput');
       if (adminMatFileInput) {
@@ -10042,6 +10864,33 @@
       const btnClosePdfBanner = document.getElementById('btnClosePdfBanner');
       if (btnClosePdfBanner) {
         btnClosePdfBanner.addEventListener('click', () => closePdfDownloadBanner(true));
+      }
+
+      const btnClosePdfViewerModal = document.getElementById('btnClosePdfViewerModal');
+      if (btnClosePdfViewerModal) {
+        btnClosePdfViewerModal.addEventListener('click', closePdfViewerModal);
+      }
+      const pdfViewerModalEl = document.getElementById('pdfViewerModal');
+      if (pdfViewerModalEl) {
+        pdfViewerModalEl.addEventListener('click', (e) => {
+          if (e.target && e.target.id === 'pdfViewerModal') closePdfViewerModal();
+        });
+      }
+      const pdfViewerShareBtn = document.getElementById('pdfViewerShareBtn');
+      if (pdfViewerShareBtn) {
+        pdfViewerShareBtn.addEventListener('click', () => { void shareActivePdf(); });
+      }
+      const pdfViewerFallbackShare = document.getElementById('pdfViewerFallbackShare');
+      if (pdfViewerFallbackShare) {
+        pdfViewerFallbackShare.addEventListener('click', () => { void shareActivePdf(); });
+      }
+      const pdfViewerDownloadBtn = document.getElementById('pdfViewerDownloadBtn');
+      if (pdfViewerDownloadBtn) {
+        pdfViewerDownloadBtn.addEventListener('click', () => {
+          if (activePdfViewerBlob) {
+            triggerBlobDownloadWithReadyBanner(activePdfViewerBlob, activePdfViewerFileName, activePdfViewerTitle, false);
+          }
+        });
       }
 
       const btnAdminMatCancelEdit = document.getElementById('btnAdminMatCancelEdit');
@@ -10475,6 +11324,16 @@
       if (adminStudentFilterInput) {
         adminStudentFilterInput.addEventListener('input', renderAdminStudentsList);
       }
+      const btnClearAdminStudentFilter = document.getElementById('btnClearAdminStudentFilter');
+      if (btnClearAdminStudentFilter) {
+        btnClearAdminStudentFilter.addEventListener('click', () => {
+          if (adminStudentFilterInput) {
+            adminStudentFilterInput.value = '';
+            adminStudentFilterInput.focus();
+          }
+          renderAdminStudentsList();
+        });
+      }
       document.querySelectorAll('[data-filter-sgroup]').forEach((btn) => {
         btn.addEventListener('click', () => {
           adminState.studentFilterGroup = btn.getAttribute('data-filter-sgroup') || '';
@@ -10562,6 +11421,8 @@
 
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
+          toggleAdminMatPicker(null, false);
+          closePdfViewerModal();
           closeAdminModal();
           closeAuthModal();
           closeFoodPhotoModal();
@@ -10619,13 +11480,61 @@
 
       window.addEventListener('resize', () => {
         updateTabIndicator(state.activeTab, false);
+        updateSegmentedIndicator(
+          document.getElementById('langSegmentedBar'),
+          document.getElementById('langSegmentedIndicator'),
+          state.lang === 'tr' ? document.getElementById('btnLangTr') : document.getElementById('btnLangEn'),
+          false
+        );
+        updateSegmentedIndicator(
+          document.getElementById('authLangSegmentedBar'),
+          document.getElementById('authLangSegmentedIndicator'),
+          state.lang === 'tr' ? document.getElementById('btnAuthLangTr') : document.getElementById('btnAuthLangEn'),
+          false
+        );
+        const days = getScheduleDays();
+        const curDay = days.find((d) => d.date === state.selectedDate);
+        if (state.activeTab === 'daily') {
+          const todayTarget = getBestDefaultDate();
+          const tomTarget = getTomorrowTargetDate();
+          const activeBannerBtn = state.selectedDate === todayTarget
+            ? document.getElementById('btnBannerToday')
+            : (state.selectedDate === tomTarget ? document.getElementById('btnBannerTomorrow') : null);
+          updateSegmentedIndicator(
+            document.getElementById('dailyBannerSegmentedBar'),
+            document.getElementById('dailyBannerSegmentedIndicator'),
+            activeBannerBtn,
+            false
+          );
+        }
+        if (state.activeTab === 'weekly') {
+          const activeKBtn = state.weeklyFilterKurul === '1'
+            ? document.getElementById('btnFilterKurul1')
+            : (state.weeklyFilterKurul === '2' ? document.getElementById('btnFilterKurul2') : document.getElementById('btnFilterKurulAll'));
+          updateSegmentedIndicator(
+            document.getElementById('weeklyKurulSegmentedBar'),
+            document.getElementById('weeklyKurulSegmentedIndicator'),
+            activeKBtn,
+            false
+          );
+          const pillsEl = document.getElementById('weekSelectorPills');
+          const weekIndEl = document.getElementById('weekSelectorIndicator');
+          const activeWeekPill = pillsEl && Array.from(pillsEl.querySelectorAll('button')).find((b) => b.classList.contains('text-white'));
+          updateSegmentedIndicator(pillsEl, weekIndEl, activeWeekPill || null, false, 'segmented-pill-indicator-blue');
+        }
+        if (state.activeTab === 'food') {
+          updateSegmentedIndicator(
+            document.getElementById('foodModeSegmentedBar'),
+            document.getElementById('foodModeSegmentedIndicator'),
+            state.foodViewMode === 'weekly' ? document.getElementById('btnFoodModeWeekly') : document.getElementById('btnFoodModeDaily'),
+            false
+          );
+        }
         const adminModalEl = document.getElementById('adminModal');
         if (adminModalEl && !adminModalEl.classList.contains('hidden')) {
           updateAdminTabIndicator(adminState.activeTab || 'announcements', false);
         }
-        const days = getScheduleDays();
         const carousel = document.getElementById('weekCarousel');
-        const curDay = days.find((d) => d.date === state.selectedDate);
         if (curDay && carousel.clientWidth > 0) {
           const weeks = getUniqueWeeks();
           const idx = weeks.findIndex((w) => w.key === `${curDay.kurulNo}-${curDay.haftaNo}`);

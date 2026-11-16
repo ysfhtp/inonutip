@@ -2,6 +2,7 @@ import {createRoot} from 'react-dom/client';
 import {registerSW} from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
+import {openPdfBlobDocument} from './pdfViewerBridge.ts';
 import {
   addOrUpdateCustomStudent,
   adminSaveStudentSettings,
@@ -50,6 +51,9 @@ import {
 
 declare global {
   interface Window {
+    __INONU_PDF__?: {
+      openPdfBlobDocument: typeof openPdfBlobDocument;
+    };
     __INONU_AUTH__?: {
       normalizeStudentId: typeof normalizeStudentId;
       verifyStudentId: typeof verifyStudentId;
@@ -95,6 +99,11 @@ declare global {
     };
   }
 }
+
+window.__INONU_PDF__ = {
+  openPdfBlobDocument,
+};
+window.dispatchEvent(new Event('inonu-pdf-ready'));
 
 window.__INONU_AUTH__ = {
   normalizeStudentId,
