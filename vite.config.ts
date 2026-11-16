@@ -37,47 +37,75 @@ function protectUploadedAssets() {
   };
 }
 
+function devManifestMiddleware(manifestObj: Record<string, unknown>) {
+  return {
+    name: 'dev-manifest-middleware',
+    apply: 'serve' as const,
+    configureServer(server: { middlewares: { use: (fn: (req: { url?: string }, res: { statusCode: number; setHeader: (k: string, v: string) => void; end: (s: string) => void }, next: () => void) => void) => void } }) {
+      server.middlewares.use((req, res, next) => {
+        const cleanUrl = (req.url || '').split('?')[0];
+        if (cleanUrl === '/manifest.webmanifest') {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.end(JSON.stringify(manifestObj));
+          return;
+        }
+        next();
+      });
+    },
+    transformIndexHtml(html: string) {
+      if (html.includes('rel="manifest"')) return html;
+      return html.replace('</head>', '  <link rel="manifest" href="./manifest.webmanifest">\n</head>');
+    },
+  };
+}
+
 export default defineConfig(() => {
+  const pwaManifest = {
+    id: './',
+    name: 'İnönü Tıp Dönem I Ders Programı',
+    short_name: 'İnönü Tıp D1',
+    description: 'İnönü Üniversitesi Tıp Fakültesi Dönem I (2026-2027) Türkçe ve İngilizce Ders Programı',
+    lang: 'tr',
+    theme_color: '#070d19',
+    background_color: '#070d19',
+    display: 'standalone' as const,
+    start_url: './',
+    scope: './',
+    icons: [
+      {
+        src: './pwa-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: './pwa-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: './pwa-maskable-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+    ],
+  };
+
   return {
     base: './',
     plugins: [
       protectUploadedAssets(),
+      devManifestMiddleware(pwaManifest),
       react(),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.png', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
-        manifest: {
-          id: './',
-          name: 'İnönü Tıp Dönem I Ders Programı',
-          short_name: 'İnönü Tıp D1',
-          description: 'İnönü Üniversitesi Tıp Fakültesi Dönem I (2026-2027) Türkçe ve İngilizce Ders Programı',
-          theme_color: '#070d19',
-          background_color: '#070d19',
-          display: 'standalone',
-          start_url: './',
-          scope: './',
-          icons: [
-            {
-              src: './pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any',
-            },
-            {
-              src: './pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any',
-            },
-            {
-              src: './pwa-maskable-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'maskable',
-            },
-          ],
-        },
+        manifest: pwaManifest,
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           globIgnores: ['**/aistudio/**'],

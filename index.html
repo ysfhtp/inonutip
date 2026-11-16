@@ -3,14 +3,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title id="pageTitle">İnönü Tıp Dönem I Ders Programı (2026-2027)</title>
-  <meta id="themeColorMeta" name="theme-color" content="#000000">
+  <meta id="themeColorMeta" name="theme-color" content="#070d19">
   <meta name="color-scheme" content="dark light">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#070d19">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eef2f7">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="İnönü Tıp D1">
+  <meta name="format-detection" content="telephone=no">
   <meta name="description" content="İnönü Üniversitesi Tıp Fakültesi Dönem I (2026-2027) Türkçe ve İngilizce Ders Programı">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
@@ -20,6 +21,26 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <script>
+    (function () {
+      try {
+        var root = document.documentElement;
+        var savedDark = localStorage.getItem('inonu_tip_d1_ios_v3_darkMode');
+        var isDark = savedDark === null ? true : JSON.parse(savedDark) !== false;
+        root.classList.toggle('dark', isDark);
+        var color = isDark ? '#070d19' : '#eef2f7';
+        var metas = document.querySelectorAll('meta[name="theme-color"]');
+        for (var i = 0; i < metas.length; i++) {
+          metas[i].setAttribute('content', color);
+        }
+        var isStandalone = (window.navigator && window.navigator.standalone === true) ||
+          (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+        if (isStandalone) {
+          root.classList.add('is-standalone');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <style id="tw-fallback">/*! tailwindcss v4.3.5 | MIT License | https://tailwindcss.com */
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: block))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
@@ -2206,6 +2227,9 @@
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
     html {
       background-color: #eef2f7;
+      min-height: 100%;
+      overflow-x: clip;
+      -webkit-text-size-adjust: 100%;
     }
     html.dark {
       background-color: #070d19;
@@ -2215,6 +2239,11 @@
       background-color: transparent;
       color: #1c1c1e;
       min-height: 100vh;
+      min-height: -webkit-fill-available;
+      min-height: 100dvh;
+      width: 100%;
+      overflow-x: clip;
+      overscroll-behavior-y: contain;
     }
     .dark body {
       background-color: transparent;
@@ -2228,11 +2257,9 @@
 
     .ios-ambient-bg {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: calc(100vh + 160px);
-      height: calc(100lvh + 160px);
+      inset: 0;
+      width: 100%;
+      height: 100%;
       z-index: 0;
       pointer-events: none;
       overflow: hidden;
@@ -2251,11 +2278,9 @@
     /* İki odaklı ambiyans aydınlatması: Biri alttan, biri yukarılardan, derin ve çok yumuşak */
     .ios-ambient-aura {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 100vh;
-      height: 100lvh;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       pointer-events: none;
       overflow: hidden;
       z-index: 0;
@@ -2873,6 +2898,62 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .safe-bottom { padding-bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px)); }
+    #appHeader {
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    }
+    @media (orientation: landscape) {
+      #appMain {
+        padding-left: max(0.875rem, env(safe-area-inset-left, 0px));
+        padding-right: max(0.875rem, env(safe-area-inset-right, 0px));
+      }
+    }
+    #appNav {
+      bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    }
+    @media (max-width: 639px) {
+      #appNav {
+        left: max(0.5rem, env(safe-area-inset-left, 0px));
+        right: max(0.5rem, env(safe-area-inset-right, 0px));
+      }
+    }
+    #toastBanner,
+    #pdfDownloadBanner {
+      bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+    }
+    .ios-safe-modal {
+      padding-top: max(0.75rem, env(safe-area-inset-top, 0px)) !important;
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)) !important;
+      padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
+      padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+    .ios-safe-modal > div {
+      margin-top: auto;
+      margin-bottom: auto;
+    }
+    #adminModalCard {
+      max-height: 88vh;
+      max-height: calc(100dvh - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    }
+    #lessonPdfsModalList {
+      max-height: 55vh;
+      max-height: 55dvh;
+    }
+    #foodPhotoModalImg {
+      max-height: 62vh;
+      max-height: 62dvh;
+    }
+    @media (pointer: coarse) {
+      input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+      select,
+      textarea {
+        font-size: 16px !important;
+      }
+    }
 
     .slot-mbu-bar { background-color: var(--color-amber-500, #f59e0b); }
     .slot-mbu-text { color: #d97706; }
@@ -3091,7 +3172,7 @@
   </div>
 
   <!-- İsteğe Bağlı Öğrenci Giriş Penceresi -->
-  <div id="authGate" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md overflow-hidden px-3 min-[360px]:px-4 py-3 min-[360px]:py-4 flex items-center justify-center" style="padding-top: max(0.75rem, env(safe-area-inset-top, 0px)); padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));">
+  <div id="authGate" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md ios-safe-modal px-3 min-[360px]:px-4 py-3 min-[360px]:py-4 flex items-center justify-center">
     <div id="authGateCard" class="ios-glass rounded-3xl max-w-md w-full p-4 min-[360px]:p-5 sm:p-6 space-y-3.5 min-[360px]:space-y-4 shadow-2xl">
       <div class="flex items-center justify-between gap-2">
         <span id="authFacultyBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
@@ -3462,14 +3543,14 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="4">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.7</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v2.6.8</span>
       </div>
     </section>
 
   </main>
 
   <!-- Install App Modal (Accessible via unobtrusive header button; auto-hides when installed) -->
-  <div id="installModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+  <div id="installModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md ios-safe-modal flex items-center justify-center p-3 min-[360px]:p-4">
     <div id="installModalCard" class="ios-glass rounded-3xl max-w-md w-full p-4 min-[360px]:p-5 space-y-3">
       <div class="flex items-center justify-between gap-2">
         <span id="installBadge" class="inline-block px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
@@ -3488,15 +3569,15 @@
         </button>
       </div>
       <ol id="installStepsList" class="text-xs sm:text-sm text-slate-700 dark:text-slate-200 space-y-2.5 list-decimal list-inside leading-relaxed pt-1">
-        <li>Bu siteyi telefonundaki <strong>Chrome</strong>, <strong>Safari</strong> veya <strong>Samsung Internet</strong> tarayıcısında aç.</li>
-        <li>Tarayıcı menüsünü (<strong>⋮</strong> veya paylaş simgesi) açıp <strong>"Ana ekrana ekle"</strong> veya <strong>"Uygulamayı yükle"</strong> seçeneğine dokun.</li>
-        <li>Onayladıktan sonra ana ekranına eklenen simge üzerinden tam ekran uygulama olarak kullanmaya başla.</li>
+        <li>iPhone'da bu siteyi <strong>Safari</strong> ile aç, alt ortadaki <strong>Paylaş</strong> simgesine dokun ve <strong>"Ana Ekrana Ekle"</strong>yi seç.</li>
+        <li>Android'de <strong>Chrome</strong> veya <strong>Samsung Internet</strong> menüsünden (<strong>⋮</strong>) <strong>"Ana ekrana ekle"</strong> veya <strong>"Uygulamayı yükle"</strong>ye dokun.</li>
+        <li>Ana ekranına eklenen simgeden açtığında adres çubuğu olmadan tam ekran uygulama olarak çalışır.</li>
       </ol>
     </div>
   </div>
 
   <!-- Food Photo Lightbox Modal -->
-  <div id="foodPhotoModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+  <div id="foodPhotoModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-md ios-safe-modal flex items-center justify-center p-3 min-[360px]:p-4">
     <div id="foodPhotoModalCard" class="ios-glass rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl">
       <div class="relative bg-slate-900/80">
         <img id="foodPhotoModalImg" src="" alt="" class="w-full max-h-[65vh] object-contain mx-auto">
@@ -3513,7 +3594,7 @@
   </div>
 
   <!-- Group Selection Modal -->
-  <div id="groupModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+  <div id="groupModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md ios-safe-modal flex items-center justify-center p-3 min-[360px]:p-4">
     <div id="groupModalCard" class="ios-glass rounded-3xl max-w-md w-full p-4 min-[360px]:p-5 space-y-3 min-[360px]:space-y-3.5">
       <div class="flex items-center justify-between gap-2">
         <h3 id="groupModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Gruplarını Seç</h3>
@@ -3558,7 +3639,7 @@
   </div>
 
   <!-- Note Modal -->
-  <div id="noteModal" class="fixed inset-0 z-50 hidden bg-black/30 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+  <div id="noteModal" class="fixed inset-0 z-50 hidden bg-black/30 backdrop-blur-md ios-safe-modal flex items-center justify-center p-3 min-[360px]:p-4">
     <div id="noteModalCard" class="ios-glass rounded-3xl max-w-md w-full p-3.5 min-[360px]:p-4 space-y-3">
       <div class="flex items-center justify-between">
         <h3 id="noteModalTitle" class="text-sm font-bold text-slate-900 dark:text-white">Ders Notu</h3>
@@ -3574,7 +3655,7 @@
   </div>
 
   <!-- Lesson Multiple PDFs Modal -->
-  <div id="lessonPdfsModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+  <div id="lessonPdfsModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md ios-safe-modal flex items-center justify-center p-3 min-[360px]:p-4">
     <div id="lessonPdfsModalCard" class="ios-glass rounded-3xl max-w-md w-full p-3.5 min-[360px]:p-4 space-y-3 shadow-2xl">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
@@ -3592,7 +3673,7 @@
   </div>
 
   <!-- Food Date Picker Modal (Custom In-Site iOS Calendar) -->
-  <div id="foodDateModal" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md flex items-center justify-center p-3 min-[360px]:p-4">
+  <div id="foodDateModal" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md ios-safe-modal flex items-center justify-center p-3 min-[360px]:p-4">
     <div id="foodDateModalCard" class="ios-glass rounded-3xl max-w-sm w-full p-3.5 min-[360px]:p-4 space-y-3 shadow-2xl">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
@@ -3624,7 +3705,7 @@
   </div>
 
   <!-- Admin Settings Modal -->
-  <div id="adminModal" class="fixed inset-0 z-50 hidden bg-black/45 backdrop-blur-md flex items-center justify-center p-2.5 min-[360px]:p-4" style="padding-top: max(0.75rem, env(safe-area-inset-top, 0px)); padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));">
+  <div id="adminModal" class="fixed inset-0 z-50 hidden bg-black/45 backdrop-blur-md ios-safe-modal flex items-center justify-center p-2.5 min-[360px]:p-4">
     <div id="adminModalCard" class="ios-glass rounded-3xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
       <!-- Modal Top Header -->
       <div class="px-3.5 sm:px-5 pt-3 pb-2 border-b border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between gap-2 shrink-0">
@@ -3943,7 +4024,7 @@
     </div>
   </div>
 
-  <div id="pdfDownloadBanner" class="hidden fixed inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[420px] bottom-24 z-50 ios-glass rounded-2xl px-3.5 py-2.5 shadow-xl border border-blue-500/25">
+  <div id="pdfDownloadBanner" class="hidden fixed inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[420px] z-50 ios-glass rounded-2xl px-3.5 py-2.5 shadow-xl border border-blue-500/25">
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-2 min-w-0">
         <span class="w-7 h-7 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
@@ -3969,7 +4050,7 @@
     </div>
   </div>
 
-  <div id="toastBanner" class="ios-toast pointer-events-none fixed bottom-24 left-1/2 z-50 hidden px-4 py-2 rounded-full ios-glass text-slate-900 dark:text-white text-xs font-semibold shadow-lg"></div>
+  <div id="toastBanner" class="ios-toast pointer-events-none fixed left-1/2 z-50 hidden px-4 py-2 rounded-full ios-glass text-slate-900 dark:text-white text-xs font-semibold shadow-lg"></div>
 
   <nav id="appNav" class="fixed inset-x-2 min-[360px]:inset-x-3 sm:inset-x-0 sm:mx-auto sm:w-[440px] z-40 select-none" style="bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); touch-action: none;">
     <div id="dockContainer" class="ios-floating-dock rounded-full p-1 grid grid-cols-5 relative touch-none" style="touch-action: none;">
@@ -4129,9 +4210,9 @@
         offlineToast: 'Çevrimdışı mod — önbellekteki program kullanılıyor',
         onlineToast: 'Bağlantı yeniden sağlandı',
         installStepsHtml:
-          '<li>Bu siteyi telefonundaki <strong>Chrome</strong>, <strong>Safari</strong> veya <strong>Samsung Internet</strong> tarayıcısında aç.</li>' +
-          '<li>Tarayıcı menüsünü (<strong>⋮</strong> veya paylaş simgesi) açıp <strong>"Ana ekrana ekle"</strong> veya <strong>"Uygulamayı yükle"</strong> seçeneğine dokun.</li>' +
-          '<li>Onayladıktan sonra ana ekranına eklenen simge üzerinden tam ekran uygulama olarak kullanmaya başla.</li>',
+          '<li>iPhone\'da bu siteyi <strong>Safari</strong> ile aç, alt ortadaki <strong>Paylaş</strong> simgesine dokun ve <strong>"Ana Ekrana Ekle"</strong>yi seç.</li>' +
+          '<li>Android\'de <strong>Chrome</strong> veya <strong>Samsung Internet</strong> menüsünden (<strong>⋮</strong>) <strong>"Ana ekrana ekle"</strong> veya <strong>"Uygulamayı yükle"</strong>ye dokun.</li>' +
+          '<li>Ana ekranına eklenen simgeden açtığında adres çubuğu olmadan tam ekran uygulama olarak çalışır.</li>',
         noteModalTitle: 'Ders Notu',
         notePlaceholder: 'Bu ders saati için notunuzu yazın...',
         noteDelete: 'Sil',
@@ -4369,9 +4450,9 @@
         offlineToast: 'Offline mode — using cached schedule',
         onlineToast: 'Back online',
         installStepsHtml:
-          '<li>Open this site in <strong>Chrome</strong>, <strong>Safari</strong>, or <strong>Samsung Internet</strong> on your phone.</li>' +
-          '<li>Open the browser menu (<strong>⋮</strong> or Share icon) and tap <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>.</li>' +
-          '<li>After confirming, launch it in full-screen app mode from the icon added to your home screen.</li>',
+          '<li>On iPhone, open this site in <strong>Safari</strong>, tap the <strong>Share</strong> icon, and choose <strong>"Add to Home Screen"</strong>.</li>' +
+          '<li>On Android, open the <strong>Chrome</strong> or <strong>Samsung Internet</strong> menu (<strong>⋮</strong>) and tap <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>.</li>' +
+          '<li>Launch from the Home Screen icon to use it in full-screen standalone app mode without browser bars.</li>',
         noteModalTitle: 'Class Note',
         notePlaceholder: 'Write your note for this class slot...',
         noteDelete: 'Delete',
@@ -9181,8 +9262,18 @@
           headerSpacerEl.style.height = `${appHeaderEl.offsetHeight}px`;
         }
       };
-      syncHeaderSpacer();
-      updateHeaderScrollState();
+      const scheduleLayoutResync = () => {
+        syncHeaderSpacer();
+        updateHeaderScrollState();
+        updateTabIndicator(state.activeTab, false);
+        requestAnimationFrame(() => {
+          syncHeaderSpacer();
+          updateTabIndicator(state.activeTab, false);
+        });
+      };
+      scheduleLayoutResync();
+      setTimeout(scheduleLayoutResync, 80);
+      setTimeout(scheduleLayoutResync, 300);
       if (typeof ResizeObserver !== 'undefined' && appHeaderEl) {
         new ResizeObserver(syncHeaderSpacer).observe(appHeaderEl);
       }
@@ -9191,8 +9282,16 @@
         syncHeaderSpacer();
         updateHeaderScrollState();
       });
+      window.addEventListener('load', scheduleLayoutResync);
+      window.addEventListener('pageshow', scheduleLayoutResync);
+      window.addEventListener('orientationchange', () => {
+        setTimeout(scheduleLayoutResync, 120);
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncHeaderSpacer, { passive: true });
+      }
       if (document.fonts && document.fonts.ready) {
-        document.fonts.ready.then(syncHeaderSpacer);
+        document.fonts.ready.then(scheduleLayoutResync);
       }
 
       setInterval(updateHeaderClock, 60000);
