@@ -6,6 +6,7 @@ import {
   getDoc,
   getDocFromServer,
   getDocs,
+  getDocsFromServer,
   getFirestore,
   limit,
   onSnapshot,
@@ -555,6 +556,17 @@ async function getDocPreferServer(ref: ReturnType<typeof doc>) {
     return await getDocFromServer(ref);
   } catch {
     return getDoc(ref);
+  }
+}
+
+async function getDocsPreferServer(q: ReturnType<typeof query>) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return getDocs(q);
+  }
+  try {
+    return await getDocsFromServer(q);
+  } catch {
+    return getDocs(q);
   }
 }
 
@@ -1188,51 +1200,73 @@ export async function downloadLessonMaterialChunks(
   return new Blob(byteParts as unknown as BlobPart[], { type: 'application/pdf' });
 }
 
+function mapLessonMaterialsSnapshot(
+  docs: Array<{ id: string; data: () => Record<string, unknown> }>,
+): LessonMaterial[] {
+  return docs
+    .filter((d) => d.data()?.deleted !== true)
+    .map((d) => {
+      const data = d.data();
+      const pdfData = typeof data.pdfData === 'string' && data.pdfData.length > 0 ? data.pdfData : undefined;
+      const pdfUrl = typeof data.pdfUrl === 'string' ? data.pdfUrl : '';
+      const chunkCount =
+        typeof data.chunkCount === 'number' && Number.isFinite(data.chunkCount) && data.chunkCount > 0
+          ? Math.round(data.chunkCount)
+          : undefined;
+      const sourceType: 'url' | 'file' | 'server' | 'chunks' =
+        chunkCount && chunkCount > 0
+          ? 'chunks'
+          : data.sourceType === 'chunks'
+            ? 'chunks'
+            : data.sourceType === 'server' || pdfUrl.startsWith('/api/lesson-pdf/')
+              ? 'server'
+              : data.sourceType === 'file' || pdfData
+                ? 'file'
+                : 'url';
+      return {
+        id: d.id,
+        date: normalizeMaterialDate(typeof data.date === 'string' ? data.date : ''),
+        slotNo: typeof data.slotNo === 'number' ? data.slotNo : 1,
+        targetProg: normalizeLangPref(data.targetProg),
+        title: typeof data.title === 'string' ? data.title : '',
+        sourceType,
+        pdfUrl,
+        pdfData,
+        chunkCount,
+        pdfName: typeof data.pdfName === 'string' ? data.pdfName : undefined,
+        fileSize: typeof data.fileSize === 'number' && data.fileSize >= 0 ? data.fileSize : undefined,
+        createdAtMs: tsToMillis(data.createdAt),
+        updatedAtMs: tsToMillis(data.updatedAt),
+      };
+    })
+    .sort((a, b) => (a.createdAtMs || a.updatedAtMs) - (b.createdAtMs || b.updatedAtMs));
+}
+
 export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
   const path = 'lesson_materials';
   try {
     const q = query(collection(db, 'lesson_materials'), limit(500));
-    const snap = await getDocs(q);
-    return snap.docs
-      .filter((d) => d.data()?.deleted !== true)
-      .map((d) => {
-        const data = d.data();
-        const pdfData = typeof data.pdfData === 'string' && data.pdfData.length > 0 ? data.pdfData : undefined;
-        const pdfUrl = typeof data.pdfUrl === 'string' ? data.pdfUrl : '';
-        const chunkCount =
-          typeof data.chunkCount === 'number' && Number.isFinite(data.chunkCount) && data.chunkCount > 0
-            ? Math.round(data.chunkCount)
-            : undefined;
-        const sourceType: 'url' | 'file' | 'server' | 'chunks' =
-          chunkCount && chunkCount > 0
-            ? 'chunks'
-            : data.sourceType === 'chunks'
-              ? 'chunks'
-              : data.sourceType === 'server' || pdfUrl.startsWith('/api/lesson-pdf/')
-                ? 'server'
-                : data.sourceType === 'file' || pdfData
-                  ? 'file'
-                  : 'url';
-        return {
-          id: d.id,
-          date: normalizeMaterialDate(typeof data.date === 'string' ? data.date : ''),
-          slotNo: typeof data.slotNo === 'number' ? data.slotNo : 1,
-          targetProg: normalizeLangPref(data.targetProg),
-          title: typeof data.title === 'string' ? data.title : '',
-          sourceType,
-          pdfUrl,
-          pdfData,
-          chunkCount,
-          pdfName: typeof data.pdfName === 'string' ? data.pdfName : undefined,
-          fileSize: typeof data.fileSize === 'number' && data.fileSize >= 0 ? data.fileSize : undefined,
-          createdAtMs: tsToMillis(data.createdAt),
-          updatedAtMs: tsToMillis(data.updatedAt),
-        };
-      })
-      .sort((a, b) => (a.createdAtMs || a.updatedAtMs) - (b.createdAtMs || b.updatedAtMs));
+    const snap = await getDocsPreferServer(q);
+    return mapLessonMaterialsSnapshot(snap.docs as Array<{ id: string; data: () => Record<string, unknown> }>);
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
   }
+}
+
+export function subscribeLessonMaterials(onUpdate: (materials: LessonMaterial[]) => void): Unsubscribe {
+  const path = 'lesson_materials';
+  const q = query(collection(db, 'lesson_materials'), limit(500));
+  return onSnapshot(
+    q,
+    (snap) => {
+      onUpdate(mapLessonMaterialsSnapshot(snap.docs as Array<{ id: string; data: () => Record<string, unknown> }>));
+    },
+    (error) => {
+      if (error instanceof Error && error.message.toLowerCase().includes('permission')) {
+        handleFirestoreError(error, OperationType.LIST, path);
+      }
+    },
+  );
 }
 
 export async function saveLessonMaterial(
