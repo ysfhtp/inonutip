@@ -1,3 +1,12 @@
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, getDocs, collection, onSnapshot } from 'firebase/firestore';
+import firebaseConfig from '../firebase-applet-config.json';
+
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const auth = getAuth(app);
+
 import {
   ADMIN_ROSTER_CIPHERTEXT_B64,
   ADMIN_ROSTER_IV_B64,
@@ -762,17 +771,19 @@ export async function updateAdminPassword(
 // ==================== SITE ACCESS SETTINGS ====================
 export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
   try {
-    const resp = await fetch('/api/access', { cache: 'no-store' });
-    if (resp.ok) {
-      const json = (await resp.json()) as { requireStudentLogin?: boolean; updatedAtMs?: number };
+    const snap = await getDoc(doc(db, 'admin_config', 'site_access'));
+    if (snap.exists()) {
+      const data = snap.data() as { requireStudentLogin?: boolean; updatedAtMs?: number };
       const result: SiteAccessSettings = {
-        requireStudentLogin: json.requireStudentLogin === true,
-        updatedAtMs: Number(json.updatedAtMs) || 0,
+        requireStudentLogin: data.requireStudentLogin === true,
+        updatedAtMs: Number(data.updatedAtMs) || 0,
       };
       writeStaticJson('access', result);
       return result;
     }
-  } catch {}
+  } catch (err) {
+    console.warn('Firestore loadSiteAccessSettings error:', err);
+  }
   const saved = readStaticJson<Partial<SiteAccessSettings>>('access', {});
   return {
     requireStudentLogin: saved.requireStudentLogin === true,
@@ -782,61 +793,37 @@ export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
 
 export function subscribeSiteAccessSettings(onChange: (settings: SiteAccessSettings) => void): Unsubscribe {
   void loadSiteAccessSettings().then(onChange);
-  return addSseListener('access', (data) => {
-    if (data && typeof data === 'object' && 'requireStudentLogin' in data) {
-      const obj = data as { requireStudentLogin?: boolean; updatedAtMs?: number };
-      onChange({
-        requireStudentLogin: obj.requireStudentLogin === true,
-        updatedAtMs: Number(obj.updatedAtMs) || Date.now(),
-      });
-    } else {
-      void loadSiteAccessSettings().then(onChange);
-    }
-  });
+  try {
+    const unsub = onSnapshot(doc(db, 'admin_config', 'site_access'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data() as { requireStudentLogin?: boolean; updatedAtMs?: number };
+        onChange({
+          requireStudentLogin: data.requireStudentLogin === true,
+          updatedAtMs: Number(data.updatedAtMs) || Date.now(),
+        });
+      }
+    });
+    return unsub;
+  } catch {
+    return () => {};
+  }
 }
 
 export async function saveSiteAccessSettings(
   requireStudentLogin: boolean,
-  adminSecret?: string,
+  _adminSecret?: string,
 ): Promise<SiteAccessSettings> {
-  const secret = resolveAdminWriteSecret(adminSecret);
-  if (await isApiBackendOnline()) {
-    const resp = await fetch('/api/access', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret,
-      },
-      body: JSON.stringify({ requireStudentLogin: Boolean(requireStudentLogin) }),
-    });
-    const json = (await resp.json().catch(() => ({}))) as {
-      ok?: boolean;
-      error?: string;
-      requireStudentLogin?: boolean;
-      updatedAtMs?: number;
-    };
-    if (!resp.ok || !json.ok) {
-      throw new Error(json.error || `HTTP_${resp.status}`);
-    }
-    const next: SiteAccessSettings = {
-      requireStudentLogin: Boolean(json.requireStudentLogin),
-      updatedAtMs: Number(json.updatedAtMs) || Date.now(),
-    };
-    writeStaticJson('access', next);
-    emitLocalTopic('access', next);
-    return next;
+  const updatedAtMs = Date.now();
+  const payload = { requireStudentLogin: Boolean(requireStudentLogin), updatedAtMs };
+  try {
+    await setDoc(doc(db, 'admin_config', 'site_access'), payload, { merge: true });
+    writeStaticJson('access', payload);
+    emitLocalTopic('access', payload);
+    return payload;
+  } catch (err) {
+    console.warn('Firestore saveSiteAccessSettings error:', err);
+    throw err;
   }
-
-  if (!(await verifyStaticAdminSecret(secret))) {
-    throw new Error('ADMIN_AUTH_FAILED');
-  }
-  const next: SiteAccessSettings = {
-    requireStudentLogin: Boolean(requireStudentLogin),
-    updatedAtMs: Date.now(),
-  };
-  writeStaticJson('access', next);
-  emitLocalTopic('access', next);
-  return next;
 }
 
 // ==================== STUDENT LOGIN & PREFS ====================
