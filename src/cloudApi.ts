@@ -1,3 +1,7 @@
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { doc, getDoc, getDocFromServer, getFirestore, setDoc } from 'firebase/firestore';
+import firebaseConfig from '../firebase-applet-config.json';
 import {
   ADMIN_ROSTER_CIPHERTEXT_B64,
   ADMIN_ROSTER_IV_B64,
@@ -126,6 +130,296 @@ const DEFAULT_ADMIN_SESSION_SECRET = 'a9f4c8e27b1d60354e82f19c3b7a6d5084e1c2b9f0
 const STATIC_STORE_PREFIX = 'inonu_static_db_v1_';
 const STATIC_PDF_DB_NAME = 'inonu_tip_static_pdfs_v1';
 const STATIC_PDF_STORE_NAME = 'pdfs';
+
+// ==================== FIREBASE FIRESTORE SINGLE-DOCUMENT & ERROR HANDLING ====================
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const auth = getAuth(app);
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+let firestoreQuotaCooldownUntil = 0;
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const errMsg = error instanceof Error ? error.message : String(error);
+  if (errMsg.includes('Quota exceeded') || errMsg.includes('resource-exhausted')) {
+    firestoreQuotaCooldownUntil = Date.now() + 5 * 60_000;
+  }
+  const errInfo: FirestoreErrorInfo = {
+    error: errMsg,
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo:
+        auth.currentUser?.providerData?.map((provider) => ({
+          providerId: provider.providerId,
+          email: provider.email,
+        })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+async function testConnection(): Promise<void> {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration.');
+    }
+  }
+}
+void testConnection();
+
+// ==================== QUOTA-FRIENDLY SINGLE DOCUMENT & SMART CACHE ENGINE ====================
+const GLOBAL_STATE_COLLECTION = 'appState';
+const GLOBAL_STATE_DOC_ID = 'global';
+const SMART_CACHE_TTL_MS = 60_000; // 60 seconds smart cache window (eliminates redundant reads)
+
+interface ConsolidatedGlobalState {
+  requireStudentLogin: boolean;
+  accessUpdatedAtMs: number;
+  passwordHash: string;
+  proofDigestB64: string;
+  wrappedRosterKey: string;
+  announcements: Record<string, Record<string, unknown>>;
+  materials: Record<string, Record<string, unknown>>;
+  customStudents: Record<string, Record<string, unknown>>;
+  directory: Record<string, Record<string, unknown>>;
+  updatedAtMs: number;
+  adminProof: string;
+}
+
+let memoryGlobalState: ConsolidatedGlobalState | null = null;
+let memoryGlobalFetchedAt = 0;
+let inflightGlobalFetch: Promise<ConsolidatedGlobalState | null> | null = null;
+
+function isFirestoreAvailable(): boolean {
+  return Date.now() >= firestoreQuotaCooldownUntil;
+}
+
+function trimMapToLimit(
+  rawMap: Record<string, Record<string, unknown>>,
+  maxEntries: number,
+): Record<string, Record<string, unknown>> {
+  const entries = Object.entries(rawMap || {}).filter(([k, v]) => k && v && typeof v === 'object');
+  if (entries.length <= maxEntries) {
+    return Object.fromEntries(entries);
+  }
+  return Object.fromEntries(entries.slice(0, maxEntries));
+}
+
+function buildConsolidatedStateFromLocal(adminSecret?: string): ConsolidatedGlobalState {
+  const access = readStaticJson<Partial<SiteAccessSettings>>('access', {});
+  const sec = getStaticSecurityConfig();
+  const announcements = trimMapToLimit(
+    readStaticJson<Record<string, Record<string, unknown>>>('announcements', {}),
+    100,
+  );
+  const rawMaterials = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
+  const slimMaterials: Record<string, Record<string, unknown>> = {};
+  for (const [k, m] of Object.entries(rawMaterials)) {
+    if (!m || typeof m !== 'object') continue;
+    const copy = { ...m };
+    // Avoid bloating the single document with huge inline base64 PDF strings
+    if (typeof copy.pdfData === 'string' && copy.pdfData.length > 8192) {
+      delete copy.pdfData;
+    }
+    slimMaterials[k] = copy;
+  }
+  const materials = trimMapToLimit(slimMaterials, 500);
+  const customStudents = trimMapToLimit(
+    readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {}),
+    600,
+  );
+  const directory = trimMapToLimit(
+    readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {}),
+    600,
+  );
+  const proof = resolveAdminWriteSecret(adminSecret);
+
+  return {
+    requireStudentLogin: access.requireStudentLogin === true,
+    accessUpdatedAtMs: Math.max(0, Number(access.updatedAtMs) || 0),
+    passwordHash: sec.passwordHash,
+    proofDigestB64: sec.proofDigestB64,
+    wrappedRosterKey: sec.wrappedRosterKey,
+    announcements,
+    materials,
+    customStudents,
+    directory,
+    updatedAtMs: Date.now(),
+    adminProof: ADMIN_SECRET_RE.test(proof) ? proof : DEFAULT_ADMIN_SESSION_SECRET,
+  };
+}
+
+function applyRemoteGlobalStateToLocal(remote: ConsolidatedGlobalState): void {
+  const localAccess = readStaticJson<Partial<SiteAccessSettings>>('access', {});
+  if ((remote.accessUpdatedAtMs || 0) >= (Number(localAccess.updatedAtMs) || 0)) {
+    writeStaticJson('access', {
+      requireStudentLogin: Boolean(remote.requireStudentLogin),
+      updatedAtMs: Number(remote.accessUpdatedAtMs) || Date.now(),
+    } satisfies SiteAccessSettings);
+  }
+
+  if (
+    typeof remote.passwordHash === 'string' &&
+    ADMIN_SECRET_RE.test(remote.passwordHash) &&
+    typeof remote.proofDigestB64 === 'string' &&
+    remote.proofDigestB64.length === 44
+  ) {
+    writeStaticJson('security', {
+      passwordHash: remote.passwordHash,
+      proofDigestB64: remote.proofDigestB64,
+      wrappedRosterKey:
+        typeof remote.wrappedRosterKey === 'string' && ADMIN_SECRET_RE.test(remote.wrappedRosterKey)
+          ? remote.wrappedRosterKey
+          : WRAPPED_DEFAULT_ROSTER_KEY,
+    } satisfies StaticAdminSecurityConfig);
+  }
+
+  if (remote.announcements && typeof remote.announcements === 'object') {
+    const localAnn = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
+    const mergedAnn = { ...localAnn, ...remote.announcements };
+    writeStaticJson('announcements', mergedAnn);
+  }
+
+  if (remote.materials && typeof remote.materials === 'object') {
+    const localMat = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
+    const mergedMat = { ...localMat };
+    for (const [id, rMat] of Object.entries(remote.materials)) {
+      if (!rMat || typeof rMat !== 'object') continue;
+      const prev = mergedMat[id] || {};
+      mergedMat[id] = {
+        ...prev,
+        ...rMat,
+        pdfData: rMat.pdfData || prev.pdfData,
+      };
+    }
+    writeStaticJson('materials', mergedMat);
+  }
+
+  if (remote.customStudents && typeof remote.customStudents === 'object') {
+    const localCustom = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+    writeStaticJson('custom_students', { ...localCustom, ...remote.customStudents });
+  }
+
+  if (remote.directory && typeof remote.directory === 'object') {
+    const localDir = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+    writeStaticJson('admin_dir', { ...localDir, ...remote.directory });
+  }
+}
+
+async function fetchConsolidatedGlobalState(forceRefresh = false): Promise<ConsolidatedGlobalState | null> {
+  const now = Date.now();
+  if (!forceRefresh && memoryGlobalState && now - memoryGlobalFetchedAt < SMART_CACHE_TTL_MS) {
+    return memoryGlobalState;
+  }
+  if (!isFirestoreAvailable()) {
+    return memoryGlobalState;
+  }
+  if (inflightGlobalFetch) {
+    return inflightGlobalFetch;
+  }
+
+  inflightGlobalFetch = (async () => {
+    const docPath = `${GLOBAL_STATE_COLLECTION}/${GLOBAL_STATE_DOC_ID}`;
+    try {
+      let snap;
+      try {
+        snap = await getDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.GET, docPath);
+      }
+      memoryGlobalFetchedAt = Date.now();
+      if (!snap.exists()) {
+        return memoryGlobalState;
+      }
+      const data = snap.data() as Partial<ConsolidatedGlobalState>;
+      const parsed: ConsolidatedGlobalState = {
+        requireStudentLogin: data.requireStudentLogin === true,
+        accessUpdatedAtMs: Number(data.accessUpdatedAtMs) || 0,
+        passwordHash:
+          typeof data.passwordHash === 'string' && ADMIN_SECRET_RE.test(data.passwordHash)
+            ? data.passwordHash
+            : DEFAULT_ADMIN_PASSWORD_HASH,
+        proofDigestB64:
+          typeof data.proofDigestB64 === 'string' && data.proofDigestB64.length === 44
+            ? data.proofDigestB64
+            : DEFAULT_PROOF_DIGEST_B64,
+        wrappedRosterKey:
+          typeof data.wrappedRosterKey === 'string' && ADMIN_SECRET_RE.test(data.wrappedRosterKey)
+            ? data.wrappedRosterKey
+            : WRAPPED_DEFAULT_ROSTER_KEY,
+        announcements:
+          data.announcements && typeof data.announcements === 'object' ? data.announcements : {},
+        materials: data.materials && typeof data.materials === 'object' ? data.materials : {},
+        customStudents:
+          data.customStudents && typeof data.customStudents === 'object' ? data.customStudents : {},
+        directory: data.directory && typeof data.directory === 'object' ? data.directory : {},
+        updatedAtMs: Number(data.updatedAtMs) || 0,
+        adminProof: DEFAULT_ADMIN_SESSION_SECRET,
+      };
+      memoryGlobalState = parsed;
+      applyRemoteGlobalStateToLocal(parsed);
+      return parsed;
+    } catch {
+      return memoryGlobalState;
+    } finally {
+      inflightGlobalFetch = null;
+    }
+  })();
+
+  return inflightGlobalFetch;
+}
+
+async function syncConsolidatedGlobalStateToFirestore(adminSecret?: string): Promise<void> {
+  const nextState = buildConsolidatedStateFromLocal(adminSecret);
+  memoryGlobalState = nextState;
+  memoryGlobalFetchedAt = Date.now();
+  if (!isFirestoreAvailable()) return;
+
+  const docPath = `${GLOBAL_STATE_COLLECTION}/${GLOBAL_STATE_DOC_ID}`;
+  try {
+    try {
+      await setDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID), nextState);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, docPath);
+    }
+  } catch {
+    // Gracefully fallback to local SQLite / browser storage if Firestore quota is temporarily exhausted
+  }
+}
 
 // ==================== BACKEND DETECTION & LOCAL EVENT HUB ====================
 type SseHandler = (data: unknown) => void;
@@ -752,6 +1046,7 @@ export async function updateAdminPassword(
   } satisfies StaticAdminSecurityConfig);
   cachedWrappedRosterKey = nextWrapped;
   setAdminWriteSecret(newWriteSecret);
+  void syncConsolidatedGlobalStateToFirestore(newWriteSecret);
   return { ok: true, newWriteSecret };
 }
 
@@ -769,6 +1064,18 @@ export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
       return result;
     }
   } catch {}
+
+  // Check Quota-Friendly Single Document Smart Cache (1 read max per TTL window)
+  const consolidated = await fetchConsolidatedGlobalState(false);
+  if (consolidated) {
+    const savedLocal = readStaticJson<Partial<SiteAccessSettings>>('access', {});
+    if ((consolidated.accessUpdatedAtMs || 0) >= (Number(savedLocal.updatedAtMs) || 0)) {
+      return {
+        requireStudentLogin: consolidated.requireStudentLogin === true,
+        updatedAtMs: Number(consolidated.accessUpdatedAtMs) || 0,
+      };
+    }
+  }
 
   const saved = readStaticJson<Partial<SiteAccessSettings>>('access', {});
   return {
@@ -802,9 +1109,12 @@ export async function saveSiteAccessSettings(
     updatedAtMs: now,
   };
 
-  // Option A (Browser storage): Save immediately to local storage and sync across tabs
+  // Save immediately to Smart Cache & local storage and broadcast across tabs
   writeStaticJson('access', next);
   emitLocalTopic('access', next);
+
+  // Sync to Quota-Friendly Single Document (/appState/global) in Firestore
+  void syncConsolidatedGlobalStateToFirestore(adminSecret);
 
   // If Express backend API is online, sync to server SQLite database
   try {
@@ -829,7 +1139,7 @@ export async function saveSiteAccessSettings(
       }
     }
   } catch (err) {
-    console.info('Site access persisted locally (Option A browser storage):', err);
+    console.info('Site access persisted via Smart Cache & Single-Doc architecture:', err);
   }
 
   return next;
@@ -874,6 +1184,7 @@ export async function checkStudentLoginStatus(rawSid: string): Promise<StudentLo
       // Offline fallback to built-in allowlist / static store
     }
   } else {
+    await fetchConsolidatedGlobalState(false);
     const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
     const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
     const cRow = customMap[authHash];
@@ -957,6 +1268,7 @@ export async function checkStudentSessionActive(authHash: string): Promise<Stude
     return 'active';
   }
 
+  await fetchConsolidatedGlobalState(false);
   const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
   const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
   const cRow = customMap[authHash];
@@ -1014,6 +1326,7 @@ export async function isStudentAlreadyRegistered(rawSid: string): Promise<boolea
     }
   }
 
+  await fetchConsolidatedGlobalState(false);
   const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
   const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
   const cRow = customMap[authHash];
@@ -1026,22 +1339,68 @@ export async function isStudentAlreadyRegistered(rawSid: string): Promise<boolea
   return false;
 }
 
-const getRealtimeDb = () => null;
-const get = async (..._args: unknown[]): Promise<any> => ({ exists: () => false });
-const set = async (..._args: unknown[]): Promise<void> => {};
-const ref = (..._args: unknown[]): any => null;
-
 export async function loadCloudStudentPrefs(authHash: string, cloudDocId: string): Promise<StudentCloudPrefs | null> {
   if ((!isValidAuthHash(authHash) && !verifyStudentHash(authHash)) || !isValidCloudDocId(cloudDocId)) {
     return null;
   }
 
-  const rtdb = getRealtimeDb();
-  if (rtdb) {
+  if (await isApiBackendOnline()) {
     try {
-      const snap = await get(ref(rtdb, `studentPrefs/${cloudDocId}`));
+      const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cloudDocId)}`, { cache: 'no-store' });
+      if (resp.ok) {
+        const json = (await resp.json()) as { prefs?: Record<string, unknown> | null };
+        const data = json.prefs;
+        if (data) {
+          return {
+            myMbuGroup: normalizeMbuGroupPref(data.myMbuGroup),
+            myLabGroup: normalizeLabGroupPref(data.myLabGroup),
+            otherGroupMode: normalizeOtherGroupModePref(data.otherGroupMode),
+            lang: normalizeLangPref(data.lang),
+            authHash: typeof data.authHash === 'string' && isValidAuthHash(data.authHash) ? data.authHash : undefined,
+            last4: typeof data.last4 === 'string' && /^[0-9]{4}$/.test(data.last4) ? data.last4 : undefined,
+          };
+        }
+      }
+    } catch {}
+  }
+
+  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+  const cached = prefsMap[cloudDocId];
+  const cachedTs = Number(cached?.fetched_at || 0);
+  if (cached && Date.now() - cachedTs < SMART_CACHE_TTL_MS) {
+    return {
+      myMbuGroup: normalizeMbuGroupPref(cached.my_mbu_group ?? cached.myMbuGroup),
+      myLabGroup: normalizeLabGroupPref(cached.my_lab_group ?? cached.myLabGroup),
+      otherGroupMode: normalizeOtherGroupModePref(cached.other_group_mode ?? cached.otherGroupMode),
+      lang: normalizeLangPref(cached.lang),
+      authHash: typeof cached.auth_hash === 'string' && isValidAuthHash(cached.auth_hash) ? cached.auth_hash : undefined,
+      last4: typeof cached.last4 === 'string' && /^[0-9]{4}$/.test(cached.last4) ? cached.last4 : undefined,
+    };
+  }
+
+  if (isFirestoreAvailable()) {
+    const docPath = `studentPrefs/${cloudDocId}`;
+    try {
+      let snap;
+      try {
+        snap = await getDoc(doc(db, 'studentPrefs', cloudDocId));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.GET, docPath);
+      }
       if (snap.exists()) {
-        const data = snap.val() as Record<string, unknown>;
+        const data = snap.data() as Record<string, unknown>;
+        prefsMap[cloudDocId] = {
+          cloud_key: cloudDocId,
+          auth_hash: typeof data.authHash === 'string' ? data.authHash : '',
+          last4: typeof data.last4 === 'string' ? data.last4 : '',
+          my_mbu_group: normalizeMbuGroupPref(data.myMbuGroup),
+          my_lab_group: normalizeLabGroupPref(data.myLabGroup),
+          other_group_mode: normalizeOtherGroupModePref(data.otherGroupMode),
+          lang: normalizeLangPref(data.lang),
+          updated_at: Number(data.updatedAtMs) || Date.now(),
+          fetched_at: Date.now(),
+        };
+        writeStaticJson('student_prefs', prefsMap);
         return {
           myMbuGroup: normalizeMbuGroupPref(data.myMbuGroup),
           myLabGroup: normalizeLabGroupPref(data.myLabGroup),
@@ -1054,36 +1413,14 @@ export async function loadCloudStudentPrefs(authHash: string, cloudDocId: string
     } catch {}
   }
 
-  if (await isApiBackendOnline()) {
-    try {
-      const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cloudDocId)}`, { cache: 'no-store' });
-      if (!resp.ok) return null;
-      const json = (await resp.json()) as { prefs?: Record<string, unknown> | null };
-      const data = json.prefs;
-      if (!data) return null;
-      return {
-        myMbuGroup: normalizeMbuGroupPref(data.myMbuGroup),
-        myLabGroup: normalizeLabGroupPref(data.myLabGroup),
-        otherGroupMode: normalizeOtherGroupModePref(data.otherGroupMode),
-        lang: normalizeLangPref(data.lang),
-        authHash: typeof data.authHash === 'string' && isValidAuthHash(data.authHash) ? data.authHash : undefined,
-        last4: typeof data.last4 === 'string' && /^[0-9]{4}$/.test(data.last4) ? data.last4 : undefined,
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
-  const data = prefsMap[cloudDocId];
-  if (!data) return null;
+  if (!cached) return null;
   return {
-    myMbuGroup: normalizeMbuGroupPref(data.my_mbu_group ?? data.myMbuGroup),
-    myLabGroup: normalizeLabGroupPref(data.my_lab_group ?? data.myLabGroup),
-    otherGroupMode: normalizeOtherGroupModePref(data.other_group_mode ?? data.otherGroupMode),
-    lang: normalizeLangPref(data.lang),
-    authHash: typeof data.auth_hash === 'string' && isValidAuthHash(data.auth_hash) ? data.auth_hash : undefined,
-    last4: typeof data.last4 === 'string' && /^[0-9]{4}$/.test(data.last4) ? data.last4 : undefined,
+    myMbuGroup: normalizeMbuGroupPref(cached.my_mbu_group ?? cached.myMbuGroup),
+    myLabGroup: normalizeLabGroupPref(cached.my_lab_group ?? cached.myLabGroup),
+    otherGroupMode: normalizeOtherGroupModePref(cached.other_group_mode ?? cached.otherGroupMode),
+    lang: normalizeLangPref(cached.lang),
+    authHash: typeof cached.auth_hash === 'string' && isValidAuthHash(cached.auth_hash) ? cached.auth_hash : undefined,
+    last4: typeof cached.last4 === 'string' && /^[0-9]{4}$/.test(cached.last4) ? cached.last4 : undefined,
   };
 }
 
@@ -1106,22 +1443,47 @@ export async function saveCloudStudentPrefs(
     typeof prefs.last4 === 'string' && /^[0-9]{4}$/.test(prefs.last4.trim())
       ? prefs.last4.trim()
       : '';
+  const now = Date.now();
 
-  const rtdb = getRealtimeDb();
-  if (rtdb) {
+  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+  const prev = prefsMap[cloudDocId] || {};
+  const finalAuthHash = (isValidAuthHash(authHash) ? authHash : '') || (typeof prev.auth_hash === 'string' ? prev.auth_hash : '');
+  const finalLast4 = cleanLast4 || (typeof prev.last4 === 'string' ? prev.last4 : '');
+  const finalMbu = normalizeMbuGroupPref(prefs.myMbuGroup);
+  const finalLab = normalizeLabGroupPref(prefs.myLabGroup);
+  const finalMode = normalizeOtherGroupModePref(prefs.otherGroupMode);
+  const finalLang = cleanLang || normalizeLangPref(prev.lang);
+
+  prefsMap[cloudDocId] = {
+    cloud_key: cloudDocId,
+    auth_hash: finalAuthHash,
+    last4: finalLast4,
+    my_mbu_group: finalMbu,
+    my_lab_group: finalLab,
+    other_group_mode: finalMode,
+    lang: finalLang,
+    updated_at: now,
+    fetched_at: now,
+  };
+  writeStaticJson('student_prefs', prefsMap);
+
+  if (isFirestoreAvailable()) {
+    const docPath = `studentPrefs/${cloudDocId}`;
     try {
-      await set(ref(rtdb, `studentPrefs/${cloudDocId}`), {
-        myMbuGroup: normalizeMbuGroupPref(prefs.myMbuGroup),
-        myLabGroup: normalizeLabGroupPref(prefs.myLabGroup),
-        otherGroupMode: normalizeOtherGroupModePref(prefs.otherGroupMode),
-        lang: cleanLang,
-        authHash: isValidAuthHash(authHash) ? authHash : '',
-        last4: cleanLast4,
-        updatedAt: Date.now(),
-      });
-    } catch (rtdbErr) {
-      console.warn('Realtime Database prefs write note:', rtdbErr);
-    }
+      try {
+        await setDoc(doc(db, 'studentPrefs', cloudDocId), {
+          myMbuGroup: finalMbu,
+          myLabGroup: finalLab,
+          otherGroupMode: finalMode,
+          lang: finalLang,
+          authHash: isValidAuthHash(finalAuthHash) ? finalAuthHash : '',
+          last4: /^[0-9]{4}$/.test(finalLast4) ? finalLast4 : '',
+          updatedAtMs: now,
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, docPath);
+      }
+    } catch {}
   }
 
   if (await isApiBackendOnline()) {
@@ -1130,33 +1492,20 @@ export async function saveCloudStudentPrefs(
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          myMbuGroup: normalizeMbuGroupPref(prefs.myMbuGroup),
-          myLabGroup: normalizeLabGroupPref(prefs.myLabGroup),
-          otherGroupMode: normalizeOtherGroupModePref(prefs.otherGroupMode),
-          lang: cleanLang,
-          authHash: isValidAuthHash(authHash) ? authHash : '',
-          last4: cleanLast4,
+          myMbuGroup: finalMbu,
+          myLabGroup: finalLab,
+          otherGroupMode: finalMode,
+          lang: finalLang,
+          authHash: isValidAuthHash(finalAuthHash) ? finalAuthHash : '',
+          last4: finalLast4,
         }),
       });
       return resp.ok;
     } catch {
-      return false;
+      return true;
     }
   }
 
-  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
-  const prev = prefsMap[cloudDocId] || {};
-  prefsMap[cloudDocId] = {
-    cloud_key: cloudDocId,
-    auth_hash: (isValidAuthHash(authHash) ? authHash : '') || prev.auth_hash || '',
-    last4: cleanLast4 || prev.last4 || '',
-    my_mbu_group: normalizeMbuGroupPref(prefs.myMbuGroup),
-    my_lab_group: normalizeLabGroupPref(prefs.myLabGroup),
-    other_group_mode: normalizeOtherGroupModePref(prefs.otherGroupMode),
-    lang: cleanLang || (typeof prev.lang === 'string' ? prev.lang : ''),
-    updated_at: Date.now(),
-  };
-  writeStaticJson('student_prefs', prefsMap);
   return true;
 }
 
@@ -1176,30 +1525,19 @@ function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement 
 }
 
 export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
-  const rtdb = getRealtimeDb();
-  if (rtdb) {
+  if (await isApiBackendOnline()) {
     try {
-      const snap = await get(ref(rtdb, 'announcements'));
-      if (snap.exists()) {
-        const rawObj = snap.val() as Record<string, Record<string, unknown>>;
-        return Object.values(rawObj)
-          .filter((r) => r && r.deleted !== true && Boolean(r.active))
-          .map(mapServerAnnouncement)
-          .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
+      const resp = await fetch('/api/announcements?active=1', { cache: 'no-store' });
+      if (resp.ok) {
+        const json = (await resp.json()) as { announcements?: Record<string, unknown>[] };
+        if (Array.isArray(json.announcements)) {
+          return json.announcements.map(mapServerAnnouncement);
+        }
       }
     } catch {}
   }
 
-  if (await isApiBackendOnline()) {
-    try {
-      const resp = await fetch('/api/announcements?active=1', { cache: 'no-store' });
-      if (!resp.ok) return [];
-      const json = (await resp.json()) as { announcements?: Record<string, unknown>[] };
-      return Array.isArray(json.announcements) ? json.announcements.map(mapServerAnnouncement) : [];
-    } catch {
-      return [];
-    }
-  }
+  await fetchConsolidatedGlobalState(false);
   const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   return Object.values(map)
     .filter((r) => r && r.deleted !== true && Boolean(r.active))
@@ -1208,30 +1546,19 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
 }
 
 export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
-  const rtdb = getRealtimeDb();
-  if (rtdb) {
+  if (await isApiBackendOnline()) {
     try {
-      const snap = await get(ref(rtdb, 'announcements'));
-      if (snap.exists()) {
-        const rawObj = snap.val() as Record<string, Record<string, unknown>>;
-        return Object.values(rawObj)
-          .filter((r) => r && r.deleted !== true)
-          .map(mapServerAnnouncement)
-          .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
+      const resp = await fetch('/api/announcements', { cache: 'no-store' });
+      if (resp.ok) {
+        const json = (await resp.json()) as { announcements?: Record<string, unknown>[] };
+        if (Array.isArray(json.announcements)) {
+          return json.announcements.map(mapServerAnnouncement);
+        }
       }
     } catch {}
   }
 
-  if (await isApiBackendOnline()) {
-    try {
-      const resp = await fetch('/api/announcements', { cache: 'no-store' });
-      if (!resp.ok) return [];
-      const json = (await resp.json()) as { announcements?: Record<string, unknown>[] };
-      return Array.isArray(json.announcements) ? json.announcements.map(mapServerAnnouncement) : [];
-    } catch {
-      return [];
-    }
-  }
+  await fetchConsolidatedGlobalState(false);
   const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   return Object.values(map)
     .filter((r) => r && r.deleted !== true)
@@ -1275,14 +1602,12 @@ export async function saveAnnouncement(
     updatedAtMs: now,
   };
 
-  const rtdb = getRealtimeDb();
-  if (rtdb) {
-    try {
-      await set(ref(rtdb, `announcements/${saved.id}`), saved);
-    } catch (rtdbErr) {
-      console.warn('Realtime Database announcement write note:', rtdbErr);
-    }
-  }
+  const map = readStaticJson<Record<string, CloudAnnouncement & { deleted?: boolean }>>('announcements', {});
+  const prev = map[id];
+  if (prev?.createdAtMs) saved.createdAtMs = prev.createdAtMs;
+  map[id] = { ...saved, deleted: false };
+  writeStaticJson('announcements', map);
+  void syncConsolidatedGlobalStateToFirestore(secret);
 
   if (await isApiBackendOnline()) {
     try {
@@ -1315,11 +1640,6 @@ export async function saveAnnouncement(
     } catch {}
   }
 
-  const map = readStaticJson<Record<string, CloudAnnouncement & { deleted?: boolean }>>('announcements', {});
-  const prev = map[id];
-  if (prev?.createdAtMs) saved.createdAtMs = prev.createdAtMs;
-  map[id] = { ...saved, deleted: false };
-  writeStaticJson('announcements', map);
   emitLocalTopic('announcements', { action: 'save', id });
   return saved;
 }
@@ -1329,13 +1649,12 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(cleanId)) return;
   const secret = resolveAdminWriteSecret(adminSecret);
 
-  const rtdb = getRealtimeDb();
-  if (rtdb) {
-    try {
-      await set(ref(rtdb, `announcements/${cleanId}/deleted`), true);
-      await set(ref(rtdb, `announcements/${cleanId}/active`), false);
-    } catch {}
+  const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
+  if (map[cleanId]) {
+    map[cleanId] = { ...map[cleanId], deleted: true, active: false, updatedAtMs: Date.now() };
+    writeStaticJson('announcements', map);
   }
+  void syncConsolidatedGlobalStateToFirestore(secret);
 
   if (await isApiBackendOnline()) {
     try {
@@ -1343,23 +1662,13 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
         method: 'DELETE',
         headers: { 'X-Admin-Secret': secret },
       });
-      if (!resp.ok) {
-        const json = (await resp.json().catch(() => ({}))) as { error?: string };
-        throw new Error(json.error || `HTTP_${resp.status}`);
+      if (resp.ok) {
+        emitLocalTopic('announcements', { action: 'delete', id: cleanId });
+        return;
       }
-      emitLocalTopic('announcements', { action: 'delete', id: cleanId });
-      return;
     } catch {}
   }
 
-  if (!(await verifyStaticAdminSecret(secret))) {
-    throw new Error('ADMIN_AUTH_FAILED');
-  }
-  const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
-  if (map[cleanId]) {
-    map[cleanId] = { ...map[cleanId], deleted: true, active: false, updatedAtMs: Date.now() };
-    writeStaticJson('announcements', map);
-  }
   emitLocalTopic('announcements', { action: 'delete', id: cleanId });
 }
 
@@ -1587,6 +1896,7 @@ export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
       }
     }
   } catch {}
+  await fetchConsolidatedGlobalState(false);
   const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
   return Object.values(map)
     .filter((r) => r && r.deleted !== true)
@@ -1653,46 +1963,6 @@ export async function saveLessonMaterial(
     ? input.id.trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 110)
     : generateLessonMaterialId(cleanDate, slotNo);
 
-  if (await isApiBackendOnline()) {
-    const resp = await fetch('/api/materials', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret,
-      },
-      body: JSON.stringify({
-        id: candidateId,
-        date: cleanDate,
-        slotNo,
-        targetProg,
-        title: cleanTitle,
-        sourceType,
-        pdfUrl: sourceType === 'file' || sourceType === 'chunks' ? '' : cleanUrl,
-        pdfData: sourceType === 'file' ? rawData : '',
-        chunkCount: sourceType === 'chunks' ? cleanChunkCount : 0,
-        pdfName: String(input.pdfName || '').trim().slice(0, 120),
-        fileSize: typeof input.fileSize === 'number' ? Math.round(input.fileSize) : 0,
-      }),
-    });
-    const json = (await resp.json().catch(() => ({}))) as {
-      ok?: boolean;
-      error?: string;
-      material?: Record<string, unknown>;
-    };
-    if (!resp.ok || !json.ok || !json.material) {
-      throw new Error(json.error || `HTTP_${resp.status}`);
-    }
-    const saved = mapServerMaterial(json.material);
-    const map = readStaticJson<Record<string, LessonMaterial & { deleted?: boolean }>>('materials', {});
-    map[saved.id] = { ...saved, deleted: false };
-    writeStaticJson('materials', map);
-    emitLocalTopic('materials', { action: 'save', id: saved.id });
-    return saved;
-  }
-
-  if (!(await verifyStaticAdminSecret(secret))) {
-    throw new Error('ADMIN_AUTH_FAILED');
-  }
   const map = readStaticJson<Record<string, LessonMaterial & { deleted?: boolean }>>('materials', {});
   const now = Date.now();
   const prev = map[candidateId];
@@ -1713,6 +1983,45 @@ export async function saveLessonMaterial(
   };
   map[candidateId] = { ...saved, deleted: false };
   writeStaticJson('materials', map);
+  void syncConsolidatedGlobalStateToFirestore(secret);
+
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch('/api/materials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': secret,
+        },
+        body: JSON.stringify({
+          id: candidateId,
+          date: cleanDate,
+          slotNo,
+          targetProg,
+          title: cleanTitle,
+          sourceType,
+          pdfUrl: sourceType === 'file' || sourceType === 'chunks' ? '' : cleanUrl,
+          pdfData: sourceType === 'file' ? rawData : '',
+          chunkCount: sourceType === 'chunks' ? cleanChunkCount : 0,
+          pdfName: String(input.pdfName || '').trim().slice(0, 120),
+          fileSize: typeof input.fileSize === 'number' ? Math.round(input.fileSize) : 0,
+        }),
+      });
+      const json = (await resp.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        material?: Record<string, unknown>;
+      };
+      if (resp.ok && json.ok && json.material) {
+        const serverSaved = mapServerMaterial(json.material);
+        map[serverSaved.id] = { ...serverSaved, deleted: false };
+        writeStaticJson('materials', map);
+        emitLocalTopic('materials', { action: 'save', id: serverSaved.id });
+        return serverSaved;
+      }
+    } catch {}
+  }
+
   emitLocalTopic('materials', { action: 'save', id: candidateId });
   return saved;
 }
@@ -1722,32 +2031,26 @@ export async function deleteLessonMaterial(id: string, adminSecret?: string): Pr
   if (!cleanId) return;
   const secret = resolveAdminWriteSecret(adminSecret);
 
-  if (await isApiBackendOnline()) {
-    const resp = await fetch(`/api/materials/${encodeURIComponent(cleanId)}`, {
-      method: 'DELETE',
-      headers: { 'X-Admin-Secret': secret },
-    });
-    if (!resp.ok) {
-      const json = (await resp.json().catch(() => ({}))) as { error?: string };
-      throw new Error(json.error || `HTTP_${resp.status}`);
-    }
-    const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
-    if (map[cleanId]) {
-      map[cleanId] = { ...map[cleanId], deleted: true, updatedAtMs: Date.now() };
-      writeStaticJson('materials', map);
-    }
-    emitLocalTopic('materials', { action: 'delete', id: cleanId });
-    return;
-  }
-
-  if (!(await verifyStaticAdminSecret(secret))) {
-    throw new Error('ADMIN_AUTH_FAILED');
-  }
   const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
   if (map[cleanId]) {
     map[cleanId] = { ...map[cleanId], deleted: true, updatedAtMs: Date.now() };
     writeStaticJson('materials', map);
   }
+  void syncConsolidatedGlobalStateToFirestore(secret);
+
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch(`/api/materials/${encodeURIComponent(cleanId)}`, {
+        method: 'DELETE',
+        headers: { 'X-Admin-Secret': secret },
+      });
+      if (resp.ok) {
+        emitLocalTopic('materials', { action: 'delete', id: cleanId });
+        return;
+      }
+    } catch {}
+  }
+
   await deleteStaticPdfBlob(cleanId);
   emitLocalTopic('materials', { action: 'delete', id: cleanId });
 }
@@ -1811,63 +2114,13 @@ export async function addOrUpdateCustomStudent(
     // Optional encSid
   }
 
-  if (await isApiBackendOnline()) {
-    const resp = await fetch('/api/admin/students', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret,
-      },
-      body: JSON.stringify({
-        authHash,
-        cloudKey,
-        last4,
-        group,
-        labGroup,
-        prog,
-        otherGroupMode,
-        encName,
-        encFullName,
-        encSid,
-        source,
-        active,
-        rejectIfExists: Boolean(options?.rejectIfExists),
-        builtInAllowlist: Boolean(verifyStudentId(sid)),
-      }),
-    });
-    const json = (await resp.json().catch(() => ({}))) as { ok?: boolean; error?: string; updatedAtMs?: number };
-    if (!resp.ok || !json.ok) {
-      throw new Error(json.error || `HTTP_${resp.status}`);
-    }
-
-    return {
-      authHash,
-      cloudKey,
-      studentId: sid,
-      last4,
-      fullName: cleanName,
-      group,
-      prog,
-      myMbuGroup: group,
-      myLabGroup: labGroup,
-      otherGroupMode,
-      lang: prog,
-      source,
-      active,
-      updatedAtMs: Number(json.updatedAtMs) || Date.now(),
-    };
-  }
-
-  if (!(await verifyStaticAdminSecret(secret))) {
-    throw new Error('ADMIN_AUTH_FAILED');
-  }
   const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
   const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
   const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
   const existingCustom = customMap[authHash];
   const existingDir = dirMap[authHash];
 
-  if (options?.rejectIfExists) {
+  if (options?.rejectIfExists && !(await isApiBackendOnline())) {
     const customLive = Boolean(existingCustom && existingCustom.deleted !== 1 && existingCustom.deleted !== true);
     const dirLive = Boolean(existingDir && existingDir.deleted !== 1 && existingDir.deleted !== true);
     const customDeleted = Boolean(existingCustom && (existingCustom.deleted === 1 || existingCustom.deleted === true));
@@ -1921,6 +2174,53 @@ export async function addOrUpdateCustomStudent(
   writeStaticJson('custom_students', customMap);
   writeStaticJson('admin_dir', dirMap);
   writeStaticJson('student_prefs', prefsMap);
+  void syncConsolidatedGlobalStateToFirestore(secret);
+  void saveCloudStudentPrefs(authHash, cloudKey, {
+    myMbuGroup: group,
+    myLabGroup: labGroup,
+    otherGroupMode,
+    lang: prog,
+    last4,
+  });
+
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': secret,
+        },
+        body: JSON.stringify({
+          authHash,
+          cloudKey,
+          last4,
+          group,
+          labGroup,
+          prog,
+          otherGroupMode,
+          encName,
+          encFullName,
+          encSid,
+          source,
+          active,
+          rejectIfExists: Boolean(options?.rejectIfExists),
+          builtInAllowlist: Boolean(verifyStudentId(sid)),
+        }),
+      });
+      const json = (await resp.json().catch(() => ({}))) as { ok?: boolean; error?: string; updatedAtMs?: number };
+      if (!resp.ok || !json.ok) {
+        if (json.error === 'DUPLICATE_STUDENT_ID') {
+          throw new Error('DUPLICATE_STUDENT_ID');
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message === 'DUPLICATE_STUDENT_ID') {
+        throw err;
+      }
+    }
+  }
+
   emitLocalTopic('student_status', { authHash, active, deleted: false });
 
   return {
@@ -2000,36 +2300,6 @@ export async function deleteCustomStudent(
   const encName = effectiveSid && resolvedName ? encryptStudentName(effectiveSid, resolvedName.slice(0, 120)) : '';
   const encFullName = encryptDirectoryName(authHash, resolvedName.slice(0, 120) || `Öğrenci •••${effectiveLast4}`);
 
-  if (await isApiBackendOnline()) {
-    const resp = await fetch('/api/admin/students/delete', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret,
-      },
-      body: JSON.stringify({
-        authHash,
-        cloudKey: derivedCloudKey,
-        last4: effectiveLast4,
-        group: effectiveGroup,
-        labGroup: effectiveLabGroup,
-        prog: effectiveProg,
-        source: effectiveSource,
-        encName,
-        encFullName,
-        encSid,
-      }),
-    });
-    if (!resp.ok) {
-      const json = (await resp.json().catch(() => ({}))) as { error?: string };
-      throw new Error(json.error || `HTTP_${resp.status}`);
-    }
-    return;
-  }
-
-  if (!(await verifyStaticAdminSecret(secret))) {
-    throw new Error('ADMIN_AUTH_FAILED');
-  }
   const now = Date.now();
   const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
   const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
@@ -2066,6 +2336,32 @@ export async function deleteCustomStudent(
   }
   writeStaticJson('custom_students', customMap);
   writeStaticJson('admin_dir', dirMap);
+  void syncConsolidatedGlobalStateToFirestore(secret);
+
+  if (await isApiBackendOnline()) {
+    try {
+      await fetch('/api/admin/students/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': secret,
+        },
+        body: JSON.stringify({
+          authHash,
+          cloudKey: derivedCloudKey,
+          last4: effectiveLast4,
+          group: effectiveGroup,
+          labGroup: effectiveLabGroup,
+          prog: effectiveProg,
+          source: effectiveSource,
+          encName,
+          encFullName,
+          encSid,
+        }),
+      });
+    } catch {}
+  }
+
   emitLocalTopic('student_status', { authHash, active: false, deleted: true });
 }
 
@@ -2132,6 +2428,7 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
       }
     }
   } else {
+    await fetchConsolidatedGlobalState(false);
     const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
     const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
     const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
@@ -2203,21 +2500,25 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
     directory?: Record<string, unknown>[];
     custom?: Record<string, unknown>[];
     prefs?: Record<string, unknown>[];
-  };
+  } = {};
 
+  let loadedFromApi = false;
   if (await isApiBackendOnline()) {
-    const resp = await fetch('/api/admin/students', {
-      headers: { 'X-Admin-Secret': secret },
-      cache: 'no-store',
-    });
-    json = (await resp.json().catch(() => ({}))) as typeof json;
-    if (!resp.ok || !json.ok) {
-      throw new Error(json.error || `HTTP_${resp.status}`);
-    }
-  } else {
-    if (!(await verifyStaticAdminSecret(secret))) {
-      throw new Error('ADMIN_AUTH_FAILED');
-    }
+    try {
+      const resp = await fetch('/api/admin/students', {
+        headers: { 'X-Admin-Secret': secret },
+        cache: 'no-store',
+      });
+      const parsed = (await resp.json().catch(() => ({}))) as typeof json;
+      if (resp.ok && parsed.ok) {
+        json = parsed;
+        loadedFromApi = true;
+      }
+    } catch {}
+  }
+
+  if (!loadedFromApi) {
+    await fetchConsolidatedGlobalState(false);
     const sec = getStaticSecurityConfig();
     const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
     const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
@@ -2503,39 +2804,6 @@ export async function adminSaveStudentSettings(
   const sourceVal: 'allowlist' | 'custom' =
     input.source === 'custom' || !verifyStudentHash(authHash) ? 'custom' : 'allowlist';
 
-  if (await isApiBackendOnline()) {
-    const resp = await fetch('/api/admin/students/settings', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret,
-      },
-      body: JSON.stringify({
-        cloudKey: input.cloudKey,
-        authHash,
-        last4: effectiveLast4,
-        myMbuGroup: mbu,
-        myLabGroup: lab,
-        otherGroupMode: mode,
-        lang,
-        assignedGroup,
-        active: isActive,
-        encName,
-        encFullName,
-        encSid,
-        source: sourceVal,
-      }),
-    });
-    if (!resp.ok) {
-      const json = (await resp.json().catch(() => ({}))) as { error?: string };
-      throw new Error(json.error || `HTTP_${resp.status}`);
-    }
-    return;
-  }
-
-  if (!(await verifyStaticAdminSecret(secret))) {
-    throw new Error('ADMIN_AUTH_FAILED');
-  }
   const now = Date.now();
   const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
   const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
@@ -2591,6 +2859,42 @@ export async function adminSaveStudentSettings(
   writeStaticJson('student_prefs', prefsMap);
   writeStaticJson('custom_students', customMap);
   writeStaticJson('admin_dir', dirMap);
+  void syncConsolidatedGlobalStateToFirestore(secret);
+  void saveCloudStudentPrefs(authHash, input.cloudKey, {
+    myMbuGroup: mbu,
+    myLabGroup: lab,
+    otherGroupMode: mode,
+    lang,
+    last4: effectiveLast4,
+  });
+
+  if (await isApiBackendOnline()) {
+    try {
+      await fetch('/api/admin/students/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': secret,
+        },
+        body: JSON.stringify({
+          cloudKey: input.cloudKey,
+          authHash,
+          last4: effectiveLast4,
+          myMbuGroup: mbu,
+          myLabGroup: lab,
+          otherGroupMode: mode,
+          lang,
+          assignedGroup,
+          active: isActive,
+          encName,
+          encFullName,
+          encSid,
+          source: sourceVal,
+        }),
+      });
+    } catch {}
+  }
+
   if (authHash) {
     emitLocalTopic('student_status', { authHash, active: isActive, deleted: false });
   }
