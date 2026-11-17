@@ -5,7 +5,6 @@ import './index.css';
 import {
   addOrUpdateCustomStudent,
   adminSaveStudentSettings,
-  cacheLessonPdfBlob,
   checkStudentLoginStatus,
   checkStudentSessionActive,
   clearAdminWriteSecret,
@@ -13,13 +12,8 @@ import {
   deleteCustomStudent,
   deleteLessonMaterial,
   deleteServerPdfByUrl,
-  deleteCloudUserNote,
-  getAppVersion,
-  bumpAppVersion,
   downloadLessonMaterialChunks,
   generateLessonMaterialId,
-  getCachedLessonPdfBlob,
-  getGoogleAuthUser,
   hasAdminWriteSecret,
   isStudentAlreadyRegistered,
   listAllAnnouncements,
@@ -27,28 +21,21 @@ import {
   loadAllAdminStudents,
   loadAllLessonMaterials,
   loadCloudStudentPrefs,
-  loadCloudUserNotes,
   loadSiteAccessSettings,
   lookupStudentForAdmin,
   lookupStudentWithCloud,
-  onGoogleAuthChanged,
   saveAnnouncement,
   saveCloudStudentPrefs,
-  saveCloudUserNote,
   saveLessonMaterial,
   saveSiteAccessSettings,
   setAdminWriteSecret,
-  signInWithGoogle,
-  signOutGoogle,
-  subscribeAnnouncements,
-  subscribeLessonMaterials,
   subscribeSiteAccessSettings,
   subscribeStudentAccountStatus,
   updateAdminPassword,
   uploadLessonPdfFile,
   verifyAdminPassword,
   verifyAndUnlockAdmin,
-} from './cloudApi.ts';
+} from './firebasePrefs.ts';
 import {
   deriveAdminWriteSecret,
   deriveCloudDocId,
@@ -90,18 +77,14 @@ declare global {
       loadCloudStudentPrefs: typeof loadCloudStudentPrefs;
       saveCloudStudentPrefs: typeof saveCloudStudentPrefs;
       loadActiveAnnouncements: typeof loadActiveAnnouncements;
-      subscribeAnnouncements: typeof subscribeAnnouncements;
       listAllAnnouncements: typeof listAllAnnouncements;
       saveAnnouncement: typeof saveAnnouncement;
       deleteAnnouncement: typeof deleteAnnouncement;
       loadAllLessonMaterials: typeof loadAllLessonMaterials;
-      subscribeLessonMaterials: typeof subscribeLessonMaterials;
       saveLessonMaterial: typeof saveLessonMaterial;
       deleteLessonMaterial: typeof deleteLessonMaterial;
       uploadLessonPdfFile: typeof uploadLessonPdfFile;
       downloadLessonMaterialChunks: typeof downloadLessonMaterialChunks;
-      getCachedLessonPdfBlob: typeof getCachedLessonPdfBlob;
-      cacheLessonPdfBlob: typeof cacheLessonPdfBlob;
       generateLessonMaterialId: typeof generateLessonMaterialId;
       deleteServerPdfByUrl: typeof deleteServerPdfByUrl;
       addOrUpdateCustomStudent: typeof addOrUpdateCustomStudent;
@@ -109,15 +92,6 @@ declare global {
       loadAllAdminStudents: typeof loadAllAdminStudents;
       lookupStudentForAdmin: typeof lookupStudentForAdmin;
       adminSaveStudentSettings: typeof adminSaveStudentSettings;
-      getGoogleAuthUser: typeof getGoogleAuthUser;
-      onGoogleAuthChanged: typeof onGoogleAuthChanged;
-      signInWithGoogle: typeof signInWithGoogle;
-      signOutGoogle: typeof signOutGoogle;
-      loadCloudUserNotes: typeof loadCloudUserNotes;
-      saveCloudUserNote: typeof saveCloudUserNote;
-      deleteCloudUserNote: typeof deleteCloudUserNote;
-      getAppVersion: typeof getAppVersion;
-      bumpAppVersion: typeof bumpAppVersion;
     };
   }
 }
@@ -149,18 +123,14 @@ window.__INONU_AUTH__ = {
   loadCloudStudentPrefs,
   saveCloudStudentPrefs,
   loadActiveAnnouncements,
-  subscribeAnnouncements,
   listAllAnnouncements,
   saveAnnouncement,
   deleteAnnouncement,
   loadAllLessonMaterials,
-  subscribeLessonMaterials,
   saveLessonMaterial,
   deleteLessonMaterial,
   uploadLessonPdfFile,
   downloadLessonMaterialChunks,
-  getCachedLessonPdfBlob,
-  cacheLessonPdfBlob,
   generateLessonMaterialId,
   deleteServerPdfByUrl,
   addOrUpdateCustomStudent,
@@ -168,15 +138,6 @@ window.__INONU_AUTH__ = {
   loadAllAdminStudents,
   lookupStudentForAdmin,
   adminSaveStudentSettings,
-  getGoogleAuthUser,
-  onGoogleAuthChanged,
-  signInWithGoogle,
-  signOutGoogle,
-  loadCloudUserNotes,
-  saveCloudUserNote,
-  deleteCloudUserNote,
-  getAppVersion,
-  bumpAppVersion,
 };
 window.dispatchEvent(new Event('inonu-auth-ready'));
 
@@ -206,16 +167,12 @@ if (import.meta.env.DEV) {
         // Ignore CacheStorage errors
       }
     }
-    try {
-      if ((changed || hasStaleDom) && !sessionStorage.getItem('inonu_sw_reset_done')) {
-        sessionStorage.setItem('inonu_sw_reset_done', '1');
-        window.location.reload();
-        return;
-      }
-      sessionStorage.removeItem('inonu_sw_reset_done');
-    } catch {
-      // Ignore sessionStorage errors in restricted or sandboxed iframes
+    if ((changed || hasStaleDom) && !sessionStorage.getItem('inonu_sw_reset_done')) {
+      sessionStorage.setItem('inonu_sw_reset_done', '1');
+      window.location.reload();
+      return;
     }
+    sessionStorage.removeItem('inonu_sw_reset_done');
   };
   void cleanupDevSw();
 } else {
