@@ -29,13 +29,14 @@ import {
   saveLessonMaterial,
   saveSiteAccessSettings,
   setAdminWriteSecret,
+  subscribeLessonMaterials,
   subscribeSiteAccessSettings,
   subscribeStudentAccountStatus,
   updateAdminPassword,
   uploadLessonPdfFile,
   verifyAdminPassword,
   verifyAndUnlockAdmin,
-} from './firebasePrefs.ts';
+} from './cloudApi.ts';
 import {
   deriveAdminWriteSecret,
   deriveCloudDocId,
@@ -81,6 +82,7 @@ declare global {
       saveAnnouncement: typeof saveAnnouncement;
       deleteAnnouncement: typeof deleteAnnouncement;
       loadAllLessonMaterials: typeof loadAllLessonMaterials;
+      subscribeLessonMaterials: typeof subscribeLessonMaterials;
       saveLessonMaterial: typeof saveLessonMaterial;
       deleteLessonMaterial: typeof deleteLessonMaterial;
       uploadLessonPdfFile: typeof uploadLessonPdfFile;
@@ -127,6 +129,7 @@ window.__INONU_AUTH__ = {
   saveAnnouncement,
   deleteAnnouncement,
   loadAllLessonMaterials,
+  subscribeLessonMaterials,
   saveLessonMaterial,
   deleteLessonMaterial,
   uploadLessonPdfFile,
@@ -167,12 +170,16 @@ if (import.meta.env.DEV) {
         // Ignore CacheStorage errors
       }
     }
-    if ((changed || hasStaleDom) && !sessionStorage.getItem('inonu_sw_reset_done')) {
-      sessionStorage.setItem('inonu_sw_reset_done', '1');
-      window.location.reload();
-      return;
+    try {
+      if ((changed || hasStaleDom) && !sessionStorage.getItem('inonu_sw_reset_done')) {
+        sessionStorage.setItem('inonu_sw_reset_done', '1');
+        window.location.reload();
+        return;
+      }
+      sessionStorage.removeItem('inonu_sw_reset_done');
+    } catch {
+      // Ignore sessionStorage errors in restricted or sandboxed iframes
     }
-    sessionStorage.removeItem('inonu_sw_reset_done');
   };
   void cleanupDevSw();
 } else {
