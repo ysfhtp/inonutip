@@ -23,8 +23,17 @@ import {
   verifyStudentId,
   type StudentAuthMatch,
 } from './studentAllowlist.ts';
+import {
+  getCurrentGoogleUser,
+  getFreshInMemoryIdToken,
+  signInWithGoogleAccount,
+  signOutGoogleAccount,
+  subscribeGoogleAuthUser,
+  type GoogleAuthUserSummary,
+} from './lib/firebase.ts';
 
 export type Unsubscribe = () => void;
+export type { GoogleAuthUserSummary };
 
 export interface StudentCloudPrefs {
   myMbuGroup: '' | 'I' | 'II' | 'III' | 'IV' | 'V';
@@ -3427,3 +3436,104 @@ export async function adminSaveStudentSettings(
     emitLocalTopic('student_status', { authHash, active: isActive, deleted: false });
   }
 }
+
+// ==================== GOOGLE SIGN-IN & PERSONAL CLOUD NOTES ====================
+export interface CloudUserNoteItem {
+  slotKey: string;
+  content: string;
+  updatedAt: number;
+}
+
+export function getGoogleAuthUser(): GoogleAuthUserSummary | null {
+  return getCurrentGoogleUser();
+}
+
+export function onGoogleAuthChanged(
+  callback: (user: GoogleAuthUserSummary | null) => void,
+): Unsubscribe {
+  return subscribeGoogleAuthUser(callback);
+}
+
+export async function signInWithGoogle(): Promise<GoogleAuthUserSummary | null> {
+  const user = await signInWithGoogleAccount();
+  if (user && (await isApiBackendOnline())) {
+    try {
+      const token = await getFreshInMemoryIdToken();
+      if (token) {
+        await fetch('/api/me', {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        });
+      }
+    } catch {
+      // Non-fatal profile sync error
+    }
+  }
+  return user;
+}
+
+export async function signOutGoogle(): Promise<void> {
+  await signOutGoogleAccount();
+}
+
+export async function loadCloudUserNotes(): Promise<CloudUserNoteItem[]> {
+  if (!(await isApiBackendOnline())) return [];
+  const token = await getFreshInMemoryIdToken();
+  if (!token) return [];
+  try {
+    const resp = await fetch('/api/user/notes', {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!resp.ok) return [];
+    const data = (await resp.json()) as {
+      ok?: boolean;
+      notes?: Array<{ slotKey?: string; content?: string; updatedAt?: number }>;
+    };
+    if (!data.ok || !Array.isArray(data.notes)) return [];
+    return data.notes
+      .filter((n) => typeof n.slotKey === 'string' && typeof n.content === 'string')
+      .map((n) => ({
+        slotKey: String(n.slotKey),
+        content: String(n.content),
+        updatedAt: Number(n.updatedAt) || 0,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export async function saveCloudUserNote(slotKey: string, content: string): Promise<boolean> {
+  if (!(await isApiBackendOnline())) return false;
+  const token = await getFreshInMemoryIdToken();
+  if (!token) return false;
+  try {
+    const resp = await fetch('/api/user/notes', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ slotKey, content }),
+    });
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteCloudUserNote(slotKey: string): Promise<boolean> {
+  if (!(await isApiBackendOnline())) return false;
+  const token = await getFreshInMemoryIdToken();
+  if (!token) return false;
+  try {
+    const resp = await fetch(`/api/user/notes/${encodeURIComponent(slotKey)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+

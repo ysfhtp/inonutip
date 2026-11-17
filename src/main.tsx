@@ -13,9 +13,11 @@ import {
   deleteCustomStudent,
   deleteLessonMaterial,
   deleteServerPdfByUrl,
+  deleteCloudUserNote,
   downloadLessonMaterialChunks,
   generateLessonMaterialId,
   getCachedLessonPdfBlob,
+  getGoogleAuthUser,
   hasAdminWriteSecret,
   isStudentAlreadyRegistered,
   listAllAnnouncements,
@@ -23,14 +25,19 @@ import {
   loadAllAdminStudents,
   loadAllLessonMaterials,
   loadCloudStudentPrefs,
+  loadCloudUserNotes,
   loadSiteAccessSettings,
   lookupStudentForAdmin,
   lookupStudentWithCloud,
+  onGoogleAuthChanged,
   saveAnnouncement,
   saveCloudStudentPrefs,
+  saveCloudUserNote,
   saveLessonMaterial,
   saveSiteAccessSettings,
   setAdminWriteSecret,
+  signInWithGoogle,
+  signOutGoogle,
   subscribeAnnouncements,
   subscribeLessonMaterials,
   subscribeSiteAccessSettings,
@@ -100,6 +107,13 @@ declare global {
       loadAllAdminStudents: typeof loadAllAdminStudents;
       lookupStudentForAdmin: typeof lookupStudentForAdmin;
       adminSaveStudentSettings: typeof adminSaveStudentSettings;
+      getGoogleAuthUser: typeof getGoogleAuthUser;
+      onGoogleAuthChanged: typeof onGoogleAuthChanged;
+      signInWithGoogle: typeof signInWithGoogle;
+      signOutGoogle: typeof signOutGoogle;
+      loadCloudUserNotes: typeof loadCloudUserNotes;
+      saveCloudUserNote: typeof saveCloudUserNote;
+      deleteCloudUserNote: typeof deleteCloudUserNote;
     };
   }
 }
@@ -150,6 +164,13 @@ window.__INONU_AUTH__ = {
   loadAllAdminStudents,
   lookupStudentForAdmin,
   adminSaveStudentSettings,
+  getGoogleAuthUser,
+  onGoogleAuthChanged,
+  signInWithGoogle,
+  signOutGoogle,
+  loadCloudUserNotes,
+  saveCloudUserNote,
+  deleteCloudUserNote,
 };
 window.dispatchEvent(new Event('inonu-auth-ready'));
 

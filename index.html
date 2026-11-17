@@ -3937,6 +3937,15 @@
           Giriş Yap
         </button>
       </div>
+      <div id="googleSyncCard" class="ios-glass ios-tab-card rounded-3xl p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3 flex-wrap" data-tab-stagger="2">
+        <div class="min-w-0 flex-1">
+          <p id="googleSyncTitle" class="text-[11px] font-bold uppercase tracking-wider text-blue-600/80 dark:text-blue-300/80">Bulut Not Yedekleme</p>
+          <p id="googleSyncDesc" class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mt-0.5 truncate">Ders notlarını cihazlar arası senkronize et</p>
+        </div>
+        <button id="btnGoogleSyncAction" type="button" class="ios-press w-full min-[360px]:w-auto min-h-[44px] justify-center px-3.5 py-2 rounded-full bg-blue-500/12 hover:bg-blue-500/20 text-blue-600 dark:text-blue-300 text-xs font-semibold transition text-center">
+          Google ile Giriş Yap
+        </button>
+      </div>
       <div id="adminSettingsCard" class="hidden ios-glass ios-tab-card rounded-3xl p-3.5 min-[360px]:p-4 flex items-center justify-between gap-3 flex-wrap" data-tab-stagger="3">
         <div class="flex items-center gap-2.5 min-w-0 flex-1">
           <span class="w-9 h-9 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
@@ -3952,7 +3961,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="3">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v3.2.2</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v3.2.4</span>
       </div>
     </section>
 
@@ -4748,6 +4757,13 @@
         noteBadge: 'Not',
         noteSavedToast: 'Not kaydedildi',
         noteDeletedToast: 'Not silindi',
+        googleSyncTitle: 'Bulut Not Yedekleme',
+        googleSyncGuestDesc: 'Ders notlarını cihazlar arası senkronize et',
+        googleSyncSignedInDesc: (email) => `${email} • Notlar senkronize`,
+        googleSyncSignInBtn: 'Google ile Giriş Yap',
+        googleSyncSignOutBtn: 'Google Çıkış',
+        googleSyncConnectedToast: 'Google hesabı bağlandı',
+        googleSyncFailedToast: 'Google girişi tamamlanamadı',
         icsSavedToast: 'Takvim dosyası indirildi',
         navDaily: 'Bugün',
         navWeekly: 'Hafta',
@@ -5007,6 +5023,13 @@
         noteBadge: 'Note',
         noteSavedToast: 'Note saved',
         noteDeletedToast: 'Note deleted',
+        googleSyncTitle: 'Cloud Note Sync',
+        googleSyncGuestDesc: 'Sync your class notes across devices',
+        googleSyncSignedInDesc: (email) => `${email} • Notes synced`,
+        googleSyncSignInBtn: 'Sign in with Google',
+        googleSyncSignOutBtn: 'Sign Out',
+        googleSyncConnectedToast: 'Google account connected',
+        googleSyncFailedToast: 'Google sign-in could not be completed',
         icsSavedToast: 'Calendar file downloaded',
         navDaily: 'Today',
         navWeekly: 'Weeks',
@@ -5920,6 +5943,7 @@
       if (typeof syncAdminModalLanguageUI === 'function') syncAdminModalLanguageUI();
       if (typeof renderDailyAnnouncements === 'function') renderDailyAnnouncements();
       updateAuthSessionSummary();
+      updateGoogleSyncCardUI();
 
       document.getElementById('headerAppTitle').textContent = loc.headerTitle;
       document.getElementById('btnJumpTodayTop').textContent = loc.today;
@@ -9072,6 +9096,58 @@
       }
     }
 
+    function updateGoogleSyncCardUI(overrideUser) {
+      const titleEl = document.getElementById('googleSyncTitle');
+      const descEl = document.getElementById('googleSyncDesc');
+      const btnEl = document.getElementById('btnGoogleSyncAction');
+      const loc = I18N[state.lang];
+      const api = window.__INONU_AUTH__;
+      const user = overrideUser !== undefined
+        ? overrideUser
+        : (api && typeof api.getGoogleAuthUser === 'function' ? api.getGoogleAuthUser() : null);
+
+      if (titleEl) titleEl.textContent = loc.googleSyncTitle;
+      if (!user) {
+        if (descEl) descEl.textContent = loc.googleSyncGuestDesc;
+        if (btnEl) {
+          btnEl.textContent = loc.googleSyncSignInBtn;
+          btnEl.className = 'ios-press w-full min-[360px]:w-auto min-h-[44px] justify-center px-3.5 py-2 rounded-full bg-blue-500/12 hover:bg-blue-500/20 text-blue-600 dark:text-blue-300 text-xs font-semibold transition text-center';
+        }
+      } else {
+        if (descEl) descEl.textContent = loc.googleSyncSignedInDesc(user.email || user.displayName || 'Google');
+        if (btnEl) {
+          btnEl.textContent = loc.googleSyncSignOutBtn;
+          btnEl.className = 'ios-press w-full min-[360px]:w-auto min-h-[44px] justify-center px-3.5 py-2 rounded-full bg-rose-500/12 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold transition text-center';
+        }
+      }
+    }
+
+    async function syncGoogleNotesFromCloud() {
+      const api = window.__INONU_AUTH__;
+      if (!api || typeof api.loadCloudUserNotes !== 'function') return;
+      try {
+        const cloudNotes = await api.loadCloudUserNotes();
+        if (!Array.isArray(cloudNotes) || cloudNotes.length === 0) return;
+        let changed = false;
+        cloudNotes.forEach((n) => {
+          if (n && typeof n.slotKey === 'string' && typeof n.content === 'string' && n.content.trim()) {
+            if (state.notes[n.slotKey] !== n.content) {
+              state.notes[n.slotKey] = n.content;
+              changed = true;
+            }
+          }
+        });
+        if (changed) {
+          saveStore('notes', state.notes);
+          if (state.activeTab === 'daily') renderDailyView();
+          if (state.activeTab === 'weekly') renderWeeklyView();
+          if (state.activeTab === 'search') renderSearchView();
+        }
+      } catch {
+        // Non-fatal sync error
+      }
+    }
+
     function showAuthError(msg) {
       const errEl = document.getElementById('authErrorMsg');
       const cardEl = document.getElementById('authGateCard');
@@ -11658,13 +11734,22 @@
       }
       document.getElementById('btnSaveNote').addEventListener('click', () => {
         if (!state.modalSlotKey) return;
+        const slotKey = state.modalSlotKey;
         const val = document.getElementById('noteModalTextarea').value.trim();
         if (val) {
-          state.notes[state.modalSlotKey] = val;
+          state.notes[slotKey] = val;
         } else {
-          delete state.notes[state.modalSlotKey];
+          delete state.notes[slotKey];
         }
         saveStore('notes', state.notes);
+        const api = window.__INONU_AUTH__;
+        if (api && typeof api.getGoogleAuthUser === 'function' && api.getGoogleAuthUser()) {
+          if (val && typeof api.saveCloudUserNote === 'function') {
+            void api.saveCloudUserNote(slotKey, val);
+          } else if (!val && typeof api.deleteCloudUserNote === 'function') {
+            void api.deleteCloudUserNote(slotKey);
+          }
+        }
         closeNoteModal();
         showToast(t('noteSavedToast'));
         if (state.activeTab === 'daily') renderDailyView();
@@ -11673,8 +11758,13 @@
       });
       document.getElementById('btnDeleteNote').addEventListener('click', () => {
         if (!state.modalSlotKey) return;
-        delete state.notes[state.modalSlotKey];
+        const slotKey = state.modalSlotKey;
+        delete state.notes[slotKey];
         saveStore('notes', state.notes);
+        const api = window.__INONU_AUTH__;
+        if (api && typeof api.getGoogleAuthUser === 'function' && api.getGoogleAuthUser() && typeof api.deleteCloudUserNote === 'function') {
+          void api.deleteCloudUserNote(slotKey);
+        }
         closeNoteModal();
         showToast(t('noteDeletedToast'));
         if (state.activeTab === 'daily') renderDailyView();
@@ -12756,6 +12846,35 @@
 
       let inonuAuthHooksBound = false;
       let announcementsUnsub = null;
+      let googleAuthUnsub = null;
+      const btnGoogleSyncAction = document.getElementById('btnGoogleSyncAction');
+      if (btnGoogleSyncAction) {
+        btnGoogleSyncAction.addEventListener('click', async () => {
+          const api = window.__INONU_AUTH__;
+          if (!api) return;
+          const user = typeof api.getGoogleAuthUser === 'function' ? api.getGoogleAuthUser() : null;
+          if (user) {
+            if (typeof api.signOutGoogle === 'function') {
+              await api.signOutGoogle().catch(() => {});
+            }
+            updateGoogleSyncCardUI(null);
+            return;
+          }
+          if (typeof api.signInWithGoogle === 'function') {
+            try {
+              const signedUser = await api.signInWithGoogle();
+              updateGoogleSyncCardUI(signedUser);
+              if (signedUser) {
+                showToast(t('googleSyncConnectedToast'));
+                await syncGoogleNotesFromCloud();
+              }
+            } catch {
+              showToast(t('googleSyncFailedToast'));
+            }
+          }
+        });
+      }
+
       function bindInonuAuthHooks() {
         const api = window.__INONU_AUTH__;
         if (!api || inonuAuthHooksBound) return;
@@ -12765,10 +12884,19 @@
           api.setAdminWriteSecret(session.adminSecret);
         }
         updateAuthSessionSummary();
+        updateGoogleSyncCardUI();
         syncActiveStudentAccountWatch();
         syncActiveStudentCloudPrefs();
         refreshDailyAnnouncements(true);
         void refreshLessonMaterials(true);
+        if (typeof api.onGoogleAuthChanged === 'function' && !googleAuthUnsub) {
+          googleAuthUnsub = api.onGoogleAuthChanged((user) => {
+            updateGoogleSyncCardUI(user);
+            if (user) {
+              void syncGoogleNotesFromCloud();
+            }
+          });
+        }
         if (typeof api.subscribeAnnouncements === 'function' && !announcementsUnsub) {
           announcementsUnsub = api.subscribeAnnouncements((list) => {
             activeAnnouncementsList = Array.isArray(list) ? list : [];
