@@ -328,6 +328,8 @@ function ensureStaticLivePolling(): void {
     void probeApiBackend().then((status) => {
       if (status !== 'online') {
         void syncStaticStoreFromDataJson(false);
+      } else {
+        void loadSiteAccessSettings().then((s) => notifyLocalSubscribersOnly('access', s));
       }
     });
   }, 1000);
@@ -742,16 +744,13 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
       remote.announcements.forEach((raw) => {
         if (!raw || typeof raw !== 'object') return;
         const mapped = mapServerAnnouncement(raw);
-        if (mapped.id) {
-          remoteMap[mapped.id] = { ...mapped, deleted: raw.deleted === true };
+        if (mapped.id && mapped.active && !raw.deleted) {
+          remoteMap[mapped.id] = { ...mapped, deleted: false };
         }
       });
       const remoteSig = JSON.stringify(remote.announcements);
       nextSigs.announcements = remoteSig;
-      const localMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
-      const remoteMaxTs = getMaxTimestampFromMap(remoteMap);
-      const localMaxTs = getMaxTimestampFromMap(localMap);
-      if (prevSigs.announcements !== remoteSig && (remoteMaxTs >= localMaxTs || localMaxTs === 0)) {
+      if (prevSigs.announcements !== remoteSig || force) {
         writeStaticJson('announcements', remoteMap);
         emitLocalTopic('announcements', { source: 'data.json' });
       }
@@ -763,16 +762,13 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
       remote.materials.forEach((raw) => {
         if (!raw || typeof raw !== 'object') return;
         const mapped = mapServerMaterial(raw);
-        if (mapped.id) {
-          remoteMap[mapped.id] = { ...mapped, deleted: raw.deleted === true || raw.deleted === 1 };
+        if (mapped.id && !raw.deleted && raw.deleted !== 1) {
+          remoteMap[mapped.id] = { ...mapped, deleted: false };
         }
       });
       const remoteSig = JSON.stringify(remote.materials);
       nextSigs.materials = remoteSig;
-      const localMap = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
-      const remoteMaxTs = getMaxTimestampFromMap(remoteMap);
-      const localMaxTs = getMaxTimestampFromMap(localMap);
-      if (prevSigs.materials !== remoteSig && (remoteMaxTs >= localMaxTs || localMaxTs === 0)) {
+      if (prevSigs.materials !== remoteSig || force) {
         writeStaticJson('materials', remoteMap);
         emitLocalTopic('materials', { source: 'data.json' });
       }
@@ -784,10 +780,7 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
       const remoteMap = normalizeRecordMap(remote.customStudents, 'auth_hash', 'authHash', (r) => normalizeStudentRecordForStatic(r));
       const remoteSig = JSON.stringify(remoteMap);
       nextSigs.customStudents = remoteSig;
-      const localMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
-      const remoteMaxTs = getMaxTimestampFromMap(remoteMap);
-      const localMaxTs = getMaxTimestampFromMap(localMap);
-      if (prevSigs.customStudents !== remoteSig && (remoteMaxTs >= localMaxTs || localMaxTs === 0)) {
+      if (prevSigs.customStudents !== remoteSig || force) {
         writeStaticJson('custom_students', remoteMap);
         studentChanged = true;
       }
@@ -797,10 +790,7 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
       const remoteMap = normalizeRecordMap(remote.studentDirectory, 'auth_hash', 'authHash', (r) => normalizeStudentRecordForStatic(r));
       const remoteSig = JSON.stringify(remoteMap);
       nextSigs.studentDirectory = remoteSig;
-      const localMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
-      const remoteMaxTs = getMaxTimestampFromMap(remoteMap);
-      const localMaxTs = getMaxTimestampFromMap(localMap);
-      if (prevSigs.studentDirectory !== remoteSig && (remoteMaxTs >= localMaxTs || localMaxTs === 0)) {
+      if (prevSigs.studentDirectory !== remoteSig || force) {
         writeStaticJson('admin_dir', remoteMap);
         studentChanged = true;
       }
@@ -810,10 +800,7 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
       const remoteMap = normalizeRecordMap(remote.studentPrefs, 'cloud_key', 'cloudKey', (r, k) => normalizePrefRecordForStatic(r, k));
       const remoteSig = JSON.stringify(remoteMap);
       nextSigs.studentPrefs = remoteSig;
-      const localMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
-      const remoteMaxTs = getMaxTimestampFromMap(remoteMap);
-      const localMaxTs = getMaxTimestampFromMap(localMap);
-      if (prevSigs.studentPrefs !== remoteSig && (remoteMaxTs >= localMaxTs || localMaxTs === 0)) {
+      if (prevSigs.studentPrefs !== remoteSig || force) {
         writeStaticJson('student_prefs', remoteMap);
       }
     }
@@ -1723,9 +1710,15 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
           const apiMap: Record<string, Record<string, unknown>> = {};
           json.announcements.forEach((a) => {
             const mapped = mapServerAnnouncement(a);
-            if (mapped.id) apiMap[mapped.id] = { ...mapped, deleted: false };
+            if (mapped.id && !a.deleted && a.deleted !== 1) {
+              apiMap[mapped.id] = { ...mapped, active: Boolean(mapped.active), deleted: false };
+            }
           });
           writeStaticJson('announcements', apiMap);
+          return Object.values(apiMap)
+            .filter((r) => r && r.deleted !== true && r.deleted !== 1 && Boolean(r.active))
+            .map(mapServerAnnouncement)
+            .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
         }
       }
     } catch {
@@ -1737,7 +1730,7 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   return Object.values(map)
-    .filter((r) => r && r.deleted !== true && Boolean(r.active))
+    .filter((r) => r && r.deleted !== true && r.deleted !== 1 && Boolean(r.active))
     .map(mapServerAnnouncement)
     .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
 }
@@ -1865,7 +1858,7 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   if (map[cleanId]) {
-    map[cleanId] = { ...map[cleanId], deleted: true, active: false, updatedAtMs: Date.now() };
+    delete map[cleanId];
     writeStaticJson('announcements', map);
   }
   emitLocalTopic('announcements', { action: 'delete', id: cleanId });
