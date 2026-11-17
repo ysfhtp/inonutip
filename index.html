@@ -9340,6 +9340,7 @@
       const closeBtn = document.getElementById('btnCloseAuthModal');
       const authGate = document.getElementById('authGate');
 
+      document.documentElement.classList.toggle('site-locked-locked', locked);
       if (headerEl) headerEl.classList.toggle('hidden', locked);
       if (spacerEl) spacerEl.classList.toggle('hidden', locked);
       if (mainEl) mainEl.classList.toggle('hidden', locked);
@@ -9349,6 +9350,7 @@
       syncAuthStepUI();
 
       if (locked) {
+        authGateOpenedByLock = true;
         closeAdminModal();
         closeGroupModal();
         closeNoteModal();
@@ -9371,8 +9373,11 @@
     }
 
     function applySiteAccessSettings(settings) {
-      const nextVal = Boolean(settings && settings.requireStudentLogin);
-      const nextTs = Number(settings && settings.updatedAtMs) || 0;
+      if (!settings || typeof settings !== 'object') return;
+      const nextVal = Boolean(settings.requireStudentLogin);
+      const nextTs = Number(settings.updatedAtMs) || 0;
+      if (nextTs === 0 && siteAccessUpdatedAtMs > 0) return;
+      if (siteAccessUpdatedAtMs > 0 && nextTs > 0 && nextTs < siteAccessUpdatedAtMs) return;
       siteRequireStudentLogin = nextVal;
       if (nextTs > 0) {
         siteAccessUpdatedAtMs = nextTs;
@@ -9818,20 +9823,20 @@
             const blob = await resp.blob();
             triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload, mat.pdfUrl);
           } catch (err) {
-            const api = window.__inonuCloudApi;
+            const api = window.__INONU_AUTH__;
             if (api && typeof api.downloadLessonMaterialChunks === 'function' && mat.id) {
               try {
                 const fallbackBlob = await api.downloadLessonMaterialChunks(
                   mat.id,
                   Math.max(1, Number(mat.chunkCount) || 1),
-                  (done, total) => {
-                    const pct = Math.min(99, Math.round((done / Math.max(1, total)) * 100));
+                  (pct, done, total) => {
+                    const safePct = Math.min(99, Math.max(0, Math.round(Number(pct) || 0)));
                     showPdfDownloadProgressBanner(
                       displayTitle,
                       state.lang === 'en'
-                        ? `Downloading... %${pct} (${done}/${total})`
-                        : `İndiriliyor... %${pct} (${done}/${total})`,
-                      pct
+                        ? `Downloading... %${safePct} (${done}/${total})`
+                        : `İndiriliyor... %${safePct} (${done}/${total})`,
+                      safePct
                     );
                   }
                 );
@@ -12529,7 +12534,7 @@
 
         const prevVal = siteRequireStudentLogin;
         const prevTs = siteAccessUpdatedAtMs;
-        const nowTs = Date.now();
+        const nowTs = Math.max(Date.now(), prevTs + 1);
         siteRequireStudentLogin = Boolean(nextVal);
         siteAccessUpdatedAtMs = nowTs;
         saveStore('siteRequireLoginCache', siteRequireStudentLogin);

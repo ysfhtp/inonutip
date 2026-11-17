@@ -476,8 +476,14 @@ async function startServer() {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
     }
-    const requireStudentLogin = Boolean((req.body as { requireStudentLogin?: unknown })?.requireStudentLogin);
-    const updatedAtMs = Date.now();
+    const body = (req.body || {}) as { requireStudentLogin?: unknown; updatedAtMs?: unknown };
+    const requireStudentLogin = Boolean(body.requireStudentLogin);
+    const clientTs = Number(body.updatedAtMs) || 0;
+    const prevCfg = getConfigJson<SiteAccessConfig>('access');
+    const prevTs = Number(prevCfg?.updatedAtMs) || 0;
+    const updatedAtMs = clientTs > 1_700_000_000_000
+      ? Math.max(clientTs, prevTs + 1)
+      : Math.max(Date.now(), prevTs + 1);
     setConfigJson('access', { requireStudentLogin, updatedAtMs } satisfies SiteAccessConfig);
     broadcastEvent('access', { requireStudentLogin, updatedAtMs });
     res.json({ ok: true, requireStudentLogin, updatedAtMs });
@@ -1323,12 +1329,14 @@ async function startServer() {
 
       const cfg = getConfigJson<SiteAccessConfig>('access') || { requireStudentLogin: false, updatedAtMs: 0 };
       const isLocked = Boolean(cfg.requireStudentLogin);
+      const serverTs = Number(cfg.updatedAtMs) || 0;
 
       const injectedHtml = htmlSource.replace(
         '<head>',
-        `<head>\n  <script>window.__INONU_INITIAL_LOCKED__ = ${isLocked}; try { if (${isLocked} && !localStorage.getItem('inonu_tip_d1_ios_v3_authSession')) { document.documentElement.classList.add('site-locked-locked'); localStorage.setItem('inonu_tip_d1_ios_v3_siteRequireLoginCache', 'true'); } else { localStorage.setItem('inonu_tip_d1_ios_v3_siteRequireLoginCache', '${isLocked}'); } } catch(e){}</script>`
+        `<head>\n  <script>window.__INONU_INITIAL_LOCKED__ = ${isLocked}; window.__INONU_INITIAL_ACCESS_TS__ = ${serverTs}; try { var p = 'inonu_tip_d1_ios_v3_'; var sTs = ${serverTs}; var curTs = Number(localStorage.getItem(p + 'siteAccessUpdatedAtMs') || 0) || 0; var hasAuth = !!localStorage.getItem(p + 'authSession'); var cachedLock = localStorage.getItem(p + 'siteRequireLoginCache') === 'true'; if (sTs > 0 && sTs >= curTs) { localStorage.setItem(p + 'siteRequireLoginCache', '${isLocked}'); localStorage.setItem(p + 'siteAccessUpdatedAtMs', String(sTs)); cachedLock = ${isLocked}; } if (cachedLock && !hasAuth) { document.documentElement.classList.add('site-locked-locked'); } } catch(e){}</script>`
       );
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       res.send(injectedHtml);
     } catch (err) {
       res.status(500).send('Error loading page');

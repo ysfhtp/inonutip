@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { deleteDoc, doc, getDoc, getDocFromServer, getFirestore, setDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, getDocFromServer, getFirestore, setDoc, updateDoc } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import {
   ADMIN_ROSTER_CIPHERTEXT_B64,
@@ -163,9 +163,13 @@ export interface FirestoreErrorInfo {
   };
 }
 
+const QUOTA_COOLDOWN_KEY = STATIC_STORE_PREFIX + 'quota_cooldown_until_v2';
+
 let firestoreQuotaCooldownUntil = (() => {
   try {
-    const saved = Number(localStorage.getItem(STATIC_STORE_PREFIX + 'quota_cooldown_until') || 0);
+    // Clear legacy timeout-poisoned cooldown key from previous versions
+    localStorage.removeItem(STATIC_STORE_PREFIX + 'quota_cooldown_until');
+    const saved = Number(localStorage.getItem(QUOTA_COOLDOWN_KEY) || 0);
     return Number.isFinite(saved) && saved > Date.now() ? saved : 0;
   } catch {
     return 0;
@@ -173,21 +177,30 @@ let firestoreQuotaCooldownUntil = (() => {
 })();
 
 function markFirestoreQuotaExceeded(): void {
-  firestoreQuotaCooldownUntil = Date.now() + 15 * 60_000;
+  firestoreQuotaCooldownUntil = Date.now() + 10 * 60_000;
   try {
-    localStorage.setItem(STATIC_STORE_PREFIX + 'quota_cooldown_until', String(firestoreQuotaCooldownUntil));
+    localStorage.setItem(QUOTA_COOLDOWN_KEY, String(firestoreQuotaCooldownUntil));
   } catch {}
+}
+
+function isRealFirestoreQuotaError(errMsg: string): boolean {
+  if (!errMsg || errMsg.includes('FIRESTORE_TIMEOUT')) return false;
+  return (
+    errMsg.includes('Quota limit exceeded') ||
+    errMsg.includes('Quota exceeded') ||
+    errMsg.includes('resource-exhausted')
+  );
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
   const errMsg = error instanceof Error ? error.message : String(error);
-  const isQuotaOrTransient =
-    errMsg.includes('Quota limit exceeded') ||
-    errMsg.includes('Quota exceeded') ||
-    errMsg.includes('resource-exhausted') ||
-    errMsg.includes('the client is offline');
+  const isRealQuota = isRealFirestoreQuotaError(errMsg);
+  const isTransientOffline =
+    errMsg.includes('FIRESTORE_TIMEOUT') ||
+    errMsg.includes('the client is offline') ||
+    errMsg.includes('unavailable');
 
-  if (isQuotaOrTransient) {
+  if (isRealQuota) {
     markFirestoreQuotaExceeded();
   }
 
@@ -209,7 +222,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path,
   };
 
-  if (isQuotaOrTransient) {
+  if (isRealQuota || isTransientOffline) {
     console.warn('Firestore Quota/Offline Fallback active:', errInfo.path);
   } else {
     console.error('Firestore Error: ', JSON.stringify(errInfo));
@@ -225,27 +238,24 @@ async function testConnection(): Promise<void> {
     }
   } catch {}
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    await withFirestoreTimeout(getDocFromServer(doc(db, 'test', 'connection')), 4000);
     try {
       sessionStorage.setItem('inonu_firestore_conn_ok', '1');
     } catch {}
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    if (msg.includes('Quota limit exceeded') || msg.includes('Quota exceeded') || msg.includes('resource-exhausted')) {
+    if (isRealFirestoreQuotaError(msg)) {
       markFirestoreQuotaExceeded();
       return;
-    }
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
     }
   }
 }
 void testConnection();
 
-function withFirestoreTimeout<T>(promise: Promise<T>, ms = 2200): Promise<T> {
+function withFirestoreTimeout<T>(promise: Promise<T>, ms = 6000): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new Error('Quota limit exceeded: Firestore operation timed out'));
+      reject(new Error('FIRESTORE_TIMEOUT'));
     }, ms);
     promise.then(
       (val) => {
@@ -308,18 +318,34 @@ function getValidFirestoreAdminProof(adminSecret?: string): string {
   return ADMIN_SECRET_RE.test(candidate) ? candidate : DEFAULT_ADMIN_SESSION_SECRET;
 }
 
+function stripUndefinedDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripUndefinedDeep(item)) as unknown as T;
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v !== undefined) {
+        out[k] = stripUndefinedDeep(v);
+      }
+    }
+    return out as T;
+  }
+  return value;
+}
+
 function buildConsolidatedStateFromLocal(adminSecret?: string): ConsolidatedGlobalState {
   const access = readStaticJson<Partial<SiteAccessSettings>>('access', {});
   const sec = getStaticSecurityConfig();
   const announcements = trimMapToLimit(
-    readStaticJson<Record<string, Record<string, unknown>>>('announcements', {}),
+    stripUndefinedDeep(readStaticJson<Record<string, Record<string, unknown>>>('announcements', {})),
     100,
   );
   const rawMaterials = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
   const slimMaterials: Record<string, Record<string, unknown>> = {};
   for (const [k, m] of Object.entries(rawMaterials)) {
     if (!m || typeof m !== 'object') continue;
-    const copy = { ...m };
+    const copy = stripUndefinedDeep({ ...m });
     // Avoid bloating the single document with huge inline base64 PDF strings
     if (typeof copy.pdfData === 'string' && copy.pdfData.length > 8192) {
       delete copy.pdfData;
@@ -328,11 +354,11 @@ function buildConsolidatedStateFromLocal(adminSecret?: string): ConsolidatedGlob
   }
   const materials = trimMapToLimit(slimMaterials, 500);
   const customStudents = trimMapToLimit(
-    readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {}),
+    stripUndefinedDeep(readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {})),
     600,
   );
   const directory = trimMapToLimit(
-    readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {}),
+    stripUndefinedDeep(readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {})),
     600,
   );
 
@@ -445,7 +471,7 @@ async function fetchConsolidatedGlobalState(forceRefresh = false): Promise<Conso
     try {
       let snap;
       try {
-        snap = await withFirestoreTimeout(getDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID)), 2200);
+        snap = await withFirestoreTimeout(getDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID)), 6000);
       } catch (error) {
         handleFirestoreError(error, OperationType.GET, docPath);
       }
@@ -492,24 +518,70 @@ async function fetchConsolidatedGlobalState(forceRefresh = false): Promise<Conso
   return inflightGlobalFetch;
 }
 
-async function syncConsolidatedGlobalStateToFirestore(adminSecret?: string): Promise<void> {
+async function syncConsolidatedGlobalStateToFirestore(adminSecret?: string): Promise<boolean> {
   const nextState = buildConsolidatedStateFromLocal(adminSecret);
   memoryGlobalState = nextState;
   memoryGlobalFetchedAt = Date.now();
 
   if (!isFirestoreAvailable()) {
-    return;
+    return false;
   }
 
   const docPath = `${GLOBAL_STATE_COLLECTION}/${GLOBAL_STATE_DOC_ID}`;
   try {
     try {
-      await withFirestoreTimeout(setDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID), nextState), 2500);
+      await withFirestoreTimeout(setDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID), nextState), 8000);
+      return true;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, docPath);
     }
   } catch {
-    // Gracefully fallback to local SQLite / browser storage if Firestore quota is temporarily exhausted
+    return false;
+  }
+}
+
+async function syncAccessLockToFirestore(
+  requireStudentLogin: boolean,
+  accessUpdatedAtMs: number,
+  adminSecret?: string,
+): Promise<boolean> {
+  if (memoryGlobalState) {
+    memoryGlobalState = {
+      ...memoryGlobalState,
+      requireStudentLogin: Boolean(requireStudentLogin),
+      accessUpdatedAtMs,
+      updatedAtMs: accessUpdatedAtMs,
+    };
+    memoryGlobalFetchedAt = Date.now();
+  }
+
+  if (!isFirestoreAvailable()) {
+    return false;
+  }
+
+  const docPath = `${GLOBAL_STATE_COLLECTION}/${GLOBAL_STATE_DOC_ID}`;
+  const adminProof = getValidFirestoreAdminProof(adminSecret);
+  try {
+    await withFirestoreTimeout(
+      updateDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID), {
+        requireStudentLogin: Boolean(requireStudentLogin),
+        accessUpdatedAtMs,
+        updatedAtMs: accessUpdatedAtMs,
+        adminProof,
+      }),
+      7000,
+    );
+    return true;
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err || '');
+    if (errMsg.includes('not-found') || errMsg.includes('No document to update') || errMsg.includes('permission-denied')) {
+      return syncConsolidatedGlobalStateToFirestore(adminSecret);
+    }
+    try {
+      handleFirestoreError(err, OperationType.UPDATE, docPath);
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -1151,14 +1223,17 @@ export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
   let bestRequire = savedLocal.requireStudentLogin === true;
   let bestTs = Number(savedLocal.updatedAtMs) || 0;
 
-  if (consolidated && (Number(consolidated.accessUpdatedAtMs) || 0) >= bestTs) {
-    bestRequire = consolidated.requireStudentLogin === true;
-    bestTs = Number(consolidated.accessUpdatedAtMs) || 0;
+  if (consolidated) {
+    const fsTs = Number(consolidated.accessUpdatedAtMs) || 0;
+    if (fsTs > 0 && fsTs >= bestTs) {
+      bestRequire = consolidated.requireStudentLogin === true;
+      bestTs = fsTs;
+    }
   }
 
   if (apiJson) {
     const apiTs = Number(apiJson.updatedAtMs) || 0;
-    if (apiTs >= bestTs) {
+    if (apiTs > 0 && apiTs >= bestTs) {
       bestRequire = apiJson.requireStudentLogin === true;
       bestTs = apiTs;
     }
@@ -1191,9 +1266,15 @@ export async function saveSiteAccessSettings(
   requireStudentLogin: boolean,
   adminSecret?: string,
 ): Promise<SiteAccessSettings> {
-  const now = Date.now();
+  const prevLocal = readStaticJson<Partial<SiteAccessSettings>>('access', {});
+  const prevKnownTs = Math.max(
+    Number(prevLocal.updatedAtMs) || 0,
+    Number(memoryGlobalState?.accessUpdatedAtMs) || 0,
+  );
+  const now = Math.max(Date.now(), prevKnownTs + 1);
+  const targetLocked = Boolean(requireStudentLogin);
   const next: SiteAccessSettings = {
-    requireStudentLogin: Boolean(requireStudentLogin),
+    requireStudentLogin: targetLocked,
     updatedAtMs: now,
   };
 
@@ -1201,35 +1282,47 @@ export async function saveSiteAccessSettings(
   writeStaticJson('access', next);
   emitLocalTopic('access', next);
 
-  // 2. Sync to Quota-Friendly Single Document (/appState/global) in background (non-blocking)
-  void syncConsolidatedGlobalStateToFirestore(adminSecret);
-
-  // 3. If Express backend API is online, sync immediately to server SQLite database
-  try {
-    if (await isApiBackendOnline()) {
-      const secret = resolveAdminWriteSecret(adminSecret);
-      const resp = await fetch('/api/access', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Secret': secret,
-        },
-        body: JSON.stringify({ requireStudentLogin: Boolean(requireStudentLogin) }),
-      });
-      if (resp.ok) {
-        const json = (await resp.json().catch(() => ({}))) as {
-          requireStudentLogin?: boolean;
-          updatedAtMs?: number;
-        };
-        if (json && typeof json.requireStudentLogin === 'boolean') {
-          next.requireStudentLogin = json.requireStudentLogin;
-          next.updatedAtMs = Math.max(now, Number(json.updatedAtMs) || now);
-          writeStaticJson('access', next);
+  // 2. Sync BOTH Firestore (/appState/global) via fast partial updateDoc AND Express SQLite in parallel
+  const firestorePromise = syncAccessLockToFirestore(targetLocked, now, adminSecret);
+  const apiPromise = (async (): Promise<{ ok: boolean; updatedAtMs: number }> => {
+    try {
+      if (await isApiBackendOnline()) {
+        const secret = resolveAdminWriteSecret(adminSecret);
+        const resp = await fetch('/api/access', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Secret': secret,
+          },
+          body: JSON.stringify({
+            requireStudentLogin: targetLocked,
+            updatedAtMs: now,
+          }),
+        });
+        if (resp.ok) {
+          const json = (await resp.json().catch(() => ({}))) as {
+            requireStudentLogin?: boolean;
+            updatedAtMs?: number;
+          };
+          const serverTs = Number(json?.updatedAtMs) || now;
+          return { ok: true, updatedAtMs: serverTs };
         }
       }
-    }
-  } catch {
-    // Persisted via Firebase Single-Document & local Smart Cache
+    } catch {}
+    return { ok: false, updatedAtMs: now };
+  })();
+
+  const [firestoreOk, apiRes] = await Promise.all([firestorePromise, apiPromise]);
+
+  if (apiRes.ok && apiRes.updatedAtMs > next.updatedAtMs) {
+    next.updatedAtMs = apiRes.updatedAtMs;
+    writeStaticJson('access', next);
+    // Ensure Firestore has the exact winning server timestamp
+    await syncAccessLockToFirestore(targetLocked, next.updatedAtMs, adminSecret);
+  }
+
+  if (!firestoreOk && !apiRes.ok && isFirestoreAvailable()) {
+    throw new Error('ACCESS_SAVE_FAILED');
   }
 
   return next;
