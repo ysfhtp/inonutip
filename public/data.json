@@ -1,13 +1,36 @@
 {
-  "version": "3.2.1",
-  "updatedAtMs": 0,
+  "version": "3.2.6",
+  "updatedAtMs": 1794934724252,
+  "githubSource": {
+    "owner": "ysfhtp",
+    "repo": "inonutip",
+    "branch": "main",
+    "path": "public/data.json"
+  },
   "access": {
-    "requireStudentLogin": false,
+    "requireStudentLogin": true,
+    "updatedAtMs": 1794934276861
+  },
+  "security": {
+    "passwordHash": "25be9d153053e43e3de8b19857b85e4cd3d806568ba6e19ed5c9106f5821d527",
+    "proofDigestB64": "NYixg8m6D55ww5bflL1j5si5a9Yb3lurTyAKeAOKDEs=",
+    "wrappedRosterKey": "fa8aa82caed8efe48730f29a260c4c517a02ef317a10e7e298010425871c0ef7",
     "updatedAtMs": 0
   },
   "announcements": [],
   "materials": [],
   "customStudents": {},
   "studentDirectory": {},
-  "studentPrefs": {}
+  "studentPrefs": {
+    "8a186328b61ddb5643e458cd32032028d771a61318ff83fff2eb7223afaea20e": {
+      "cloud_key": "8a186328b61ddb5643e458cd32032028d771a61318ff83fff2eb7223afaea20e",
+      "auth_hash": "09a851e34a2b859fee631755b5918e37",
+      "last4": "2038",
+      "my_mbu_group": "III",
+      "my_lab_group": "",
+      "other_group_mode": "dim",
+      "lang": "tr",
+      "updated_at": 1794934129585
+    }
+  }
 }
