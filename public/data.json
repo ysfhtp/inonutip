@@ -1,6 +1,6 @@
 {
-  "version": "3.2.10",
-  "updatedAtMs": 1794935027945,
+  "version": "3.2.11",
+  "updatedAtMs": 1794935244375,
   "githubSource": {
     "owner": "ysfhtp",
     "repo": "inonutip",
@@ -8,8 +8,8 @@
     "path": "public/data.json"
   },
   "access": {
-    "requireStudentLogin": false,
-    "updatedAtMs": 1794934835085
+    "requireStudentLogin": true,
+    "updatedAtMs": 1794935244373
   },
   "security": {
     "passwordHash": "25be9d153053e43e3de8b19857b85e4cd3d806568ba6e19ed5c9106f5821d527",
