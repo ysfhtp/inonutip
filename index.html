@@ -9818,6 +9818,27 @@
             const blob = await resp.blob();
             triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload, mat.pdfUrl);
           } catch (err) {
+            const api = window.__inonuCloudApi;
+            if (api && typeof api.downloadLessonMaterialChunks === 'function' && mat.id) {
+              try {
+                const fallbackBlob = await api.downloadLessonMaterialChunks(
+                  mat.id,
+                  Math.max(1, Number(mat.chunkCount) || 1),
+                  (done, total) => {
+                    const pct = Math.min(99, Math.round((done / Math.max(1, total)) * 100));
+                    showPdfDownloadProgressBanner(
+                      displayTitle,
+                      state.lang === 'en'
+                        ? `Downloading... %${pct} (${done}/${total})`
+                        : `İndiriliyor... %${pct} (${done}/${total})`,
+                      pct
+                    );
+                  }
+                );
+                triggerBlobDownloadWithReadyBanner(fallbackBlob, fileName, displayTitle, shouldAutoSaveDownload);
+                return;
+              } catch {}
+            }
             console.warn('Server PDF download failed:', err);
             closePdfDownloadBanner(true);
             const msg = err instanceof Error && err.message === 'LEGACY_SERVER_FILE_MISSING'
