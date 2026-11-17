@@ -522,9 +522,27 @@ async function buildServerDataJsonSnapshot() {
     sec.passwordHash !== DEFAULT_ADMIN_PASSWORD_HASH ||
     Boolean(sec.wrappedRosterKey);
 
+  let existingGithubSource: Record<string, unknown> | undefined = undefined;
+  if (fs.existsSync(PUBLIC_DATA_JSON_PATH)) {
+    try {
+      const existingJson = JSON.parse(fs.readFileSync(PUBLIC_DATA_JSON_PATH, 'utf8'));
+      if (existingJson && typeof existingJson === 'object' && existingJson.githubSource) {
+        existingGithubSource = existingJson.githubSource;
+      }
+    } catch {}
+  }
+
   return {
-    version: '3.2.1',
+    version: '3.2.36',
     updatedAtMs: Date.now(),
+    githubSource: existingGithubSource || {
+      owner: 'ysfhtp',
+      repo: 'inonutip',
+      branch: 'main',
+      path: 'public/data.json',
+      gistId: 'a05d16ac1301f55a8d818d8bd07a3bfe',
+      gistOwner: 'ysfhtp',
+    },
     access: {
       requireStudentLogin: Boolean(accessCfg.requireStudentLogin),
       updatedAtMs: Number(accessCfg.updatedAtMs) || 0,

@@ -1,11 +1,13 @@
 {
-  "version": "3.2.12",
-  "updatedAtMs": 1794935307291,
+  "version": "3.2.36",
+  "updatedAtMs": 1794938193811,
   "githubSource": {
     "owner": "ysfhtp",
     "repo": "inonutip",
     "branch": "main",
-    "path": "public/data.json"
+    "path": "public/data.json",
+    "gistId": "a05d16ac1301f55a8d818d8bd07a3bfe",
+    "gistOwner": "ysfhtp"
   },
   "access": {
     "requireStudentLogin": false,

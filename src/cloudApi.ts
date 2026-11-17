@@ -402,6 +402,7 @@ export interface GithubSourceMeta {
   branch?: string;
   path?: string;
   gistId?: string;
+  gistOwner?: string;
 }
 
 export interface SiteDataJson {
@@ -515,7 +516,8 @@ function getSavedGithubSource(): GithubSourceMeta | null {
       repo: String(fromStatic.repo || '').trim(),
       branch: String(fromStatic.branch || 'main').trim() || 'main',
       path: String(fromStatic.path || 'public/data.json').trim().replace(/^\/+/, '') || 'public/data.json',
-      gistId: String(fromStatic.gistId || '').trim(),
+      gistId: String(fromStatic.gistId || 'a05d16ac1301f55a8d818d8bd07a3bfe').trim(),
+      gistOwner: String(fromStatic.gistOwner || 'ysfhtp').trim(),
     };
   }
   try {
@@ -526,14 +528,15 @@ function getSavedGithubSource(): GithubSourceMeta | null {
       const isGist = repoInput.includes('gist.github.com') || /^[a-f0-9]{32}$/i.test(repoInput) || repoInput.startsWith('gist:');
       if (isGist) {
         const cleanRepoClean = repoInput.replace(/\/+$/, '');
-        const gistId = cleanRepoClean.replace(/^gist:/i, '').split('/').pop() || '';
+        const gistId = cleanRepoClean.replace(/^gist:/i, '').split('/').pop() || 'a05d16ac1301f55a8d818d8bd07a3bfe';
         if (gistId) {
           return {
-            owner: '',
-            repo: repoInput,
+            owner: 'ysfhtp',
+            repo: 'inonutip',
             branch: 'main',
-            path: 'data.json',
+            path: 'public/data.json',
             gistId,
+            gistOwner: 'ysfhtp',
           };
         }
       }
@@ -544,26 +547,22 @@ function getSavedGithubSource(): GithubSourceMeta | null {
           repo: parts[1],
           branch: String(parsed.branch || 'main').trim() || 'main',
           path: String(parsed.path || 'public/data.json').trim().replace(/^\/+/, '') || 'public/data.json',
+          gistId: 'a05d16ac1301f55a8d818d8bd07a3bfe',
+          gistOwner: parts[0] || 'ysfhtp',
         };
       }
     }
   } catch {
     // Ignore storage error
   }
-  if (typeof window !== 'undefined' && window.location.hostname.endsWith('.github.io')) {
-    const owner = window.location.hostname.replace(/\.github\.io$/i, '').trim();
-    const pathSegs = window.location.pathname.split('/').filter(Boolean);
-    const repo = pathSegs[0] || `${owner}.github.io`;
-    if (owner && repo) {
-      return {
-        owner,
-        repo,
-        branch: 'main',
-        path: 'public/data.json',
-      };
-    }
-  }
-  return null;
+  return {
+    owner: 'ysfhtp',
+    repo: 'inonutip',
+    branch: 'main',
+    path: 'public/data.json',
+    gistId: 'a05d16ac1301f55a8d818d8bd07a3bfe',
+    gistOwner: 'ysfhtp',
+  };
 }
 
 function getDataJsonFetchCandidates(): string[] {
@@ -574,7 +573,8 @@ function getDataJsonFetchCandidates(): string[] {
   };
   const gh = getSavedGithubSource();
   if (gh && gh.gistId) {
-    pushUnique(`https://gist.githubusercontent.com/${encodeURIComponent(gh.gistId)}/raw/data.json?t=${Date.now()}`);
+    const ownerSeg = gh.gistOwner ? encodeURIComponent(gh.gistOwner) : 'ysfhtp';
+    pushUnique(`https://gist.githubusercontent.com/${ownerSeg}/${encodeURIComponent(gh.gistId)}/raw/data.json?t=${Date.now()}`);
   }
   if (gh && gh.owner && gh.repo) {
     const cleanBranch = encodeURIComponent(gh.branch || 'main');
@@ -614,19 +614,42 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
 
   remoteDataJsonInFlight = (async () => {
     const candidates = getDataJsonFetchCandidates();
-    const results = await Promise.allSettled(
-      candidates.map(async (baseUrl) => {
-        const sep = baseUrl.includes('?') ? '&' : '?';
-        const resp = await fetch(`${baseUrl}${sep}t=${Date.now()}`, {
-          cache: 'no-store',
-          signal: AbortSignal.timeout(4500),
-        });
-        const ct = (resp.headers.get('content-type') || '').toLowerCase();
-        if (!resp.ok || ct.includes('text/html')) return null;
-        const parsed = (await resp.json().catch(() => null)) as SiteDataJson | null;
-        return parsed && typeof parsed === 'object' ? parsed : null;
-      }),
-    );
+    const gh = getSavedGithubSource();
+    const fetchPromises = candidates.map(async (baseUrl) => {
+      const sep = baseUrl.includes('?') ? '&' : '?';
+      const resp = await fetch(`${baseUrl}${sep}t=${Date.now()}`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(4500),
+      });
+      const ct = (resp.headers.get('content-type') || '').toLowerCase();
+      if (!resp.ok || ct.includes('text/html')) return null;
+      const parsed = (await resp.json().catch(() => null)) as SiteDataJson | null;
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    });
+
+    if (gh && gh.gistId) {
+      fetchPromises.push(
+        (async () => {
+          try {
+            const apiResp = await fetch(`https://api.github.com/gists/${encodeURIComponent(gh.gistId || '')}?t=${Date.now()}`, {
+              headers: { Accept: 'application/vnd.github+json' },
+              cache: 'no-store',
+              signal: AbortSignal.timeout(4500),
+            });
+            if (!apiResp.ok) return null;
+            const gistJson = (await apiResp.json().catch(() => null)) as { files?: Record<string, { content?: string }> } | null;
+            const contentStr = gistJson?.files?.['data.json']?.content;
+            if (!contentStr) return null;
+            const parsed = JSON.parse(contentStr) as SiteDataJson;
+            return parsed && typeof parsed === 'object' ? parsed : null;
+          } catch {
+            return null;
+          }
+        })()
+      );
+    }
+
+    const results = await Promise.allSettled(fetchPromises);
 
     let remote: SiteDataJson | null = null;
     let bestScore = -1;
@@ -1398,9 +1421,13 @@ export async function checkStudentLoginStatus(rawSid: string): Promise<StudentLo
     return { ok: false, reason: 'deleted' };
   }
 
+  const isAllowlist = Boolean(allowlistMatch);
   const isCustomActive = custom ? custom.active !== 0 && custom.active !== false : true;
   const isDirActive = directory ? directory.active !== 0 && directory.active !== false : true;
-  if (!isCustomActive || !isDirActive) {
+  const isActive = isAllowlist
+    ? (custom?.active !== 0 && custom?.active !== false && directory?.active !== 0 && directory?.active !== false)
+    : (isCustomActive && isDirActive);
+  if (!isActive) {
     return { ok: false, reason: 'inactive' };
   }
 
@@ -1493,9 +1520,13 @@ export async function checkStudentSessionActive(authHash: string): Promise<Stude
   if ((custom && (custom.deleted === 1 || custom.deleted === true)) || (directory && (directory.deleted === 1 || directory.deleted === true))) {
     return 'deleted';
   }
+  const isAllowlist = verifyStudentHash(authHash) || isAdminStudentHash(authHash);
   const activeCustom = custom ? custom.active !== 0 && custom.active !== false : true;
   const activeDir = directory ? directory.active !== 0 && directory.active !== false : true;
-  if (!activeCustom || !activeDir) {
+  const isActive = isAllowlist
+    ? (custom?.active !== 0 && custom?.active !== false && directory?.active !== 0 && directory?.active !== false)
+    : (activeCustom && activeDir);
+  if (!isActive) {
     return 'inactive';
   }
   return 'active';
