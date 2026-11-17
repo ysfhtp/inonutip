@@ -4,5 +4,8 @@ export default [
   {
     ignores: ['dist/**/*', 'node_modules/**/*', 'src/**/*', 'public/**/*']
   },
-  firebaseRulesPlugin.configs['flat/recommended']
+  {
+    files: ['**/*.rules'],
+    ...firebaseRulesPlugin.configs['flat/recommended']
+  }
 ];

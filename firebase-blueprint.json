@@ -1,182 +1,524 @@
 {
   "entities": {
-    "GlobalAppState": {
-      "title": "GlobalAppState",
-      "description": "Single consolidated document storing site lock state, security hashes, announcements, lesson materials metadata, and custom student records to minimize Firestore read quota consumption.",
-      "type": "object",
-      "properties": {
-        "requireStudentLogin": {
-          "type": "boolean",
-          "description": "Whether the site is locked to registered student IDs only."
-        },
-        "accessUpdatedAtMs": {
-          "type": "number",
-          "description": "Timestamp in ms when site access lock was last updated."
-        },
-        "passwordHash": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$",
-          "maxLength": 64,
-          "minLength": 64,
-          "description": "SHA-256 hex hash of the admin password."
-        },
-        "proofDigestB64": {
-          "type": "string",
-          "maxLength": 44,
-          "minLength": 44,
-          "description": "Base64 SHA-256 digest of the admin write secret."
-        },
-        "wrappedRosterKey": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$",
-          "maxLength": 64,
-          "minLength": 64,
-          "description": "Wrapped AES-GCM master key for the student roster."
-        },
-        "announcements": {
-          "type": "object",
-          "description": "Bounded map of announcements keyed by announcement ID."
-        },
-        "materials": {
-          "type": "object",
-          "description": "Bounded map of lesson materials metadata keyed by material ID."
-        },
-        "customStudents": {
-          "type": "object",
-          "description": "Bounded map of custom or modified student status records keyed by authHash."
-        },
-        "directory": {
-          "type": "object",
-          "description": "Bounded map of encrypted admin student directory entries keyed by authHash."
-        },
-        "updatedAtMs": {
-          "type": "number",
-          "description": "Last modification epoch timestamp in milliseconds."
-        },
-        "adminProof": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$",
-          "maxLength": 64,
-          "minLength": 64,
-          "description": "Cryptographic admin write secret verified by Firestore rules."
-        }
-      },
-      "required": [
-        "requireStudentLogin",
-        "accessUpdatedAtMs",
-        "passwordHash",
-        "proofDigestB64",
-        "wrappedRosterKey",
-        "announcements",
-        "materials",
-        "customStudents",
-        "directory",
-        "updatedAtMs",
-        "adminProof"
-      ]
-    },
-    "StudentPreference": {
-      "title": "StudentPreference",
-      "description": "Per-student schedule filter preferences keyed by derived cloudDocId.",
+    "StudentPrefs": {
+      "title": "StudentPrefs",
+      "description": "Per-student non-PII schedule group and language preferences synchronized across devices by a runtime-derived 256-bit salted key.",
       "type": "object",
       "properties": {
         "myMbuGroup": {
           "type": "string",
           "enum": ["", "I", "II", "III", "IV", "V"],
-          "maxLength": 3
+          "maxLength": 3,
+          "description": "Student's selected MBU / PSP group."
         },
         "myLabGroup": {
           "type": "string",
           "enum": ["", "1", "2"],
-          "maxLength": 1
+          "maxLength": 1,
+          "description": "Student's selected LAB group."
         },
         "otherGroupMode": {
           "type": "string",
           "enum": ["dim", "hide"],
-          "maxLength": 4
+          "maxLength": 4,
+          "description": "Display mode for other groups."
         },
         "lang": {
           "type": "string",
           "enum": ["", "tr", "en"],
-          "maxLength": 2
+          "maxLength": 2,
+          "description": "Optional preferred schedule language."
         },
         "authHash": {
           "type": "string",
-          "pattern": "^(|[a-f0-9]{32})$",
-          "maxLength": 32
+          "maxLength": 32,
+          "pattern": "^[a-f0-9]{0,32}$",
+          "description": "Optional salted 32-hex allowlist reference hash."
         },
         "last4": {
           "type": "string",
-          "pattern": "^(|[0-9]{4})$",
-          "maxLength": 4
+          "maxLength": 4,
+          "pattern": "^[0-9]{0,4}$",
+          "description": "Optional last 4 digits of student ID for masked admin display."
         },
-        "updatedAtMs": {
-          "type": "number"
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the latest preference update."
         }
       },
-      "required": [
-        "myMbuGroup",
-        "myLabGroup",
-        "otherGroupMode",
-        "lang",
-        "authHash",
-        "last4",
-        "updatedAtMs"
-      ]
+      "required": ["myMbuGroup", "myLabGroup", "otherGroupMode", "updatedAt"]
     },
-    "PdfChunk": {
-      "title": "PdfChunk",
-      "description": "Chunked binary base64 storage for uploaded PDF files when running without a local file server.",
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Admin-managed campus or schedule notice displayed in the daily schedule view.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short announcement heading."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 800,
+          "description": "Announcement body text."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["info", "warn", "urgent"],
+          "maxLength": 6,
+          "description": "Visual severity tone."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether the announcement is visible to students."
+        },
+        "targetGroup": {
+          "type": "string",
+          "enum": ["", "I", "II", "III", "IV", "V"],
+          "maxLength": 3,
+          "description": "Target group filter or empty for all groups."
+        },
+        "targetProg": {
+          "type": "string",
+          "enum": ["", "tr", "en"],
+          "maxLength": 2,
+          "description": "Target program language filter or empty for all."
+        },
+        "deleted": {
+          "type": "boolean",
+          "description": "Soft-deletion flag controlled by verified admin proof."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest modification."
+        }
+      },
+      "required": ["title", "message", "tone", "active", "targetGroup", "targetProg", "deleted", "proofOpId", "createdAt", "updatedAt"]
+    },
+    "LessonMaterial": {
+      "title": "LessonMaterial",
+      "description": "Admin-attached PDF learning material for a specific lesson slot.",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "maxLength": 16,
+          "description": "Lesson date (DD.MM.YYYY)."
+        },
+        "slotNo": {
+          "type": "number",
+          "description": "Slot number (1-10)."
+        },
+        "targetProg": {
+          "type": "string",
+          "enum": ["", "tr", "en"],
+          "maxLength": 2,
+          "description": "Target program language (tr, en, or empty for legacy)."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Material title."
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": ["url", "file", "server", "chunks"],
+          "maxLength": 6,
+          "description": "Whether the PDF is an external link, small embedded file, server-stored file, or Firestore chunked file."
+        },
+        "pdfUrl": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "PDF file URL or /api/lesson-pdf/ path."
+        },
+        "pdfData": {
+          "type": "string",
+          "maxLength": 950000,
+          "description": "Optional base64-encoded PDF content for small direct downloads."
+        },
+        "chunkCount": {
+          "type": "number",
+          "description": "Number of Firestore chunks stored in lesson_material_chunks when sourceType is chunks."
+        },
+        "pdfName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Optional PDF filename."
+        },
+        "fileSize": {
+          "type": "number",
+          "description": "Optional PDF file size in bytes (up to 250 MB)."
+        },
+        "deleted": {
+          "type": "boolean",
+          "description": "Soft-deletion flag."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Admin proof op ID."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update."
+        }
+      },
+      "required": ["date", "slotNo", "title", "pdfUrl", "deleted", "proofOpId", "createdAt", "updatedAt"]
+    },
+    "CustomStudent": {
+      "title": "CustomStudent",
+      "description": "Admin-added non-PII student login entry keyed by salted 32-hex auth hash.",
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "string",
+          "enum": ["I", "II", "III", "IV", "V"],
+          "maxLength": 3,
+          "description": "Assigned MBU / PSP group."
+        },
+        "labGroup": {
+          "type": "string",
+          "enum": ["", "1", "2"],
+          "maxLength": 1,
+          "description": "Optional assigned LAB group."
+        },
+        "prog": {
+          "type": "string",
+          "enum": ["tr", "en"],
+          "maxLength": 2,
+          "description": "Assigned program language."
+        },
+        "encName": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Student-ID-keyed XOR-encrypted student display name."
+        },
+        "encSid": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Optional AES-GCM admin-key-encrypted full 11-digit student ID."
+        },
+        "last4": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 4,
+          "pattern": "^[0-9]{4}$",
+          "description": "Last 4 digits of student ID."
+        },
+        "cloudKey": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Derived 64-hex cloud preference document ID."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether login is enabled for this custom student."
+        },
+        "deleted": {
+          "type": "boolean",
+          "description": "Soft-deletion flag controlled by verified admin proof."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update."
+        }
+      },
+      "required": ["group", "labGroup", "prog", "encName", "last4", "cloudKey", "active", "deleted", "proofOpId", "createdAt", "updatedAt"]
+    },
+    "AdminStudentRecord": {
+      "title": "AdminStudentRecord",
+      "description": "Strict admin-only student directory record isolating student names from public reads.",
+      "type": "object",
+      "properties": {
+        "authHash": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 32,
+          "pattern": "^[a-f0-9]{32}$",
+          "description": "32-hex student auth hash."
+        },
+        "cloudKey": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "64-hex student prefs key."
+        },
+        "last4": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 4,
+          "pattern": "^[0-9]{4}$",
+          "description": "Last 4 digits of student ID."
+        },
+        "encFullName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Obfuscated/encrypted student display name for admin directory."
+        },
+        "encSid": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Optional AES-GCM admin-key-encrypted full 11-digit student ID."
+        },
+        "group": {
+          "type": "string",
+          "enum": ["I", "II", "III", "IV", "V"],
+          "maxLength": 3,
+          "description": "Assigned MBU group."
+        },
+        "labGroup": {
+          "type": "string",
+          "enum": ["", "1", "2"],
+          "maxLength": 1,
+          "description": "Assigned LAB group."
+        },
+        "prog": {
+          "type": "string",
+          "enum": ["tr", "en"],
+          "maxLength": 2,
+          "description": "Program language."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["allowlist", "custom"],
+          "maxLength": 10,
+          "description": "Origin of the student record."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether student account is active."
+        },
+        "deleted": {
+          "type": "boolean",
+          "description": "Soft-deletion flag controlled by verified admin proof."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["authHash", "cloudKey", "last4", "encFullName", "group", "labGroup", "prog", "source", "active", "deleted", "proofOpId", "createdAt", "updatedAt"]
+    },
+    "AdminSecurityConfig": {
+      "title": "AdminSecurityConfig",
+      "description": "Admin password digest configuration writable only with valid current admin proof.",
+      "type": "object",
+      "properties": {
+        "passwordHash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Salted SHA-256 hash of admin login password."
+        },
+        "proofDigestB64": {
+          "type": "string",
+          "minLength": 44,
+          "maxLength": 44,
+          "description": "Base64 SHA-256 digest of the admin write secret."
+        },
+        "wrappedRosterKey": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 128,
+          "pattern": "^[a-f0-9]{64,128}$",
+          "description": "Optional admin-secret-wrapped master roster decryption key."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of password update."
+        }
+      },
+      "required": ["passwordHash", "proofDigestB64", "proofOpId", "updatedAt"]
+    },
+    "SiteAccessConfig": {
+      "title": "SiteAccessConfig",
+      "description": "Global site access policy (public guest browsing vs student-ID-only login required), writable only with valid admin proof.",
+      "type": "object",
+      "properties": {
+        "requireStudentLogin": {
+          "type": "boolean",
+          "description": "When true, only signed-in students or admins can view the site."
+        },
+        "proofOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest access policy update."
+        }
+      },
+      "required": ["requireStudentLogin", "proofOpId", "updatedAt"]
+    },
+    "AdminProof": {
+      "title": "AdminProof",
+      "description": "Write-only atomic proof document verifying admin password knowledge in write batches.",
+      "type": "object",
+      "properties": {
+        "proof": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Admin write secret derived from the admin password."
+        },
+        "targetPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Exact target resource key bound to this batch."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp enforcing single-batch non-replayability."
+        }
+      },
+      "required": ["proof", "targetPath", "createdAt"]
+    },
+    "LessonMaterialChunk": {
+      "title": "LessonMaterialChunk",
+      "description": "Chunked base64 segment of an admin-uploaded lesson PDF stored natively in Firestore for cross-deployment availability.",
       "type": "object",
       "properties": {
         "materialId": {
           "type": "string",
-          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
-          "maxLength": 100
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Parent lesson_materials document ID."
         },
         "chunkIndex": {
-          "type": "number"
+          "type": "number",
+          "description": "Zero-based index of this PDF chunk."
+        },
+        "totalChunks": {
+          "type": "number",
+          "description": "Total chunk count for this PDF."
         },
         "data": {
           "type": "string",
-          "maxLength": 900000
+          "minLength": 1,
+          "maxLength": 900000,
+          "description": "Base64-encoded binary slice of the PDF."
         },
-        "updatedAtMs": {
-          "type": "number"
-        },
-        "adminProof": {
+        "proofOpId": {
           "type": "string",
-          "pattern": "^[a-f0-9]{64}$",
-          "maxLength": 64
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Atomic admin proof operation document ID."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update."
         }
       },
-      "required": [
-        "materialId",
-        "chunkIndex",
-        "data",
-        "updatedAtMs",
-        "adminProof"
-      ]
+      "required": ["materialId", "chunkIndex", "totalChunks", "data", "proofOpId", "updatedAt"]
     }
   },
   "firestore": {
-    "/appState/{stateId}": {
-      "schema": {
-        "$ref": "#/entities/GlobalAppState"
-      },
-      "description": "Quota-friendly single document (stateId == 'global') containing consolidated site lock, announcements, materials metadata, and custom student overrides."
+    "/student_prefs/{studentHash}": {
+      "schema": { "$ref": "#/entities/StudentPrefs" },
+      "description": "Stores each student's MBU/LAB group and visibility preferences keyed by a 64-hex SHA-256 key."
     },
-    "/studentPrefs/{cloudKey}": {
-      "schema": {
-        "$ref": "#/entities/StudentPreference"
-      },
-      "description": "Individual student preferences accessed by 64-char hex cloudKey without list queries."
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Stores admin-managed announcements shown in the daily view."
     },
-    "/pdfChunks/{chunkDocId}": {
-      "schema": {
-        "$ref": "#/entities/PdfChunk"
-      },
-      "description": "Individual PDF base64 chunks accessed by deterministic chunkDocId without list queries."
+    "/custom_students/{authHash}": {
+      "schema": { "$ref": "#/entities/CustomStudent" },
+      "description": "Stores admin-added custom students keyed by salted 32-hex auth hash."
+    },
+    "/admin_student_directory/{authHash}": {
+      "schema": { "$ref": "#/entities/AdminStudentRecord" },
+      "description": "Admin student directory storing encrypted names and group metadata."
+    },
+    "/admin_config/{configId}": {
+      "schema": { "$ref": "#/entities/AdminSecurityConfig" },
+      "description": "Stores salted SHA-256 admin password hash and write proof verifier ('security') and site-wide student-login access toggle ('access')."
+    },
+    "/admin_proofs/{opId}": {
+      "schema": { "$ref": "#/entities/AdminProof" },
+      "description": "Write-only atomic batch verification docs; unreadable by all clients."
+    },
+    "/lesson_materials/{lessonKey}": {
+      "schema": { "$ref": "#/entities/LessonMaterial" },
+      "description": "Stores admin-uploaded PDF materials for lesson slots."
+    },
+    "/lesson_material_chunks/{chunkId}": {
+      "schema": { "$ref": "#/entities/LessonMaterialChunk" },
+      "description": "Stores chunked binary segments of lesson PDFs for cross-deployment download."
     }
   }
 }

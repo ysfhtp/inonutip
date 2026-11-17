@@ -1,219 +1,76 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 import express, { type Request, type Response } from 'express';
 
 const PORT = Number(process.env.PORT) || 3000;
-const MAX_PDF_BYTES = 250 * 1024 * 1024; // 250 MB per PDF
-const CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB upload chunks
-const DEFAULT_ADMIN_PASSWORD_HASH = '25be9d153053e43e3de8b19857b85e4cd3d806568ba6e19ed5c9106f5821d527';
+const MAX_PDF_BYTES = 250 * 1024 * 1024; // 250 MB
+const CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB chunks (under Cloud Run 32 MB limit)
 const DEFAULT_PROOF_DIGEST_B64 = 'NYixg8m6D55ww5bflL1j5si5a9Yb3lurTyAKeAOKDEs=';
-
-const UPLOADS_ROOT = path.resolve(process.cwd(), 'uploads');
-const STORAGE_ROOT = path.join(UPLOADS_ROOT, 'lesson-pdfs');
-const TMP_ROOT = path.join(UPLOADS_ROOT, '.tmp');
-const DB_PATH = path.join(UPLOADS_ROOT, 'inonu_tip.db');
+const STORAGE_ROOT = path.resolve(process.cwd(), 'uploads', 'lesson-pdfs');
+const TMP_ROOT = path.resolve(process.cwd(), 'uploads', '.tmp');
 
 fs.mkdirSync(STORAGE_ROOT, { recursive: true });
 fs.mkdirSync(TMP_ROOT, { recursive: true });
 
-// ==================== SQLITE DATABASE INITIALIZATION ====================
-const db = new DatabaseSync(DB_PATH);
-db.exec(`
-  PRAGMA journal_mode = WAL;
-  PRAGMA synchronous = NORMAL;
-  PRAGMA busy_timeout = 5000;
-  PRAGMA foreign_keys = ON;
-
-  CREATE TABLE IF NOT EXISTS admin_config (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    updated_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS announcements (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    message TEXT NOT NULL,
-    tone TEXT NOT NULL DEFAULT 'info',
-    active INTEGER NOT NULL DEFAULT 1,
-    target_group TEXT NOT NULL DEFAULT '',
-    target_prog TEXT NOT NULL DEFAULT '',
-    deleted INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS lesson_materials (
-    id TEXT PRIMARY KEY,
-    date TEXT NOT NULL,
-    slot_no INTEGER NOT NULL DEFAULT 1,
-    target_prog TEXT NOT NULL DEFAULT '',
-    title TEXT NOT NULL,
-    source_type TEXT NOT NULL DEFAULT 'url',
-    pdf_url TEXT NOT NULL DEFAULT '',
-    pdf_data TEXT NOT NULL DEFAULT '',
-    chunk_count INTEGER NOT NULL DEFAULT 0,
-    pdf_name TEXT NOT NULL DEFAULT '',
-    file_size INTEGER NOT NULL DEFAULT 0,
-    deleted INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS custom_students (
-    auth_hash TEXT PRIMARY KEY,
-    cloud_key TEXT NOT NULL DEFAULT '',
-    last4 TEXT NOT NULL DEFAULT '',
-    group_name TEXT NOT NULL DEFAULT 'I',
-    lab_group TEXT NOT NULL DEFAULT '',
-    prog TEXT NOT NULL DEFAULT 'tr',
-    enc_name TEXT NOT NULL DEFAULT '',
-    enc_sid TEXT NOT NULL DEFAULT '',
-    active INTEGER NOT NULL DEFAULT 1,
-    deleted INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS admin_student_directory (
-    auth_hash TEXT PRIMARY KEY,
-    cloud_key TEXT NOT NULL DEFAULT '',
-    last4 TEXT NOT NULL DEFAULT '',
-    enc_full_name TEXT NOT NULL DEFAULT '',
-    enc_sid TEXT NOT NULL DEFAULT '',
-    group_name TEXT NOT NULL DEFAULT 'I',
-    lab_group TEXT NOT NULL DEFAULT '',
-    prog TEXT NOT NULL DEFAULT 'tr',
-    source TEXT NOT NULL DEFAULT 'allowlist',
-    active INTEGER NOT NULL DEFAULT 1,
-    deleted INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS student_prefs (
-    cloud_key TEXT PRIMARY KEY,
-    auth_hash TEXT NOT NULL DEFAULT '',
-    last4 TEXT NOT NULL DEFAULT '',
-    my_mbu_group TEXT NOT NULL DEFAULT '',
-    my_lab_group TEXT NOT NULL DEFAULT '',
-    other_group_mode TEXT NOT NULL DEFAULT 'dim',
-    lang TEXT NOT NULL DEFAULT '',
-    updated_at INTEGER NOT NULL
-  );
-`);
-
-interface AdminSecurityConfig {
-  passwordHash: string;
-  proofDigestB64: string;
-  wrappedRosterKey?: string;
+interface FirebaseConfig {
+  projectId?: string;
+  apiKey?: string;
+  firestoreDatabaseId?: string;
 }
 
-interface SiteAccessConfig {
-  requireStudentLogin: boolean;
-  updatedAtMs: number;
-}
-
-function getConfigJson<T>(key: string): T | null {
-  const row = db.prepare('SELECT value FROM admin_config WHERE key = ?').get(key) as { value?: string } | undefined;
-  if (!row || typeof row.value !== 'string') return null;
+function loadFirebaseConfig(): FirebaseConfig {
   try {
-    return JSON.parse(row.value) as T;
+    const cfgPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
+    const raw = fs.readFileSync(cfgPath, 'utf8');
+    return JSON.parse(raw) as FirebaseConfig;
   } catch {
-    return null;
+    return {};
   }
 }
 
-function setConfigJson(key: string, value: unknown): void {
+const firebaseConfig = loadFirebaseConfig();
+
+let cachedProofDigest = '';
+let cachedProofFetchedAt = 0;
+
+async function fetchActiveProofDigestB64(forceRefresh = false): Promise<string> {
   const now = Date.now();
-  db.prepare(`
-    INSERT INTO admin_config (key, value, updated_at)
-    VALUES (?, ?, ?)
-    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
-  `).run(key, JSON.stringify(value), now);
-}
-
-// Ensure initial admin security and access config rows exist
-if (!getConfigJson<AdminSecurityConfig>('security')) {
-  setConfigJson('security', {
-    passwordHash: DEFAULT_ADMIN_PASSWORD_HASH,
-    proofDigestB64: DEFAULT_PROOF_DIGEST_B64,
-  } satisfies AdminSecurityConfig);
-}
-if (!getConfigJson<SiteAccessConfig>('access')) {
-  setConfigJson('access', {
-    requireStudentLogin: false,
-    updatedAtMs: 0,
-  } satisfies SiteAccessConfig);
-}
-
-// Migrate legacy datastore.json once if present
-function migrateLegacyDatastoreIfNeeded(): void {
-  const legacyPath = path.join(UPLOADS_ROOT, 'datastore.json');
-  if (!fs.existsSync(legacyPath)) return;
-  try {
-    const raw = JSON.parse(fs.readFileSync(legacyPath, 'utf8')) as {
-      materials?: Record<string, Record<string, unknown>>;
-      announcements?: Record<string, Record<string, unknown>>;
-    };
-    const now = Date.now();
-    if (raw.materials && typeof raw.materials === 'object') {
-      const stmt = db.prepare(`
-        INSERT OR IGNORE INTO lesson_materials
-        (id, date, slot_no, target_prog, title, source_type, pdf_url, pdf_data, chunk_count, pdf_name, file_size, deleted, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-      `);
-      for (const m of Object.values(raw.materials)) {
-        if (!m || typeof m.id !== 'string') continue;
-        stmt.run(
-          m.id,
-          String(m.date || ''),
-          Math.max(1, Math.min(10, Math.round(Number(m.slotNo) || 1))),
-          String(m.targetProg || ''),
-          String(m.title || 'PDF'),
-          String(m.sourceType || 'server'),
-          String(m.pdfUrl || ''),
-          String(m.pdfData || ''),
-          Math.round(Number(m.chunkCount) || 0),
-          String(m.pdfName || ''),
-          Math.round(Number(m.fileSize) || 0),
-          Number(m.createdAt) || now,
-          Number(m.updatedAt) || now,
-        );
-      }
-    }
-    if (raw.announcements && typeof raw.announcements === 'object') {
-      const stmt = db.prepare(`
-        INSERT OR IGNORE INTO announcements
-        (id, title, message, tone, active, target_group, target_prog, deleted, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-      for (const a of Object.values(raw.announcements)) {
-        if (!a || typeof a.id !== 'string') continue;
-        stmt.run(
-          a.id,
-          String(a.title || ''),
-          String(a.message || ''),
-          String(a.tone || 'info'),
-          a.active === false ? 0 : 1,
-          String(a.targetGroup || ''),
-          String(a.targetProg || ''),
-          a.deleted === true ? 1 : 0,
-          Number(a.createdAt) || now,
-          Number(a.updatedAt) || now,
-        );
-      }
-    }
-    fs.renameSync(legacyPath, `${legacyPath}.migrated`);
-  } catch {
-    // Ignore non-critical legacy migration error
+  if (!forceRefresh && cachedProofDigest && now - cachedProofFetchedAt < 15_000) {
+    return cachedProofDigest;
   }
-}
-migrateLegacyDatastoreIfNeeded();
 
-// ==================== SECURITY HELPERS & RATE LIMITER ====================
+  const { projectId, apiKey, firestoreDatabaseId } = firebaseConfig;
+  if (!projectId || !apiKey || !firestoreDatabaseId) {
+    return DEFAULT_PROOF_DIGEST_B64;
+  }
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/${encodeURIComponent(firestoreDatabaseId)}/documents/admin_config/security?key=${encodeURIComponent(apiKey)}`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (resp.status === 404) {
+      cachedProofDigest = DEFAULT_PROOF_DIGEST_B64;
+      cachedProofFetchedAt = now;
+      return cachedProofDigest;
+    }
+    if (resp.ok) {
+      const json = (await resp.json()) as {
+        fields?: { proofDigestB64?: { stringValue?: string } };
+      };
+      const digest = json?.fields?.proofDigestB64?.stringValue;
+      cachedProofDigest =
+        typeof digest === 'string' && digest.length === 44
+          ? digest
+          : DEFAULT_PROOF_DIGEST_B64;
+      cachedProofFetchedAt = now;
+      return cachedProofDigest;
+    }
+  } catch {
+    // Fallback to cached or default
+  }
+  return cachedProofDigest || DEFAULT_PROOF_DIGEST_B64;
+}
+
 function safeEqualString(a: string, b: string): boolean {
   const bufA = Buffer.from(a, 'utf8');
   const bufB = Buffer.from(b, 'utf8');
@@ -221,106 +78,17 @@ function safeEqualString(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-function getSecurityConfig(): AdminSecurityConfig {
-  const cfg = getConfigJson<AdminSecurityConfig>('security');
-  return {
-    passwordHash:
-      cfg && typeof cfg.passwordHash === 'string' && /^[a-f0-9]{64}$/.test(cfg.passwordHash)
-        ? cfg.passwordHash
-        : DEFAULT_ADMIN_PASSWORD_HASH,
-    proofDigestB64:
-      cfg && typeof cfg.proofDigestB64 === 'string' && cfg.proofDigestB64.length === 44
-        ? cfg.proofDigestB64
-        : DEFAULT_PROOF_DIGEST_B64,
-    wrappedRosterKey:
-      cfg && typeof cfg.wrappedRosterKey === 'string' && /^[a-f0-9]{64}$/.test(cfg.wrappedRosterKey)
-        ? cfg.wrappedRosterKey
-        : undefined,
-  };
-}
+async function verifyAdminSecret(rawSecret: unknown): Promise<boolean> {
+  const secret = typeof rawSecret === 'string' ? rawSecret.trim().toLowerCase() : '';
+  if (!/^[a-f0-9]{64}$/.test(secret)) return false;
 
-const DEFAULT_ADMIN_SESSION_SECRET = 'a9f4c8e27b1d60354e82f19c3b7a6d5084e1c2b9f07365a412d8e9b0c7f3a615';
+  const candidateDigest = crypto.createHash('sha256').update(secret, 'utf8').digest('base64');
+  const expected = await fetchActiveProofDigestB64(false);
+  if (safeEqualString(candidateDigest, expected)) return true;
 
-function verifyAdminSecret(_rawSecret: unknown): boolean {
-  return true;
-}
-
-const verifyAttempts = new Map<string, { count: number; resetAt: number }>();
-function checkVerifyRateLimit(ip: string): { allowed: boolean; retryAfterSec: number } {
-  const now = Date.now();
-  const entry = verifyAttempts.get(ip);
-  if (!entry || now >= entry.resetAt) {
-    return { allowed: true, retryAfterSec: 0 };
-  }
-  if (entry.count >= 10) {
-    return { allowed: false, retryAfterSec: Math.max(1, Math.ceil((entry.resetAt - now) / 1000)) };
-  }
-  return { allowed: true, retryAfterSec: 0 };
-}
-function recordVerifyFailure(ip: string): void {
-  const now = Date.now();
-  const entry = verifyAttempts.get(ip);
-  if (!entry || now >= entry.resetAt) {
-    verifyAttempts.set(ip, { count: 1, resetAt: now + 60_000 });
-  } else {
-    entry.count += 1;
-  }
-}
-function clearVerifyFailures(ip: string): void {
-  verifyAttempts.delete(ip);
-}
-
-// ==================== SSE REAL-TIME BROADCAST ====================
-const sseClients = new Set<Response>();
-function broadcastEvent(type: string, payload?: unknown): void {
-  const msg = `event: ${type}\ndata: ${JSON.stringify(payload ?? { ts: Date.now() })}\n\n`;
-  for (const client of sseClients) {
-    try {
-      client.write(msg);
-    } catch {
-      sseClients.delete(client);
-    }
-  }
-}
-
-setInterval(() => {
-  for (const client of sseClients) {
-    try {
-      client.write(': ping\n\n');
-    } catch {
-      sseClients.delete(client);
-    }
-  }
-}, 25_000);
-
-// ==================== NORMALIZATION HELPERS ====================
-const VALID_MBU_GROUPS = new Set(['', 'I', 'II', 'III', 'IV', 'V']);
-const VALID_NONEMPTY_MBU_GROUPS = new Set(['I', 'II', 'III', 'IV', 'V']);
-const VALID_LAB_GROUPS = new Set(['', '1', '2']);
-const VALID_TONES = new Set(['info', 'warn', 'urgent']);
-const HASH32_RE = /^[a-f0-9]{32}$/;
-const HEX64_RE = /^[a-f0-9]{64}$/;
-
-function normGroup(raw: unknown): string {
-  const s = typeof raw === 'string' ? raw.trim().toUpperCase() : '';
-  return VALID_MBU_GROUPS.has(s) ? s : '';
-}
-function normAssignedGroup(raw: unknown): string {
-  const s = typeof raw === 'string' ? raw.trim().toUpperCase() : '';
-  return VALID_NONEMPTY_MBU_GROUPS.has(s) ? s : 'I';
-}
-function normLab(raw: unknown): string {
-  const s = typeof raw === 'string' ? raw.trim() : '';
-  return VALID_LAB_GROUPS.has(s) ? s : '';
-}
-function normOtherMode(raw: unknown): 'dim' | 'hide' {
-  return raw === 'hide' ? 'hide' : 'dim';
-}
-function normLang(raw: unknown): '' | 'tr' | 'en' {
-  return raw === 'tr' || raw === 'en' ? raw : '';
-}
-function normTone(raw: unknown): 'info' | 'warn' | 'urgent' {
-  return typeof raw === 'string' && VALID_TONES.has(raw) ? (raw as 'info' | 'warn' | 'urgent') : 'info';
+  // Retry with forced refresh in case admin password was just updated
+  const freshExpected = await fetchActiveProofDigestB64(true);
+  return safeEqualString(candidateDigest, freshExpected);
 }
 
 function sanitizePdfFileName(raw: unknown): string {
@@ -373,696 +141,16 @@ interface StoredFileMeta {
 async function startServer() {
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', 1);
 
-  const jsonParser = express.json({ limit: '2mb' });
+  const jsonParser = express.json({ limit: '128kb' });
   const rawChunkParser = express.raw({
     type: 'application/octet-stream',
     limit: '4mb',
   });
 
-  // ==================== HEALTH & REAL-TIME SSE ====================
-  app.get('/api/health', (_req: Request, res: Response) => {
-    res.json({ ok: true, engine: 'sqlite', timestamp: Date.now() });
-  });
-
-  app.get('/api/events', (req: Request, res: Response) => {
-    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache, no-transform');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.flushHeaders?.();
-    res.write(`event: connected\ndata: ${JSON.stringify({ ok: true, ts: Date.now() })}\n\n`);
-    sseClients.add(res);
-    req.on('close', () => {
-      sseClients.delete(res);
-    });
-  });
-
-  // ==================== ADMIN AUTH & SECURITY CONFIG ====================
-  app.post('/api/admin/verify', jsonParser, (req: Request, res: Response) => {
-    const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    const rl = checkVerifyRateLimit(ip);
-    if (!rl.allowed) {
-      res.status(429).json({ ok: false, error: 'RATE_LIMITED', retryAfterSec: rl.retryAfterSec });
-      return;
-    }
-
-    const body = (req.body || {}) as { passwordHash?: unknown; writeSecret?: unknown };
-    const candidateHash = typeof body.passwordHash === 'string' ? body.passwordHash.trim().toLowerCase() : '';
-    const candidateSecret = typeof body.writeSecret === 'string' ? body.writeSecret.trim().toLowerCase() : '';
-    const sec = getSecurityConfig();
-
-    const hashMatch = HEX64_RE.test(candidateHash) && safeEqualString(candidateHash, sec.passwordHash);
-    const secretDigest = HEX64_RE.test(candidateSecret)
-      ? crypto.createHash('sha256').update(candidateSecret, 'utf8').digest('base64')
-      : '';
-    const secretMatch = Boolean(secretDigest) && safeEqualString(secretDigest, sec.proofDigestB64);
-
-    if (!hashMatch && !secretMatch) {
-      recordVerifyFailure(ip);
-      res.status(401).json({ ok: false, error: 'INVALID_PASSWORD' });
-      return;
-    }
-
-    clearVerifyFailures(ip);
-    res.json({
-      ok: true,
-      wrappedRosterKey: sec.wrappedRosterKey || '',
-    });
-  });
-
-  app.post('/api/admin/password', jsonParser, (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const body = (req.body || {}) as {
-      passwordHash?: unknown;
-      proofDigestB64?: unknown;
-      wrappedRosterKey?: unknown;
-    };
-    const passwordHash = typeof body.passwordHash === 'string' ? body.passwordHash.trim().toLowerCase() : '';
-    const proofDigestB64 = typeof body.proofDigestB64 === 'string' ? body.proofDigestB64.trim() : '';
-    const wrappedRosterKey = typeof body.wrappedRosterKey === 'string' ? body.wrappedRosterKey.trim().toLowerCase() : '';
-
-    if (!HEX64_RE.test(passwordHash) || proofDigestB64.length !== 44) {
-      res.status(400).json({ ok: false, error: 'INVALID_SECURITY_PAYLOAD' });
-      return;
-    }
-
-    const prev = getSecurityConfig();
-    const nextCfg: AdminSecurityConfig = {
-      passwordHash,
-      proofDigestB64,
-      wrappedRosterKey: HEX64_RE.test(wrappedRosterKey) ? wrappedRosterKey : prev.wrappedRosterKey,
-    };
-    setConfigJson('security', nextCfg);
-    res.json({ ok: true });
-  });
-
-  // ==================== SITE ACCESS SETTINGS ====================
-  app.get('/api/access', (_req: Request, res: Response) => {
-    const cfg = getConfigJson<SiteAccessConfig>('access') || { requireStudentLogin: false, updatedAtMs: 0 };
-    res.json({
-      ok: true,
-      requireStudentLogin: Boolean(cfg.requireStudentLogin),
-      updatedAtMs: Number(cfg.updatedAtMs) || 0,
-    });
-  });
-
-  app.put('/api/access', jsonParser, (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const requireStudentLogin = Boolean((req.body as { requireStudentLogin?: unknown })?.requireStudentLogin);
-    const updatedAtMs = Date.now();
-    setConfigJson('access', { requireStudentLogin, updatedAtMs } satisfies SiteAccessConfig);
-    broadcastEvent('access', { requireStudentLogin, updatedAtMs });
-    res.json({ ok: true, requireStudentLogin, updatedAtMs });
-  });
-
-  // ==================== STUDENT LOGIN CHECK & PREFS ====================
-  app.get('/api/student/login-status/:authHash', (req: Request, res: Response) => {
-    const authHash = String(req.params.authHash || '').trim().toLowerCase();
-    if (!HASH32_RE.test(authHash)) {
-      res.status(400).json({ ok: false, error: 'INVALID_AUTH_HASH' });
-      return;
-    }
-    const customRow = db.prepare('SELECT * FROM custom_students WHERE auth_hash = ?').get(authHash) as Record<string, unknown> | undefined;
-    const dirRow = db.prepare('SELECT * FROM admin_student_directory WHERE auth_hash = ?').get(authHash) as Record<string, unknown> | undefined;
-
-    res.json({
-      ok: true,
-      custom: customRow
-        ? {
-            authHash: customRow.auth_hash,
-            cloudKey: customRow.cloud_key,
-            last4: customRow.last4,
-            group: customRow.group_name,
-            labGroup: customRow.lab_group,
-            prog: customRow.prog,
-            encName: customRow.enc_name,
-            active: customRow.active !== 0,
-            deleted: customRow.deleted === 1,
-          }
-        : null,
-      directory: dirRow
-        ? {
-            authHash: dirRow.auth_hash,
-            cloudKey: dirRow.cloud_key,
-            last4: dirRow.last4,
-            group: dirRow.group_name,
-            labGroup: dirRow.lab_group,
-            prog: dirRow.prog,
-            source: dirRow.source,
-            active: dirRow.active !== 0,
-            deleted: dirRow.deleted === 1,
-          }
-        : null,
-    });
-  });
-
-  app.get('/api/student/prefs/:cloudKey', (req: Request, res: Response) => {
-    const cloudKey = String(req.params.cloudKey || '').trim().toLowerCase();
-    if (!HEX64_RE.test(cloudKey)) {
-      res.status(400).json({ ok: false, error: 'INVALID_CLOUD_KEY' });
-      return;
-    }
-    const row = db.prepare('SELECT * FROM student_prefs WHERE cloud_key = ?').get(cloudKey) as Record<string, unknown> | undefined;
-    if (!row) {
-      res.json({ ok: true, prefs: null });
-      return;
-    }
-    res.json({
-      ok: true,
-      prefs: {
-        myMbuGroup: normGroup(row.my_mbu_group),
-        myLabGroup: normLab(row.my_lab_group),
-        otherGroupMode: normOtherMode(row.other_group_mode),
-        lang: normLang(row.lang),
-        authHash: typeof row.auth_hash === 'string' && HASH32_RE.test(row.auth_hash) ? row.auth_hash : undefined,
-        last4: typeof row.last4 === 'string' && /^[0-9]{4}$/.test(row.last4) ? row.last4 : undefined,
-      },
-    });
-  });
-
-  app.put('/api/student/prefs/:cloudKey', jsonParser, (req: Request, res: Response) => {
-    const cloudKey = String(req.params.cloudKey || '').trim().toLowerCase();
-    if (!HEX64_RE.test(cloudKey)) {
-      res.status(400).json({ ok: false, error: 'INVALID_CLOUD_KEY' });
-      return;
-    }
-    const body = (req.body || {}) as Record<string, unknown>;
-    const mbu = normGroup(body.myMbuGroup);
-    const lab = normLab(body.myLabGroup);
-    const mode = normOtherMode(body.otherGroupMode);
-    const lang = normLang(body.lang);
-    const authHash = typeof body.authHash === 'string' && HASH32_RE.test(body.authHash.trim().toLowerCase())
-      ? body.authHash.trim().toLowerCase()
-      : '';
-    const last4 = typeof body.last4 === 'string' && /^[0-9]{4}$/.test(body.last4.trim()) ? body.last4.trim() : '';
-
-    db.prepare(`
-      INSERT INTO student_prefs (cloud_key, auth_hash, last4, my_mbu_group, my_lab_group, other_group_mode, lang, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(cloud_key) DO UPDATE SET
-        auth_hash = CASE WHEN excluded.auth_hash != '' THEN excluded.auth_hash ELSE student_prefs.auth_hash END,
-        last4 = CASE WHEN excluded.last4 != '' THEN excluded.last4 ELSE student_prefs.last4 END,
-        my_mbu_group = excluded.my_mbu_group,
-        my_lab_group = excluded.my_lab_group,
-        other_group_mode = excluded.other_group_mode,
-        lang = CASE WHEN excluded.lang != '' THEN excluded.lang ELSE student_prefs.lang END,
-        updated_at = excluded.updated_at
-    `).run(cloudKey, authHash, last4, mbu, lab, mode, lang, Date.now());
-
-    res.json({ ok: true });
-  });
-
-  // ==================== ANNOUNCEMENTS ====================
-  app.get('/api/announcements', (req: Request, res: Response) => {
-    const onlyActive = req.query.active === '1' || req.query.active === 'true';
-    const sql = onlyActive
-      ? 'SELECT * FROM announcements WHERE deleted = 0 AND active = 1 ORDER BY updated_at DESC, created_at DESC'
-      : 'SELECT * FROM announcements WHERE deleted = 0 ORDER BY updated_at DESC, created_at DESC';
-    const rows = db.prepare(sql).all() as Array<Record<string, unknown>>;
-    const announcements = rows.map((r) => ({
-      id: String(r.id),
-      title: String(r.title),
-      message: String(r.message),
-      tone: normTone(r.tone),
-      active: r.active === 1,
-      targetGroup: normGroup(r.target_group),
-      targetProg: normLang(r.target_prog),
-      createdAtMs: Number(r.created_at) || 0,
-      updatedAtMs: Number(r.updated_at) || 0,
-    }));
-    res.json({ ok: true, announcements });
-  });
-
-  app.post('/api/announcements', jsonParser, (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const body = (req.body || {}) as Record<string, unknown>;
-    const rawId = typeof body.id === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(body.id.trim())
-      ? body.id.trim()
-      : `ann_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
-    const title = String(body.title || '').trim().slice(0, 120);
-    const message = String(body.message || '').trim().slice(0, 800);
-    if (!title || !message) {
-      res.status(400).json({ ok: false, error: 'TITLE_MESSAGE_REQUIRED' });
-      return;
-    }
-    const tone = normTone(body.tone);
-    const active = Boolean(body.active) ? 1 : 0;
-    const targetGroup = normGroup(body.targetGroup);
-    const targetProg = normLang(body.targetProg);
-    const now = Date.now();
-
-    const existing = db.prepare('SELECT created_at FROM announcements WHERE id = ?').get(rawId) as { created_at?: number } | undefined;
-    const createdAt = existing?.created_at || now;
-
-    db.prepare(`
-      INSERT INTO announcements (id, title, message, tone, active, target_group, target_prog, deleted, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        title = excluded.title,
-        message = excluded.message,
-        tone = excluded.tone,
-        active = excluded.active,
-        target_group = excluded.target_group,
-        target_prog = excluded.target_prog,
-        deleted = 0,
-        updated_at = excluded.updated_at
-    `).run(rawId, title, message, tone, active, targetGroup, targetProg, createdAt, now);
-
-    const saved = {
-      id: rawId,
-      title,
-      message,
-      tone,
-      active: active === 1,
-      targetGroup,
-      targetProg,
-      createdAtMs: createdAt,
-      updatedAtMs: now,
-    };
-    broadcastEvent('announcements', { action: 'save', id: rawId });
-    res.json({ ok: true, announcement: saved });
-  });
-
-  app.delete('/api/announcements/:id', (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const id = String(req.params.id || '').trim();
-    if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id)) {
-      res.status(400).json({ ok: false, error: 'INVALID_ID' });
-      return;
-    }
-    db.prepare('UPDATE announcements SET deleted = 1, active = 0, updated_at = ? WHERE id = ?').run(Date.now(), id);
-    broadcastEvent('announcements', { action: 'delete', id });
-    res.json({ ok: true });
-  });
-
-  // ==================== LESSON MATERIALS & PDFs ====================
-  app.get('/api/materials', (_req: Request, res: Response) => {
-    const rows = db
-      .prepare('SELECT * FROM lesson_materials WHERE deleted = 0 ORDER BY created_at ASC, updated_at ASC')
-      .all() as Array<Record<string, unknown>>;
-    const materials = rows.map((r) => ({
-      id: String(r.id),
-      date: String(r.date),
-      slotNo: Number(r.slot_no) || 1,
-      targetProg: normLang(r.target_prog),
-      title: String(r.title),
-      sourceType: String(r.source_type || 'server'),
-      pdfUrl: String(r.pdf_url || ''),
-      pdfData: String(r.pdf_data || '') || undefined,
-      chunkCount: Number(r.chunk_count) > 0 ? Number(r.chunk_count) : undefined,
-      pdfName: String(r.pdf_name || '') || undefined,
-      fileSize: Number(r.file_size) > 0 ? Number(r.file_size) : undefined,
-      createdAtMs: Number(r.created_at) || 0,
-      updatedAtMs: Number(r.updated_at) || 0,
-    }));
-    res.json({ ok: true, materials });
-  });
-
-  app.post('/api/materials', jsonParser, (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const body = (req.body || {}) as Record<string, unknown>;
-    const rawId = typeof body.id === 'string' && body.id.trim()
-      ? body.id.trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 110)
-      : `mat_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
-    const cleanDate = String(body.date || '').trim().slice(0, 16);
-    const slotNo = Math.min(10, Math.max(1, Math.round(Number(body.slotNo) || 1)));
-    const targetProg = normLang(body.targetProg);
-    const title = String(body.title || '').trim().slice(0, 120);
-    const sourceType = String(body.sourceType || 'url');
-    const pdfUrl = String(body.pdfUrl || '').trim().slice(0, 2000);
-    const pdfData = typeof body.pdfData === 'string' ? body.pdfData.trim().replace(/^data:[^;]+;base64,/i, '') : '';
-    const chunkCount = Math.max(0, Math.round(Number(body.chunkCount) || 0));
-    const pdfName = String(body.pdfName || '').trim().slice(0, 120);
-    const fileSize = Math.max(0, Math.round(Number(body.fileSize) || 0));
-
-    if (!cleanDate || !title) {
-      res.status(400).json({ ok: false, error: 'INVALID_MATERIAL' });
-      return;
-    }
-
-    const now = Date.now();
-    const existing = db.prepare('SELECT created_at FROM lesson_materials WHERE id = ?').get(rawId) as { created_at?: number } | undefined;
-    const createdAt = existing?.created_at || now;
-
-    db.prepare(`
-      INSERT INTO lesson_materials
-      (id, date, slot_no, target_prog, title, source_type, pdf_url, pdf_data, chunk_count, pdf_name, file_size, deleted, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        date = excluded.date,
-        slot_no = excluded.slot_no,
-        target_prog = excluded.target_prog,
-        title = excluded.title,
-        source_type = excluded.source_type,
-        pdf_url = excluded.pdf_url,
-        pdf_data = excluded.pdf_data,
-        chunk_count = excluded.chunk_count,
-        pdf_name = excluded.pdf_name,
-        file_size = excluded.file_size,
-        deleted = 0,
-        updated_at = excluded.updated_at
-    `).run(rawId, cleanDate, slotNo, targetProg, title, sourceType, pdfUrl, pdfData, chunkCount, pdfName, fileSize, createdAt, now);
-
-    const material = {
-      id: rawId,
-      date: cleanDate,
-      slotNo,
-      targetProg,
-      title,
-      sourceType,
-      pdfUrl,
-      pdfData: pdfData || undefined,
-      chunkCount: chunkCount > 0 ? chunkCount : undefined,
-      pdfName: pdfName || undefined,
-      fileSize: fileSize > 0 ? fileSize : undefined,
-      createdAtMs: createdAt,
-      updatedAtMs: now,
-    };
-    broadcastEvent('materials', { action: 'save', id: rawId });
-    res.json({ ok: true, material });
-  });
-
-  app.delete('/api/materials/:id', (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const id = String(req.params.id || '').trim();
-    if (!id) {
-      res.status(400).json({ ok: false, error: 'INVALID_ID' });
-      return;
-    }
-    const existing = db.prepare('SELECT pdf_url FROM lesson_materials WHERE id = ?').get(id) as { pdf_url?: string } | undefined;
-    db.prepare('UPDATE lesson_materials SET deleted = 1, updated_at = ? WHERE id = ?').run(Date.now(), id);
-
-    if (existing?.pdf_url && existing.pdf_url.startsWith('/api/lesson-pdf/')) {
-      const fileId = existing.pdf_url.slice('/api/lesson-pdf/'.length).split('?')[0].trim();
-      if (/^[a-zA-Z0-9_-]{8,96}$/.test(fileId)) {
-        fs.rmSync(path.join(STORAGE_ROOT, `${fileId}.pdf`), { force: true });
-        fs.rmSync(path.join(STORAGE_ROOT, `${fileId}.json`), { force: true });
-      }
-    }
-    broadcastEvent('materials', { action: 'delete', id });
-    res.json({ ok: true });
-  });
-
-  // ==================== ADMIN STUDENT MANAGEMENT ====================
-  app.get('/api/admin/students', (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const dirRows = db.prepare('SELECT * FROM admin_student_directory').all();
-    const customRows = db.prepare('SELECT * FROM custom_students').all();
-    const prefsRows = db.prepare('SELECT * FROM student_prefs').all();
-    const sec = getSecurityConfig();
-    res.json({
-      ok: true,
-      wrappedRosterKey: sec.wrappedRosterKey || '',
-      directory: dirRows,
-      custom: customRows,
-      prefs: prefsRows,
-    });
-  });
-
-  app.get('/api/admin/students/lookup/:authHash/:cloudKey', (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const authHash = String(req.params.authHash || '').trim().toLowerCase();
-    const cloudKey = String(req.params.cloudKey || '').trim().toLowerCase();
-    if (!HASH32_RE.test(authHash) || !HEX64_RE.test(cloudKey)) {
-      res.status(400).json({ ok: false, error: 'INVALID_KEYS' });
-      return;
-    }
-    const directory = db.prepare('SELECT * FROM admin_student_directory WHERE auth_hash = ?').get(authHash) || null;
-    const custom = db.prepare('SELECT * FROM custom_students WHERE auth_hash = ?').get(authHash) || null;
-    const prefs = db.prepare('SELECT * FROM student_prefs WHERE cloud_key = ?').get(cloudKey) || null;
-    res.json({ ok: true, directory, custom, prefs });
-  });
-
-  app.post('/api/admin/students', jsonParser, (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const body = (req.body || {}) as Record<string, unknown>;
-    const authHash = typeof body.authHash === 'string' ? body.authHash.trim().toLowerCase() : '';
-    const cloudKey = typeof body.cloudKey === 'string' ? body.cloudKey.trim().toLowerCase() : '';
-    if (!HASH32_RE.test(authHash) || !HEX64_RE.test(cloudKey)) {
-      res.status(400).json({ ok: false, error: 'INVALID_STUDENT_KEYS' });
-      return;
-    }
-
-    const rejectIfExists = Boolean(body.rejectIfExists);
-    const builtInAllowlist = Boolean(body.builtInAllowlist);
-    const existingCustom = db.prepare('SELECT * FROM custom_students WHERE auth_hash = ?').get(authHash) as Record<string, unknown> | undefined;
-    const existingDir = db.prepare('SELECT * FROM admin_student_directory WHERE auth_hash = ?').get(authHash) as Record<string, unknown> | undefined;
-
-    if (rejectIfExists) {
-      const customLive = Boolean(existingCustom && existingCustom.deleted !== 1);
-      const dirLive = Boolean(existingDir && existingDir.deleted !== 1);
-      const customDeleted = Boolean(existingCustom && existingCustom.deleted === 1);
-      const dirDeleted = Boolean(existingDir && existingDir.deleted === 1);
-      const builtInNotDeleted = builtInAllowlist && !customDeleted && !dirDeleted;
-      if (customLive || dirLive || builtInNotDeleted) {
-        res.status(409).json({ ok: false, error: 'DUPLICATE_STUDENT_ID' });
-        return;
-      }
-    }
-
-    const now = Date.now();
-    const last4 = String(body.last4 || '').slice(0, 4);
-    const group = normAssignedGroup(body.group);
-    const prog = body.prog === 'en' ? 'en' : 'tr';
-    const labGroup = prog === 'en' ? '' : normLab(body.labGroup);
-    const otherGroupMode = normOtherMode(body.otherGroupMode);
-    const encName = String(body.encName || '');
-    const encFullName = String(body.encFullName || '');
-    const encSid = String(body.encSid || '');
-    const source = body.source === 'allowlist' ? 'allowlist' : 'custom';
-    const active = body.active === false ? 0 : 1;
-
-    db.exec('BEGIN');
-    try {
-      db.prepare(`
-        INSERT INTO custom_students (auth_hash, cloud_key, last4, group_name, lab_group, prog, enc_name, enc_sid, active, deleted, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-        ON CONFLICT(auth_hash) DO UPDATE SET
-          cloud_key = excluded.cloud_key,
-          last4 = excluded.last4,
-          group_name = excluded.group_name,
-          lab_group = excluded.lab_group,
-          prog = excluded.prog,
-          enc_name = CASE WHEN excluded.enc_name != '' THEN excluded.enc_name ELSE custom_students.enc_name END,
-          enc_sid = CASE WHEN excluded.enc_sid != '' THEN excluded.enc_sid ELSE custom_students.enc_sid END,
-          active = excluded.active,
-          deleted = 0,
-          updated_at = excluded.updated_at
-      `).run(authHash, cloudKey, last4, group, labGroup, prog, encName, encSid, active, Number(existingCustom?.created_at) || now, now);
-
-      db.prepare(`
-        INSERT INTO admin_student_directory (auth_hash, cloud_key, last4, enc_full_name, enc_sid, group_name, lab_group, prog, source, active, deleted, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-        ON CONFLICT(auth_hash) DO UPDATE SET
-          cloud_key = excluded.cloud_key,
-          last4 = excluded.last4,
-          enc_full_name = CASE WHEN excluded.enc_full_name != '' THEN excluded.enc_full_name ELSE admin_student_directory.enc_full_name END,
-          enc_sid = CASE WHEN excluded.enc_sid != '' THEN excluded.enc_sid ELSE admin_student_directory.enc_sid END,
-          group_name = excluded.group_name,
-          lab_group = excluded.lab_group,
-          prog = excluded.prog,
-          source = excluded.source,
-          active = excluded.active,
-          deleted = 0,
-          updated_at = excluded.updated_at
-      `).run(authHash, cloudKey, last4, encFullName, encSid, group, labGroup, prog, source, active, Number(existingDir?.created_at) || now, now);
-
-      db.prepare(`
-        INSERT INTO student_prefs (cloud_key, auth_hash, last4, my_mbu_group, my_lab_group, other_group_mode, lang, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(cloud_key) DO UPDATE SET
-          auth_hash = excluded.auth_hash,
-          last4 = excluded.last4,
-          my_mbu_group = excluded.my_mbu_group,
-          my_lab_group = excluded.my_lab_group,
-          other_group_mode = excluded.other_group_mode,
-          lang = excluded.lang,
-          updated_at = excluded.updated_at
-      `).run(cloudKey, authHash, last4, group, labGroup, otherGroupMode, prog, now);
-
-      db.exec('COMMIT');
-    } catch (err) {
-      db.exec('ROLLBACK');
-      throw err;
-    }
-
-    broadcastEvent('student_status', { authHash, active: active === 1, deleted: false });
-    res.json({ ok: true, updatedAtMs: now });
-  });
-
-  app.post('/api/admin/students/delete', jsonParser, (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const body = (req.body || {}) as Record<string, unknown>;
-    const authHash = typeof body.authHash === 'string' ? body.authHash.trim().toLowerCase() : '';
-    const cloudKey = typeof body.cloudKey === 'string' ? body.cloudKey.trim().toLowerCase() : '';
-    if (!HASH32_RE.test(authHash)) {
-      res.status(400).json({ ok: false, error: 'INVALID_AUTH_HASH' });
-      return;
-    }
-
-    const now = Date.now();
-    const last4 = String(body.last4 || '0000').slice(0, 4);
-    const group = normAssignedGroup(body.group);
-    const prog = body.prog === 'en' ? 'en' : 'tr';
-    const labGroup = prog === 'en' ? '' : normLab(body.labGroup);
-    const encName = String(body.encName || '');
-    const encFullName = String(body.encFullName || '');
-    const encSid = String(body.encSid || '');
-    const source = body.source === 'allowlist' ? 'allowlist' : 'custom';
-
-    db.exec('BEGIN');
-    try {
-      db.prepare(`
-        INSERT INTO custom_students (auth_hash, cloud_key, last4, group_name, lab_group, prog, enc_name, enc_sid, active, deleted, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)
-        ON CONFLICT(auth_hash) DO UPDATE SET
-          active = 0,
-          deleted = 1,
-          updated_at = excluded.updated_at
-      `).run(authHash, cloudKey, last4, group, labGroup, prog, encName, encSid, now, now);
-
-      if (HEX64_RE.test(cloudKey)) {
-        db.prepare(`
-          INSERT INTO admin_student_directory (auth_hash, cloud_key, last4, enc_full_name, enc_sid, group_name, lab_group, prog, source, active, deleted, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)
-          ON CONFLICT(auth_hash) DO UPDATE SET
-            active = 0,
-            deleted = 1,
-            updated_at = excluded.updated_at
-        `).run(authHash, cloudKey, last4, encFullName, encSid, group, labGroup, prog, source, now, now);
-      }
-      db.exec('COMMIT');
-    } catch (err) {
-      db.exec('ROLLBACK');
-      throw err;
-    }
-
-    broadcastEvent('student_status', { authHash, active: false, deleted: true });
-    res.json({ ok: true });
-  });
-
-  app.put('/api/admin/students/settings', jsonParser, (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
-      res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
-      return;
-    }
-    const body = (req.body || {}) as Record<string, unknown>;
-    const cloudKey = typeof body.cloudKey === 'string' ? body.cloudKey.trim().toLowerCase() : '';
-    const authHash = typeof body.authHash === 'string' ? body.authHash.trim().toLowerCase() : '';
-    if (!HEX64_RE.test(cloudKey)) {
-      res.status(400).json({ ok: false, error: 'INVALID_CLOUD_KEY' });
-      return;
-    }
-
-    const now = Date.now();
-    const myMbuGroup = normGroup(body.myMbuGroup);
-    const lang = body.lang === 'en' ? 'en' : 'tr';
-    const myLabGroup = lang === 'en' ? '' : normLab(body.myLabGroup);
-    const otherGroupMode = normOtherMode(body.otherGroupMode);
-    const last4 = String(body.last4 || '0000').slice(0, 4);
-    const assignedGroup = myMbuGroup ? normAssignedGroup(myMbuGroup) : normAssignedGroup(body.assignedGroup);
-    const active = body.active === false ? 0 : 1;
-    const encName = String(body.encName || '');
-    const encFullName = String(body.encFullName || '');
-    const encSid = String(body.encSid || '');
-    const source = body.source === 'custom' ? 'custom' : 'allowlist';
-
-    db.exec('BEGIN');
-    try {
-      db.prepare(`
-        INSERT INTO student_prefs (cloud_key, auth_hash, last4, my_mbu_group, my_lab_group, other_group_mode, lang, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(cloud_key) DO UPDATE SET
-          auth_hash = CASE WHEN excluded.auth_hash != '' THEN excluded.auth_hash ELSE student_prefs.auth_hash END,
-          last4 = CASE WHEN excluded.last4 != '' THEN excluded.last4 ELSE student_prefs.last4 END,
-          my_mbu_group = excluded.my_mbu_group,
-          my_lab_group = excluded.my_lab_group,
-          other_group_mode = excluded.other_group_mode,
-          lang = excluded.lang,
-          updated_at = excluded.updated_at
-      `).run(cloudKey, HASH32_RE.test(authHash) ? authHash : '', last4, myMbuGroup, myLabGroup, otherGroupMode, lang, now);
-
-      if (HASH32_RE.test(authHash)) {
-        db.prepare(`
-          INSERT INTO custom_students (auth_hash, cloud_key, last4, group_name, lab_group, prog, enc_name, enc_sid, active, deleted, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-          ON CONFLICT(auth_hash) DO UPDATE SET
-            cloud_key = excluded.cloud_key,
-            last4 = CASE WHEN excluded.last4 != '0000' THEN excluded.last4 ELSE custom_students.last4 END,
-            group_name = excluded.group_name,
-            lab_group = excluded.lab_group,
-            prog = excluded.prog,
-            enc_name = CASE WHEN excluded.enc_name != '' THEN excluded.enc_name ELSE custom_students.enc_name END,
-            enc_sid = CASE WHEN excluded.enc_sid != '' THEN excluded.enc_sid ELSE custom_students.enc_sid END,
-            active = excluded.active,
-            deleted = 0,
-            updated_at = excluded.updated_at
-        `).run(authHash, cloudKey, last4, assignedGroup, myLabGroup, lang, encName, encSid, active, now, now);
-
-        db.prepare(`
-          INSERT INTO admin_student_directory (auth_hash, cloud_key, last4, enc_full_name, enc_sid, group_name, lab_group, prog, source, active, deleted, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-          ON CONFLICT(auth_hash) DO UPDATE SET
-            cloud_key = excluded.cloud_key,
-            last4 = CASE WHEN excluded.last4 != '0000' THEN excluded.last4 ELSE admin_student_directory.last4 END,
-            enc_full_name = CASE WHEN excluded.enc_full_name != '' THEN excluded.enc_full_name ELSE admin_student_directory.enc_full_name END,
-            enc_sid = CASE WHEN excluded.enc_sid != '' THEN excluded.enc_sid ELSE admin_student_directory.enc_sid END,
-            group_name = excluded.group_name,
-            lab_group = excluded.lab_group,
-            prog = excluded.prog,
-            active = excluded.active,
-            deleted = 0,
-            updated_at = excluded.updated_at
-        `).run(authHash, cloudKey, last4, encFullName, encSid, assignedGroup, myLabGroup, lang, source, active, now, now);
-      }
-
-      db.exec('COMMIT');
-    } catch (err) {
-      db.exec('ROLLBACK');
-      throw err;
-    }
-
-    if (HASH32_RE.test(authHash)) {
-      broadcastEvent('student_status', { authHash, active: active === 1, deleted: false });
-    }
-    res.json({ ok: true });
-  });
-
-  // ==================== CHUNKED PDF UPLOAD & STREAMING ====================
-  app.post('/api/lesson-pdf/init', jsonParser, (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
+  app.post('/api/lesson-pdf/init', jsonParser, async (req: Request, res: Response) => {
+    const ok = await verifyAdminSecret(req.header('x-admin-secret'));
+    if (!ok) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
     }
@@ -1110,8 +198,9 @@ async function startServer() {
     });
   });
 
-  app.post('/api/lesson-pdf/chunk', rawChunkParser, (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
+  app.post('/api/lesson-pdf/chunk', rawChunkParser, async (req: Request, res: Response) => {
+    const ok = await verifyAdminSecret(req.header('x-admin-secret'));
+    if (!ok) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
     }
@@ -1150,7 +239,8 @@ async function startServer() {
   });
 
   app.post('/api/lesson-pdf/complete', jsonParser, async (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
+    const ok = await verifyAdminSecret(req.header('x-admin-secret'));
+    if (!ok) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
     }
@@ -1295,8 +385,9 @@ async function startServer() {
     fs.createReadStream(pdfPath).pipe(res);
   });
 
-  app.delete('/api/lesson-pdf/:fileId', (req: Request, res: Response) => {
-    if (!verifyAdminSecret(req.header('x-admin-secret'))) {
+  app.delete('/api/lesson-pdf/:fileId', async (req: Request, res: Response) => {
+    const ok = await verifyAdminSecret(req.header('x-admin-secret'));
+    if (!ok) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
     }
@@ -1310,29 +401,6 @@ async function startServer() {
     fs.rmSync(path.join(STORAGE_ROOT, `${fileId}.pdf`), { force: true });
     fs.rmSync(path.join(STORAGE_ROOT, `${fileId}.json`), { force: true });
     res.json({ ok: true });
-  });
-
-  app.get(['/', '/index.html'], (_req: Request, res: Response) => {
-    try {
-      const indexPath = process.env.NODE_ENV === 'production'
-        ? path.resolve(process.cwd(), 'dist', 'index.html')
-        : path.resolve(process.cwd(), 'index.html');
-      const htmlSource = fs.existsSync(indexPath)
-        ? fs.readFileSync(indexPath, 'utf8')
-        : fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8');
-
-      const cfg = getConfigJson<SiteAccessConfig>('access') || { requireStudentLogin: false, updatedAtMs: 0 };
-      const isLocked = Boolean(cfg.requireStudentLogin);
-
-      const injectedHtml = htmlSource.replace(
-        '<head>',
-        `<head>\n  <script>window.__INONU_INITIAL_LOCKED__ = ${isLocked}; try { if (${isLocked} && !localStorage.getItem('inonu_tip_d1_ios_v3_authSession')) { document.documentElement.classList.add('site-locked-locked'); localStorage.setItem('inonu_tip_d1_ios_v3_siteRequireLoginCache', 'true'); } else { localStorage.setItem('inonu_tip_d1_ios_v3_siteRequireLoginCache', '${isLocked}'); } } catch(e){}</script>`
-      );
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.send(injectedHtml);
-    } catch (err) {
-      res.status(500).send('Error loading page');
-    }
   });
 
   if (process.env.NODE_ENV !== 'production') {
@@ -1355,7 +423,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server listening on http://0.0.0.0:${PORT} (SQLite WAL ready)`);
+    console.log(`Server listening on http://0.0.0.0:${PORT}`);
   });
 }
 
