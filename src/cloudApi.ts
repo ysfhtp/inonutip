@@ -330,7 +330,7 @@ function ensureStaticLivePolling(): void {
         void syncStaticStoreFromDataJson(false);
       }
     });
-  }, 2500);
+  }, 1000);
 }
 
 function addSseListener(topic: string, handler: SseHandler): Unsubscribe {
@@ -422,7 +422,7 @@ export interface SiteDataJson {
 
 let remoteDataJsonLastCheckedAt = 0;
 let remoteDataJsonInFlight: Promise<boolean> | null = null;
-const DATA_JSON_CACHE_TTL_MS = 1_200;
+const DATA_JSON_CACHE_TTL_MS = 600;
 
 function normalizeStudentRecordForStatic(raw: Record<string, unknown>): Record<string, unknown> {
   const authHash = String(raw.auth_hash ?? raw.authHash ?? '').trim().toLowerCase();
@@ -525,7 +525,8 @@ function getSavedGithubSource(): GithubSourceMeta | null {
       const repoInput = String(parsed.repo || '').trim();
       const isGist = repoInput.includes('gist.github.com') || /^[a-f0-9]{32}$/i.test(repoInput) || repoInput.startsWith('gist:');
       if (isGist) {
-        const gistId = repoInput.replace(/^gist:/i, '').split('/').pop() || '';
+        const cleanRepoClean = repoInput.replace(/\/+$/, '');
+        const gistId = cleanRepoClean.replace(/^gist:/i, '').split('/').pop() || '';
         if (gistId) {
           return {
             owner: '',
@@ -3239,7 +3240,8 @@ export async function publishDataJsonToGitHub(config: {
   const jsonContent = await buildExportDataJson();
 
   if (isGist) {
-    const gistId = cleanRepoInput.replace(/^gist:/i, '').split('/').pop() || '';
+    const cleanRepoClean = cleanRepoInput.replace(/\/+$/, '');
+    const gistId = cleanRepoClean.replace(/^gist:/i, '').split('/').pop() || '';
     if (!gistId) throw new Error('GIST_ID_INVALID');
 
     const ghMeta: GithubSourceMeta = {
@@ -3271,16 +3273,21 @@ export async function publishDataJsonToGitHub(config: {
     });
 
     if (putResp.status === 401 || putResp.status === 403) {
+      const errText = await putResp.text().catch(() => '');
+      console.warn('Gist auth failed (401/403):', errText);
       throw new Error('GITHUB_AUTH_FAILED');
     }
     if (putResp.status === 404) {
       throw new Error('GIST_NOT_FOUND');
     }
     if (!putResp.ok) {
+      const errText = await putResp.text().catch(() => '');
+      console.warn('Gist push failed status:', putResp.status, errText);
       throw new Error(`GIST_PUSH_FAILED_${putResp.status}`);
     }
 
     const result = (await putResp.json().catch(() => ({}))) as { html_url?: string };
+    void syncStaticCacheWithRemoteDataJson();
     return {
       ok: true,
       htmlUrl: result.html_url,
@@ -3390,6 +3397,7 @@ export async function publishDataJsonToGitHub(config: {
     githubFileShaCache.set(shaCacheKey, result.content.sha);
   }
 
+  void syncStaticCacheWithRemoteDataJson();
   return {
     ok: true,
     commitUrl: result.commit?.html_url,
