@@ -1604,6 +1604,36 @@ export async function uploadLessonPdfFile(
     };
   }
 
+  if (isBrowserSupabaseConfigured) {
+    try {
+      const storageUrl = `${BROWSER_SUPABASE_URL}/storage/v1/object/lesson-pdfs/${cleanMatId}.pdf`;
+      reportProgress(20, Math.round(file.size * 0.2));
+      const uploadResp = await fetch(storageUrl, {
+        method: 'POST',
+        headers: browserSupabaseHeaders({
+          'Content-Type': file.type || 'application/pdf',
+          'x-upsert': 'true',
+        }),
+        body: file,
+      });
+      if (uploadResp.ok) {
+        const publicUrl = `${BROWSER_SUPABASE_URL}/storage/v1/object/public/lesson-pdfs/${cleanMatId}.pdf`;
+        reportProgress(100, file.size);
+        return {
+          sourceType: 'server',
+          materialId: cleanMatId,
+          url: publicUrl,
+          fileId: cleanMatId,
+          fileName: cleanFileName,
+          size: file.size,
+          chunkCount: 0,
+        };
+      }
+    } catch {
+      // Fall through to fallback
+    }
+  }
+
   // Offline / static preview small-file fallback (<= 1.5 MB)
   if (file.size <= 1_500_000) {
     const arrBuf = await file.arrayBuffer();
