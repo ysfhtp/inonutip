@@ -6020,12 +6020,7 @@
     }
 
     function handleForcedStudentSignOut(reason) {
-      const session = getActiveAuthSession();
-      if (!session || session.isAdmin) return;
-      const loc = I18N[state.lang];
-      const msg = reason === 'deleted' ? loc.authForcedLogoutDeleted : loc.authForcedLogoutInactive;
-      cloudStartupSyncDoneForHash = '';
-      signOutStudent(msg);
+      // Students are never automatically signed out
     }
 
     async function verifyActiveStudentSessionNow() {
