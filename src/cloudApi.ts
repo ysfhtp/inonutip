@@ -1498,53 +1498,70 @@ export async function checkStudentSessionActive(authHash: string): Promise<Stude
   if (!isValidAuthHash(authHash)) return 'inactive';
   if (isAdminStudentHash(authHash)) return 'active';
 
-  const allowMeta = verifyStudentHash(authHash);
-  if (allowMeta) {
-    const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
-    const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
-    const custom = customMap[authHash] || null;
-    const directory = dirMap[authHash] || null;
-    if ((custom && (custom.deleted === 1 || custom.deleted === true || custom.active === 0 || custom.active === false)) ||
-        (directory && (directory.deleted === 1 || directory.deleted === true || directory.active === 0 || directory.active === false))) {
-      return 'inactive';
+  // 1. If backend is online, query server with a short timeout
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(2000),
+      });
+      if (resp.ok) {
+        const json = (await resp.json()) as ServerStudentStatusResponse;
+        if (json.custom && (json.custom.deleted === true || json.custom.active === false)) {
+          return json.custom.deleted ? 'deleted' : 'inactive';
+        }
+        if (json.directory && (json.directory.deleted === true || json.directory.active === false)) {
+          return json.directory.deleted ? 'deleted' : 'inactive';
+        }
+      }
+    } catch {
+      // Fallback to local storage
     }
-    return 'active';
   }
 
-  let custom: Record<string, unknown> | null = null;
-  let directory: Record<string, unknown> | null = null;
+  // 2. Check local static storage
   const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
   const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
-  custom = customMap[authHash] || null;
-  directory = dirMap[authHash] || null;
+  const custom = customMap[authHash] || null;
+  const directory = dirMap[authHash] || null;
 
   if ((custom && (custom.deleted === 1 || custom.deleted === true)) || (directory && (directory.deleted === 1 || directory.deleted === true))) {
     return 'deleted';
   }
-  const activeCustom = custom ? custom.active !== 0 && custom.active !== false : true;
-  const activeDir = directory ? directory.active !== 0 && directory.active !== false : true;
-  if (!activeCustom || !activeDir) {
+  if ((custom && (custom.active === 0 || custom.active === false)) || (directory && (directory.active === 0 || directory.active === false))) {
     return 'inactive';
   }
+
   return 'active';
 }
 
 export function subscribeStudentAccountStatus(authHash: string, onChange: (status: StudentAccountStatus) => void): Unsubscribe {
-  void checkStudentSessionActive(authHash).then(onChange);
+  void checkStudentSessionActive(authHash).then((st) => {
+    if (st === 'inactive' || st === 'deleted') {
+      onChange(st);
+    }
+  });
+
   return addSseListener('student_status', (data) => {
     if (data && typeof data === 'object') {
-      const obj = data as { authHash?: string; active?: boolean; deleted?: boolean };
-      if (!obj.authHash || obj.authHash === authHash) {
-        if (obj.deleted) {
+      const obj = data as { authHash?: string; active?: boolean; deleted?: boolean; source?: string };
+      if (obj.authHash && obj.authHash.toLowerCase() === authHash.toLowerCase()) {
+        if (obj.deleted === true) {
           onChange('deleted');
         } else if (obj.active === false) {
           onChange('inactive');
-        } else {
+        } else if (obj.active === true) {
           onChange('active');
         }
+        return;
       }
-    } else {
-      void checkStudentSessionActive(authHash).then(onChange);
+      if (!obj.authHash) {
+        void checkStudentSessionActive(authHash).then((st) => {
+          if (st === 'inactive' || st === 'deleted') {
+            onChange(st);
+          }
+        });
+      }
     }
   });
 }

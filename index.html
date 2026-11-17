@@ -9505,7 +9505,13 @@
     }
 
     function handleForcedStudentSignOut(reason) {
-      // Students are never automatically signed out
+      if (reason !== 'inactive' && reason !== 'deleted') return;
+      const session = getActiveAuthSession();
+      if (!session || session.isAdmin) return;
+      const loc = I18N[state.lang];
+      const msg = reason === 'deleted' ? loc.authForcedLogoutDeleted : loc.authForcedLogoutInactive;
+      cloudStartupSyncDoneForHash = '';
+      signOutStudent(msg);
     }
 
     async function verifyActiveStudentSessionNow() {
@@ -9533,10 +9539,12 @@
         stopActiveStudentAccountWatch();
         studentAccountWatchedHash = session.hash;
         if (typeof api.subscribeStudentAccountStatus === 'function') {
-          studentAccountStatusUnsub = api.subscribeStudentAccountStatus(session.hash, (reason) => {
+          studentAccountStatusUnsub = api.subscribeStudentAccountStatus(session.hash, (status) => {
             const current = getActiveAuthSession();
             if (current && current.hash === session.hash && !current.isAdmin) {
-              handleForcedStudentSignOut(reason);
+              if (status === 'inactive' || status === 'deleted') {
+                handleForcedStudentSignOut(status);
+              }
             }
           });
         }
