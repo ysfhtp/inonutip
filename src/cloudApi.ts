@@ -1389,80 +1389,25 @@ export async function checkStudentLoginStatus(rawSid: string): Promise<StudentLo
   const allowlistMatch = verifyStudentId(sid);
   const authHash = hashStudentId(sid);
 
-  let custom: Record<string, unknown> | null = null;
-  let directory: Record<string, unknown> | null = null;
-  let loadedFromServer = false;
-
-  if (await isApiBackendOnline()) {
-    try {
-      const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
-      if (resp.ok) {
-        const json = (await resp.json()) as ServerStudentStatusResponse;
-        custom = (json.custom as Record<string, unknown> | null) ?? null;
-        directory = (json.directory as Record<string, unknown> | null) ?? null;
-        loadedFromServer = true;
-      }
-    } catch {
-      // Fallback
-    }
-  }
-
-  if (!loadedFromServer) {
-    await syncStaticStoreFromDataJson();
-    const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
-    const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
-    custom = customMap[authHash] || null;
-    directory = dirMap[authHash] || null;
-  }
-
-  const isCustomDeleted = custom && (custom.deleted === 1 || custom.deleted === true);
-  const isDirDeleted = directory && (directory.deleted === 1 || directory.deleted === true);
-  if (isCustomDeleted || isDirDeleted) {
-    return { ok: false, reason: 'deleted' };
-  }
-
-  const isAllowlist = Boolean(allowlistMatch);
-  const isCustomActive = custom ? custom.active !== 0 && custom.active !== false : true;
-  const isDirActive = directory ? directory.active !== 0 && directory.active !== false : true;
-  const isActive = isAllowlist
-    ? (custom?.active !== 0 && custom?.active !== false && directory?.active !== 0 && directory?.active !== false)
-    : (isCustomActive && isDirActive);
-  if (!isActive) {
-    return { ok: false, reason: 'inactive' };
-  }
-
-  const customRawGroup = custom ? (custom.group_name ?? custom.group) : undefined;
-  const dirRawGroup = directory ? (directory.group_name ?? directory.group) : undefined;
-
-  if (custom && typeof customRawGroup === 'string') {
-    const group = normalizeAssignedGroup(customRawGroup);
-    const labGroup = normalizeLabGroupPref(custom.lab_group ?? custom.labGroup);
-    const prog = custom.prog === 'en' ? 'en' : 'tr';
-    const rawEncName = custom.enc_name ?? custom.encName;
-    const encName = typeof rawEncName === 'string' ? rawEncName : '';
-    const decryptedCustomName = encName ? decryptStudentName(sid, encName) : '';
-    const dirDecryptedName = readAdminDirFullName(authHash, directory);
-    const name =
-      decryptedCustomName ||
-      dirDecryptedName ||
-      allowlistMatch?.name ||
-      `Öğrenci •••${sid.slice(-4)}`;
-    return {
-      ok: true,
-      match: {
-        hash: authHash,
-        last4: sid.slice(-4),
-        name,
-        group,
-        labGroup,
-        prog,
-        source: allowlistMatch ? 'allowlist' : 'custom',
-      },
-    };
-  }
+  const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+  const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+  let custom: Record<string, unknown> | null = customMap[authHash] || null;
+  let directory: Record<string, unknown> | null = dirMap[authHash] || null;
 
   if (allowlistMatch) {
-    if (directory && typeof dirRawGroup === 'string') {
+    const isCustomDeleted = custom && (custom.deleted === 1 || custom.deleted === true);
+    const isDirDeleted = directory && (directory.deleted === 1 || directory.deleted === true);
+    if (isCustomDeleted || isDirDeleted) {
+      return { ok: false, reason: 'deleted' };
+    }
+    const isCustomDeactivated = custom && (custom.active === 0 || custom.active === false);
+    const isDirDeactivated = directory && (directory.active === 0 || directory.active === false);
+    if (isCustomDeactivated || isDirDeactivated) {
+      return { ok: false, reason: 'inactive' };
+    }
+
+    if (directory && typeof (directory.group_name ?? directory.group) === 'string') {
+      const dirRawGroup = directory.group_name ?? directory.group;
       const dirGroup = normalizeAssignedGroup(dirRawGroup);
       const dirLab = normalizeLabGroupPref(directory.lab_group ?? directory.labGroup);
       const dirProg = directory.prog === 'en' ? 'en' : directory.prog === 'tr' ? 'tr' : allowlistMatch.prog;
@@ -1484,17 +1429,7 @@ export async function checkStudentLoginStatus(rawSid: string): Promise<StudentLo
     };
   }
 
-  return { ok: false, reason: 'not_found' };
-}
-
-export async function checkStudentSessionActive(authHash: string): Promise<StudentAccountStatus> {
-  if (!isValidAuthHash(authHash)) return 'inactive';
-  if (isAdminStudentHash(authHash)) return 'active';
-
-  let custom: Record<string, unknown> | null = null;
-  let directory: Record<string, unknown> | null = null;
-  let loaded = false;
-
+  let loadedFromServer = false;
   if (await isApiBackendOnline()) {
     try {
       const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
@@ -1502,31 +1437,93 @@ export async function checkStudentSessionActive(authHash: string): Promise<Stude
         const json = (await resp.json()) as ServerStudentStatusResponse;
         custom = (json.custom as Record<string, unknown> | null) ?? null;
         directory = (json.directory as Record<string, unknown> | null) ?? null;
-        loaded = true;
+        loadedFromServer = true;
       }
     } catch {
       // Fallback
     }
   }
 
-  if (!loaded) {
+  if (!loadedFromServer) {
     await syncStaticStoreFromDataJson();
+    const cMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+    const dMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+    custom = cMap[authHash] || null;
+    directory = dMap[authHash] || null;
+  }
+
+  const isCustomDeleted = custom && (custom.deleted === 1 || custom.deleted === true);
+  const isDirDeleted = directory && (directory.deleted === 1 || directory.deleted === true);
+  if (isCustomDeleted || isDirDeleted) {
+    return { ok: false, reason: 'deleted' };
+  }
+
+  const isCustomActive = custom ? custom.active !== 0 && custom.active !== false : true;
+  const isDirActive = directory ? directory.active !== 0 && directory.active !== false : true;
+  if (!isCustomActive || !isDirActive) {
+    return { ok: false, reason: 'inactive' };
+  }
+
+  const customRawGroup = custom ? (custom.group_name ?? custom.group) : undefined;
+  if (custom && typeof customRawGroup === 'string') {
+    const group = normalizeAssignedGroup(customRawGroup);
+    const labGroup = normalizeLabGroupPref(custom.lab_group ?? custom.labGroup);
+    const prog = custom.prog === 'en' ? 'en' : 'tr';
+    const rawEncName = custom.enc_name ?? custom.encName;
+    const encName = typeof rawEncName === 'string' ? rawEncName : '';
+    const decryptedCustomName = encName ? decryptStudentName(sid, encName) : '';
+    const dirDecryptedName = readAdminDirFullName(authHash, directory);
+    const name =
+      decryptedCustomName ||
+      dirDecryptedName ||
+      `Öğrenci •••${sid.slice(-4)}`;
+    return {
+      ok: true,
+      match: {
+        hash: authHash,
+        last4: sid.slice(-4),
+        name,
+        group,
+        labGroup,
+        prog,
+        source: 'custom',
+      },
+    };
+  }
+
+  return { ok: false, reason: 'not_found' };
+}
+
+export async function checkStudentSessionActive(authHash: string): Promise<StudentAccountStatus> {
+  if (!isValidAuthHash(authHash)) return 'inactive';
+  if (isAdminStudentHash(authHash)) return 'active';
+
+  const allowMeta = verifyStudentHash(authHash);
+  if (allowMeta) {
     const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
     const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
-    custom = customMap[authHash] || null;
-    directory = dirMap[authHash] || null;
+    const custom = customMap[authHash] || null;
+    const directory = dirMap[authHash] || null;
+    if ((custom && (custom.deleted === 1 || custom.deleted === true || custom.active === 0 || custom.active === false)) ||
+        (directory && (directory.deleted === 1 || directory.deleted === true || directory.active === 0 || directory.active === false))) {
+      return 'inactive';
+    }
+    return 'active';
   }
+
+  let custom: Record<string, unknown> | null = null;
+  let directory: Record<string, unknown> | null = null;
+  const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+  const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+  custom = customMap[authHash] || null;
+  directory = dirMap[authHash] || null;
 
   if ((custom && (custom.deleted === 1 || custom.deleted === true)) || (directory && (directory.deleted === 1 || directory.deleted === true))) {
     return 'deleted';
   }
-  const isAllowlist = verifyStudentHash(authHash) || isAdminStudentHash(authHash);
   const activeCustom = custom ? custom.active !== 0 && custom.active !== false : true;
   const activeDir = directory ? directory.active !== 0 && directory.active !== false : true;
-  const isActive = isAllowlist
-    ? (custom?.active !== 0 && custom?.active !== false && directory?.active !== 0 && directory?.active !== false)
-    : (activeCustom && activeDir);
-  if (!isActive) {
+  if (!activeCustom || !activeDir) {
     return 'inactive';
   }
   return 'active';
