@@ -1,6 +1,6 @@
 {
-  "version": "3.2.8",
-  "updatedAtMs": 1794934893203,
+  "version": "3.2.9",
+  "updatedAtMs": 1794935019225,
   "githubSource": {
     "owner": "ysfhtp",
     "repo": "inonutip",
@@ -23,11 +23,11 @@
       "title": "b",
       "message": "b",
       "tone": "info",
-      "active": true,
+      "active": false,
       "targetGroup": "",
       "targetProg": "",
       "createdAtMs": 1794934893198,
-      "updatedAtMs": 1794934893198
+      "updatedAtMs": 1794935019209
     }
   ],
   "materials": [],
