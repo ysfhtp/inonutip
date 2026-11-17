@@ -46,6 +46,8 @@ import {
   verifyAndUnlockAdmin,
   buildExportDataJson,
   exportSiteDataJsonObject,
+  isFirebaseQuotaExceeded,
+  onFirebaseQuotaChange,
 } from './cloudApi.ts';
 import {
   deriveAdminWriteSecret,
@@ -114,6 +116,8 @@ declare global {
       buildExportDataJson: typeof buildExportDataJson;
       syncStaticCacheWithRemoteDataJson: typeof syncStaticCacheWithRemoteDataJson;
       publishDataJsonToGitHub: typeof publishDataJsonToGitHub;
+      isFirebaseQuotaExceeded: typeof isFirebaseQuotaExceeded;
+      onFirebaseQuotaChange: typeof onFirebaseQuotaChange;
     };
   }
 }
@@ -171,6 +175,8 @@ window.__INONU_AUTH__ = {
   buildExportDataJson,
   syncStaticCacheWithRemoteDataJson,
   publishDataJsonToGitHub,
+  isFirebaseQuotaExceeded,
+  onFirebaseQuotaChange,
 };
 window.dispatchEvent(new Event('inonu-auth-ready'));
 

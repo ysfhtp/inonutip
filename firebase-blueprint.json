@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "SiteAccess": {
+      "title": "SiteAccess",
+      "description": "Global access lock configuration",
+      "type": "object",
+      "properties": {
+        "requireStudentLogin": {
+          "type": "boolean",
+          "description": "Whether site requires student login"
+        },
+        "updatedAtMs": {
+          "type": "number",
+          "description": "Timestamp in milliseconds"
+        }
+      },
+      "required": ["requireStudentLogin", "updatedAtMs"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Daily announcements for students",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 800
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["info", "warn", "urgent"]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "targetGroup": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "targetProg": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "createdAtMs": {
+          "type": "number"
+        },
+        "updatedAtMs": {
+          "type": "number"
+        },
+        "deleted": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "title", "message", "tone", "active", "createdAtMs", "updatedAtMs"]
+    },
+    "StudentDirectory": {
+      "title": "StudentDirectory",
+      "description": "Consolidated student directory snapshot",
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "updatedAtMs": {
+          "type": "number"
+        },
+        "payload": {
+          "type": "string",
+          "maxLength": 1000000
+        }
+      },
+      "required": ["updatedAtMs"]
+    }
+  },
+  "firestore": {
+    "/config/access": {
+      "schema": {
+        "$ref": "#/entities/SiteAccess"
+      },
+      "description": "Global site access lock state"
+    },
+    "/announcements/{announcementId}": {
+      "schema": {
+        "$ref": "#/entities/Announcement"
+      },
+      "description": "Student announcements"
+    },
+    "/directory/students": {
+      "schema": {
+        "$ref": "#/entities/StudentDirectory"
+      },
+      "description": "Consolidated student directory"
+    }
+  }
+}

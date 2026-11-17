@@ -28,6 +28,20 @@ import {
   verifyStudentId,
   type StudentAuthMatch,
 } from './studentAllowlist.ts';
+import {
+  subscribeFirebaseSiteAccess,
+  saveFirebaseSiteAccess,
+  subscribeFirebaseAnnouncements,
+  saveFirebaseAnnouncement,
+  deleteFirebaseAnnouncement,
+  subscribeFirebaseStudentDirectory,
+  saveFirebaseStudentDirectory,
+  isFirebaseQuotaExceeded,
+  setFirebaseQuotaExceeded,
+  onFirebaseQuotaChange,
+} from './firebaseSync.ts';
+
+export { isFirebaseQuotaExceeded, onFirebaseQuotaChange, setFirebaseQuotaExceeded };
 
 export type Unsubscribe = () => void;
 
@@ -1294,19 +1308,36 @@ export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
 
 export function subscribeSiteAccessSettings(onChange: (settings: SiteAccessSettings) => void): Unsubscribe {
   void loadSiteAccessSettings().then(onChange);
-  return addSseListener('access', (data) => {
-    if (data && typeof data === 'object' && 'requireStudentLogin' in data) {
-      const obj = data as { requireStudentLogin?: boolean; updatedAtMs?: number };
-      const updated = {
-        requireStudentLogin: obj.requireStudentLogin === true,
-        updatedAtMs: Number(obj.updatedAtMs) || Date.now(),
-      };
-      writeStaticJson('access', updated);
-      onChange(updated);
-    } else {
-      void loadSiteAccessSettings().then(onChange);
-    }
-  });
+  const unsubs: Unsubscribe[] = [];
+  unsubs.push(
+    addSseListener('access', (data) => {
+      if (data && typeof data === 'object' && 'requireStudentLogin' in data) {
+        const obj = data as { requireStudentLogin?: boolean; updatedAtMs?: number };
+        const updated = {
+          requireStudentLogin: obj.requireStudentLogin === true,
+          updatedAtMs: Number(obj.updatedAtMs) || Date.now(),
+        };
+        writeStaticJson('access', updated);
+        onChange(updated);
+      } else {
+        void loadSiteAccessSettings().then(onChange);
+      }
+    }),
+  );
+
+  try {
+    const fbUnsub = subscribeFirebaseSiteAccess((settings) => {
+      writeStaticJson('access', settings);
+      onChange(settings);
+    });
+    unsubs.push(fbUnsub);
+  } catch {}
+
+  return () => {
+    unsubs.forEach((u) => {
+      try { u(); } catch {}
+    });
+  };
 }
 
 export async function saveSiteAccessSettings(
@@ -1321,6 +1352,8 @@ export async function saveSiteAccessSettings(
     requireStudentLogin: targetLocked,
     updatedAtMs: now,
   };
+
+  void saveFirebaseSiteAccess(targetLocked, now);
 
   if (await isApiBackendOnline()) {
     const secret = resolveAdminWriteSecret(adminSecret);
@@ -1737,9 +1770,37 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
 
 export function subscribeAnnouncements(onUpdate: (announcements: CloudAnnouncement[]) => void): Unsubscribe {
   void loadActiveAnnouncements().then(onUpdate);
-  return addSseListener('announcements', () => {
-    void loadActiveAnnouncements().then(onUpdate);
-  });
+  const unsubs: Unsubscribe[] = [];
+  unsubs.push(
+    addSseListener('announcements', () => {
+      void loadActiveAnnouncements().then(onUpdate);
+    }),
+  );
+
+  try {
+    const fbUnsub = subscribeFirebaseAnnouncements((list) => {
+      const apiMap: Record<string, Record<string, unknown>> = {};
+      list.forEach((raw) => {
+        const mapped = mapServerAnnouncement(raw);
+        if (mapped.id && mapped.active && !raw.deleted && raw.deleted !== 1) {
+          apiMap[mapped.id] = { ...mapped, deleted: false };
+        }
+      });
+      writeStaticJson('announcements', apiMap);
+      onUpdate(
+        Object.values(apiMap)
+          .map(mapServerAnnouncement)
+          .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs)),
+      );
+    });
+    unsubs.push(fbUnsub);
+  } catch {}
+
+  return () => {
+    unsubs.forEach((u) => {
+      try { u(); } catch {}
+    });
+  };
 }
 
 export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
@@ -1813,6 +1874,18 @@ export async function saveAnnouncement(
   map[id] = { ...saved, deleted: false };
   writeStaticJson('announcements', map);
   emitLocalTopic('announcements', { action: 'save', id });
+  void saveFirebaseAnnouncement({
+    id: saved.id,
+    title: cleanTitle,
+    message: cleanMessage,
+    tone: saved.tone,
+    active: saved.active,
+    targetGroup: saved.targetGroup,
+    targetProg: saved.targetProg,
+    createdAtMs: saved.createdAtMs,
+    updatedAtMs: saved.updatedAtMs,
+    deleted: false,
+  });
 
   if (await isApiBackendOnline()) {
     const resp = await fetch('/api/announcements', {
@@ -1862,6 +1935,7 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
     writeStaticJson('announcements', map);
   }
   emitLocalTopic('announcements', { action: 'delete', id: cleanId });
+  void deleteFirebaseAnnouncement(cleanId);
 
   if (await isApiBackendOnline()) {
     try {

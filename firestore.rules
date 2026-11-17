@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all unknown paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'ysfhtp6@gmail.com' && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Startup connection validation
+    match /test/{docId} {
+      allow get: if true;
+      allow write: if false;
+    }
+
+    // Site access lock setting
+    match /config/access {
+      allow get, list: if true;
+      allow write: if true;
+    }
+
+    // Announcements
+    match /announcements/{announcementId} {
+      allow get, list: if true;
+      allow write: if true;
+    }
+
+    // Student directory
+    match /directory/students {
+      allow get, list: if true;
+      allow write: if true;
+    }
+  }
+}

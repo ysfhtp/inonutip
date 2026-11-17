@@ -194,5 +194,8 @@ export default defineConfig(() => {
       hmr: false,
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
+    optimizeDeps: {
+      include: ['firebase/app', 'firebase/firestore'],
+    },
   };
 });
