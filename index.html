@@ -10072,6 +10072,22 @@
       };
     }
 
+    function isGistInput(repoStr) {
+      const clean = String(repoStr || '').trim();
+      return clean.includes('gist.github.com') || /^[a-f0-9]{32}$/i.test(clean) || clean.startsWith('gist:');
+    }
+
+    function isValidGhOrGistConfig(cfg) {
+      if (!cfg || !cfg.repo || !cfg.token) return false;
+      const cleanRepo = String(cfg.repo).trim();
+      if (isGistInput(cleanRepo)) {
+        const id = cleanRepo.replace(/^gist:/i, '').split('/').pop() || '';
+        return Boolean(id);
+      }
+      const parts = cleanRepo.split('/').map((s) => s.trim()).filter(Boolean);
+      return parts.length === 2;
+    }
+
     let ghAutoPushInFlight = false;
     let ghAutoPushPending = false;
     let ghAutoPushPendingNotify = false;
@@ -10082,8 +10098,7 @@
       if (!api || typeof api.publishDataJsonToGitHub !== 'function') return false;
 
       const cfg = readLiveGhPublishConfig();
-      const parts = cfg.repo.split('/').map((s) => s.trim()).filter(Boolean);
-      if (parts.length !== 2 || !cfg.token) {
+      if (!isValidGhOrGistConfig(cfg)) {
         if (showFeedbackToast) {
           const wrap = document.getElementById('adminGitHubPushConfigWrap');
           if (wrap) wrap.classList.remove('hidden');
@@ -10092,12 +10107,7 @@
         return false;
       }
 
-      saveGhPublishConfig({
-        repo: `${parts[0]}/${parts[1]}`,
-        branch: cfg.branch,
-        path: cfg.path,
-        token: cfg.token,
-      });
+      saveGhPublishConfig(cfg);
 
       ghAutoPushPendingNotify = ghAutoPushPendingNotify || showFeedbackToast;
       if (ghAutoPushInFlight) {
@@ -10115,12 +10125,15 @@
           ghAutoPushPendingNotify = false;
 
           const latestCfg = readLiveGhPublishConfig();
-          const latestParts = latestCfg.repo.split('/').map((s) => s.trim()).filter(Boolean);
-          if (latestParts.length !== 2 || !latestCfg.token) break;
+          if (!isValidGhOrGistConfig(latestCfg)) break;
+
+          const cleanRepo = latestCfg.repo.trim();
+          const isGist = isGistInput(cleanRepo);
+          const parts = cleanRepo.split('/').map((s) => s.trim()).filter(Boolean);
 
           await api.publishDataJsonToGitHub({
-            owner: latestParts[0],
-            repo: latestParts[1],
+            owner: isGist ? '' : (parts[0] || ''),
+            repo: cleanRepo,
             branch: latestCfg.branch,
             path: latestCfg.path,
             token: latestCfg.token,
@@ -12934,17 +12947,19 @@
           const loc = I18N[state.lang];
           if (!api || typeof api.publishDataJsonToGitHub !== 'function') return;
           const liveCfg = readLiveGhPublishConfig();
-          const parts = liveCfg.repo.split('/').map((s) => s.trim()).filter(Boolean);
-          if (parts.length !== 2 || !liveCfg.token) {
+          if (!isValidGhOrGistConfig(liveCfg)) {
             showToast(loc.adminDataJsonGhMissingToast);
             return;
           }
-          saveGhPublishConfig({ repo: `${parts[0]}/${parts[1]}`, branch: liveCfg.branch, path: liveCfg.path, token: liveCfg.token });
+          saveGhPublishConfig(liveCfg);
           btnAdminPushGitHubDataJson.disabled = true;
           try {
+            const cleanRepo = liveCfg.repo.trim();
+            const isGist = isGistInput(cleanRepo);
+            const parts = cleanRepo.split('/').map((s) => s.trim()).filter(Boolean);
             await api.publishDataJsonToGitHub({
-              owner: parts[0],
-              repo: parts[1],
+              owner: isGist ? '' : (parts[0] || ''),
+              repo: cleanRepo,
               branch: liveCfg.branch,
               path: liveCfg.path,
               token: liveCfg.token,
