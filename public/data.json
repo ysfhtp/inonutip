@@ -1,6 +1,6 @@
 {
-  "version": "3.2.9",
-  "updatedAtMs": 1794935019225,
+  "version": "3.2.10",
+  "updatedAtMs": 1794935027945,
   "githubSource": {
     "owner": "ysfhtp",
     "repo": "inonutip",
@@ -17,19 +17,7 @@
     "wrappedRosterKey": "fa8aa82caed8efe48730f29a260c4c517a02ef317a10e7e298010425871c0ef7",
     "updatedAtMs": 0
   },
-  "announcements": [
-    {
-      "id": "ann_1794934893198_jx4rbi",
-      "title": "b",
-      "message": "b",
-      "tone": "info",
-      "active": false,
-      "targetGroup": "",
-      "targetProg": "",
-      "createdAtMs": 1794934893198,
-      "updatedAtMs": 1794935019209
-    }
-  ],
+  "announcements": [],
   "materials": [],
   "customStudents": {},
   "studentDirectory": {},
