@@ -18,6 +18,192 @@ const DB_PATH = path.join(UPLOADS_ROOT, 'inonu_tip.db');
 fs.mkdirSync(STORAGE_ROOT, { recursive: true });
 fs.mkdirSync(TMP_ROOT, { recursive: true });
 
+// ==================== OPTIONAL SUPABASE STORAGE & STATE SYNC ====================
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
+const SUPABASE_BUCKET = (process.env.SUPABASE_STORAGE_BUCKET || 'lesson-pdfs').trim() || 'lesson-pdfs';
+const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
+const SUPABASE_PULL_TTL_MS = 5000;
+
+type SupabaseKvDomain =
+  | 'access'
+  | 'security'
+  | 'announcements'
+  | 'materials'
+  | 'custom_students'
+  | 'admin_dir'
+  | 'student_prefs';
+
+function encodeStorageObjectPath(objName: string): string {
+  return objName
+    .split('/')
+    .map((part) => encodeURIComponent(part))
+    .join('/');
+}
+
+function supabaseHeaders(extra?: Record<string, string>): Record<string, string> {
+  return {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
+    ...extra,
+  };
+}
+
+async function ensureSupabaseBucket(): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  try {
+    await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+      method: 'POST',
+      headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        id: SUPABASE_BUCKET,
+        name: SUPABASE_BUCKET,
+        public: false,
+        file_size_limit: MAX_PDF_BYTES,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    // Bucket may already exist or permissions managed in Supabase dashboard
+  }
+}
+
+async function supabaseObjectExists(objName: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  try {
+    const key = encodeStorageObjectPath(objName);
+    const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${key}`, {
+      method: 'HEAD',
+      headers: supabaseHeaders(),
+      signal: AbortSignal.timeout(5000),
+    });
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function uploadPdfBufferToSupabase(fileId: string, pdfBuf: Buffer, meta: StoredFileMeta): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  try {
+    const pdfKey = encodeStorageObjectPath(`${fileId}.pdf`);
+    const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${pdfKey}`, {
+      method: 'POST',
+      headers: supabaseHeaders({
+        'Content-Type': 'application/pdf',
+        'x-upsert': 'true',
+      }),
+      body: new Uint8Array(pdfBuf),
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!resp.ok) return false;
+
+    const metaKey = encodeStorageObjectPath(`${fileId}.json`);
+    void fetch(`${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${metaKey}`, {
+      method: 'POST',
+      headers: supabaseHeaders({
+        'Content-Type': 'application/json',
+        'x-upsert': 'true',
+      }),
+      body: JSON.stringify(meta),
+      signal: AbortSignal.timeout(8000),
+    }).catch(() => {});
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function fetchPdfFromSupabaseToLocal(fileId: string, destPdfPath: string, destMetaPath: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  try {
+    const pdfKey = encodeStorageObjectPath(`${fileId}.pdf`);
+    const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${pdfKey}`, {
+      headers: supabaseHeaders(),
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!resp.ok) return false;
+    const arrBuf = await resp.arrayBuffer();
+    const buf = Buffer.from(arrBuf);
+    if (buf.length < 1) return false;
+    const partPath = `${destPdfPath}.dl.${Date.now()}`;
+    fs.writeFileSync(partPath, buf);
+    fs.renameSync(partPath, destPdfPath);
+
+    try {
+      const metaKey = encodeStorageObjectPath(`${fileId}.json`);
+      const mResp = await fetch(`${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${metaKey}`, {
+        headers: supabaseHeaders(),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (mResp.ok) {
+        const metaText = await mResp.text();
+        fs.writeFileSync(destMetaPath, metaText, 'utf8');
+      }
+    } catch {
+      // Optional metadata file
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function deletePdfFromSupabase(fileId: string): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  try {
+    await fetch(`${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}`, {
+      method: 'DELETE',
+      headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ prefixes: [`${fileId}.pdf`, `${fileId}.json`] }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    // Best-effort cleanup
+  }
+}
+
+async function pushSupabaseKv(key: string, value: unknown): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/inonu_kv?on_conflict=key`, {
+      method: 'POST',
+      headers: supabaseHeaders({
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates',
+      }),
+      body: JSON.stringify({ key, value, updated_at: Date.now() }),
+      signal: AbortSignal.timeout(4500),
+    });
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function pullSupabaseKvAll(): Promise<Record<string, { value: unknown; updated_at: number }> | null> {
+  if (!isSupabaseConfigured) return null;
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/inonu_kv?select=key,value,updated_at`, {
+      headers: supabaseHeaders(),
+      signal: AbortSignal.timeout(4500),
+    });
+    if (!resp.ok) return null;
+    const rows = (await resp.json()) as Array<{ key?: string; value?: unknown; updated_at?: number }>;
+    if (!Array.isArray(rows)) return null;
+    const out: Record<string, { value: unknown; updated_at: number }> = {};
+    for (const r of rows) {
+      if (r && typeof r.key === 'string') {
+        out[r.key] = { value: r.value, updated_at: Number(r.updated_at) || 0 };
+      }
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
 // ==================== SQLITE DATABASE INITIALIZATION ====================
 const db = new DatabaseSync(DB_PATH);
 db.exec(`
@@ -109,6 +295,7 @@ interface AdminSecurityConfig {
   passwordHash: string;
   proofDigestB64: string;
   wrappedRosterKey?: string;
+  updatedAtMs?: number;
 }
 
 interface SiteAccessConfig {
@@ -140,6 +327,7 @@ if (!getConfigJson<AdminSecurityConfig>('security')) {
   setConfigJson('security', {
     passwordHash: DEFAULT_ADMIN_PASSWORD_HASH,
     proofDigestB64: DEFAULT_PROOF_DIGEST_B64,
+    updatedAtMs: 0,
   } satisfies AdminSecurityConfig);
 }
 if (!getConfigJson<SiteAccessConfig>('access')) {
@@ -212,6 +400,389 @@ function migrateLegacyDatastoreIfNeeded(): void {
   }
 }
 migrateLegacyDatastoreIfNeeded();
+
+// ==================== SUPABASE 7-DOMAIN SYNC & AUTO-MIGRATION ====================
+function getSupabaseDomainPayload(domain: SupabaseKvDomain): unknown {
+  switch (domain) {
+    case 'access':
+      return getConfigJson<SiteAccessConfig>('access') || { requireStudentLogin: false, updatedAtMs: 0 };
+    case 'security':
+      return (
+        getConfigJson<AdminSecurityConfig>('security') || {
+          passwordHash: DEFAULT_ADMIN_PASSWORD_HASH,
+          proofDigestB64: DEFAULT_PROOF_DIGEST_B64,
+          updatedAtMs: 0,
+        }
+      );
+    case 'announcements':
+      return db.prepare('SELECT * FROM announcements').all();
+    case 'materials': {
+      const rows = db.prepare('SELECT * FROM lesson_materials').all() as Array<Record<string, unknown>>;
+      return rows.map((r) => {
+        if (typeof r.pdf_data === 'string' && r.pdf_data.length > 32_768 && typeof r.pdf_url === 'string' && r.pdf_url) {
+          return { ...r, pdf_data: '' };
+        }
+        return r;
+      });
+    }
+    case 'custom_students':
+      return db.prepare('SELECT * FROM custom_students').all();
+    case 'admin_dir':
+      return db.prepare('SELECT * FROM admin_student_directory').all();
+    case 'student_prefs':
+      return db.prepare('SELECT * FROM student_prefs').all();
+  }
+}
+
+async function pushDomainToSupabase(domain: SupabaseKvDomain): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  return pushSupabaseKv(domain, getSupabaseDomainPayload(domain));
+}
+
+function mergeRemoteKvIntoSqlite(kv: Record<string, { value: unknown; updated_at: number }>): {
+  accessChanged: boolean;
+  accessVal?: SiteAccessConfig;
+} {
+  let accessChanged = false;
+  let nextAccessVal: SiteAccessConfig | undefined;
+
+  try {
+    const remoteAccess = kv.access?.value as Partial<SiteAccessConfig> | undefined;
+    if (remoteAccess && typeof remoteAccess === 'object') {
+      const cur = getConfigJson<SiteAccessConfig>('access');
+      const remoteTs = Number(remoteAccess.updatedAtMs) || 0;
+      const localTs = Number(cur?.updatedAtMs) || 0;
+      if (remoteTs > localTs) {
+        const nextCfg: SiteAccessConfig = {
+          requireStudentLogin: Boolean(remoteAccess.requireStudentLogin),
+          updatedAtMs: remoteTs,
+        };
+        setConfigJson('access', nextCfg);
+        accessChanged = true;
+        nextAccessVal = nextCfg;
+      }
+    }
+
+    const remoteSec = kv.security?.value as Partial<AdminSecurityConfig> | undefined;
+    if (
+      remoteSec &&
+      typeof remoteSec === 'object' &&
+      typeof remoteSec.passwordHash === 'string' &&
+      /^[a-f0-9]{64}$/.test(remoteSec.passwordHash) &&
+      typeof remoteSec.proofDigestB64 === 'string' &&
+      remoteSec.proofDigestB64.length === 44
+    ) {
+      const curSec = getConfigJson<AdminSecurityConfig>('security');
+      const remoteTs = Number(remoteSec.updatedAtMs) || Number(kv.security?.updated_at) || 0;
+      const localTs = Number(curSec?.updatedAtMs) || 0;
+      const localIsDefault = !curSec || curSec.passwordHash === DEFAULT_ADMIN_PASSWORD_HASH;
+      const remoteIsCustom = remoteSec.passwordHash !== DEFAULT_ADMIN_PASSWORD_HASH;
+      if (remoteTs > localTs || (localIsDefault && remoteIsCustom)) {
+        setConfigJson('security', {
+          passwordHash: remoteSec.passwordHash,
+          proofDigestB64: remoteSec.proofDigestB64,
+          wrappedRosterKey:
+            typeof remoteSec.wrappedRosterKey === 'string' && /^[a-f0-9]{64}$/.test(remoteSec.wrappedRosterKey)
+              ? remoteSec.wrappedRosterKey
+              : curSec?.wrappedRosterKey,
+          updatedAtMs: remoteTs,
+        } satisfies AdminSecurityConfig);
+      }
+    }
+
+    const mats = kv.materials?.value as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(mats)) {
+      const stmt = db.prepare(`
+        INSERT INTO lesson_materials
+        (id, date, slot_no, target_prog, title, source_type, pdf_url, pdf_data, chunk_count, pdf_name, file_size, deleted, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          date = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.date ELSE lesson_materials.date END,
+          slot_no = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.slot_no ELSE lesson_materials.slot_no END,
+          target_prog = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.target_prog ELSE lesson_materials.target_prog END,
+          title = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.title ELSE lesson_materials.title END,
+          source_type = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.source_type ELSE lesson_materials.source_type END,
+          pdf_url = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.pdf_url ELSE lesson_materials.pdf_url END,
+          pdf_data = CASE WHEN excluded.updated_at >= lesson_materials.updated_at AND excluded.pdf_data != '' THEN excluded.pdf_data ELSE lesson_materials.pdf_data END,
+          chunk_count = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.chunk_count ELSE lesson_materials.chunk_count END,
+          pdf_name = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.pdf_name ELSE lesson_materials.pdf_name END,
+          file_size = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.file_size ELSE lesson_materials.file_size END,
+          deleted = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.deleted ELSE lesson_materials.deleted END,
+          updated_at = MAX(lesson_materials.updated_at, excluded.updated_at)
+      `);
+      for (const m of mats) {
+        if (!m || typeof m.id !== 'string') continue;
+        stmt.run(
+          m.id,
+          String(m.date || ''),
+          Number(m.slot_no ?? m.slotNo) || 1,
+          String(m.target_prog ?? m.targetProg ?? ''),
+          String(m.title || 'PDF'),
+          String(m.source_type ?? m.sourceType ?? 'server'),
+          String(m.pdf_url ?? m.pdfUrl ?? ''),
+          String(m.pdf_data ?? m.pdfData ?? ''),
+          Number(m.chunk_count ?? m.chunkCount) || 0,
+          String(m.pdf_name ?? m.pdfName ?? ''),
+          Number(m.file_size ?? m.fileSize) || 0,
+          Number(m.deleted) ? 1 : 0,
+          Number(m.created_at ?? m.createdAtMs) || Date.now(),
+          Number(m.updated_at ?? m.updatedAtMs) || Date.now(),
+        );
+      }
+    }
+
+    const anns = kv.announcements?.value as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(anns)) {
+      const stmt = db.prepare(`
+        INSERT INTO announcements (id, title, message, tone, active, target_group, target_prog, deleted, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          title = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.title ELSE announcements.title END,
+          message = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.message ELSE announcements.message END,
+          tone = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.tone ELSE announcements.tone END,
+          active = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.active ELSE announcements.active END,
+          target_group = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.target_group ELSE announcements.target_group END,
+          target_prog = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.target_prog ELSE announcements.target_prog END,
+          deleted = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.deleted ELSE announcements.deleted END,
+          updated_at = MAX(announcements.updated_at, excluded.updated_at)
+      `);
+      for (const a of anns) {
+        if (!a || typeof a.id !== 'string') continue;
+        stmt.run(
+          a.id,
+          String(a.title || ''),
+          String(a.message || ''),
+          String(a.tone || 'info'),
+          Number(a.active) ? 1 : 0,
+          String(a.target_group ?? a.targetGroup ?? ''),
+          String(a.target_prog ?? a.targetProg ?? ''),
+          Number(a.deleted) ? 1 : 0,
+          Number(a.created_at ?? a.createdAtMs) || Date.now(),
+          Number(a.updated_at ?? a.updatedAtMs) || Date.now(),
+        );
+      }
+    }
+
+    const customs = kv.custom_students?.value as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(customs)) {
+      const stmt = db.prepare(`
+        INSERT INTO custom_students
+        (auth_hash, cloud_key, last4, group_name, lab_group, prog, enc_name, enc_sid, active, deleted, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(auth_hash) DO UPDATE SET
+          cloud_key = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.cloud_key ELSE custom_students.cloud_key END,
+          last4 = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.last4 ELSE custom_students.last4 END,
+          group_name = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.group_name ELSE custom_students.group_name END,
+          lab_group = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.lab_group ELSE custom_students.lab_group END,
+          prog = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.prog ELSE custom_students.prog END,
+          enc_name = CASE WHEN excluded.updated_at >= custom_students.updated_at AND excluded.enc_name != '' THEN excluded.enc_name ELSE custom_students.enc_name END,
+          enc_sid = CASE WHEN excluded.updated_at >= custom_students.updated_at AND excluded.enc_sid != '' THEN excluded.enc_sid ELSE custom_students.enc_sid END,
+          active = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.active ELSE custom_students.active END,
+          deleted = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.deleted ELSE custom_students.deleted END,
+          updated_at = MAX(custom_students.updated_at, excluded.updated_at)
+      `);
+      for (const c of customs) {
+        if (!c || typeof c.auth_hash !== 'string' || !HASH32_RE.test(c.auth_hash)) continue;
+        stmt.run(
+          c.auth_hash,
+          String(c.cloud_key || ''),
+          String(c.last4 || ''),
+          String(c.group_name || 'I'),
+          String(c.lab_group || ''),
+          String(c.prog || 'tr'),
+          String(c.enc_name || ''),
+          String(c.enc_sid || ''),
+          Number(c.active) === 0 ? 0 : 1,
+          Number(c.deleted) === 1 ? 1 : 0,
+          Number(c.created_at) || Date.now(),
+          Number(c.updated_at) || Date.now(),
+        );
+      }
+    }
+
+    const dirs = kv.admin_dir?.value as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(dirs)) {
+      const stmt = db.prepare(`
+        INSERT INTO admin_student_directory
+        (auth_hash, cloud_key, last4, enc_full_name, enc_sid, group_name, lab_group, prog, source, active, deleted, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(auth_hash) DO UPDATE SET
+          cloud_key = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.cloud_key ELSE admin_student_directory.cloud_key END,
+          last4 = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.last4 ELSE admin_student_directory.last4 END,
+          enc_full_name = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at AND excluded.enc_full_name != '' THEN excluded.enc_full_name ELSE admin_student_directory.enc_full_name END,
+          enc_sid = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at AND excluded.enc_sid != '' THEN excluded.enc_sid ELSE admin_student_directory.enc_sid END,
+          group_name = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.group_name ELSE admin_student_directory.group_name END,
+          lab_group = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.lab_group ELSE admin_student_directory.lab_group END,
+          prog = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.prog ELSE admin_student_directory.prog END,
+          source = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.source ELSE admin_student_directory.source END,
+          active = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.active ELSE admin_student_directory.active END,
+          deleted = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.deleted ELSE admin_student_directory.deleted END,
+          updated_at = MAX(admin_student_directory.updated_at, excluded.updated_at)
+      `);
+      for (const d of dirs) {
+        if (!d || typeof d.auth_hash !== 'string' || !HASH32_RE.test(d.auth_hash)) continue;
+        stmt.run(
+          d.auth_hash,
+          String(d.cloud_key || ''),
+          String(d.last4 || ''),
+          String(d.enc_full_name || ''),
+          String(d.enc_sid || ''),
+          String(d.group_name || 'I'),
+          String(d.lab_group || ''),
+          String(d.prog || 'tr'),
+          String(d.source || 'allowlist'),
+          Number(d.active) === 0 ? 0 : 1,
+          Number(d.deleted) === 1 ? 1 : 0,
+          Number(d.created_at) || Date.now(),
+          Number(d.updated_at) || Date.now(),
+        );
+      }
+    }
+
+    const prefs = kv.student_prefs?.value as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(prefs)) {
+      const stmt = db.prepare(`
+        INSERT INTO student_prefs
+        (cloud_key, auth_hash, last4, my_mbu_group, my_lab_group, other_group_mode, lang, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(cloud_key) DO UPDATE SET
+          auth_hash = CASE WHEN excluded.updated_at >= student_prefs.updated_at AND excluded.auth_hash != '' THEN excluded.auth_hash ELSE student_prefs.auth_hash END,
+          last4 = CASE WHEN excluded.updated_at >= student_prefs.updated_at AND excluded.last4 != '' THEN excluded.last4 ELSE student_prefs.last4 END,
+          my_mbu_group = CASE WHEN excluded.updated_at >= student_prefs.updated_at THEN excluded.my_mbu_group ELSE student_prefs.my_mbu_group END,
+          my_lab_group = CASE WHEN excluded.updated_at >= student_prefs.updated_at THEN excluded.my_lab_group ELSE student_prefs.my_lab_group END,
+          other_group_mode = CASE WHEN excluded.updated_at >= student_prefs.updated_at THEN excluded.other_group_mode ELSE student_prefs.other_group_mode END,
+          lang = CASE WHEN excluded.updated_at >= student_prefs.updated_at AND excluded.lang != '' THEN excluded.lang ELSE student_prefs.lang END,
+          updated_at = MAX(student_prefs.updated_at, excluded.updated_at)
+      `);
+      for (const p of prefs) {
+        if (!p || typeof p.cloud_key !== 'string' || !HEX64_RE.test(p.cloud_key)) continue;
+        stmt.run(
+          p.cloud_key,
+          String(p.auth_hash || ''),
+          String(p.last4 || ''),
+          String(p.my_mbu_group || ''),
+          String(p.my_lab_group || ''),
+          String(p.other_group_mode || 'dim'),
+          String(p.lang || ''),
+          Number(p.updated_at) || Date.now(),
+        );
+      }
+    }
+  } catch {
+    // Non-fatal merge error
+  }
+
+  return { accessChanged, accessVal: nextAccessVal };
+}
+
+let lastSupabasePullAt = 0;
+let inflightSupabasePull: Promise<void> | null = null;
+
+async function ensureFreshSupabaseSync(force = false): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const now = Date.now();
+  if (!force && now - lastSupabasePullAt < SUPABASE_PULL_TTL_MS) {
+    return;
+  }
+  if (inflightSupabasePull) {
+    return inflightSupabasePull;
+  }
+  inflightSupabasePull = (async () => {
+    try {
+      const kv = await pullSupabaseKvAll();
+      lastSupabasePullAt = Date.now();
+      if (!kv) return;
+      const res = mergeRemoteKvIntoSqlite(kv);
+      if (res.accessChanged && res.accessVal) {
+        broadcastEvent('access', res.accessVal);
+      }
+    } catch {
+      // Non-fatal pull error
+    } finally {
+      inflightSupabasePull = null;
+    }
+  })();
+  return inflightSupabasePull;
+}
+
+async function bootstrapSupabaseFromSqlite(): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  try {
+    await ensureSupabaseBucket();
+    const kv = await pullSupabaseKvAll();
+    lastSupabasePullAt = Date.now();
+    if (kv) {
+      mergeRemoteKvIntoSqlite(kv);
+      const domains: SupabaseKvDomain[] = [
+        'access',
+        'security',
+        'announcements',
+        'materials',
+        'custom_students',
+        'admin_dir',
+        'student_prefs',
+      ];
+      for (const domain of domains) {
+        const localPayload = getSupabaseDomainPayload(domain);
+        const remoteEntry = kv[domain];
+        if (!remoteEntry) {
+          await pushSupabaseKv(domain, localPayload);
+          continue;
+        }
+        if (domain === 'access') {
+          const lAcc = localPayload as SiteAccessConfig;
+          const rAcc = (remoteEntry.value || {}) as Partial<SiteAccessConfig>;
+          if ((Number(lAcc.updatedAtMs) || 0) > (Number(rAcc.updatedAtMs) || 0)) {
+            await pushSupabaseKv('access', lAcc);
+          }
+        } else if (domain === 'security') {
+          const lSec = localPayload as AdminSecurityConfig;
+          const rSec = (remoteEntry.value || {}) as Partial<AdminSecurityConfig>;
+          if ((Number(lSec.updatedAtMs) || 0) > (Number(rSec.updatedAtMs) || 0)) {
+            await pushSupabaseKv('security', lSec);
+          }
+        } else if (Array.isArray(localPayload)) {
+          const rList = Array.isArray(remoteEntry.value) ? (remoteEntry.value as Array<Record<string, unknown>>) : [];
+          const maxLocalTs = localPayload.reduce((mx, row) => Math.max(mx, Number((row as Record<string, unknown>).updated_at) || 0), 0);
+          const maxRemoteTs = rList.reduce((mx, row) => Math.max(mx, Number(row.updated_at ?? row.updatedAtMs) || 0), 0);
+          if (localPayload.length > rList.length || maxLocalTs > maxRemoteTs) {
+            await pushSupabaseKv(domain, localPayload);
+          }
+        }
+      }
+    }
+
+    // Also migrate any local PDFs on disk that aren't yet in Supabase Storage
+    const entries = await fs.promises.readdir(STORAGE_ROOT).catch(() => [] as string[]);
+    for (const fileName of entries) {
+      if (!fileName.endsWith('.pdf')) continue;
+      const fileId = fileName.slice(0, -4);
+      if (!/^[a-zA-Z0-9_-]{8,96}$/.test(fileId)) continue;
+      const exists = await supabaseObjectExists(`${fileId}.pdf`);
+      if (exists) continue;
+      const pdfPath = path.join(STORAGE_ROOT, fileName);
+      const metaPath = path.join(STORAGE_ROOT, `${fileId}.json`);
+      const buf = await fs.promises.readFile(pdfPath).catch(() => null);
+      if (!buf || buf.length < 1) continue;
+      let storedMeta: StoredFileMeta = {
+        fileId,
+        fileName: `${fileId}.pdf`,
+        size: buf.length,
+        mimeType: 'application/pdf',
+        createdAt: Date.now(),
+      };
+      try {
+        const rawMeta = await fs.promises.readFile(metaPath, 'utf8');
+        storedMeta = { ...storedMeta, ...(JSON.parse(rawMeta) as Partial<StoredFileMeta>) };
+      } catch {
+        // Use default metadata
+      }
+      await uploadPdfBufferToSupabase(fileId, buf, storedMeta);
+    }
+  } catch {
+    // Startup migration should never crash server boot
+  }
+}
 
 // ==================== SECURITY HELPERS & RATE LIMITER ====================
 function safeEqualString(a: string, b: string): boolean {
@@ -381,9 +952,18 @@ async function startServer() {
     limit: '4mb',
   });
 
+  if (isSupabaseConfigured) {
+    void bootstrapSupabaseFromSqlite();
+  }
+
   // ==================== HEALTH & REAL-TIME SSE ====================
   app.get('/api/health', (_req: Request, res: Response) => {
-    res.json({ ok: true, engine: 'sqlite', timestamp: Date.now() });
+    res.json({
+      ok: true,
+      engine: isSupabaseConfigured ? 'supabase+sqlite' : 'sqlite',
+      supabaseConfigured: isSupabaseConfigured,
+      timestamp: Date.now(),
+    });
   });
 
   app.get('/api/events', (req: Request, res: Response) => {
@@ -400,7 +980,8 @@ async function startServer() {
   });
 
   // ==================== ADMIN AUTH & SECURITY CONFIG ====================
-  app.post('/api/admin/verify', jsonParser, (req: Request, res: Response) => {
+  app.post('/api/admin/verify', jsonParser, async (req: Request, res: Response) => {
+    await ensureFreshSupabaseSync();
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     const rl = checkVerifyRateLimit(ip);
     if (!rl.allowed) {
@@ -432,7 +1013,7 @@ async function startServer() {
     });
   });
 
-  app.post('/api/admin/password', jsonParser, (req: Request, res: Response) => {
+  app.post('/api/admin/password', jsonParser, async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
@@ -456,13 +1037,16 @@ async function startServer() {
       passwordHash,
       proofDigestB64,
       wrappedRosterKey: HEX64_RE.test(wrappedRosterKey) ? wrappedRosterKey : prev.wrappedRosterKey,
+      updatedAtMs: Date.now(),
     };
     setConfigJson('security', nextCfg);
+    await pushDomainToSupabase('security');
     res.json({ ok: true });
   });
 
   // ==================== SITE ACCESS SETTINGS ====================
-  app.get('/api/access', (_req: Request, res: Response) => {
+  app.get('/api/access', async (_req: Request, res: Response) => {
+    await ensureFreshSupabaseSync();
     const cfg = getConfigJson<SiteAccessConfig>('access') || { requireStudentLogin: false, updatedAtMs: 0 };
     res.json({
       ok: true,
@@ -471,7 +1055,7 @@ async function startServer() {
     });
   });
 
-  app.put('/api/access', jsonParser, (req: Request, res: Response) => {
+  app.put('/api/access', jsonParser, async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
@@ -485,12 +1069,14 @@ async function startServer() {
       ? Math.max(clientTs, prevTs + 1)
       : Math.max(Date.now(), prevTs + 1);
     setConfigJson('access', { requireStudentLogin, updatedAtMs } satisfies SiteAccessConfig);
+    await pushDomainToSupabase('access');
     broadcastEvent('access', { requireStudentLogin, updatedAtMs });
     res.json({ ok: true, requireStudentLogin, updatedAtMs });
   });
 
   // ==================== STUDENT LOGIN CHECK & PREFS ====================
-  app.get('/api/student/login-status/:authHash', (req: Request, res: Response) => {
+  app.get('/api/student/login-status/:authHash', async (req: Request, res: Response) => {
+    await ensureFreshSupabaseSync();
     const authHash = String(req.params.authHash || '').trim().toLowerCase();
     if (!HASH32_RE.test(authHash)) {
       res.status(400).json({ ok: false, error: 'INVALID_AUTH_HASH' });
@@ -530,7 +1116,8 @@ async function startServer() {
     });
   });
 
-  app.get('/api/student/prefs/:cloudKey', (req: Request, res: Response) => {
+  app.get('/api/student/prefs/:cloudKey', async (req: Request, res: Response) => {
+    await ensureFreshSupabaseSync();
     const cloudKey = String(req.params.cloudKey || '').trim().toLowerCase();
     if (!HEX64_RE.test(cloudKey)) {
       res.status(400).json({ ok: false, error: 'INVALID_CLOUD_KEY' });
@@ -554,7 +1141,7 @@ async function startServer() {
     });
   });
 
-  app.put('/api/student/prefs/:cloudKey', jsonParser, (req: Request, res: Response) => {
+  app.put('/api/student/prefs/:cloudKey', jsonParser, async (req: Request, res: Response) => {
     const cloudKey = String(req.params.cloudKey || '').trim().toLowerCase();
     if (!HEX64_RE.test(cloudKey)) {
       res.status(400).json({ ok: false, error: 'INVALID_CLOUD_KEY' });
@@ -583,11 +1170,13 @@ async function startServer() {
         updated_at = excluded.updated_at
     `).run(cloudKey, authHash, last4, mbu, lab, mode, lang, Date.now());
 
+    await pushDomainToSupabase('student_prefs');
     res.json({ ok: true });
   });
 
   // ==================== ANNOUNCEMENTS ====================
-  app.get('/api/announcements', (req: Request, res: Response) => {
+  app.get('/api/announcements', async (req: Request, res: Response) => {
+    await ensureFreshSupabaseSync();
     const onlyActive = req.query.active === '1' || req.query.active === 'true';
     const sql = onlyActive
       ? 'SELECT * FROM announcements WHERE deleted = 0 AND active = 1 ORDER BY updated_at DESC, created_at DESC'
@@ -607,7 +1196,7 @@ async function startServer() {
     res.json({ ok: true, announcements });
   });
 
-  app.post('/api/announcements', jsonParser, (req: Request, res: Response) => {
+  app.post('/api/announcements', jsonParser, async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
@@ -657,10 +1246,11 @@ async function startServer() {
       updatedAtMs: now,
     };
     broadcastEvent('announcements', { action: 'save', id: rawId });
+    await pushDomainToSupabase('announcements');
     res.json({ ok: true, announcement: saved });
   });
 
-  app.delete('/api/announcements/:id', (req: Request, res: Response) => {
+  app.delete('/api/announcements/:id', async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
@@ -672,11 +1262,13 @@ async function startServer() {
     }
     db.prepare('UPDATE announcements SET deleted = 1, active = 0, updated_at = ? WHERE id = ?').run(Date.now(), id);
     broadcastEvent('announcements', { action: 'delete', id });
+    await pushDomainToSupabase('announcements');
     res.json({ ok: true });
   });
 
   // ==================== LESSON MATERIALS & PDFs ====================
-  app.get('/api/materials', (_req: Request, res: Response) => {
+  app.get('/api/materials', async (_req: Request, res: Response) => {
+    await ensureFreshSupabaseSync();
     const rows = db
       .prepare('SELECT * FROM lesson_materials WHERE deleted = 0 ORDER BY created_at ASC, updated_at ASC')
       .all() as Array<Record<string, unknown>>;
@@ -698,7 +1290,7 @@ async function startServer() {
     res.json({ ok: true, materials });
   });
 
-  app.post('/api/materials', jsonParser, (req: Request, res: Response) => {
+  app.post('/api/materials', jsonParser, async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
@@ -762,10 +1354,11 @@ async function startServer() {
       updatedAtMs: now,
     };
     broadcastEvent('materials', { action: 'save', id: rawId });
+    await pushDomainToSupabase('materials');
     res.json({ ok: true, material });
   });
 
-  app.delete('/api/materials/:id', (req: Request, res: Response) => {
+  app.delete('/api/materials/:id', async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
@@ -777,12 +1370,14 @@ async function startServer() {
     }
     const existing = db.prepare('SELECT pdf_url FROM lesson_materials WHERE id = ?').get(id) as { pdf_url?: string } | undefined;
     db.prepare('UPDATE lesson_materials SET deleted = 1, updated_at = ? WHERE id = ?').run(Date.now(), id);
+    await pushDomainToSupabase('materials');
 
     if (existing?.pdf_url && existing.pdf_url.startsWith('/api/lesson-pdf/')) {
       const fileId = existing.pdf_url.slice('/api/lesson-pdf/'.length).split('?')[0].trim();
       if (/^[a-zA-Z0-9_-]{8,96}$/.test(fileId)) {
         fs.rmSync(path.join(STORAGE_ROOT, `${fileId}.pdf`), { force: true });
         fs.rmSync(path.join(STORAGE_ROOT, `${fileId}.json`), { force: true });
+        void deletePdfFromSupabase(fileId);
       }
     }
     broadcastEvent('materials', { action: 'delete', id });
@@ -790,11 +1385,12 @@ async function startServer() {
   });
 
   // ==================== ADMIN STUDENT MANAGEMENT ====================
-  app.get('/api/admin/students', (req: Request, res: Response) => {
+  app.get('/api/admin/students', async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
     }
+    await ensureFreshSupabaseSync();
     const dirRows = db.prepare('SELECT * FROM admin_student_directory').all();
     const customRows = db.prepare('SELECT * FROM custom_students').all();
     const prefsRows = db.prepare('SELECT * FROM student_prefs').all();
@@ -808,11 +1404,12 @@ async function startServer() {
     });
   });
 
-  app.get('/api/admin/students/lookup/:authHash/:cloudKey', (req: Request, res: Response) => {
+  app.get('/api/admin/students/lookup/:authHash/:cloudKey', async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
     }
+    await ensureFreshSupabaseSync();
     const authHash = String(req.params.authHash || '').trim().toLowerCase();
     const cloudKey = String(req.params.cloudKey || '').trim().toLowerCase();
     if (!HASH32_RE.test(authHash) || !HEX64_RE.test(cloudKey)) {
@@ -825,7 +1422,7 @@ async function startServer() {
     res.json({ ok: true, directory, custom, prefs });
   });
 
-  app.post('/api/admin/students', jsonParser, (req: Request, res: Response) => {
+  app.post('/api/admin/students', jsonParser, async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
@@ -921,11 +1518,16 @@ async function startServer() {
       throw err;
     }
 
+    await Promise.all([
+      pushDomainToSupabase('custom_students'),
+      pushDomainToSupabase('admin_dir'),
+      pushDomainToSupabase('student_prefs'),
+    ]);
     broadcastEvent('student_status', { authHash, active: active === 1, deleted: false });
     res.json({ ok: true, updatedAtMs: now });
   });
 
-  app.post('/api/admin/students/delete', jsonParser, (req: Request, res: Response) => {
+  app.post('/api/admin/students/delete', jsonParser, async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
@@ -975,11 +1577,15 @@ async function startServer() {
       throw err;
     }
 
+    await Promise.all([
+      pushDomainToSupabase('custom_students'),
+      pushDomainToSupabase('admin_dir'),
+    ]);
     broadcastEvent('student_status', { authHash, active: false, deleted: true });
     res.json({ ok: true });
   });
 
-  app.put('/api/admin/students/settings', jsonParser, (req: Request, res: Response) => {
+  app.put('/api/admin/students/settings', jsonParser, async (req: Request, res: Response) => {
     if (!verifyAdminSecret(req.header('x-admin-secret'))) {
       res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
       return;
@@ -1060,6 +1666,11 @@ async function startServer() {
       throw err;
     }
 
+    await Promise.all([
+      pushDomainToSupabase('student_prefs'),
+      pushDomainToSupabase('custom_students'),
+      pushDomainToSupabase('admin_dir'),
+    ]);
     if (HASH32_RE.test(authHash)) {
       broadcastEvent('student_status', { authHash, active: active === 1, deleted: false });
     }
@@ -1228,12 +1839,20 @@ async function startServer() {
       fs.writeFileSync(finalMetaPath, JSON.stringify(storedMeta), 'utf8');
       fs.rmSync(tmpDir, { recursive: true, force: true });
 
+      let storageEngine: 'supabase' | 'local' = 'local';
+      if (isSupabaseConfigured) {
+        const fullBuf = await fs.promises.readFile(finalPdfPath);
+        const sbOk = await uploadPdfBufferToSupabase(meta.fileId, fullBuf, storedMeta);
+        if (sbOk) storageEngine = 'supabase';
+      }
+
       res.json({
         ok: true,
         fileId: meta.fileId,
         url: `/api/lesson-pdf/${meta.fileId}`,
         fileName: meta.fileName,
         size: assembledSize,
+        storageEngine,
       });
     } catch (err) {
       fs.rmSync(partPath, { force: true });
@@ -1242,7 +1861,7 @@ async function startServer() {
     }
   });
 
-  app.get('/api/lesson-pdf/:fileId', (req: Request, res: Response) => {
+  app.get('/api/lesson-pdf/:fileId', async (req: Request, res: Response) => {
     const fileId = String(req.params.fileId || '').trim();
     if (!/^[a-zA-Z0-9_-]{8,96}$/.test(fileId)) {
       res.status(400).send('Invalid file ID');
@@ -1251,6 +1870,9 @@ async function startServer() {
 
     const pdfPath = path.join(STORAGE_ROOT, `${fileId}.pdf`);
     const metaPath = path.join(STORAGE_ROOT, `${fileId}.json`);
+    if (!fs.existsSync(pdfPath) && isSupabaseConfigured) {
+      await fetchPdfFromSupabaseToLocal(fileId, pdfPath, metaPath);
+    }
     if (!fs.existsSync(pdfPath)) {
       res.status(404).send('PDF not found');
       return;
@@ -1315,11 +1937,13 @@ async function startServer() {
 
     fs.rmSync(path.join(STORAGE_ROOT, `${fileId}.pdf`), { force: true });
     fs.rmSync(path.join(STORAGE_ROOT, `${fileId}.json`), { force: true });
+    void deletePdfFromSupabase(fileId);
     res.json({ ok: true });
   });
 
-  app.get(['/', '/index.html'], (_req: Request, res: Response) => {
+  app.get(['/', '/index.html'], async (_req: Request, res: Response) => {
     try {
+      await ensureFreshSupabaseSync();
       const indexPath = process.env.NODE_ENV === 'production'
         ? path.resolve(process.cwd(), 'dist', 'index.html')
         : path.resolve(process.cwd(), 'index.html');

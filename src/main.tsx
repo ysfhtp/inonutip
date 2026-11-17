@@ -5,6 +5,7 @@ import './index.css';
 import {
   addOrUpdateCustomStudent,
   adminSaveStudentSettings,
+  cacheLessonPdfBlob,
   checkStudentLoginStatus,
   checkStudentSessionActive,
   clearAdminWriteSecret,
@@ -14,6 +15,7 @@ import {
   deleteServerPdfByUrl,
   downloadLessonMaterialChunks,
   generateLessonMaterialId,
+  getCachedLessonPdfBlob,
   hasAdminWriteSecret,
   isStudentAlreadyRegistered,
   listAllAnnouncements,
@@ -87,6 +89,8 @@ declare global {
       deleteLessonMaterial: typeof deleteLessonMaterial;
       uploadLessonPdfFile: typeof uploadLessonPdfFile;
       downloadLessonMaterialChunks: typeof downloadLessonMaterialChunks;
+      getCachedLessonPdfBlob: typeof getCachedLessonPdfBlob;
+      cacheLessonPdfBlob: typeof cacheLessonPdfBlob;
       generateLessonMaterialId: typeof generateLessonMaterialId;
       deleteServerPdfByUrl: typeof deleteServerPdfByUrl;
       addOrUpdateCustomStudent: typeof addOrUpdateCustomStudent;
@@ -134,6 +138,8 @@ window.__INONU_AUTH__ = {
   deleteLessonMaterial,
   uploadLessonPdfFile,
   downloadLessonMaterialChunks,
+  getCachedLessonPdfBlob,
+  cacheLessonPdfBlob,
   generateLessonMaterialId,
   deleteServerPdfByUrl,
   addOrUpdateCustomStudent,

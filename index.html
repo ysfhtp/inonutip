@@ -9778,9 +9778,75 @@
       }
 
       const chunkTotal = Number(mat.chunkCount) || 0;
+      const authApi = window.__INONU_AUTH__;
+
+      // 1. Instant local IndexedDB cache check (0 network overhead)
+      if (mat.id && authApi && typeof authApi.getCachedLessonPdfBlob === 'function') {
+        try {
+          const cachedBlob = await authApi.getCachedLessonPdfBlob(mat.id);
+          if (cachedBlob && cachedBlob.size > 0) {
+            triggerBlobDownloadWithReadyBanner(cachedBlob, fileName, displayTitle, shouldAutoSaveDownload, mat.pdfUrl);
+            return;
+          }
+        } catch {}
+      }
+
+      // 2. Express server / Supabase Storage URL
+      if (mat.pdfUrl && mat.pdfUrl.startsWith('/api/lesson-pdf/')) {
+        const dlUrl = mat.pdfUrl.includes('?') ? `${mat.pdfUrl}&download=1` : `${mat.pdfUrl}?download=1`;
+        if (activePdfDownloadInFlight.has(dlUrl)) return;
+        activePdfDownloadInFlight.add(dlUrl);
+        showPdfDownloadProgressBanner(displayTitle, state.lang === 'en' ? 'Fetching PDF...' : 'Sunucudan alınıyor...', 35);
+        try {
+          const resp = await fetch(dlUrl, { cache: 'no-store' });
+          const ct = (resp.headers.get('content-type') || '').toLowerCase();
+          if (!resp.ok || ct.includes('text/html')) {
+            throw new Error(resp.status === 404 || ct.includes('text/html') ? 'LEGACY_SERVER_FILE_MISSING' : `HTTP_${resp.status}`);
+          }
+          const blob = await resp.blob();
+          if (mat.id && authApi && typeof authApi.cacheLessonPdfBlob === 'function') {
+            void authApi.cacheLessonPdfBlob(mat.id, fileName, blob);
+          }
+          triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload, mat.pdfUrl);
+          return;
+        } catch (err) {
+          if (chunkTotal > 0 && mat.id && authApi && typeof authApi.downloadLessonMaterialChunks === 'function') {
+            try {
+              const fallbackBlob = await authApi.downloadLessonMaterialChunks(
+                mat.id,
+                chunkTotal,
+                (pct, done, total) => {
+                  const safePct = Math.min(99, Math.max(0, Math.round(Number(pct) || 0)));
+                  showPdfDownloadProgressBanner(
+                    displayTitle,
+                    state.lang === 'en'
+                      ? `Downloading... %${safePct} (${done}/${total})`
+                      : `İndiriliyor... %${safePct} (${done}/${total})`,
+                    safePct
+                  );
+                }
+              );
+              triggerBlobDownloadWithReadyBanner(fallbackBlob, fileName, displayTitle, shouldAutoSaveDownload);
+              return;
+            } catch {}
+          }
+          console.warn('Server PDF download failed:', err);
+          closePdfDownloadBanner(true);
+          const msg = err instanceof Error && err.message === 'LEGACY_SERVER_FILE_MISSING'
+            ? (state.lang === 'en'
+                ? 'This older PDF needs to be re-uploaded from the admin panel.'
+                : 'Bu eski PDF dosyası bulunamadı. Yönetici panelinden yeniden yükleyin.')
+            : (state.lang === 'en' ? 'Could not download PDF.' : 'PDF indirilemedi.');
+          showToast(msg);
+          return;
+        } finally {
+          activePdfDownloadInFlight.delete(dlUrl);
+        }
+      }
+
+      // 3. Fallback: IndexedDB / server lookup when pdfUrl isn't set
       if (chunkTotal > 0 && mat.id) {
-        const api = window.__INONU_AUTH__;
-        if (!api || typeof api.downloadLessonMaterialChunks !== 'function') {
+        if (!authApi || typeof authApi.downloadLessonMaterialChunks !== 'function') {
           showToast(state.lang === 'en' ? 'Downloader module not ready.' : 'İndirme modülü henüz hazır değil.');
           return;
         }
@@ -9788,7 +9854,7 @@
         activePdfDownloadInFlight.add(mat.id);
         showPdfDownloadProgressBanner(displayTitle, state.lang === 'en' ? 'Preparing PDF...' : 'PDF hazırlanıyor...', 4);
         try {
-          const blob = await api.downloadLessonMaterialChunks(mat.id, chunkTotal, (pct, done, total) => {
+          const blob = await authApi.downloadLessonMaterialChunks(mat.id, chunkTotal, (pct, done, total) => {
             showPdfDownloadProgressBanner(
               displayTitle,
               state.lang === 'en'
@@ -9809,54 +9875,6 @@
       }
 
       if (mat.pdfUrl) {
-        if (mat.pdfUrl.startsWith('/api/lesson-pdf/')) {
-          const dlUrl = mat.pdfUrl.includes('?') ? `${mat.pdfUrl}&download=1` : `${mat.pdfUrl}?download=1`;
-          if (activePdfDownloadInFlight.has(dlUrl)) return;
-          activePdfDownloadInFlight.add(dlUrl);
-          showPdfDownloadProgressBanner(displayTitle, state.lang === 'en' ? 'Fetching PDF...' : 'Sunucudan alınıyor...', 35);
-          try {
-            const resp = await fetch(dlUrl, { cache: 'no-store' });
-            const ct = (resp.headers.get('content-type') || '').toLowerCase();
-            if (!resp.ok || ct.includes('text/html')) {
-              throw new Error(resp.status === 404 || ct.includes('text/html') ? 'LEGACY_SERVER_FILE_MISSING' : `HTTP_${resp.status}`);
-            }
-            const blob = await resp.blob();
-            triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload, mat.pdfUrl);
-          } catch (err) {
-            const api = window.__INONU_AUTH__;
-            if (api && typeof api.downloadLessonMaterialChunks === 'function' && mat.id) {
-              try {
-                const fallbackBlob = await api.downloadLessonMaterialChunks(
-                  mat.id,
-                  Math.max(1, Number(mat.chunkCount) || 1),
-                  (pct, done, total) => {
-                    const safePct = Math.min(99, Math.max(0, Math.round(Number(pct) || 0)));
-                    showPdfDownloadProgressBanner(
-                      displayTitle,
-                      state.lang === 'en'
-                        ? `Downloading... %${safePct} (${done}/${total})`
-                        : `İndiriliyor... %${safePct} (${done}/${total})`,
-                      safePct
-                    );
-                  }
-                );
-                triggerBlobDownloadWithReadyBanner(fallbackBlob, fileName, displayTitle, shouldAutoSaveDownload);
-                return;
-              } catch {}
-            }
-            console.warn('Server PDF download failed:', err);
-            closePdfDownloadBanner(true);
-            const msg = err instanceof Error && err.message === 'LEGACY_SERVER_FILE_MISSING'
-              ? (state.lang === 'en'
-                  ? 'This older PDF needs to be re-uploaded from the admin panel.'
-                  : 'Bu eski PDF dosyası bulunamadı. Yönetici panelinden yeniden yükleyin.')
-              : (state.lang === 'en' ? 'Could not download PDF.' : 'PDF indirilemedi.');
-            showToast(msg);
-          } finally {
-            activePdfDownloadInFlight.delete(dlUrl);
-          }
-          return;
-        }
         const safeUrl = /^https?:\/\//i.test(mat.pdfUrl) ? mat.pdfUrl : `https://${mat.pdfUrl}`;
         const driveDl = getGoogleDriveDirectDownloadUrl(safeUrl);
         if (!driveDl && /\.pdf(\?|$)/i.test(safeUrl)) {
