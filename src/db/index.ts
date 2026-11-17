@@ -18,10 +18,21 @@ export const createPool = () => {
       password: process.env.SQL_PASSWORD,
       database: process.env.SQL_DB_NAME,
       max: 10,
-      connectionTimeoutMillis: 15000,
+      idleTimeoutMillis: 20000,
+      connectionTimeoutMillis: 10000,
+      keepAlive: true,
     });
 
     global._postgresPool.on('error', (err) => {
+      const msg = String(err?.message || '');
+      if (
+        msg.includes('Connection terminated unexpectedly') ||
+        msg.includes('ECONNRESET') ||
+        msg.includes('ETIMEDOUT') ||
+        msg.includes('client has already been connected')
+      ) {
+        return;
+      }
       console.error('Unexpected error on idle SQL pool client:', err);
     });
   }
