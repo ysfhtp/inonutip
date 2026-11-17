@@ -135,14 +135,14 @@ const STATIC_PDF_STORE_NAME = 'pdfs';
 
 // ==================== APP VERSION & AUTO-INCREMENT ====================
 export function getAppVersion(): string {
-  if (typeof localStorage === 'undefined') return '3.2.1';
+  if (typeof localStorage === 'undefined') return '3.2.12';
   const v = localStorage.getItem('inonu_tip_d1_ios_v3_version');
   if (v && /^[0-9]+\.[0-9]+\.[0-9]+$/.test(v)) return v;
-  return '3.2.1';
+  return '3.2.12';
 }
 
 export function bumpAppVersion(): string {
-  if (typeof localStorage === 'undefined') return '3.2.1';
+  if (typeof localStorage === 'undefined') return '3.2.12';
   const current = getAppVersion();
   const parts = current.split('.');
   const major = parts[0] || '3';
@@ -401,6 +401,7 @@ export interface GithubSourceMeta {
   repo: string;
   branch?: string;
   path?: string;
+  gistId?: string;
 }
 
 export interface SiteDataJson {
@@ -508,19 +509,34 @@ function getMaxTimestampFromMap(map: Record<string, Record<string, unknown>>): n
 
 function getSavedGithubSource(): GithubSourceMeta | null {
   const fromStatic = readStaticJson<GithubSourceMeta | null>('gh_source', null);
-  if (fromStatic && fromStatic.owner && fromStatic.repo) {
+  if (fromStatic && (fromStatic.gistId || (fromStatic.owner && fromStatic.repo))) {
     return {
-      owner: String(fromStatic.owner).trim(),
-      repo: String(fromStatic.repo).trim(),
+      owner: String(fromStatic.owner || '').trim(),
+      repo: String(fromStatic.repo || '').trim(),
       branch: String(fromStatic.branch || 'main').trim() || 'main',
       path: String(fromStatic.path || 'public/data.json').trim().replace(/^\/+/, '') || 'public/data.json',
+      gistId: String(fromStatic.gistId || '').trim(),
     };
   }
   try {
     const raw = localStorage.getItem('inonu_tip_gh_publish_v1');
     if (raw) {
       const parsed = JSON.parse(raw) as { repo?: string; branch?: string; path?: string };
-      const parts = String(parsed.repo || '').split('/').map((s) => s.trim()).filter(Boolean);
+      const repoInput = String(parsed.repo || '').trim();
+      const isGist = repoInput.includes('gist.github.com') || /^[a-f0-9]{32}$/i.test(repoInput) || repoInput.startsWith('gist:');
+      if (isGist) {
+        const gistId = repoInput.replace(/^gist:/i, '').split('/').pop() || '';
+        if (gistId) {
+          return {
+            owner: '',
+            repo: repoInput,
+            branch: 'main',
+            path: 'data.json',
+            gistId,
+          };
+        }
+      }
+      const parts = repoInput.split('/').map((s) => s.trim()).filter(Boolean);
       if (parts.length === 2) {
         return {
           owner: parts[0],
@@ -556,6 +572,9 @@ function getDataJsonFetchCandidates(): string[] {
     if (u && !candidates.includes(u)) candidates.push(u);
   };
   const gh = getSavedGithubSource();
+  if (gh && gh.gistId) {
+    pushUnique(`https://gist.githubusercontent.com/${encodeURIComponent(gh.gistId)}/raw/data.json?t=${Date.now()}`);
+  }
   if (gh && gh.owner && gh.repo) {
     const cleanBranch = encodeURIComponent(gh.branch || 'main');
     const cleanPath = (gh.path || 'public/data.json')
@@ -3209,13 +3228,71 @@ export async function publishDataJsonToGitHub(config: {
   path?: string;
   token: string;
 }): Promise<{ ok: boolean; commitUrl?: string; htmlUrl?: string }> {
-  const cleanOwner = String(config.owner || '').trim();
-  const cleanRepo = String(config.repo || '').trim();
-  const cleanBranch = String(config.branch || 'main').trim() || 'main';
-  const cleanPath = String(config.path || 'public/data.json').trim().replace(/^\/+/, '') || 'public/data.json';
+  const cleanRepoInput = String(config.repo || '').trim();
+  const isGist = cleanRepoInput.includes('gist.github.com') || /^[a-f0-9]{32}$/i.test(cleanRepoInput) || cleanRepoInput.startsWith('gist:');
   const cleanToken = String(config.token || '').trim();
 
-  if (!cleanOwner || !cleanRepo || !cleanToken) {
+  if (!cleanToken) {
+    throw new Error('GITHUB_CONFIG_INCOMPLETE');
+  }
+
+  const jsonContent = await buildExportDataJson();
+
+  if (isGist) {
+    const gistId = cleanRepoInput.replace(/^gist:/i, '').split('/').pop() || '';
+    if (!gistId) throw new Error('GIST_ID_INVALID');
+
+    const ghMeta: GithubSourceMeta = {
+      owner: '',
+      repo: cleanRepoInput,
+      branch: 'main',
+      path: 'data.json',
+      gistId,
+    };
+    writeStaticJson('gh_source', ghMeta);
+
+    const apiUrl = `https://api.github.com/gists/${encodeURIComponent(gistId)}`;
+    const putResp = await fetch(apiUrl, {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${cleanToken}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        description: 'İnönü Tıp Schedule data.json',
+        files: {
+          'data.json': {
+            content: jsonContent,
+          },
+        },
+      }),
+    });
+
+    if (putResp.status === 401 || putResp.status === 403) {
+      throw new Error('GITHUB_AUTH_FAILED');
+    }
+    if (putResp.status === 404) {
+      throw new Error('GIST_NOT_FOUND');
+    }
+    if (!putResp.ok) {
+      throw new Error(`GIST_PUSH_FAILED_${putResp.status}`);
+    }
+
+    const result = (await putResp.json().catch(() => ({}))) as { html_url?: string };
+    return {
+      ok: true,
+      htmlUrl: result.html_url,
+    };
+  }
+
+  const cleanOwner = String(config.owner || '').trim();
+  const cleanRepo = cleanRepoInput;
+  const cleanBranch = String(config.branch || 'main').trim() || 'main';
+  const cleanPath = String(config.path || 'public/data.json').trim().replace(/^\/+/, '') || 'public/data.json';
+
+  if (!cleanOwner || !cleanRepo) {
     throw new Error('GITHUB_CONFIG_INCOMPLETE');
   }
 
@@ -3238,7 +3315,6 @@ export async function publishDataJsonToGitHub(config: {
     'X-GitHub-Api-Version': '2022-11-28',
   };
 
-  const jsonContent = await buildExportDataJson(ghMeta);
   const utf8Bytes = new TextEncoder().encode(jsonContent);
   const contentB64 = bytesToB64(utf8Bytes);
   const shaCacheKey = `${cleanOwner}/${cleanRepo}@${cleanBranch}:${cleanPath}`;
