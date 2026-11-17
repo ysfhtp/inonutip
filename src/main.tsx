@@ -31,6 +31,7 @@ import {
   saveLessonMaterial,
   saveSiteAccessSettings,
   setAdminWriteSecret,
+  subscribeAnnouncements,
   subscribeLessonMaterials,
   subscribeSiteAccessSettings,
   subscribeStudentAccountStatus,
@@ -80,6 +81,7 @@ declare global {
       loadCloudStudentPrefs: typeof loadCloudStudentPrefs;
       saveCloudStudentPrefs: typeof saveCloudStudentPrefs;
       loadActiveAnnouncements: typeof loadActiveAnnouncements;
+      subscribeAnnouncements: typeof subscribeAnnouncements;
       listAllAnnouncements: typeof listAllAnnouncements;
       saveAnnouncement: typeof saveAnnouncement;
       deleteAnnouncement: typeof deleteAnnouncement;
@@ -129,6 +131,7 @@ window.__INONU_AUTH__ = {
   loadCloudStudentPrefs,
   saveCloudStudentPrefs,
   loadActiveAnnouncements,
+  subscribeAnnouncements,
   listAllAnnouncements,
   saveAnnouncement,
   deleteAnnouncement,

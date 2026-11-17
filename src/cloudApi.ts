@@ -140,7 +140,10 @@ let crossTabInitialized = false;
 
 const BROWSER_SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '');
 const BROWSER_SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+const BROWSER_SUPABASE_BUCKET = (import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || 'lesson-pdfs').trim() || 'lesson-pdfs';
 const isBrowserSupabaseConfigured = Boolean(BROWSER_SUPABASE_URL && BROWSER_SUPABASE_KEY);
+const SUPABASE_KV_CHUNK_BYTES = 256 * 1024; // 256 KB binary -> ~342 KB base64 JSON per chunk row
+const MAX_SUPABASE_KV_PDF_BYTES = 60 * 1024 * 1024; // 60 MB max via KV chunks
 
 function browserSupabaseHeaders(extra?: Record<string, string>): Record<string, string> {
   return {
@@ -150,12 +153,13 @@ function browserSupabaseHeaders(extra?: Record<string, string>): Record<string, 
   };
 }
 
-async function browserPullSupabaseKv(key: string): Promise<unknown> {
+async function browserPullSupabaseKv(key: string, timeoutMs = 5000): Promise<unknown> {
   if (!isBrowserSupabaseConfigured) return null;
   try {
     const resp = await fetch(`${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?key=eq.${encodeURIComponent(key)}&select=value`, {
       headers: browserSupabaseHeaders(),
-      signal: AbortSignal.timeout(4000),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!resp.ok) return null;
     const rows = (await resp.json()) as Array<{ value?: unknown }>;
@@ -168,22 +172,122 @@ async function browserPullSupabaseKv(key: string): Promise<unknown> {
   }
 }
 
-async function browserPushSupabaseKv(key: string, value: unknown): Promise<boolean> {
-  if (!isBrowserSupabaseConfigured) return false;
+async function browserPullSupabaseKvBatch(keys: string[], timeoutMs = 15000): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = {};
+  if (!isBrowserSupabaseConfigured || keys.length === 0) return out;
   try {
-    const resp = await fetch(`${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?on_conflict=key`, {
-      method: 'POST',
-      headers: browserSupabaseHeaders({
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates',
-      }),
-      body: JSON.stringify({ key, value, updated_at: Date.now() }),
-      signal: AbortSignal.timeout(4500),
-    });
-    return resp.ok;
+    const inFilter = keys.map((k) => `"${k.replace(/"/g, '')}"`).join(',');
+    const resp = await fetch(
+      `${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?key=in.(${encodeURIComponent(inFilter)})&select=key,value`,
+      {
+        headers: browserSupabaseHeaders(),
+        cache: 'no-store',
+        signal: AbortSignal.timeout(timeoutMs),
+      },
+    );
+    if (!resp.ok) return out;
+    const rows = (await resp.json()) as Array<{ key?: string; value?: unknown }>;
+    if (Array.isArray(rows)) {
+      for (const r of rows) {
+        if (r && typeof r.key === 'string') {
+          out[r.key] = r.value ?? null;
+        }
+      }
+    }
+    return out;
   } catch {
-    return false;
+    return out;
   }
+}
+
+async function browserPushSupabaseKv(key: string, value: unknown, timeoutMs = 6000, retries = 1): Promise<boolean> {
+  if (!isBrowserSupabaseConfigured) return false;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch(`${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?on_conflict=key`, {
+        method: 'POST',
+        headers: browserSupabaseHeaders({
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates',
+        }),
+        body: JSON.stringify({ key, value, updated_at: Date.now() }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (resp.ok) return true;
+      if (resp.status >= 400 && resp.status < 500 && resp.status !== 408 && resp.status !== 429) {
+        return false;
+      }
+    } catch {
+      // Retry on transient timeout / network hiccup
+    }
+    if (attempt < retries) {
+      await new Promise((r) => setTimeout(r, 350));
+    }
+  }
+  return false;
+}
+
+async function browserDeleteSupabaseKvPrefix(prefix: string): Promise<void> {
+  if (!isBrowserSupabaseConfigured || !prefix) return;
+  try {
+    await fetch(`${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?key=like.${encodeURIComponent(`${prefix}%`)}`, {
+      method: 'DELETE',
+      headers: browserSupabaseHeaders(),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    // Best-effort cleanup
+  }
+}
+
+async function browserSyncKvArrayToMap(domain: string, keyField: string): Promise<Record<string, Record<string, unknown>> | null> {
+  const val = await browserPullSupabaseKv(domain, 5000);
+  if (!Array.isArray(val)) return null;
+  const map: Record<string, Record<string, unknown>> = {};
+  for (const item of val) {
+    if (item && typeof item === 'object') {
+      const row = item as Record<string, unknown>;
+      const k = row[keyField];
+      if (typeof k === 'string' && k) {
+        map[k] = row;
+      }
+    }
+  }
+  writeStaticJson(domain, map);
+  return map;
+}
+
+async function browserMergeAndPushKvMap(
+  domain: string,
+  keyField: string,
+  updates: Array<Record<string, unknown>>,
+): Promise<boolean> {
+  const remoteRaw = await browserPullSupabaseKv(domain, 5000);
+  const merged: Record<string, Record<string, unknown>> = {};
+  if (Array.isArray(remoteRaw)) {
+    for (const item of remoteRaw) {
+      if (item && typeof item === 'object') {
+        const row = item as Record<string, unknown>;
+        const k = row[keyField];
+        if (typeof k === 'string' && k) {
+          merged[k] = row;
+        }
+      }
+    }
+  } else {
+    const localMap = readStaticJson<Record<string, Record<string, unknown>>>(domain, {});
+    Object.entries(localMap).forEach(([k, v]) => {
+      if (v && typeof v === 'object') merged[k] = v;
+    });
+  }
+  for (const u of updates) {
+    const k = u[keyField];
+    if (typeof k === 'string' && k) {
+      merged[k] = { ...(merged[k] || {}), ...u };
+    }
+  }
+  writeStaticJson(domain, merged);
+  return browserPushSupabaseKv(domain, Object.values(merged), 8000, 1);
 }
 
 function notifyLocalSubscribersOnly(topic: string, payload?: unknown): void {
@@ -245,6 +349,311 @@ function emitLocalTopic(topic: string, payload?: unknown): void {
   }
 }
 
+// ==================== SUPABASE REALTIME WEBSOCKET + TIMESTAMP POLL ====================
+let supabaseRealtimeWs: WebSocket | null = null;
+let supabaseRealtimeJoined = false;
+let supabaseHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let supabaseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let supabasePollTimer: ReturnType<typeof setInterval> | null = null;
+let supabaseLiveStarted = false;
+let supabaseMsgRef = 1;
+const lastSeenSupabaseKvTs: Record<string, number> = {};
+let inflightSupabasePoll: Promise<void> | null = null;
+
+function handleRemoteDomainUpdate(domain: string, value?: unknown): void {
+  if (domain === 'access') {
+    if (value && typeof value === 'object') {
+      const obj = value as Partial<SiteAccessSettings>;
+      const prevLocal = readStaticJson<Partial<SiteAccessSettings>>('access', {});
+      const remoteTs = Number(obj.updatedAtMs) || 0;
+      const localTs = Number(prevLocal.updatedAtMs) || 0;
+      if (remoteTs >= localTs) {
+        const nextAcc: SiteAccessSettings = {
+          requireStudentLogin: Boolean(obj.requireStudentLogin),
+          updatedAtMs: remoteTs || Date.now(),
+        };
+        writeStaticJson('access', nextAcc);
+        notifyLocalSubscribersOnly('access', nextAcc);
+      }
+    } else {
+      void loadSiteAccessSettings().then((s) => notifyLocalSubscribersOnly('access', s));
+    }
+  } else if (domain === 'materials') {
+    notifyLocalSubscribersOnly('materials', { source: 'supabase_live' });
+  } else if (domain === 'announcements') {
+    notifyLocalSubscribersOnly('announcements', { source: 'supabase_live' });
+  } else if (domain === 'custom_students' || domain === 'admin_dir') {
+    void Promise.all([
+      browserSyncKvArrayToMap('custom_students', 'auth_hash'),
+      browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
+    ]).then(([cMap, dMap]) => {
+      if (cMap) {
+        Object.values(cMap).forEach((r) => {
+          if (r && typeof r.auth_hash === 'string') {
+            notifyLocalSubscribersOnly('student_status', {
+              authHash: r.auth_hash,
+              active: r.active !== 0 && r.active !== false,
+              deleted: r.deleted === 1 || r.deleted === true,
+            });
+          }
+        });
+      }
+      if (dMap) {
+        Object.values(dMap).forEach((r) => {
+          if (r && typeof r.auth_hash === 'string') {
+            notifyLocalSubscribersOnly('student_status', {
+              authHash: r.auth_hash,
+              active: r.active !== 0 && r.active !== false,
+              deleted: r.deleted === 1 || r.deleted === true,
+            });
+          }
+        });
+      }
+    });
+  } else if (domain === 'security' && value && typeof value === 'object') {
+    writeStaticJson('security', value);
+  }
+}
+
+async function pollSupabaseKvTimestamps(): Promise<void> {
+  if (!isBrowserSupabaseConfigured) return;
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+  if (inflightSupabasePoll) return inflightSupabasePoll;
+
+  inflightSupabasePoll = (async () => {
+    try {
+      const resp = await fetch(
+        `${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?select=key,updated_at&key=in.(access,announcements,materials,custom_students,admin_dir,security)`,
+        {
+          headers: browserSupabaseHeaders(),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(3500),
+        },
+      );
+      if (!resp.ok) return;
+      const rows = (await resp.json()) as Array<{ key?: string; updated_at?: number }>;
+      if (!Array.isArray(rows)) return;
+
+      const changedKeys: string[] = [];
+      for (const r of rows) {
+        if (!r || typeof r.key !== 'string') continue;
+        const ts = Number(r.updated_at) || 0;
+        const prevTs = lastSeenSupabaseKvTs[r.key];
+        if (prevTs === undefined) {
+          lastSeenSupabaseKvTs[r.key] = ts;
+          if (r.key === 'access') {
+            changedKeys.push(r.key);
+          }
+        } else if (ts > prevTs) {
+          lastSeenSupabaseKvTs[r.key] = ts;
+          changedKeys.push(r.key);
+        }
+      }
+
+      for (const k of changedKeys) {
+        if (k === 'access') {
+          const val = await browserPullSupabaseKv('access', 3500);
+          if (val) handleRemoteDomainUpdate('access', val);
+        } else {
+          handleRemoteDomainUpdate(k);
+        }
+      }
+    } catch {
+      // Transient polling error ignored
+    } finally {
+      inflightSupabasePoll = null;
+    }
+  })();
+
+  return inflightSupabasePoll;
+}
+
+function broadcastSupabaseRealtime(topic: string, data: unknown): void {
+  if (!isBrowserSupabaseConfigured) return;
+  const payloadObj = {
+    type: 'broadcast',
+    event: 'inonu_sync',
+    payload: { topic, data, ts: Date.now() },
+  };
+
+  try {
+    if (supabaseRealtimeWs && supabaseRealtimeWs.readyState === WebSocket.OPEN && supabaseRealtimeJoined) {
+      supabaseRealtimeWs.send(
+        JSON.stringify({
+          topic: 'realtime:inonu_sync_v1',
+          event: 'broadcast',
+          payload: payloadObj,
+          ref: String(++supabaseMsgRef),
+        }),
+      );
+    }
+  } catch {
+    // Fallback to HTTP broadcast below
+  }
+
+  try {
+    void fetch(`${BROWSER_SUPABASE_URL}/realtime/v1/api/broadcast`, {
+      method: 'POST',
+      headers: browserSupabaseHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        messages: [
+          {
+            topic: 'inonu_sync_v1',
+            event: 'inonu_sync',
+            payload: { topic, data, ts: Date.now() },
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(3000),
+    }).catch(() => {});
+  } catch {
+    // Best-effort realtime broadcast
+  }
+}
+
+function connectSupabaseRealtime(): void {
+  if (!isBrowserSupabaseConfigured || typeof window === 'undefined' || typeof WebSocket === 'undefined') return;
+  if (supabaseRealtimeWs && (supabaseRealtimeWs.readyState === WebSocket.OPEN || supabaseRealtimeWs.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  try {
+    const wsBase = BROWSER_SUPABASE_URL.replace(/^https:\/\//i, 'wss://').replace(/^http:\/\//i, 'ws://');
+    const wsUrl = `${wsBase}/realtime/v1/websocket?apikey=${encodeURIComponent(BROWSER_SUPABASE_KEY)}&vsn=1.0.0`;
+    const ws = new WebSocket(wsUrl);
+    supabaseRealtimeWs = ws;
+    supabaseRealtimeJoined = false;
+
+    ws.onopen = () => {
+      try {
+        ws.send(
+          JSON.stringify({
+            topic: 'realtime:inonu_sync_v1',
+            event: 'phx_join',
+            payload: {
+              config: {
+                broadcast: { self: false, ack: false },
+                postgres_changes: [{ event: '*', schema: 'public', table: 'inonu_kv' }],
+              },
+            },
+            ref: String(++supabaseMsgRef),
+          }),
+        );
+      } catch {
+        // Ignore join send error
+      }
+      if (supabaseHeartbeatTimer) clearInterval(supabaseHeartbeatTimer);
+      supabaseHeartbeatTimer = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          try {
+            ws.send(
+              JSON.stringify({
+                topic: 'phoenix',
+                event: 'heartbeat',
+                payload: {},
+                ref: String(++supabaseMsgRef),
+              }),
+            );
+          } catch {
+            // Ignore heartbeat send error
+          }
+        }
+      }, 25_000);
+    };
+
+    ws.onmessage = (ev: MessageEvent) => {
+      try {
+        const msg = JSON.parse(String(ev.data || '{}')) as {
+          topic?: string;
+          event?: string;
+          payload?: Record<string, unknown>;
+        };
+        if (msg.event === 'phx_reply' && (msg.payload as { status?: string })?.status === 'ok' && msg.topic === 'realtime:inonu_sync_v1') {
+          supabaseRealtimeJoined = true;
+          return;
+        }
+        if (msg.event === 'broadcast' && msg.payload) {
+          const inner = (msg.payload.payload as { topic?: string; data?: unknown }) || {};
+          const innerTopic = inner.topic;
+          if (innerTopic === 'access') {
+            handleRemoteDomainUpdate('access', inner.data);
+          } else if (innerTopic === 'materials') {
+            handleRemoteDomainUpdate('materials', inner.data);
+          } else if (innerTopic === 'announcements') {
+            handleRemoteDomainUpdate('announcements', inner.data);
+          } else if (innerTopic === 'student_status') {
+            notifyLocalSubscribersOnly('student_status', inner.data);
+          }
+          return;
+        }
+        if (msg.event === 'postgres_changes' && msg.payload) {
+          const dataObj = msg.payload.data as { record?: { key?: string; value?: unknown; updated_at?: number } } | undefined;
+          const rec = dataObj?.record;
+          if (rec && typeof rec.key === 'string') {
+            if (typeof rec.updated_at === 'number') {
+              lastSeenSupabaseKvTs[rec.key] = Math.max(lastSeenSupabaseKvTs[rec.key] || 0, rec.updated_at);
+            }
+            handleRemoteDomainUpdate(rec.key, rec.value);
+          }
+        }
+      } catch {
+        // Ignore malformed websocket frame
+      }
+    };
+
+    ws.onclose = () => {
+      supabaseRealtimeJoined = false;
+      if (supabaseHeartbeatTimer) {
+        clearInterval(supabaseHeartbeatTimer);
+        supabaseHeartbeatTimer = null;
+      }
+      if (supabaseRealtimeWs === ws) {
+        supabaseRealtimeWs = null;
+      }
+      if (supabaseReconnectTimer) clearTimeout(supabaseReconnectTimer);
+      supabaseReconnectTimer = setTimeout(() => {
+        supabaseReconnectTimer = null;
+        if (sseListeners.size > 0) connectSupabaseRealtime();
+      }, 3000);
+    };
+
+    ws.onerror = () => {
+      // onclose handles reconnect
+    };
+  } catch {
+    // Fallback to timestamp polling
+  }
+}
+
+function ensureSupabaseLiveSync(): void {
+  if (!isBrowserSupabaseConfigured || typeof window === 'undefined') return;
+  connectSupabaseRealtime();
+  if (supabaseLiveStarted) return;
+  supabaseLiveStarted = true;
+
+  void pollSupabaseKvTimestamps();
+  if (supabasePollTimer) clearInterval(supabasePollTimer);
+  supabasePollTimer = setInterval(() => {
+    if (sseListeners.size > 0) {
+      void pollSupabaseKvTimestamps();
+    }
+  }, 2000);
+
+  window.addEventListener('focus', () => {
+    void pollSupabaseKvTimestamps();
+  });
+  window.addEventListener('online', () => {
+    connectSupabaseRealtime();
+    void pollSupabaseKvTimestamps();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      connectSupabaseRealtime();
+      void pollSupabaseKvTimestamps();
+    }
+  });
+}
+
 async function probeApiBackend(): Promise<'online' | 'static'> {
   if (apiBackendStatus === 'online') return 'online';
   if (apiBackendStatus === 'static' && Date.now() - apiBackendCheckedAt < 4000) {
@@ -294,6 +703,7 @@ async function isApiBackendOnline(): Promise<boolean> {
 
 function ensureEventSource(): void {
   initCrossTabSync();
+  ensureSupabaseLiveSync();
   if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
   if (sharedEventSource) return;
 
@@ -735,6 +1145,20 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
     } catch {
       // Fall through to static verification if backend is unreachable
     }
+  } else if (isBrowserSupabaseConfigured) {
+    try {
+      const remoteSec = (await browserPullSupabaseKv('security')) as Partial<StaticAdminSecurityConfig> | null;
+      if (
+        remoteSec &&
+        typeof remoteSec === 'object' &&
+        typeof remoteSec.passwordHash === 'string' &&
+        ADMIN_SECRET_RE.test(remoteSec.passwordHash)
+      ) {
+        writeStaticJson('security', remoteSec);
+      }
+    } catch {
+      // Fallback to local security config
+    }
   }
 
   const sec = getStaticSecurityConfig();
@@ -780,11 +1204,13 @@ export async function updateAdminPassword(
 
   const prev = getStaticSecurityConfig();
   const nextWrapped = wrappedRosterKey || prev.wrappedRosterKey;
-  writeStaticJson('security', {
+  const nextSecPayload = {
     passwordHash: digest,
     proofDigestB64,
     wrappedRosterKey: nextWrapped,
-  } satisfies StaticAdminSecurityConfig);
+    updatedAtMs: Date.now(),
+  };
+  writeStaticJson('security', nextSecPayload);
   cachedWrappedRosterKey = nextWrapped;
   setAdminWriteSecret(newWriteSecret);
 
@@ -806,6 +1232,11 @@ export async function updateAdminPassword(
         return { ok: false, error: 'server_rejected' };
       }
     } catch {
+      return { ok: false, error: 'network_error' };
+    }
+  } else if (isBrowserSupabaseConfigured) {
+    const ok = await browserPushSupabaseKv('security', nextSecPayload);
+    if (!ok) {
       return { ok: false, error: 'network_error' };
     }
   }
@@ -908,8 +1339,13 @@ export async function saveSiteAccessSettings(
     };
     next.requireStudentLogin = json?.requireStudentLogin === true;
     next.updatedAtMs = Math.max(Number(json?.updatedAtMs) || now, now);
+    broadcastSupabaseRealtime('access', next);
   } else if (isBrowserSupabaseConfigured) {
-    await browserPushSupabaseKv('access', next);
+    const ok = await browserPushSupabaseKv('access', next);
+    if (!ok) {
+      throw new Error('ACCESS_SAVE_FAILED');
+    }
+    broadcastSupabaseRealtime('access', next);
   }
 
   writeStaticJson('access', next);
@@ -960,6 +1396,12 @@ export async function checkStudentLoginStatus(rawSid: string): Promise<StudentLo
   }
 
   if (!loadedFromServer) {
+    if (isBrowserSupabaseConfigured) {
+      await Promise.all([
+        browserSyncKvArrayToMap('custom_students', 'auth_hash'),
+        browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
+      ]).catch(() => {});
+    }
     const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
     const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
     const cRow = customMap[authHash];
@@ -1044,6 +1486,11 @@ export async function checkStudentSessionActive(authHash: string): Promise<Stude
     } catch {
       // Fall through to local cache
     }
+  } else if (isBrowserSupabaseConfigured) {
+    await Promise.all([
+      browserSyncKvArrayToMap('custom_students', 'auth_hash'),
+      browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
+    ]).catch(() => {});
   }
 
   const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
@@ -1101,6 +1548,11 @@ export async function isStudentAlreadyRegistered(rawSid: string): Promise<boolea
     } catch {
       return inAllowlist;
     }
+  } else if (isBrowserSupabaseConfigured) {
+    await Promise.all([
+      browserSyncKvArrayToMap('custom_students', 'auth_hash'),
+      browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
+    ]).catch(() => {});
   }
 
   const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
@@ -1164,6 +1616,8 @@ export async function loadCloudStudentPrefs(authHash: string, cloudDocId: string
       } catch {
         // Fall through to cached local prefs
       }
+    } else if (isBrowserSupabaseConfigured) {
+      await browserSyncKvArrayToMap('student_prefs', 'cloud_key').catch(() => {});
     }
 
     const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
@@ -1217,7 +1671,7 @@ export async function saveCloudStudentPrefs(
   const finalMode = normalizeOtherGroupModePref(prefs.otherGroupMode);
   const finalLang = cleanLang || normalizeLangPref(prev.lang);
 
-  prefsMap[cloudDocId] = {
+  const rowPayload: Record<string, unknown> = {
     cloud_key: cloudDocId,
     auth_hash: finalAuthHash,
     last4: finalLast4,
@@ -1227,6 +1681,7 @@ export async function saveCloudStudentPrefs(
     lang: finalLang,
     updated_at: now,
   };
+  prefsMap[cloudDocId] = rowPayload;
   writeStaticJson('student_prefs', prefsMap);
 
   if (await isApiBackendOnline()) {
@@ -1247,6 +1702,8 @@ export async function saveCloudStudentPrefs(
     } catch {
       return true;
     }
+  } else if (isBrowserSupabaseConfigured) {
+    await browserMergeAndPushKvMap('student_prefs', 'cloud_key', [rowPayload]).catch(() => false);
   }
 
   return true;
@@ -1259,11 +1716,11 @@ function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement 
     title: String(raw.title || ''),
     message: String(raw.message || ''),
     tone: normalizeAnnouncementTone(raw.tone),
-    active: Boolean(raw.active),
-    targetGroup: normalizeMbuGroupPref(raw.targetGroup),
-    targetProg: normalizeLangPref(raw.targetProg),
-    createdAtMs: Number(raw.createdAtMs) || 0,
-    updatedAtMs: Number(raw.updatedAtMs) || 0,
+    active: Boolean(raw.active === true || raw.active === 1),
+    targetGroup: normalizeMbuGroupPref(raw.targetGroup ?? raw.target_group),
+    targetProg: normalizeLangPref(raw.targetProg ?? raw.target_prog),
+    createdAtMs: Number(raw.createdAtMs ?? raw.created_at) || 0,
+    updatedAtMs: Number(raw.updatedAtMs ?? raw.updated_at) || 0,
   };
 }
 
@@ -1306,6 +1763,13 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
     .filter((r) => r && r.deleted !== true && Boolean(r.active))
     .map(mapServerAnnouncement)
     .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
+}
+
+export function subscribeAnnouncements(onUpdate: (announcements: CloudAnnouncement[]) => void): Unsubscribe {
+  void loadActiveAnnouncements().then(onUpdate);
+  return addSseListener('announcements', () => {
+    void loadActiveAnnouncements().then(onUpdate);
+  });
 }
 
 export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
@@ -1420,10 +1884,13 @@ export async function saveAnnouncement(
       map[s.id] = { ...s, deleted: false };
       writeStaticJson('announcements', map);
       emitLocalTopic('announcements', { action: 'save', id: s.id });
+      broadcastSupabaseRealtime('announcements', { action: 'save', id: s.id });
       return s;
     }
   } else if (isBrowserSupabaseConfigured) {
-    await browserPushSupabaseKv('announcements', Object.values(map));
+    const ok = await browserMergeAndPushKvMap('announcements', 'id', [{ ...saved, deleted: false }]);
+    if (!ok) throw new Error('ANNOUNCEMENT_SAVE_FAILED');
+    broadcastSupabaseRealtime('announcements', { action: 'save', id: saved.id });
   }
 
   return saved;
@@ -1447,11 +1914,15 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
         method: 'DELETE',
         headers: { 'X-Admin-Secret': secret },
       });
+      broadcastSupabaseRealtime('announcements', { action: 'delete', id: cleanId });
     } catch {
       // Best-effort delete
     }
   } else if (isBrowserSupabaseConfigured) {
-    await browserPushSupabaseKv('announcements', Object.values(map));
+    await browserMergeAndPushKvMap('announcements', 'id', [
+      { ...(map[cleanId] || {}), id: cleanId, deleted: true, active: false, updatedAtMs: Date.now() },
+    ]);
+    broadcastSupabaseRealtime('announcements', { action: 'delete', id: cleanId });
   }
 }
 
@@ -1605,9 +2076,10 @@ export async function uploadLessonPdfFile(
   }
 
   if (isBrowserSupabaseConfigured) {
+    // 1. Try direct Supabase Storage upload (when bucket exists & allows public anon read/write)
     try {
-      const storageUrl = `${BROWSER_SUPABASE_URL}/storage/v1/object/lesson-pdfs/${cleanMatId}.pdf`;
-      reportProgress(20, Math.round(file.size * 0.2));
+      const storageUrl = `${BROWSER_SUPABASE_URL}/storage/v1/object/${encodeURIComponent(BROWSER_SUPABASE_BUCKET)}/${cleanMatId}.pdf`;
+      reportProgress(12, Math.round(file.size * 0.12));
       const uploadResp = await fetch(storageUrl, {
         method: 'POST',
         headers: browserSupabaseHeaders({
@@ -1615,26 +2087,90 @@ export async function uploadLessonPdfFile(
           'x-upsert': 'true',
         }),
         body: file,
+        signal: AbortSignal.timeout(45_000),
       });
       if (uploadResp.ok) {
-        const publicUrl = `${BROWSER_SUPABASE_URL}/storage/v1/object/public/lesson-pdfs/${cleanMatId}.pdf`;
-        reportProgress(100, file.size);
-        return {
-          sourceType: 'server',
-          materialId: cleanMatId,
-          url: publicUrl,
-          fileId: cleanMatId,
-          fileName: cleanFileName,
-          size: file.size,
-          chunkCount: 0,
-        };
+        const publicUrl = `${BROWSER_SUPABASE_URL}/storage/v1/object/public/${encodeURIComponent(BROWSER_SUPABASE_BUCKET)}/${cleanMatId}.pdf`;
+        // Verify public anonymous read succeeds so students can actually open it
+        const headResp = await fetch(publicUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) }).catch(() => null);
+        if (headResp && headResp.ok) {
+          reportProgress(100, file.size);
+          return {
+            sourceType: 'server',
+            materialId: cleanMatId,
+            url: publicUrl,
+            fileId: cleanMatId,
+            fileName: cleanFileName,
+            size: file.size,
+            chunkCount: 0,
+          };
+        }
       }
     } catch {
-      // Fall through to fallback
+      // Storage bucket not writable/public by anon -> fall back cleanly to KV chunked upload below
     }
+
+    // 2. Supabase KV chunked storage (works with the exact same inonu_kv table used for site lock!)
+    if (file.size > MAX_SUPABASE_KV_PDF_BYTES) {
+      throw new Error('PDF_TOO_LARGE');
+    }
+    const totalChunks = Math.max(1, Math.ceil(file.size / SUPABASE_KV_CHUNK_BYTES));
+    const concurrency = 3;
+    let uploadedBytes = 0;
+
+    for (let batchStart = 0; batchStart < totalChunks; batchStart += concurrency) {
+      const batchIndices: number[] = [];
+      for (let i = batchStart; i < Math.min(totalChunks, batchStart + concurrency); i++) {
+        batchIndices.push(i);
+      }
+
+      const batchResults = await Promise.all(
+        batchIndices.map(async (idx) => {
+          const start = idx * SUPABASE_KV_CHUNK_BYTES;
+          const end = Math.min(file.size, start + SUPABASE_KV_CHUNK_BYTES);
+          const sliceBuf = await file.slice(start, end).arrayBuffer();
+          const b64Chunk = bytesToB64(new Uint8Array(sliceBuf));
+          const chunkKey = `pdf_chunk_${cleanMatId}_${idx}`;
+          const ok = await browserPushSupabaseKv(
+            chunkKey,
+            {
+              materialId: cleanMatId,
+              index: idx,
+              totalChunks,
+              data: b64Chunk,
+              fileName: cleanFileName,
+              size: file.size,
+            },
+            15_000,
+            2,
+          );
+          if (!ok) {
+            throw new Error(`SUPABASE_CHUNK_UPLOAD_FAILED_${idx}`);
+          }
+          return end - start;
+        }),
+      );
+
+      for (const delta of batchResults) {
+        uploadedBytes += delta;
+      }
+      const pct = Math.min(95, Math.max(14, Math.round((uploadedBytes / file.size) * 94)));
+      reportProgress(pct, uploadedBytes);
+    }
+
+    reportProgress(100, file.size);
+    return {
+      sourceType: 'chunks',
+      materialId: cleanMatId,
+      url: '',
+      fileId: cleanMatId,
+      fileName: cleanFileName,
+      size: file.size,
+      chunkCount: totalChunks,
+    };
   }
 
-  // Offline / static preview small-file fallback (<= 1.5 MB)
+  // Offline / static preview small-file fallback (<= 1.5 MB) when Supabase is not configured
   if (file.size <= 1_500_000) {
     const arrBuf = await file.arrayBuffer();
     const b64 = bytesToB64(new Uint8Array(arrBuf));
@@ -1673,28 +2209,87 @@ export async function downloadLessonMaterialChunks(
     // Ignore IndexedDB failure
   }
 
-  // 2. Fetch directly from Express server / Supabase Storage URL
+  // 2. Fetch directly from Express server if online
+  const matMap = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
+  const savedMat = matMap[cleanId];
   if (await isApiBackendOnline()) {
     try {
-      const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
-      const savedMat = map[cleanId];
       if (typeof savedMat?.pdfUrl === 'string' && savedMat.pdfUrl.startsWith('/api/lesson-pdf/')) {
         const dlUrl = savedMat.pdfUrl.includes('?') ? `${savedMat.pdfUrl}&download=1` : `${savedMat.pdfUrl}?download=1`;
         const resp = await fetch(dlUrl, { cache: 'no-store' });
         const ct = (resp.headers.get('content-type') || '').toLowerCase();
         if (resp.ok && !ct.includes('text/html')) {
           const blob = await resp.blob();
-          try {
-            await saveStaticPdfBlob(cleanId, `${cleanId}.pdf`, blob);
-          } catch {
-            // Ignore IndexedDB failure
-          }
+          void saveStaticPdfBlob(cleanId, `${cleanId}.pdf`, blob).catch(() => {});
           onProgress?.(100, totalChunks, totalChunks);
           return blob;
         }
       }
     } catch {
-      // Fall through to not found error
+      // Continue to Supabase fallback below
+    }
+  }
+
+  // 3. Download chunked PDF from Supabase inonu_kv
+  if (isBrowserSupabaseConfigured) {
+    const parts: Uint8Array[] = new Array<Uint8Array>(totalChunks);
+    const batchSize = 4;
+    let loadedCount = 0;
+    let missingAnyChunk = false;
+
+    for (let startIdx = 0; startIdx < totalChunks; startIdx += batchSize) {
+      const batchKeys: string[] = [];
+      for (let i = startIdx; i < Math.min(totalChunks, startIdx + batchSize); i++) {
+        batchKeys.push(`pdf_chunk_${cleanId}_${i}`);
+      }
+      const rows = await browserPullSupabaseKvBatch(batchKeys, 20_000);
+      for (let i = startIdx; i < Math.min(totalChunks, startIdx + batchSize); i++) {
+        const k = `pdf_chunk_${cleanId}_${i}`;
+        const val = rows[k] as { data?: string } | null | undefined;
+        if (!val || typeof val.data !== 'string' || !val.data) {
+          missingAnyChunk = true;
+          break;
+        }
+        parts[i] = b64ToBytes(val.data);
+        loadedCount++;
+        const pct = Math.min(99, Math.max(5, Math.round((loadedCount / totalChunks) * 100)));
+        onProgress?.(pct, loadedCount, totalChunks);
+      }
+      if (missingAnyChunk) break;
+    }
+
+    if (!missingAnyChunk && loadedCount === totalChunks) {
+      const blobParts = parts.map((p) => p.buffer.slice(p.byteOffset, p.byteOffset + p.byteLength) as ArrayBuffer);
+      const blob = new Blob(blobParts, { type: 'application/pdf' });
+      void saveStaticPdfBlob(cleanId, `${cleanId}.pdf`, blob).catch(() => {});
+      onProgress?.(100, totalChunks, totalChunks);
+      return blob;
+    }
+
+    // 4. Fallback: check Supabase Storage directly (e.g. if uploaded via server.ts or storage bucket)
+    const candidateIds = new Set<string>([cleanId]);
+    if (typeof savedMat?.pdfUrl === 'string' && savedMat.pdfUrl.startsWith('/api/lesson-pdf/')) {
+      const extracted = savedMat.pdfUrl.slice('/api/lesson-pdf/'.length).split('?')[0].trim();
+      if (extracted) candidateIds.add(extracted);
+    }
+    for (const fid of candidateIds) {
+      try {
+        const storageObjUrl = `${BROWSER_SUPABASE_URL}/storage/v1/object/${encodeURIComponent(BROWSER_SUPABASE_BUCKET)}/${encodeURIComponent(fid)}.pdf`;
+        const sResp = await fetch(storageObjUrl, {
+          headers: browserSupabaseHeaders(),
+          signal: AbortSignal.timeout(30_000),
+        });
+        if (sResp.ok) {
+          const blob = await sResp.blob();
+          if (blob.size > 0) {
+            void saveStaticPdfBlob(cleanId, `${cleanId}.pdf`, blob).catch(() => {});
+            onProgress?.(100, totalChunks, totalChunks);
+            return blob;
+          }
+        }
+      } catch {
+        // Ignore storage fallback error
+      }
     }
   }
 
@@ -1702,32 +2297,38 @@ export async function downloadLessonMaterialChunks(
 }
 
 function mapServerMaterial(m: Record<string, unknown>): LessonMaterial {
-  const pdfUrl = typeof m.pdfUrl === 'string' ? m.pdfUrl : '';
-  const pdfData = typeof m.pdfData === 'string' && m.pdfData.length > 0 ? m.pdfData : undefined;
-  const chunkCount = typeof m.chunkCount === 'number' && m.chunkCount > 0 ? Math.round(m.chunkCount) : undefined;
+  const pdfUrl = typeof (m.pdfUrl ?? m.pdf_url) === 'string' ? String(m.pdfUrl ?? m.pdf_url) : '';
+  const rawPdfData = m.pdfData ?? m.pdf_data;
+  const pdfData = typeof rawPdfData === 'string' && rawPdfData.length > 0 ? rawPdfData : undefined;
+  const rawChunkCount = Number(m.chunkCount ?? m.chunk_count);
+  const chunkCount = Number.isFinite(rawChunkCount) && rawChunkCount > 0 ? Math.round(rawChunkCount) : undefined;
+  const rawSourceType = m.sourceType ?? m.source_type;
   const sourceType: 'url' | 'file' | 'server' | 'chunks' =
-    pdfUrl.startsWith('/api/lesson-pdf/') || m.sourceType === 'server'
+    pdfUrl.startsWith('/api/lesson-pdf/') || rawSourceType === 'server'
       ? 'server'
-      : chunkCount && chunkCount > 0
+      : (chunkCount && chunkCount > 0) || rawSourceType === 'chunks'
         ? 'chunks'
         : pdfData
           ? 'file'
           : 'url';
 
+  const rawPdfName = m.pdfName ?? m.pdf_name;
+  const rawFileSize = Number(m.fileSize ?? m.file_size);
+
   return {
     id: String(m.id || ''),
     date: normalizeMaterialDate(String(m.date || '')),
-    slotNo: Number(m.slotNo) || 1,
-    targetProg: normalizeLangPref(m.targetProg),
+    slotNo: Number(m.slotNo ?? m.slot_no) || 1,
+    targetProg: normalizeLangPref(m.targetProg ?? m.target_prog),
     title: String(m.title || ''),
     sourceType,
     pdfUrl,
     pdfData,
     chunkCount,
-    pdfName: typeof m.pdfName === 'string' && m.pdfName ? m.pdfName : undefined,
-    fileSize: typeof m.fileSize === 'number' && m.fileSize > 0 ? m.fileSize : undefined,
-    createdAtMs: Number(m.createdAtMs) || 0,
-    updatedAtMs: Number(m.updatedAtMs) || 0,
+    pdfName: typeof rawPdfName === 'string' && rawPdfName ? rawPdfName : undefined,
+    fileSize: Number.isFinite(rawFileSize) && rawFileSize > 0 ? rawFileSize : undefined,
+    createdAtMs: Number(m.createdAtMs ?? m.created_at) || 0,
+    updatedAtMs: Number(m.updatedAtMs ?? m.updated_at) || 0,
   };
 }
 
@@ -1751,11 +2352,32 @@ export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
     } catch {
       // Fallback to local cache
     }
+  } else if (isBrowserSupabaseConfigured) {
+    try {
+      const remote = await browserPullSupabaseKv('materials', 6000);
+      if (Array.isArray(remote)) {
+        const apiMap: Record<string, Record<string, unknown>> = {};
+        remote.forEach((raw) => {
+          if (!raw || typeof raw !== 'object') return;
+          const row = raw as Record<string, unknown>;
+          const mapped = mapServerMaterial(row);
+          if (mapped.id) {
+            apiMap[mapped.id] = {
+              ...mapped,
+              deleted: row.deleted === true || row.deleted === 1,
+            };
+          }
+        });
+        writeStaticJson('materials', apiMap);
+      }
+    } catch {
+      // Fallback to local cache
+    }
   }
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
   return Object.values(map)
-    .filter((r) => r && r.deleted !== true)
+    .filter((r) => r && r.deleted !== true && r.deleted !== 1)
     .map(mapServerMaterial)
     .sort((a, b) => (a.createdAtMs || a.updatedAtMs) - (b.createdAtMs || b.updatedAtMs));
 }
@@ -1880,7 +2502,14 @@ export async function saveLessonMaterial(
     };
     writeStaticJson('materials', map);
     emitLocalTopic('materials', { action: 'save', id: serverSaved.id });
+    broadcastSupabaseRealtime('materials', { action: 'save', id: serverSaved.id });
     return map[serverSaved.id];
+  } else if (isBrowserSupabaseConfigured) {
+    const ok = await browserMergeAndPushKvMap('materials', 'id', [{ ...saved, deleted: false }]);
+    if (!ok) {
+      throw new Error('MATERIAL_SAVE_FAILED');
+    }
+    broadcastSupabaseRealtime('materials', { action: 'save', id: saved.id });
   }
 
   return saved;
@@ -1892,6 +2521,7 @@ export async function deleteLessonMaterial(id: string, adminSecret?: string): Pr
   const secret = resolveAdminWriteSecret(adminSecret);
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
+  const prevRow = map[cleanId];
   if (map[cleanId]) {
     delete map[cleanId];
     writeStaticJson('materials', map);
@@ -1904,9 +2534,16 @@ export async function deleteLessonMaterial(id: string, adminSecret?: string): Pr
         method: 'DELETE',
         headers: { 'X-Admin-Secret': secret },
       });
+      broadcastSupabaseRealtime('materials', { action: 'delete', id: cleanId });
     } catch {
       // Best-effort delete
     }
+  } else if (isBrowserSupabaseConfigured) {
+    await browserMergeAndPushKvMap('materials', 'id', [
+      { ...(prevRow || {}), id: cleanId, deleted: true, updatedAtMs: Date.now() },
+    ]);
+    await browserDeleteSupabaseKvPrefix(`pdf_chunk_${cleanId}_`);
+    broadcastSupabaseRealtime('materials', { action: 'delete', id: cleanId });
   }
 
   void deleteStaticPdfBlob(cleanId);
@@ -2063,6 +2700,14 @@ export async function addOrUpdateCustomStudent(
       }
       throw new Error(json.error || 'STUDENT_SAVE_FAILED');
     }
+    broadcastSupabaseRealtime('student_status', { authHash, active, deleted: false });
+  } else if (isBrowserSupabaseConfigured) {
+    await Promise.all([
+      browserMergeAndPushKvMap('custom_students', 'auth_hash', [customMap[authHash]]),
+      browserMergeAndPushKvMap('admin_dir', 'auth_hash', [dirMap[authHash]]),
+      browserMergeAndPushKvMap('student_prefs', 'cloud_key', [prefsMap[cloudKey]]),
+    ]);
+    broadcastSupabaseRealtime('student_status', { authHash, active, deleted: false });
   }
 
   emitLocalTopic('student_status', { authHash, active, deleted: false });
@@ -2202,9 +2847,19 @@ export async function deleteCustomStudent(
           encSid,
         }),
       });
+      broadcastSupabaseRealtime('student_status', { authHash, active: false, deleted: true });
     } catch {
       // Best-effort delete
     }
+  } else if (isBrowserSupabaseConfigured) {
+    const tasks: Promise<unknown>[] = [
+      browserMergeAndPushKvMap('custom_students', 'auth_hash', [customMap[authHash]]),
+    ];
+    if (dirMap[authHash]) {
+      tasks.push(browserMergeAndPushKvMap('admin_dir', 'auth_hash', [dirMap[authHash]]));
+    }
+    await Promise.all(tasks);
+    broadcastSupabaseRealtime('student_status', { authHash, active: false, deleted: true });
   }
 
   emitLocalTopic('student_status', { authHash, active: false, deleted: true });
@@ -2268,6 +2923,18 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
         // Fallback
       }
     }
+  } else if (isBrowserSupabaseConfigured) {
+    await Promise.all([
+      browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
+      browserSyncKvArrayToMap('custom_students', 'auth_hash'),
+      browserSyncKvArrayToMap('student_prefs', 'cloud_key'),
+    ]).catch(() => {});
+    const freshCustomMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+    const freshDirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+    const freshPrefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+    dirData = freshDirMap[authHash] || null;
+    customData = freshCustomMap[authHash] || null;
+    prefsData = freshPrefsMap[cloudKey] || null;
   }
 
   if (dirData && (dirData.deleted === 1 || dirData.deleted === true)) return null;
@@ -2377,6 +3044,13 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
   }
 
   if (!loadedFromServer) {
+    if (isBrowserSupabaseConfigured) {
+      await Promise.all([
+        browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
+        browserSyncKvArrayToMap('custom_students', 'auth_hash'),
+        browserSyncKvArrayToMap('student_prefs', 'cloud_key'),
+      ]).catch(() => {});
+    }
     const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
     const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
     const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
@@ -2729,6 +3403,23 @@ export async function adminSaveStudentSettings(
     });
     if (!resp.ok) {
       throw new Error('STUDENT_SETTINGS_SAVE_FAILED');
+    }
+    if (authHash) {
+      broadcastSupabaseRealtime('student_status', { authHash, active: isActive, deleted: false });
+    }
+  } else if (isBrowserSupabaseConfigured) {
+    const tasks: Promise<unknown>[] = [
+      browserMergeAndPushKvMap('student_prefs', 'cloud_key', [prefsMap[input.cloudKey]]),
+    ];
+    if (authHash && customMap[authHash]) {
+      tasks.push(browserMergeAndPushKvMap('custom_students', 'auth_hash', [customMap[authHash]]));
+    }
+    if (authHash && dirMap[authHash]) {
+      tasks.push(browserMergeAndPushKvMap('admin_dir', 'auth_hash', [dirMap[authHash]]));
+    }
+    await Promise.all(tasks);
+    if (authHash) {
+      broadcastSupabaseRealtime('student_status', { authHash, active: isActive, deleted: false });
     }
   }
 

@@ -23,7 +23,7 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '')
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
 const SUPABASE_BUCKET = (process.env.SUPABASE_STORAGE_BUCKET || 'lesson-pdfs').trim() || 'lesson-pdfs';
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
-const SUPABASE_PULL_TTL_MS = 5000;
+const SUPABASE_PULL_TTL_MS = 2000;
 
 type SupabaseKvDomain =
   | 'access'
@@ -442,9 +442,15 @@ async function pushDomainToSupabase(domain: SupabaseKvDomain): Promise<boolean> 
 function mergeRemoteKvIntoSqlite(kv: Record<string, { value: unknown; updated_at: number }>): {
   accessChanged: boolean;
   accessVal?: SiteAccessConfig;
+  materialsChanged: boolean;
+  announcementsChanged: boolean;
+  studentsChanged: Array<{ authHash: string; active: boolean; deleted: boolean }>;
 } {
   let accessChanged = false;
   let nextAccessVal: SiteAccessConfig | undefined;
+  let materialsChanged = false;
+  let announcementsChanged = false;
+  const studentsChanged: Array<{ authHash: string; active: boolean; deleted: boolean }> = [];
 
   try {
     const remoteAccess = kv.access?.value as Partial<SiteAccessConfig> | undefined;
@@ -492,6 +498,9 @@ function mergeRemoteKvIntoSqlite(kv: Record<string, { value: unknown; updated_at
 
     const mats = kv.materials?.value as Array<Record<string, unknown>> | undefined;
     if (Array.isArray(mats)) {
+      const prevMatStats = db
+        .prepare('SELECT COUNT(*) AS cnt, COALESCE(MAX(updated_at), 0) AS mx FROM lesson_materials')
+        .get() as { cnt?: number; mx?: number } | undefined;
       const stmt = db.prepare(`
         INSERT INTO lesson_materials
         (id, date, slot_no, target_prog, title, source_type, pdf_url, pdf_data, chunk_count, pdf_name, file_size, deleted, created_at, updated_at)
@@ -529,10 +538,22 @@ function mergeRemoteKvIntoSqlite(kv: Record<string, { value: unknown; updated_at
           Number(m.updated_at ?? m.updatedAtMs) || Date.now(),
         );
       }
+      const nextMatStats = db
+        .prepare('SELECT COUNT(*) AS cnt, COALESCE(MAX(updated_at), 0) AS mx FROM lesson_materials')
+        .get() as { cnt?: number; mx?: number } | undefined;
+      if (
+        (Number(nextMatStats?.cnt) || 0) !== (Number(prevMatStats?.cnt) || 0) ||
+        (Number(nextMatStats?.mx) || 0) > (Number(prevMatStats?.mx) || 0)
+      ) {
+        materialsChanged = true;
+      }
     }
 
     const anns = kv.announcements?.value as Array<Record<string, unknown>> | undefined;
     if (Array.isArray(anns)) {
+      const prevAnnStats = db
+        .prepare('SELECT COUNT(*) AS cnt, COALESCE(MAX(updated_at), 0) AS mx FROM announcements')
+        .get() as { cnt?: number; mx?: number } | undefined;
       const stmt = db.prepare(`
         INSERT INTO announcements (id, title, message, tone, active, target_group, target_prog, deleted, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -561,10 +582,23 @@ function mergeRemoteKvIntoSqlite(kv: Record<string, { value: unknown; updated_at
           Number(a.updated_at ?? a.updatedAtMs) || Date.now(),
         );
       }
+      const nextAnnStats = db
+        .prepare('SELECT COUNT(*) AS cnt, COALESCE(MAX(updated_at), 0) AS mx FROM announcements')
+        .get() as { cnt?: number; mx?: number } | undefined;
+      if (
+        (Number(nextAnnStats?.cnt) || 0) !== (Number(prevAnnStats?.cnt) || 0) ||
+        (Number(nextAnnStats?.mx) || 0) > (Number(prevAnnStats?.mx) || 0)
+      ) {
+        announcementsChanged = true;
+      }
     }
 
     const customs = kv.custom_students?.value as Array<Record<string, unknown>> | undefined;
     if (Array.isArray(customs)) {
+      const prevCustomStats = db
+        .prepare('SELECT COALESCE(MAX(updated_at), 0) AS mx FROM custom_students')
+        .get() as { mx?: number } | undefined;
+      const prevMax = Number(prevCustomStats?.mx) || 0;
       const stmt = db.prepare(`
         INSERT INTO custom_students
         (auth_hash, cloud_key, last4, group_name, lab_group, prog, enc_name, enc_sid, active, deleted, created_at, updated_at)
@@ -583,6 +617,9 @@ function mergeRemoteKvIntoSqlite(kv: Record<string, { value: unknown; updated_at
       `);
       for (const c of customs) {
         if (!c || typeof c.auth_hash !== 'string' || !HASH32_RE.test(c.auth_hash)) continue;
+        const ts = Number(c.updated_at) || Date.now();
+        const isActive = Number(c.active) !== 0 && c.active !== false;
+        const isDeleted = Number(c.deleted) === 1 || c.deleted === true;
         stmt.run(
           c.auth_hash,
           String(c.cloud_key || ''),
@@ -592,16 +629,23 @@ function mergeRemoteKvIntoSqlite(kv: Record<string, { value: unknown; updated_at
           String(c.prog || 'tr'),
           String(c.enc_name || ''),
           String(c.enc_sid || ''),
-          Number(c.active) === 0 ? 0 : 1,
-          Number(c.deleted) === 1 ? 1 : 0,
+          isActive ? 1 : 0,
+          isDeleted ? 1 : 0,
           Number(c.created_at) || Date.now(),
-          Number(c.updated_at) || Date.now(),
+          ts,
         );
+        if (ts > prevMax && (!isActive || isDeleted)) {
+          studentsChanged.push({ authHash: c.auth_hash, active: isActive, deleted: isDeleted });
+        }
       }
     }
 
     const dirs = kv.admin_dir?.value as Array<Record<string, unknown>> | undefined;
     if (Array.isArray(dirs)) {
+      const prevDirStats = db
+        .prepare('SELECT COALESCE(MAX(updated_at), 0) AS mx FROM admin_student_directory')
+        .get() as { mx?: number } | undefined;
+      const prevMax = Number(prevDirStats?.mx) || 0;
       const stmt = db.prepare(`
         INSERT INTO admin_student_directory
         (auth_hash, cloud_key, last4, enc_full_name, enc_sid, group_name, lab_group, prog, source, active, deleted, created_at, updated_at)
@@ -621,6 +665,9 @@ function mergeRemoteKvIntoSqlite(kv: Record<string, { value: unknown; updated_at
       `);
       for (const d of dirs) {
         if (!d || typeof d.auth_hash !== 'string' || !HASH32_RE.test(d.auth_hash)) continue;
+        const ts = Number(d.updated_at) || Date.now();
+        const isActive = Number(d.active) !== 0 && d.active !== false;
+        const isDeleted = Number(d.deleted) === 1 || d.deleted === true;
         stmt.run(
           d.auth_hash,
           String(d.cloud_key || ''),
@@ -631,11 +678,14 @@ function mergeRemoteKvIntoSqlite(kv: Record<string, { value: unknown; updated_at
           String(d.lab_group || ''),
           String(d.prog || 'tr'),
           String(d.source || 'allowlist'),
-          Number(d.active) === 0 ? 0 : 1,
-          Number(d.deleted) === 1 ? 1 : 0,
+          isActive ? 1 : 0,
+          isDeleted ? 1 : 0,
           Number(d.created_at) || Date.now(),
-          Number(d.updated_at) || Date.now(),
+          ts,
         );
+        if (ts > prevMax && (!isActive || isDeleted)) {
+          studentsChanged.push({ authHash: d.auth_hash, active: isActive, deleted: isDeleted });
+        }
       }
     }
 
@@ -672,7 +722,13 @@ function mergeRemoteKvIntoSqlite(kv: Record<string, { value: unknown; updated_at
     // Non-fatal merge error
   }
 
-  return { accessChanged, accessVal: nextAccessVal };
+  return {
+    accessChanged,
+    accessVal: nextAccessVal,
+    materialsChanged,
+    announcementsChanged,
+    studentsChanged,
+  };
 }
 
 let lastSupabasePullAt = 0;
@@ -695,6 +751,15 @@ async function ensureFreshSupabaseSync(force = false): Promise<void> {
       const res = mergeRemoteKvIntoSqlite(kv);
       if (res.accessChanged && res.accessVal) {
         broadcastEvent('access', res.accessVal);
+      }
+      if (res.materialsChanged) {
+        broadcastEvent('materials', { source: 'supabase_sync' });
+      }
+      if (res.announcementsChanged) {
+        broadcastEvent('announcements', { source: 'supabase_sync' });
+      }
+      for (const stu of res.studentsChanged) {
+        broadcastEvent('student_status', stu);
       }
     } catch {
       // Non-fatal pull error
@@ -863,6 +928,14 @@ setInterval(() => {
     }
   }
 }, 25_000);
+
+if (isSupabaseConfigured) {
+  setInterval(() => {
+    if (sseClients.size > 0) {
+      void ensureFreshSupabaseSync(true);
+    }
+  }, 3000);
+}
 
 // ==================== NORMALIZATION HELPERS ====================
 const VALID_MBU_GROUPS = new Set(['', 'I', 'II', 'III', 'IV', 'V']);

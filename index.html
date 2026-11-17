@@ -3952,7 +3952,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="3">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v3.2.1</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v3.2.2</span>
       </div>
     </section>
 
@@ -9332,6 +9332,7 @@
     }
 
     function syncSiteAccessGateUI() {
+      const wasLocked = document.documentElement.classList.contains('site-locked-locked');
       const locked = isSiteLoginLocked();
       const headerEl = document.getElementById('appHeader');
       const spacerEl = document.getElementById('headerSpacer');
@@ -9367,6 +9368,11 @@
         }
         if (authGate && !authGate.classList.contains('hidden') && authGateOpenedByLock) {
           closeAuthModal(true);
+        }
+        if (wasLocked) {
+          refreshAllVisibleTabsAfterAuthChange();
+          void refreshDailyAnnouncements(true);
+          void refreshLessonMaterials(true);
         }
         requestAnimationFrame(() => updateTabIndicator(state.activeTab || 'daily', false));
       }
@@ -9810,11 +9816,11 @@
           triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload, mat.pdfUrl);
           return;
         } catch (err) {
-          if (chunkTotal > 0 && mat.id && authApi && typeof authApi.downloadLessonMaterialChunks === 'function') {
+          if (mat.id && authApi && typeof authApi.downloadLessonMaterialChunks === 'function') {
             try {
               const fallbackBlob = await authApi.downloadLessonMaterialChunks(
                 mat.id,
-                chunkTotal,
+                Math.max(1, chunkTotal),
                 (pct, done, total) => {
                   const safePct = Math.min(99, Math.max(0, Math.round(Number(pct) || 0)));
                   showPdfDownloadProgressBanner(
@@ -9879,16 +9885,21 @@
         const driveDl = getGoogleDriveDirectDownloadUrl(safeUrl);
         if (!driveDl && /\.pdf(\?|$)/i.test(safeUrl)) {
           try {
+            showPdfDownloadProgressBanner(displayTitle, state.lang === 'en' ? 'Downloading PDF...' : 'PDF indiriliyor...', 45);
             const resp = await fetch(safeUrl, { mode: 'cors' });
             if (resp.ok) {
               const ct = (resp.headers.get('content-type') || '').toLowerCase();
               if (ct.includes('pdf') || ct.includes('octet-stream')) {
                 const blob = await resp.blob();
-                triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload);
+                if (mat.id && authApi && typeof authApi.cacheLessonPdfBlob === 'function') {
+                  void authApi.cacheLessonPdfBlob(mat.id, fileName, blob);
+                }
+                triggerBlobDownloadWithReadyBanner(blob, fileName, displayTitle, shouldAutoSaveDownload, safeUrl);
                 return;
               }
             }
           } catch {}
+          closePdfDownloadBanner(true);
         }
         showExternalUrlDownloadReadyBanner(driveDl || safeUrl, safeUrl, fileName, displayTitle);
       }
@@ -10937,17 +10948,8 @@
         if (Array.isArray(mats)) {
           adminState.materials = mats;
           adminCloudDirty.materials = false;
-          lessonMaterialsMap = {};
-          mats.forEach((m) => {
-            const k = `${m.date}_${m.slotNo}`;
-            if (!Array.isArray(lessonMaterialsMap[k])) lessonMaterialsMap[k] = [];
-            lessonMaterialsMap[k].push(m);
-          });
+          applyLoadedLessonMaterialsList(mats);
           renderAdminMaterialsList();
-          runWithStaggerSuppressed(() => {
-            renderDailyView();
-            renderWeeklyView();
-          });
         }
         if (Array.isArray(students)) {
           adminState.students = students;
@@ -11437,6 +11439,8 @@
             syncSiteAccessGateUI();
             syncActiveStudentAccountWatch();
             refreshAllVisibleTabsAfterAuthChange();
+            void refreshDailyAnnouncements(true);
+            void refreshLessonMaterials(true);
             showToast(I18N[state.lang].authWelcomeToast(match.group, match.name));
           } finally {
             if (submitBtn) submitBtn.disabled = false;
@@ -12751,6 +12755,7 @@
       });
 
       let inonuAuthHooksBound = false;
+      let announcementsUnsub = null;
       function bindInonuAuthHooks() {
         const api = window.__INONU_AUTH__;
         if (!api || inonuAuthHooksBound) return;
@@ -12764,6 +12769,13 @@
         syncActiveStudentCloudPrefs();
         refreshDailyAnnouncements(true);
         void refreshLessonMaterials(true);
+        if (typeof api.subscribeAnnouncements === 'function' && !announcementsUnsub) {
+          announcementsUnsub = api.subscribeAnnouncements((list) => {
+            activeAnnouncementsList = Array.isArray(list) ? list : [];
+            announcementsInitialFetchDone = true;
+            runWithStaggerSuppressed(() => renderDailyAnnouncements());
+          });
+        }
         if (typeof api.subscribeLessonMaterials === 'function' && !lessonMaterialsUnsub) {
           lessonMaterialsUnsub = api.subscribeLessonMaterials((list) => {
             applyLoadedLessonMaterialsList(list);
