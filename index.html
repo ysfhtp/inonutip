@@ -3952,7 +3952,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="3">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v3.1.0</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v3.2.0</span>
       </div>
     </section>
 
@@ -10849,12 +10849,19 @@
             return;
           }
           adminState.deleteConfirmMatId = '';
+          const prevMats = Array.isArray(adminState.materials) ? [...adminState.materials] : [];
+          adminState.materials = prevMats.filter((m) => m.id !== mat.id);
+          applyLoadedLessonMaterialsList(adminState.materials);
+          renderAdminMaterialsList();
+          showToast('Ders PDF\'i silindi');
           try {
             await api.deleteLessonMaterial(mat.id, secret === 'active' ? undefined : secret);
-            await refreshAdminCloudData('materials');
-            await refreshLessonMaterials(true);
-            showToast('Ders PDF\'i silindi');
+            void refreshAdminCloudData('materials');
+            void refreshLessonMaterials(true);
           } catch (err) {
+            adminState.materials = prevMats;
+            applyLoadedLessonMaterialsList(prevMats);
+            renderAdminMaterialsList();
             console.warn('Lesson material delete error:', err);
             showToast('Silme başarısız oldu');
           }
@@ -11854,7 +11861,7 @@
           const btn = document.getElementById('btnAdminAnnSubmit');
           if (btn) btn.disabled = true;
           try {
-            await api.saveAnnouncement({
+            const savedAnn = await api.saveAnnouncement({
               id: adminState.editingAnnId || undefined,
               title: titleVal,
               message: msgVal,
@@ -11863,6 +11870,17 @@
               targetGroup: adminState.annTargetGroup || '',
               targetProg: adminState.annTargetProg || ''
             }, secret === 'active' ? undefined : secret);
+            if (savedAnn && savedAnn.id) {
+              const existingIdx = adminState.announcements.findIndex((a) => a.id === savedAnn.id);
+              if (existingIdx >= 0) {
+                adminState.announcements[existingIdx] = savedAnn;
+              } else {
+                adminState.announcements.unshift(savedAnn);
+              }
+              activeAnnouncementsList = adminState.announcements.filter((a) => a && a.active);
+              renderAdminAnnouncementsList();
+              renderDailyAnnouncements();
+            }
             adminState.editingAnnId = '';
             adminState.annTone = 'info';
             adminState.annActive = true;
@@ -11871,9 +11889,9 @@
             document.getElementById('adminAnnTitleInput').value = '';
             document.getElementById('adminAnnMsgInput').value = '';
             syncAdminAnnFormUI();
-            await refreshAdminCloudData('announcements');
-            await refreshDailyAnnouncements(true);
             showToast(loc.adminAnnSavedToast);
+            void refreshAdminCloudData('announcements');
+            void refreshDailyAnnouncements(true);
           } catch (err) {
             console.warn('Announcement save error:', err);
             showToast(loc.adminSaveErrorToast);
@@ -12142,7 +12160,17 @@
               savePayload.pdfData = '';
             }
 
-            await api.saveLessonMaterial(savePayload, explicitSecret);
+            const savedMat = await api.saveLessonMaterial(savePayload, explicitSecret);
+            if (savedMat && savedMat.id) {
+              const existingIdx = adminState.materials.findIndex((m) => m.id === savedMat.id);
+              if (existingIdx >= 0) {
+                adminState.materials[existingIdx] = savedMat;
+              } else {
+                adminState.materials.push(savedMat);
+              }
+              applyLoadedLessonMaterialsList(adminState.materials);
+              renderAdminMaterialsList();
+            }
             adminState.editingMatId = '';
             adminState.matFileObj = null;
             adminState.matFileData = '';
@@ -12157,9 +12185,9 @@
             if (adminMatFileInput) adminMatFileInput.value = '';
             setAdminMatUploadProgress(false);
             syncAdminMaterialModeUI();
-            await refreshAdminCloudData('materials');
-            await refreshLessonMaterials(true);
             showToast(`Ders PDF'i (${targetProg.toUpperCase()}) kaydedildi`);
+            void refreshAdminCloudData('materials');
+            void refreshLessonMaterials(true);
           } catch (err) {
             console.warn('Lesson material save error:', err);
             setAdminMatUploadProgress(false);

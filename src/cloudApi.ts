@@ -242,10 +242,28 @@ async function testConnection(): Promise<void> {
 }
 void testConnection();
 
+function withFirestoreTimeout<T>(promise: Promise<T>, ms = 2200): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Quota limit exceeded: Firestore operation timed out'));
+    }, ms);
+    promise.then(
+      (val) => {
+        clearTimeout(timer);
+        resolve(val);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 // ==================== QUOTA-FRIENDLY SINGLE DOCUMENT & SMART CACHE ENGINE ====================
 const GLOBAL_STATE_COLLECTION = 'appState';
 const GLOBAL_STATE_DOC_ID = 'global';
-const SMART_CACHE_TTL_MS = 90_000; // 90 seconds smart cache window (eliminates redundant reads)
+const SMART_CACHE_TTL_MS = 12_000; // 12 seconds in-memory coalescing window
 const STUDENT_PREFS_CACHE_TTL_MS = 6 * 60 * 60_000; // 6 hours local cache for student preferences
 
 interface ConsolidatedGlobalState {
@@ -263,13 +281,7 @@ interface ConsolidatedGlobalState {
 }
 
 let memoryGlobalState: ConsolidatedGlobalState | null = null;
-let memoryGlobalFetchedAt = (() => {
-  try {
-    return Number(sessionStorage.getItem('inonu_global_fetched_at') || 0);
-  } catch {
-    return 0;
-  }
-})();
+let memoryGlobalFetchedAt = 0;
 let inflightGlobalFetch: Promise<ConsolidatedGlobalState | null> | null = null;
 
 function isFirestoreAvailable(): boolean {
@@ -433,14 +445,11 @@ async function fetchConsolidatedGlobalState(forceRefresh = false): Promise<Conso
     try {
       let snap;
       try {
-        snap = await getDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID));
+        snap = await withFirestoreTimeout(getDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID)), 2200);
       } catch (error) {
         handleFirestoreError(error, OperationType.GET, docPath);
       }
       memoryGlobalFetchedAt = Date.now();
-      try {
-        sessionStorage.setItem('inonu_global_fetched_at', String(memoryGlobalFetchedAt));
-      } catch {}
       if (!snap.exists()) {
         memoryGlobalState = buildConsolidatedStateFromLocal();
         return memoryGlobalState;
@@ -484,28 +493,18 @@ async function fetchConsolidatedGlobalState(forceRefresh = false): Promise<Conso
 }
 
 async function syncConsolidatedGlobalStateToFirestore(adminSecret?: string): Promise<void> {
-  if (!isFirestoreAvailable()) {
-    memoryGlobalState = buildConsolidatedStateFromLocal(adminSecret);
-    return;
-  }
-  // Ensure we merge any existing remote state before writing if this tab hasn't fetched yet
-  if (!memoryGlobalState && memoryGlobalFetchedAt === 0) {
-    try {
-      await fetchConsolidatedGlobalState(true);
-    } catch {}
-  }
-
   const nextState = buildConsolidatedStateFromLocal(adminSecret);
   memoryGlobalState = nextState;
   memoryGlobalFetchedAt = Date.now();
-  try {
-    sessionStorage.setItem('inonu_global_fetched_at', String(memoryGlobalFetchedAt));
-  } catch {}
+
+  if (!isFirestoreAvailable()) {
+    return;
+  }
 
   const docPath = `${GLOBAL_STATE_COLLECTION}/${GLOBAL_STATE_DOC_ID}`;
   try {
     try {
-      await setDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID), nextState);
+      await withFirestoreTimeout(setDoc(doc(db, GLOBAL_STATE_COLLECTION, GLOBAL_STATE_DOC_ID), nextState), 2500);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, docPath);
     }
@@ -1132,10 +1131,23 @@ export async function updateAdminPassword(
 
 // ==================== SITE ACCESS SETTINGS ====================
 export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
-  // 1. Consult Quota-Friendly Single Document Smart Cache (/appState/global)
-  const consolidated = await fetchConsolidatedGlobalState(false);
-  const savedLocal = readStaticJson<Partial<SiteAccessSettings>>('access', {});
+  const apiPromise = (async (): Promise<{ requireStudentLogin?: boolean; updatedAtMs?: number } | null> => {
+    if (!(await isApiBackendOnline())) return null;
+    try {
+      const resp = await fetch('/api/access', { cache: 'no-store' });
+      if (resp.ok) {
+        return (await resp.json()) as { requireStudentLogin?: boolean; updatedAtMs?: number };
+      }
+    } catch {}
+    return null;
+  })();
 
+  const [consolidated, apiJson] = await Promise.all([
+    fetchConsolidatedGlobalState(false),
+    apiPromise,
+  ]);
+
+  const savedLocal = readStaticJson<Partial<SiteAccessSettings>>('access', {});
   let bestRequire = savedLocal.requireStudentLogin === true;
   let bestTs = Number(savedLocal.updatedAtMs) || 0;
 
@@ -1144,19 +1156,12 @@ export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
     bestTs = Number(consolidated.accessUpdatedAtMs) || 0;
   }
 
-  // 2. Also check Express backend if online and pick whichever has the newest timestamp
-  if (await isApiBackendOnline()) {
-    try {
-      const resp = await fetch('/api/access', { cache: 'no-store' });
-      if (resp.ok) {
-        const json = (await resp.json()) as { requireStudentLogin?: boolean; updatedAtMs?: number };
-        const apiTs = Number(json.updatedAtMs) || 0;
-        if (apiTs > bestTs) {
-          bestRequire = json.requireStudentLogin === true;
-          bestTs = apiTs;
-        }
-      }
-    } catch {}
+  if (apiJson) {
+    const apiTs = Number(apiJson.updatedAtMs) || 0;
+    if (apiTs >= bestTs) {
+      bestRequire = apiJson.requireStudentLogin === true;
+      bestTs = apiTs;
+    }
   }
 
   const result: SiteAccessSettings = {
@@ -1196,29 +1201,31 @@ export async function saveSiteAccessSettings(
   writeStaticJson('access', next);
   emitLocalTopic('access', next);
 
-  // 2. Sync to Quota-Friendly Single Document (/appState/global) in Firebase Firestore
-  await syncConsolidatedGlobalStateToFirestore(adminSecret);
+  // 2. Sync to Quota-Friendly Single Document (/appState/global) in background (non-blocking)
+  void syncConsolidatedGlobalStateToFirestore(adminSecret);
 
-  // 3. If Express backend API is online, also sync to server SQLite database
+  // 3. If Express backend API is online, sync immediately to server SQLite database
   try {
-    const secret = resolveAdminWriteSecret(adminSecret);
-    const resp = await fetch('/api/access', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret,
-      },
-      body: JSON.stringify({ requireStudentLogin: Boolean(requireStudentLogin) }),
-    });
-    if (resp.ok) {
-      const json = (await resp.json().catch(() => ({}))) as {
-        requireStudentLogin?: boolean;
-        updatedAtMs?: number;
-      };
-      if (json && typeof json.requireStudentLogin === 'boolean') {
-        next.requireStudentLogin = json.requireStudentLogin;
-        next.updatedAtMs = Math.max(now, Number(json.updatedAtMs) || now);
-        writeStaticJson('access', next);
+    if (await isApiBackendOnline()) {
+      const secret = resolveAdminWriteSecret(adminSecret);
+      const resp = await fetch('/api/access', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': secret,
+        },
+        body: JSON.stringify({ requireStudentLogin: Boolean(requireStudentLogin) }),
+      });
+      if (resp.ok) {
+        const json = (await resp.json().catch(() => ({}))) as {
+          requireStudentLogin?: boolean;
+          updatedAtMs?: number;
+        };
+        if (json && typeof json.requireStudentLogin === 'boolean') {
+          next.requireStudentLogin = json.requireStudentLogin;
+          next.updatedAtMs = Math.max(now, Number(json.updatedAtMs) || now);
+          writeStaticJson('access', next);
+        }
       }
     }
   } catch {
@@ -1640,9 +1647,8 @@ function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement 
 }
 
 export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
-  await fetchConsolidatedGlobalState(false);
-
-  if (await isApiBackendOnline()) {
+  const apiPromise = (async () => {
+    if (!(await isApiBackendOnline())) return;
     try {
       const resp = await fetch('/api/announcements', { cache: 'no-store' });
       if (resp.ok) {
@@ -1658,7 +1664,9 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
         }
       }
     } catch {}
-  }
+  })();
+
+  await Promise.all([fetchConsolidatedGlobalState(false), apiPromise]);
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   return Object.values(map)
@@ -1668,9 +1676,8 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
 }
 
 export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
-  await fetchConsolidatedGlobalState(false);
-
-  if (await isApiBackendOnline()) {
+  const apiPromise = (async () => {
+    if (!(await isApiBackendOnline())) return;
     try {
       const resp = await fetch('/api/announcements', { cache: 'no-store' });
       if (resp.ok) {
@@ -1686,7 +1693,9 @@ export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
         }
       }
     } catch {}
-  }
+  })();
+
+  await Promise.all([fetchConsolidatedGlobalState(false), apiPromise]);
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   return Object.values(map)
@@ -1736,7 +1745,8 @@ export async function saveAnnouncement(
   if (prev?.createdAtMs) saved.createdAtMs = prev.createdAtMs;
   map[id] = { ...saved, deleted: false };
   writeStaticJson('announcements', map);
-  await syncConsolidatedGlobalStateToFirestore(secret);
+  emitLocalTopic('announcements', { action: 'save', id });
+  void syncConsolidatedGlobalStateToFirestore(secret);
 
   if (await isApiBackendOnline()) {
     try {
@@ -1769,7 +1779,6 @@ export async function saveAnnouncement(
     } catch {}
   }
 
-  emitLocalTopic('announcements', { action: 'save', id });
   return saved;
 }
 
@@ -1783,22 +1792,17 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
     map[cleanId] = { ...map[cleanId], deleted: true, active: false, updatedAtMs: Date.now() };
     writeStaticJson('announcements', map);
   }
-  await syncConsolidatedGlobalStateToFirestore(secret);
+  emitLocalTopic('announcements', { action: 'delete', id: cleanId });
+  void syncConsolidatedGlobalStateToFirestore(secret);
 
   if (await isApiBackendOnline()) {
     try {
-      const resp = await fetch(`/api/announcements/${encodeURIComponent(cleanId)}`, {
+      await fetch(`/api/announcements/${encodeURIComponent(cleanId)}`, {
         method: 'DELETE',
         headers: { 'X-Admin-Secret': secret },
       });
-      if (resp.ok) {
-        emitLocalTopic('announcements', { action: 'delete', id: cleanId });
-        return;
-      }
     } catch {}
   }
-
-  emitLocalTopic('announcements', { action: 'delete', id: cleanId });
 }
 
 // ==================== LESSON MATERIALS & FIREBASE / SERVER PDF HOSTING ====================
@@ -1856,63 +1860,91 @@ export async function uploadLessonPdfFile(
   ).slice(0, 90);
   const cleanFileName = (file.name || 'ders.pdf').trim().slice(0, 120);
 
-  onProgress?.(2, 0, file.size);
+  let maxReportedPct = 2;
+  const reportProgress = (pct: number, loaded: number) => {
+    if (pct >= maxReportedPct) {
+      maxReportedPct = pct;
+      onProgress?.(pct, loaded, file.size);
+    }
+  };
+  reportProgress(4, 0);
 
-  // 1. Always cache the full PDF in IndexedDB for instant local access (0 future reads)
-  try {
-    await saveStaticPdfBlob(cleanMatId, cleanFileName, file);
-  } catch {}
+  // 1. Cache the full PDF in IndexedDB in background for instant local access (0 future reads)
+  void saveStaticPdfBlob(cleanMatId, cleanFileName, file).catch(() => {});
 
-  let firestoreChunkCount = 0;
-  const maxFirestoreChunkedBytes = 35 * 1024 * 1024; // Up to ~35 MB stored in Firestore chunks
+  const maxFirestoreChunkedBytes = 35 * 1024 * 1024;
+  const expectedFsChunks = Math.max(1, Math.ceil(file.size / FIRESTORE_PDF_CHUNK_BYTES));
 
-  // 2. Upload PDF chunks to Firebase Firestore (/pdfChunks/{materialId}_{idx}) when available
-  if (isFirestoreAvailable() && file.size <= maxFirestoreChunkedBytes) {
+  // 2. Define Firebase Firestore chunk upload task (parallel batches of 4 with fast timeout)
+  const uploadToFirestoreChunks = async (reportToUi: boolean): Promise<number> => {
+    if (!isFirestoreAvailable() || file.size > maxFirestoreChunkedBytes) return 0;
     try {
       const arrayBuf = await file.arrayBuffer();
       const allBytes = new Uint8Array(arrayBuf);
       const totalFsChunks = Math.max(1, Math.ceil(allBytes.length / FIRESTORE_PDF_CHUNK_BYTES));
       const adminProof = getValidFirestoreAdminProof(secret);
-      let uploadedFsBytes = 0;
+      let completedChunks = 0;
+      const batchSize = 4;
 
-      for (let idx = 0; idx < totalFsChunks; idx++) {
+      for (let startIdx = 0; startIdx < totalFsChunks; startIdx += batchSize) {
         if (!isFirestoreAvailable()) break;
-        const start = idx * FIRESTORE_PDF_CHUNK_BYTES;
-        const end = Math.min(allBytes.length, start + FIRESTORE_PDF_CHUNK_BYTES);
-        const chunkBytes = allBytes.subarray(start, end);
-        const b64Chunk = bytesToB64(chunkBytes);
-        const chunkDocId = `${cleanMatId}_${idx}`;
-        const docPath = `pdfChunks/${chunkDocId}`;
-        try {
-          await setDoc(doc(db, 'pdfChunks', chunkDocId), {
-            materialId: cleanMatId,
-            chunkIndex: idx,
-            data: b64Chunk,
-            updatedAtMs: Date.now(),
-            adminProof,
-          });
-        } catch (error) {
-          handleFirestoreError(error, OperationType.WRITE, docPath);
+        const batchIndices: number[] = [];
+        for (let i = startIdx; i < Math.min(totalFsChunks, startIdx + batchSize); i++) {
+          batchIndices.push(i);
         }
-        uploadedFsBytes = end;
-        const pct = Math.min(95, Math.max(5, Math.round((uploadedFsBytes / file.size) * 90)));
-        onProgress?.(pct, uploadedFsBytes, file.size);
+        await Promise.all(
+          batchIndices.map(async (idx) => {
+            const start = idx * FIRESTORE_PDF_CHUNK_BYTES;
+            const end = Math.min(allBytes.length, start + FIRESTORE_PDF_CHUNK_BYTES);
+            const chunkBytes = allBytes.subarray(start, end);
+            const b64Chunk = bytesToB64(chunkBytes);
+            const chunkDocId = `${cleanMatId}_${idx}`;
+            const docPath = `pdfChunks/${chunkDocId}`;
+            try {
+              await withFirestoreTimeout(
+                setDoc(doc(db, 'pdfChunks', chunkDocId), {
+                  materialId: cleanMatId,
+                  chunkIndex: idx,
+                  data: b64Chunk,
+                  updatedAtMs: Date.now(),
+                  adminProof,
+                }),
+                4000,
+              );
+            } catch (error) {
+              handleFirestoreError(error, OperationType.WRITE, docPath);
+            }
+            completedChunks += 1;
+            if (reportToUi) {
+              const loadedBytes = Math.min(file.size, completedChunks * FIRESTORE_PDF_CHUNK_BYTES);
+              const pct = Math.min(95, Math.max(5, Math.round((completedChunks / totalFsChunks) * 92)));
+              reportProgress(pct, loadedBytes);
+            }
+          }),
+        );
       }
-
-      if (uploadedFsBytes >= allBytes.length) {
-        firestoreChunkCount = totalFsChunks;
-      }
+      return completedChunks === totalFsChunks ? totalFsChunks : 0;
     } catch {
-      // If Firestore quota is on cooldown, gracefully continue with server/local storage
+      return 0;
     }
-  }
+  };
 
-  // 3. Also upload to Express server (/api/lesson-pdf/*) if backend is online
-  let serverUrl = '';
-  let serverFileId = '';
+  // 3. If Express backend is online, upload to server with 4MB chunks while Firestore syncs in background!
   if (await isApiBackendOnline()) {
+    // Start Firestore chunk backup in background so UI never waits for slow Firestore writes
+    void uploadToFirestoreChunks(false).then((fsChunks) => {
+      if (fsChunks > 0) {
+        const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
+        if (map[cleanMatId]) {
+          map[cleanMatId] = { ...map[cleanMatId], chunkCount: fsChunks, updatedAtMs: Date.now() };
+          writeStaticJson('materials', map);
+          void syncConsolidatedGlobalStateToFirestore(secret);
+        }
+      }
+    });
+
     try {
-      const serverChunkSize = 2 * 1024 * 1024;
+      const serverChunkSize = 4 * 1024 * 1024;
       const totalChunks = Math.max(1, Math.ceil(file.size / serverChunkSize));
 
       const initResp = await fetch('/api/lesson-pdf/init', {
@@ -1959,10 +1991,8 @@ export async function uploadLessonPdfFile(
             break;
           }
           uploadedBytes = end;
-          if (firestoreChunkCount === 0) {
-            const pct = Math.min(95, Math.max(5, Math.round((uploadedBytes / file.size) * 92)));
-            onProgress?.(pct, uploadedBytes, file.size);
-          }
+          const pct = Math.min(96, Math.max(10, Math.round((uploadedBytes / file.size) * 94)));
+          reportProgress(pct, uploadedBytes);
         }
 
         if (allChunksOk) {
@@ -1980,39 +2010,25 @@ export async function uploadLessonPdfFile(
             url?: string;
           };
           if (completeResp.ok && completeJson.ok && completeJson.url) {
-            serverUrl = completeJson.url;
-            serverFileId = completeJson.fileId || cleanMatId;
+            reportProgress(100, file.size);
+            return {
+              sourceType: 'server',
+              materialId: cleanMatId,
+              url: completeJson.url,
+              fileId: completeJson.fileId || cleanMatId,
+              fileName: cleanFileName,
+              size: file.size,
+              chunkCount: expectedFsChunks,
+            };
           }
         }
       }
     } catch {}
   }
 
-  onProgress?.(100, file.size, file.size);
-
-  if (firestoreChunkCount > 0) {
-    return {
-      sourceType: 'chunks',
-      materialId: cleanMatId,
-      url: serverUrl,
-      fileId: serverFileId || cleanMatId,
-      fileName: cleanFileName,
-      size: file.size,
-      chunkCount: firestoreChunkCount,
-    };
-  }
-
-  if (serverUrl) {
-    return {
-      sourceType: 'server',
-      materialId: cleanMatId,
-      url: serverUrl,
-      fileId: serverFileId || cleanMatId,
-      fileName: cleanFileName,
-      size: file.size,
-      chunkCount: 0,
-    };
-  }
+  // 4. Static / Firebase-only mode: await parallel Firestore chunk upload
+  const firestoreChunkCount = await uploadToFirestoreChunks(true);
+  reportProgress(100, file.size);
 
   return {
     sourceType: 'chunks',
@@ -2021,7 +2037,7 @@ export async function uploadLessonPdfFile(
     fileId: cleanMatId,
     fileName: cleanFileName,
     size: file.size,
-    chunkCount: 1,
+    chunkCount: firestoreChunkCount > 0 ? firestoreChunkCount : expectedFsChunks,
   };
 }
 
@@ -2150,9 +2166,8 @@ function mapServerMaterial(m: Record<string, unknown>): LessonMaterial {
 }
 
 export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
-  await fetchConsolidatedGlobalState(false);
-
-  if (await isApiBackendOnline()) {
+  const apiPromise = (async () => {
+    if (!(await isApiBackendOnline())) return;
     try {
       const resp = await fetch('/api/materials', { cache: 'no-store' });
       if (resp.ok) {
@@ -2170,7 +2185,9 @@ export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
         }
       }
     } catch {}
-  }
+  })();
+
+  await Promise.all([fetchConsolidatedGlobalState(false), apiPromise]);
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
   return Object.values(map)
@@ -2216,10 +2233,10 @@ export async function saveLessonMaterial(
   cleanUrl = cleanUrl.slice(0, 2000);
 
   const sourceType: 'url' | 'file' | 'server' | 'chunks' =
-    cleanChunkCount > 0 || input.sourceType === 'chunks'
-      ? 'chunks'
-      : cleanUrl.startsWith('/api/lesson-pdf/') || input.sourceType === 'server'
-        ? 'server'
+    cleanUrl.startsWith('/api/lesson-pdf/') || input.sourceType === 'server'
+      ? 'server'
+      : cleanChunkCount > 0 || input.sourceType === 'chunks'
+        ? 'chunks'
         : input.sourceType === 'file' || (rawData.length > 0 && !cleanUrl)
           ? 'file'
           : 'url';
@@ -2250,7 +2267,7 @@ export async function saveLessonMaterial(
     sourceType,
     pdfUrl: sourceType === 'file' ? '' : cleanUrl,
     pdfData: sourceType === 'file' ? rawData : undefined,
-    chunkCount: sourceType === 'chunks' ? Math.max(1, cleanChunkCount) : undefined,
+    chunkCount: cleanChunkCount > 0 ? cleanChunkCount : undefined,
     pdfName: String(input.pdfName || '').trim().slice(0, 120) || undefined,
     fileSize: typeof input.fileSize === 'number' && input.fileSize > 0 ? Math.round(input.fileSize) : undefined,
     createdAtMs: prev?.createdAtMs || now,
@@ -2258,7 +2275,8 @@ export async function saveLessonMaterial(
   };
   map[candidateId] = { ...saved, deleted: false };
   writeStaticJson('materials', map);
-  await syncConsolidatedGlobalStateToFirestore(secret);
+  emitLocalTopic('materials', { action: 'save', id: candidateId });
+  void syncConsolidatedGlobalStateToFirestore(secret);
 
   if (await isApiBackendOnline()) {
     try {
@@ -2277,7 +2295,7 @@ export async function saveLessonMaterial(
           sourceType,
           pdfUrl: sourceType === 'file' ? '' : cleanUrl,
           pdfData: sourceType === 'file' ? rawData : '',
-          chunkCount: sourceType === 'chunks' ? Math.max(1, cleanChunkCount) : 0,
+          chunkCount: cleanChunkCount > 0 ? cleanChunkCount : 0,
           pdfName: String(input.pdfName || '').trim().slice(0, 120),
           fileSize: typeof input.fileSize === 'number' ? Math.round(input.fileSize) : 0,
         }),
@@ -2293,7 +2311,7 @@ export async function saveLessonMaterial(
           ...saved,
           ...serverSaved,
           chunkCount: saved.chunkCount || serverSaved.chunkCount,
-          sourceType: saved.chunkCount ? 'chunks' : serverSaved.sourceType,
+          sourceType: serverSaved.pdfUrl.startsWith('/api/lesson-pdf/') ? 'server' : (saved.chunkCount ? 'chunks' : serverSaved.sourceType),
           deleted: false,
         };
         writeStaticJson('materials', map);
@@ -2303,7 +2321,6 @@ export async function saveLessonMaterial(
     } catch {}
   }
 
-  emitLocalTopic('materials', { action: 'save', id: candidateId });
   return saved;
 }
 
@@ -2320,7 +2337,8 @@ export async function deleteLessonMaterial(id: string, adminSecret?: string): Pr
     map[cleanId] = { ...existingMat, deleted: true, updatedAtMs: Date.now() };
     writeStaticJson('materials', map);
   }
-  await syncConsolidatedGlobalStateToFirestore(secret);
+  emitLocalTopic('materials', { action: 'delete', id: cleanId });
+  void syncConsolidatedGlobalStateToFirestore(secret);
 
   // Clean up PDF chunks from Firestore in the background
   if (isFirestoreAvailable() && prevChunkCount > 0) {
@@ -2344,8 +2362,7 @@ export async function deleteLessonMaterial(id: string, adminSecret?: string): Pr
     } catch {}
   }
 
-  await deleteStaticPdfBlob(cleanId);
-  emitLocalTopic('materials', { action: 'delete', id: cleanId });
+  void deleteStaticPdfBlob(cleanId);
 }
 
 // ==================== ADMIN STUDENT MANAGEMENT ====================
