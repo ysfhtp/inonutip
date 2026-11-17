@@ -1,3 +1,8 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import {
   ADMIN_ROSTER_CIPHERTEXT_B64,
   ADMIN_ROSTER_IV_B64,
@@ -137,6 +142,27 @@ const STATIC_STORE_PREFIX = 'inonu_static_db_v1_';
 const STATIC_PDF_DB_NAME = 'inonu_tip_static_pdfs_v1';
 const STATIC_PDF_STORE_NAME = 'pdfs';
 
+// ==================== APP VERSION & AUTO-INCREMENT ====================
+export function getAppVersion(): string {
+  if (typeof localStorage === 'undefined') return '3.2.1';
+  const v = localStorage.getItem('inonu_tip_d1_ios_v3_version');
+  if (v && /^[0-9]+\.[0-9]+\.[0-9]+$/.test(v)) return v;
+  return '3.2.1';
+}
+
+export function bumpAppVersion(): string {
+  if (typeof localStorage === 'undefined') return '3.2.1';
+  const current = getAppVersion();
+  const parts = current.split('.');
+  const major = parts[0] || '3';
+  const minor = parts[1] || '2';
+  const patch = parseInt(parts[2] || '1', 10) + 1;
+  const next = `${major}.${minor}.${patch}`;
+  localStorage.setItem('inonu_tip_d1_ios_v3_version', next);
+  emitLocalTopic('version', { version: next });
+  return next;
+}
+
 // ==================== BACKEND DETECTION & LOCAL EVENT HUB ====================
 type SseHandler = (data: unknown) => void;
 const sseListeners = new Map<string, Set<SseHandler>>();
@@ -147,156 +173,44 @@ let apiProbePromise: Promise<'online' | 'static'> | null = null;
 let crossTabChannel: BroadcastChannel | null = null;
 let crossTabInitialized = false;
 
-const BROWSER_SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '');
-const BROWSER_SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
-const BROWSER_SUPABASE_BUCKET = (import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || 'lesson-pdfs').trim() || 'lesson-pdfs';
-const isBrowserSupabaseConfigured = Boolean(BROWSER_SUPABASE_URL && BROWSER_SUPABASE_KEY);
-const SUPABASE_KV_CHUNK_BYTES = 256 * 1024; // 256 KB binary -> ~342 KB base64 JSON per chunk row
-const MAX_SUPABASE_KV_PDF_BYTES = 60 * 1024 * 1024; // 60 MB max via KV chunks
-
-function browserSupabaseHeaders(extra?: Record<string, string>): Record<string, string> {
-  return {
-    apikey: BROWSER_SUPABASE_KEY,
-    Authorization: `Bearer ${BROWSER_SUPABASE_KEY}`,
-    ...extra,
-  };
-}
-
-async function browserPullSupabaseKv(key: string, timeoutMs = 5000): Promise<unknown> {
-  if (!isBrowserSupabaseConfigured) return null;
-  try {
-    const resp = await fetch(`${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?key=eq.${encodeURIComponent(key)}&select=value`, {
-      headers: browserSupabaseHeaders(),
-      cache: 'no-store',
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    if (!resp.ok) return null;
-    const rows = (await resp.json()) as Array<{ value?: unknown }>;
-    if (Array.isArray(rows) && rows.length > 0) {
-      return rows[0].value ?? null;
-    }
-    return null;
-  } catch {
-    return null;
+function probeApiBackend(force = false): Promise<'online' | 'static'> {
+  const now = Date.now();
+  if (!force && apiBackendStatus !== 'unknown' && now - apiBackendCheckedAt < 15_000) {
+    return Promise.resolve(apiBackendStatus);
   }
-}
+  if (!force && apiProbePromise) return apiProbePromise;
 
-async function browserPullSupabaseKvBatch(keys: string[], timeoutMs = 15000): Promise<Record<string, unknown>> {
-  const out: Record<string, unknown> = {};
-  if (!isBrowserSupabaseConfigured || keys.length === 0) return out;
-  try {
-    const inFilter = keys.map((k) => `"${k.replace(/"/g, '')}"`).join(',');
-    const resp = await fetch(
-      `${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?key=in.(${encodeURIComponent(inFilter)})&select=key,value`,
-      {
-        headers: browserSupabaseHeaders(),
-        cache: 'no-store',
-        signal: AbortSignal.timeout(timeoutMs),
-      },
-    );
-    if (!resp.ok) return out;
-    const rows = (await resp.json()) as Array<{ key?: string; value?: unknown }>;
-    if (Array.isArray(rows)) {
-      for (const r of rows) {
-        if (r && typeof r.key === 'string') {
-          out[r.key] = r.value ?? null;
-        }
-      }
-    }
-    return out;
-  } catch {
-    return out;
-  }
-}
-
-async function browserPushSupabaseKv(key: string, value: unknown, timeoutMs = 6000, retries = 1): Promise<boolean> {
-  if (!isBrowserSupabaseConfigured) return false;
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  apiProbePromise = (async () => {
     try {
-      const resp = await fetch(`${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?on_conflict=key`, {
-        method: 'POST',
-        headers: browserSupabaseHeaders({
-          'Content-Type': 'application/json',
-          Prefer: 'resolution=merge-duplicates',
-        }),
-        body: JSON.stringify({ key, value, updated_at: Date.now() }),
-        signal: AbortSignal.timeout(timeoutMs),
+      const resp = await fetch('/api/health', {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(3000),
       });
-      if (resp.ok) return true;
-      if (resp.status >= 400 && resp.status < 500 && resp.status !== 408 && resp.status !== 429) {
-        return false;
-      }
-    } catch {
-      // Retry on transient timeout / network hiccup
-    }
-    if (attempt < retries) {
-      await new Promise((r) => setTimeout(r, 350));
-    }
-  }
-  return false;
-}
-
-async function browserDeleteSupabaseKvPrefix(prefix: string): Promise<void> {
-  if (!isBrowserSupabaseConfigured || !prefix) return;
-  try {
-    await fetch(`${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?key=like.${encodeURIComponent(`${prefix}%`)}`, {
-      method: 'DELETE',
-      headers: browserSupabaseHeaders(),
-      signal: AbortSignal.timeout(8000),
-    });
-  } catch {
-    // Best-effort cleanup
-  }
-}
-
-async function browserSyncKvArrayToMap(domain: string, keyField: string): Promise<Record<string, Record<string, unknown>> | null> {
-  const val = await browserPullSupabaseKv(domain, 5000);
-  if (!Array.isArray(val)) return null;
-  const map: Record<string, Record<string, unknown>> = {};
-  for (const item of val) {
-    if (item && typeof item === 'object') {
-      const row = item as Record<string, unknown>;
-      const k = row[keyField];
-      if (typeof k === 'string' && k) {
-        map[k] = row;
-      }
-    }
-  }
-  writeStaticJson(domain, map);
-  return map;
-}
-
-async function browserMergeAndPushKvMap(
-  domain: string,
-  keyField: string,
-  updates: Array<Record<string, unknown>>,
-): Promise<boolean> {
-  const remoteRaw = await browserPullSupabaseKv(domain, 5000);
-  const merged: Record<string, Record<string, unknown>> = {};
-  if (Array.isArray(remoteRaw)) {
-    for (const item of remoteRaw) {
-      if (item && typeof item === 'object') {
-        const row = item as Record<string, unknown>;
-        const k = row[keyField];
-        if (typeof k === 'string' && k) {
-          merged[k] = row;
+      if (resp.ok) {
+        const json = (await resp.json().catch(() => ({}))) as { ok?: boolean };
+        if (json.ok) {
+          apiBackendStatus = 'online';
+          apiBackendCheckedAt = Date.now();
+          return 'online';
         }
       }
+      apiBackendStatus = 'static';
+      apiBackendCheckedAt = Date.now();
+      return 'static';
+    } catch {
+      apiBackendStatus = 'static';
+      apiBackendCheckedAt = Date.now();
+      return 'static';
+    } finally {
+      apiProbePromise = null;
     }
-  } else {
-    const localMap = readStaticJson<Record<string, Record<string, unknown>>>(domain, {});
-    Object.entries(localMap).forEach(([k, v]) => {
-      if (v && typeof v === 'object') merged[k] = v;
-    });
-  }
-  for (const u of updates) {
-    const k = u[keyField];
-    if (typeof k === 'string' && k) {
-      merged[k] = { ...(merged[k] || {}), ...u };
-    }
-  }
-  writeStaticJson(domain, merged);
-  return browserPushSupabaseKv(domain, Object.values(merged), 8000, 1);
+  })();
+
+  return apiProbePromise;
+}
+
+async function isApiBackendOnline(): Promise<boolean> {
+  return (await probeApiBackend()) === 'online';
 }
 
 function notifyLocalSubscribersOnly(topic: string, payload?: unknown): void {
@@ -341,6 +255,8 @@ function initCrossTabSync(): void {
         notifyLocalSubscribersOnly('announcements', { source: 'storage' });
       } else if (subKey === 'custom_students' || subKey === 'admin_dir') {
         notifyLocalSubscribersOnly('student_status', { source: 'storage' });
+      } else if (subKey === 'version') {
+        notifyLocalSubscribersOnly('version', readStaticJson('version', null));
       }
     });
   } catch {
@@ -358,361 +274,8 @@ function emitLocalTopic(topic: string, payload?: unknown): void {
   }
 }
 
-// ==================== SUPABASE REALTIME WEBSOCKET + TIMESTAMP POLL ====================
-let supabaseRealtimeWs: WebSocket | null = null;
-let supabaseRealtimeJoined = false;
-let supabaseHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
-let supabaseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
-let supabasePollTimer: ReturnType<typeof setInterval> | null = null;
-let supabaseLiveStarted = false;
-let supabaseMsgRef = 1;
-const lastSeenSupabaseKvTs: Record<string, number> = {};
-let inflightSupabasePoll: Promise<void> | null = null;
-
-function handleRemoteDomainUpdate(domain: string, value?: unknown): void {
-  if (domain === 'access') {
-    if (value && typeof value === 'object') {
-      const obj = value as Partial<SiteAccessSettings>;
-      const prevLocal = readStaticJson<Partial<SiteAccessSettings>>('access', {});
-      const remoteTs = Number(obj.updatedAtMs) || 0;
-      const localTs = Number(prevLocal.updatedAtMs) || 0;
-      if (remoteTs >= localTs) {
-        const nextAcc: SiteAccessSettings = {
-          requireStudentLogin: Boolean(obj.requireStudentLogin),
-          updatedAtMs: remoteTs || Date.now(),
-        };
-        writeStaticJson('access', nextAcc);
-        notifyLocalSubscribersOnly('access', nextAcc);
-      }
-    } else {
-      void loadSiteAccessSettings().then((s) => notifyLocalSubscribersOnly('access', s));
-    }
-  } else if (domain === 'materials') {
-    notifyLocalSubscribersOnly('materials', { source: 'supabase_live' });
-  } else if (domain === 'announcements') {
-    notifyLocalSubscribersOnly('announcements', { source: 'supabase_live' });
-  } else if (domain === 'custom_students' || domain === 'admin_dir') {
-    void Promise.all([
-      browserSyncKvArrayToMap('custom_students', 'auth_hash'),
-      browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
-    ]).then(([cMap, dMap]) => {
-      if (cMap) {
-        Object.values(cMap).forEach((r) => {
-          if (r && typeof r.auth_hash === 'string') {
-            notifyLocalSubscribersOnly('student_status', {
-              authHash: r.auth_hash,
-              active: r.active !== 0 && r.active !== false,
-              deleted: r.deleted === 1 || r.deleted === true,
-            });
-          }
-        });
-      }
-      if (dMap) {
-        Object.values(dMap).forEach((r) => {
-          if (r && typeof r.auth_hash === 'string') {
-            notifyLocalSubscribersOnly('student_status', {
-              authHash: r.auth_hash,
-              active: r.active !== 0 && r.active !== false,
-              deleted: r.deleted === 1 || r.deleted === true,
-            });
-          }
-        });
-      }
-    });
-  } else if (domain === 'security' && value && typeof value === 'object') {
-    writeStaticJson('security', value);
-  }
-}
-
-async function pollSupabaseKvTimestamps(): Promise<void> {
-  if (!isBrowserSupabaseConfigured) return;
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-  if (inflightSupabasePoll) return inflightSupabasePoll;
-
-  inflightSupabasePoll = (async () => {
-    try {
-      const resp = await fetch(
-        `${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?select=key,updated_at&key=in.(access,announcements,materials,custom_students,admin_dir,security)`,
-        {
-          headers: browserSupabaseHeaders(),
-          cache: 'no-store',
-          signal: AbortSignal.timeout(3500),
-        },
-      );
-      if (!resp.ok) return;
-      const rows = (await resp.json()) as Array<{ key?: string; updated_at?: number }>;
-      if (!Array.isArray(rows)) return;
-
-      const changedKeys: string[] = [];
-      for (const r of rows) {
-        if (!r || typeof r.key !== 'string') continue;
-        const ts = Number(r.updated_at) || 0;
-        const prevTs = lastSeenSupabaseKvTs[r.key];
-        if (prevTs === undefined) {
-          lastSeenSupabaseKvTs[r.key] = ts;
-          if (r.key === 'access') {
-            changedKeys.push(r.key);
-          }
-        } else if (ts > prevTs) {
-          lastSeenSupabaseKvTs[r.key] = ts;
-          changedKeys.push(r.key);
-        }
-      }
-
-      for (const k of changedKeys) {
-        if (k === 'access') {
-          const val = await browserPullSupabaseKv('access', 3500);
-          if (val) handleRemoteDomainUpdate('access', val);
-        } else {
-          handleRemoteDomainUpdate(k);
-        }
-      }
-    } catch {
-      // Transient polling error ignored
-    } finally {
-      inflightSupabasePoll = null;
-    }
-  })();
-
-  return inflightSupabasePoll;
-}
-
-function broadcastSupabaseRealtime(topic: string, data: unknown): void {
-  if (!isBrowserSupabaseConfigured) return;
-  const payloadObj = {
-    type: 'broadcast',
-    event: 'inonu_sync',
-    payload: { topic, data, ts: Date.now() },
-  };
-
-  try {
-    if (supabaseRealtimeWs && supabaseRealtimeWs.readyState === WebSocket.OPEN && supabaseRealtimeJoined) {
-      supabaseRealtimeWs.send(
-        JSON.stringify({
-          topic: 'realtime:inonu_sync_v1',
-          event: 'broadcast',
-          payload: payloadObj,
-          ref: String(++supabaseMsgRef),
-        }),
-      );
-    }
-  } catch {
-    // Fallback to HTTP broadcast below
-  }
-
-  try {
-    void fetch(`${BROWSER_SUPABASE_URL}/realtime/v1/api/broadcast`, {
-      method: 'POST',
-      headers: browserSupabaseHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({
-        messages: [
-          {
-            topic: 'inonu_sync_v1',
-            event: 'inonu_sync',
-            payload: { topic, data, ts: Date.now() },
-          },
-        ],
-      }),
-      signal: AbortSignal.timeout(3000),
-    }).catch(() => {});
-  } catch {
-    // Best-effort realtime broadcast
-  }
-}
-
-function connectSupabaseRealtime(): void {
-  if (!isBrowserSupabaseConfigured || typeof window === 'undefined' || typeof WebSocket === 'undefined') return;
-  if (supabaseRealtimeWs && (supabaseRealtimeWs.readyState === WebSocket.OPEN || supabaseRealtimeWs.readyState === WebSocket.CONNECTING)) {
-    return;
-  }
-
-  try {
-    const wsBase = BROWSER_SUPABASE_URL.replace(/^https:\/\//i, 'wss://').replace(/^http:\/\//i, 'ws://');
-    const wsUrl = `${wsBase}/realtime/v1/websocket?apikey=${encodeURIComponent(BROWSER_SUPABASE_KEY)}&vsn=1.0.0`;
-    const ws = new WebSocket(wsUrl);
-    supabaseRealtimeWs = ws;
-    supabaseRealtimeJoined = false;
-
-    ws.onopen = () => {
-      try {
-        ws.send(
-          JSON.stringify({
-            topic: 'realtime:inonu_sync_v1',
-            event: 'phx_join',
-            payload: {
-              config: {
-                broadcast: { self: false, ack: false },
-                postgres_changes: [{ event: '*', schema: 'public', table: 'inonu_kv' }],
-              },
-            },
-            ref: String(++supabaseMsgRef),
-          }),
-        );
-      } catch {
-        // Ignore join send error
-      }
-      if (supabaseHeartbeatTimer) clearInterval(supabaseHeartbeatTimer);
-      supabaseHeartbeatTimer = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          try {
-            ws.send(
-              JSON.stringify({
-                topic: 'phoenix',
-                event: 'heartbeat',
-                payload: {},
-                ref: String(++supabaseMsgRef),
-              }),
-            );
-          } catch {
-            // Ignore heartbeat send error
-          }
-        }
-      }, 25_000);
-    };
-
-    ws.onmessage = (ev: MessageEvent) => {
-      try {
-        const msg = JSON.parse(String(ev.data || '{}')) as {
-          topic?: string;
-          event?: string;
-          payload?: Record<string, unknown>;
-        };
-        if (msg.event === 'phx_reply' && (msg.payload as { status?: string })?.status === 'ok' && msg.topic === 'realtime:inonu_sync_v1') {
-          supabaseRealtimeJoined = true;
-          return;
-        }
-        if (msg.event === 'broadcast' && msg.payload) {
-          const inner = (msg.payload.payload as { topic?: string; data?: unknown }) || {};
-          const innerTopic = inner.topic;
-          if (innerTopic === 'access') {
-            handleRemoteDomainUpdate('access', inner.data);
-          } else if (innerTopic === 'materials') {
-            handleRemoteDomainUpdate('materials', inner.data);
-          } else if (innerTopic === 'announcements') {
-            handleRemoteDomainUpdate('announcements', inner.data);
-          } else if (innerTopic === 'student_status') {
-            notifyLocalSubscribersOnly('student_status', inner.data);
-          }
-          return;
-        }
-        if (msg.event === 'postgres_changes' && msg.payload) {
-          const dataObj = msg.payload.data as { record?: { key?: string; value?: unknown; updated_at?: number } } | undefined;
-          const rec = dataObj?.record;
-          if (rec && typeof rec.key === 'string') {
-            if (typeof rec.updated_at === 'number') {
-              lastSeenSupabaseKvTs[rec.key] = Math.max(lastSeenSupabaseKvTs[rec.key] || 0, rec.updated_at);
-            }
-            handleRemoteDomainUpdate(rec.key, rec.value);
-          }
-        }
-      } catch {
-        // Ignore malformed websocket frame
-      }
-    };
-
-    ws.onclose = () => {
-      supabaseRealtimeJoined = false;
-      if (supabaseHeartbeatTimer) {
-        clearInterval(supabaseHeartbeatTimer);
-        supabaseHeartbeatTimer = null;
-      }
-      if (supabaseRealtimeWs === ws) {
-        supabaseRealtimeWs = null;
-      }
-      if (supabaseReconnectTimer) clearTimeout(supabaseReconnectTimer);
-      supabaseReconnectTimer = setTimeout(() => {
-        supabaseReconnectTimer = null;
-        if (sseListeners.size > 0) connectSupabaseRealtime();
-      }, 3000);
-    };
-
-    ws.onerror = () => {
-      // onclose handles reconnect
-    };
-  } catch {
-    // Fallback to timestamp polling
-  }
-}
-
-function ensureSupabaseLiveSync(): void {
-  if (!isBrowserSupabaseConfigured || typeof window === 'undefined') return;
-  connectSupabaseRealtime();
-  if (supabaseLiveStarted) return;
-  supabaseLiveStarted = true;
-
-  void pollSupabaseKvTimestamps();
-  if (supabasePollTimer) clearInterval(supabasePollTimer);
-  supabasePollTimer = setInterval(() => {
-    if (sseListeners.size > 0) {
-      void pollSupabaseKvTimestamps();
-    }
-  }, 2000);
-
-  window.addEventListener('focus', () => {
-    void pollSupabaseKvTimestamps();
-  });
-  window.addEventListener('online', () => {
-    connectSupabaseRealtime();
-    void pollSupabaseKvTimestamps();
-  });
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      connectSupabaseRealtime();
-      void pollSupabaseKvTimestamps();
-    }
-  });
-}
-
-async function probeApiBackend(): Promise<'online' | 'static'> {
-  if (apiBackendStatus === 'online') return 'online';
-  if (apiBackendStatus === 'static' && Date.now() - apiBackendCheckedAt < 4000) {
-    return 'static';
-  }
-  if (apiProbePromise) return apiProbePromise;
-
-  apiProbePromise = (async () => {
-    if (typeof window === 'undefined' || typeof fetch === 'undefined') {
-      apiBackendStatus = 'static';
-      apiBackendCheckedAt = Date.now();
-      return 'static';
-    }
-    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), 3000) : null;
-    try {
-      const resp = await fetch('/api/health', {
-        cache: 'no-store',
-        signal: ctrl?.signal,
-      });
-      const ct = (resp.headers.get('content-type') || '').toLowerCase();
-      if (!resp.ok || !ct.includes('application/json')) {
-        apiBackendStatus = 'static';
-        apiBackendCheckedAt = Date.now();
-        return 'static';
-      }
-      const json = (await resp.json().catch(() => null)) as { ok?: boolean } | null;
-      apiBackendStatus = json && json.ok === true ? 'online' : 'static';
-      apiBackendCheckedAt = Date.now();
-      return apiBackendStatus;
-    } catch {
-      apiBackendStatus = 'static';
-      apiBackendCheckedAt = Date.now();
-      return 'static';
-    } finally {
-      if (timer) clearTimeout(timer);
-      apiProbePromise = null;
-    }
-  })();
-
-  return apiProbePromise;
-}
-
-async function isApiBackendOnline(): Promise<boolean> {
-  return (await probeApiBackend()) === 'online';
-}
-
 function ensureEventSource(): void {
   initCrossTabSync();
-  ensureSupabaseLiveSync();
   if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
   if (sharedEventSource) return;
 
@@ -1154,20 +717,6 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
     } catch {
       // Fall through to static verification if backend is unreachable
     }
-  } else if (isBrowserSupabaseConfigured) {
-    try {
-      const remoteSec = (await browserPullSupabaseKv('security')) as Partial<StaticAdminSecurityConfig> | null;
-      if (
-        remoteSec &&
-        typeof remoteSec === 'object' &&
-        typeof remoteSec.passwordHash === 'string' &&
-        ADMIN_SECRET_RE.test(remoteSec.passwordHash)
-      ) {
-        writeStaticJson('security', remoteSec);
-      }
-    } catch {
-      // Fallback to local security config
-    }
   }
 
   const sec = getStaticSecurityConfig();
@@ -1243,13 +792,9 @@ export async function updateAdminPassword(
     } catch {
       return { ok: false, error: 'network_error' };
     }
-  } else if (isBrowserSupabaseConfigured) {
-    const ok = await browserPushSupabaseKv('security', nextSecPayload);
-    if (!ok) {
-      return { ok: false, error: 'network_error' };
-    }
   }
 
+  bumpAppVersion();
   return { ok: true, newWriteSecret };
 }
 
@@ -1272,19 +817,6 @@ export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
       }
     } catch {
       // Use cached access state
-    }
-  } else if (isBrowserSupabaseConfigured) {
-    try {
-      const remote = (await browserPullSupabaseKv('access')) as Partial<SiteAccessSettings> | null;
-      if (remote && typeof remote === 'object') {
-        const remoteTs = Number(remote.updatedAtMs) || 0;
-        if (remoteTs >= bestTs) {
-          bestRequire = Boolean(remote.requireStudentLogin);
-          bestTs = remoteTs;
-        }
-      }
-    } catch {
-      // Fallback
     }
   }
 
@@ -1348,17 +880,11 @@ export async function saveSiteAccessSettings(
     };
     next.requireStudentLogin = json?.requireStudentLogin === true;
     next.updatedAtMs = Math.max(Number(json?.updatedAtMs) || now, now);
-    broadcastSupabaseRealtime('access', next);
-  } else if (isBrowserSupabaseConfigured) {
-    const ok = await browserPushSupabaseKv('access', next);
-    if (!ok) {
-      throw new Error('ACCESS_SAVE_FAILED');
-    }
-    broadcastSupabaseRealtime('access', next);
   }
 
   writeStaticJson('access', next);
   emitLocalTopic('access', next);
+  bumpAppVersion();
   return next;
 }
 
@@ -1400,137 +926,116 @@ export async function checkStudentLoginStatus(rawSid: string): Promise<StudentLo
         loadedFromServer = true;
       }
     } catch {
-      // Offline fallback below
+      // Fallback
     }
   }
 
   if (!loadedFromServer) {
-    if (isBrowserSupabaseConfigured) {
-      await Promise.all([
-        browserSyncKvArrayToMap('custom_students', 'auth_hash'),
-        browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
-      ]).catch(() => {});
-    }
     const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
     const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
-    const cRow = customMap[authHash];
-    const dRow = dirMap[authHash];
-
-    custom = cRow
-      ? {
-          group: cRow.group_name,
-          labGroup: cRow.lab_group,
-          prog: cRow.prog,
-          encName: cRow.enc_name,
-          active: cRow.active !== 0 && cRow.active !== false,
-          deleted: cRow.deleted === 1 || cRow.deleted === true,
-        }
-      : null;
-    directory = dRow
-      ? {
-          active: dRow.active !== 0 && dRow.active !== false,
-          deleted: dRow.deleted === 1 || dRow.deleted === true,
-        }
-      : null;
+    custom = customMap[authHash] || null;
+    directory = dirMap[authHash] || null;
   }
 
-  if (custom) {
-    if (custom.deleted === true) return { ok: false, reason: 'deleted' };
-    if (custom.active === false) return { ok: false, reason: 'inactive' };
-    const decryptedCustomName =
-      typeof custom.encName === 'string' && custom.encName ? decryptStudentName(sid, custom.encName) : '';
-    const prog: 'tr' | 'en' =
-      custom.prog === 'en' ? 'en' : custom.prog === 'tr' ? 'tr' : allowlistMatch?.prog || 'tr';
+  const isCustomDeleted = custom && (custom.deleted === 1 || custom.deleted === true);
+  const isDirDeleted = directory && (directory.deleted === 1 || directory.deleted === true);
+  if (isCustomDeleted || isDirDeleted) {
+    return { ok: false, reason: 'deleted' };
+  }
+
+  const isCustomActive = custom ? custom.active !== 0 && custom.active !== false : true;
+  const isDirActive = directory ? directory.active !== 0 && directory.active !== false : true;
+  if (!isCustomActive || !isDirActive) {
+    return { ok: false, reason: 'inactive' };
+  }
+
+  if (custom && typeof custom.group_name === 'string') {
+    const group = normalizeAssignedGroup(custom.group_name);
+    const labGroup = normalizeLabGroupPref(custom.lab_group);
+    const prog = custom.prog === 'en' ? 'en' : 'tr';
+    const encName = typeof custom.enc_name === 'string' ? custom.enc_name : '';
+    const name = encName ? decryptStudentName(sid, encName) : `Öğrenci •••${sid.slice(-4)}`;
     return {
       ok: true,
       match: {
         hash: authHash,
         last4: sid.slice(-4),
-        group: normalizeAssignedGroup(custom.group || allowlistMatch?.group || 'I'),
+        name,
+        group,
+        labGroup,
         prog,
-        labGroup: prog === 'en' ? '' : normalizeLabGroupPref(custom.labGroup),
-        name: decryptedCustomName || allowlistMatch?.name || '',
-        source: allowlistMatch ? 'allowlist' : 'custom',
-        isAdmin: isAdminStudentId(sid),
+        source: 'custom',
       },
     };
   }
 
-  if (allowlistMatch && directory) {
-    if (directory.deleted === true) return { ok: false, reason: 'deleted' };
-    if (directory.active === false) return { ok: false, reason: 'inactive' };
+  if (allowlistMatch) {
+    return {
+      ok: true,
+      match: allowlistMatch,
+    };
   }
 
-  if (allowlistMatch) {
-    return { ok: true, match: allowlistMatch };
-  }
   return { ok: false, reason: 'not_found' };
 }
 
-export async function lookupStudentWithCloud(rawSid: string): Promise<StudentAuthMatch | null> {
-  const res = await checkStudentLoginStatus(rawSid);
-  return res.ok ? res.match : null;
-}
-
 export async function checkStudentSessionActive(authHash: string): Promise<StudentAccountStatus> {
-  if (!isValidAuthHash(authHash) || isAdminStudentHash(authHash)) {
-    return 'active';
-  }
+  if (!isValidAuthHash(authHash)) return 'inactive';
+  if (isAdminStudentHash(authHash)) return 'active';
+
+  let custom: Record<string, unknown> | null = null;
+  let directory: Record<string, unknown> | null = null;
+  let loaded = false;
 
   if (await isApiBackendOnline()) {
     try {
       const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
-      if (!resp.ok) return 'active';
-      const json = (await resp.json()) as ServerStudentStatusResponse;
-      if (json.custom) {
-        if (json.custom.deleted === true) return 'deleted';
-        if (json.custom.active === false) return 'inactive';
-        return 'active';
+      if (resp.ok) {
+        const json = (await resp.json()) as ServerStudentStatusResponse;
+        custom = (json.custom as Record<string, unknown> | null) ?? null;
+        directory = (json.directory as Record<string, unknown> | null) ?? null;
+        loaded = true;
       }
-      if (json.directory) {
-        if (json.directory.deleted === true) return 'deleted';
-        if (json.directory.active === false) return 'inactive';
-      }
-      return 'active';
     } catch {
-      // Fall through to local cache
+      // Fallback
     }
-  } else if (isBrowserSupabaseConfigured) {
-    await Promise.all([
-      browserSyncKvArrayToMap('custom_students', 'auth_hash'),
-      browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
-    ]).catch(() => {});
   }
 
-  const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
-  const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
-  const cRow = customMap[authHash];
-  const dRow = dirMap[authHash];
-  if (cRow) {
-    if (cRow.deleted === 1 || cRow.deleted === true) return 'deleted';
-    if (cRow.active === 0 || cRow.active === false) return 'inactive';
-    return 'active';
+  if (!loaded) {
+    const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+    const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+    custom = customMap[authHash] || null;
+    directory = dirMap[authHash] || null;
   }
-  if (dRow) {
-    if (dRow.deleted === 1 || dRow.deleted === true) return 'deleted';
-    if (dRow.active === 0 || dRow.active === false) return 'inactive';
+
+  if ((custom && (custom.deleted === 1 || custom.deleted === true)) || (directory && (directory.deleted === 1 || directory.deleted === true))) {
+    return 'deleted';
+  }
+  const activeCustom = custom ? custom.active !== 0 && custom.active !== false : true;
+  const activeDir = directory ? directory.active !== 0 && directory.active !== false : true;
+  if (!activeCustom || !activeDir) {
+    return 'inactive';
   }
   return 'active';
 }
 
-export function subscribeStudentAccountStatus(
-  authHash: string,
-  onInvalid: (reason: 'inactive' | 'deleted') => void,
-): Unsubscribe {
-  if (!isValidAuthHash(authHash) || isAdminStudentHash(authHash)) {
-    return () => {};
-  }
+export function subscribeStudentAccountStatus(authHash: string, onChange: (status: StudentAccountStatus) => void): Unsubscribe {
+  void checkStudentSessionActive(authHash).then(onChange);
   return addSseListener('student_status', (data) => {
-    if (!data || typeof data !== 'object') return;
-    const ev = data as { authHash?: string; active?: boolean; deleted?: boolean };
-    if (ev.authHash !== authHash) return;
-    if (ev.deleted === true) onInvalid('deleted');
-    else if (ev.active === false) onInvalid('inactive');
+    if (data && typeof data === 'object') {
+      const obj = data as { authHash?: string; active?: boolean; deleted?: boolean };
+      if (!obj.authHash || obj.authHash === authHash) {
+        if (obj.deleted) {
+          onChange('deleted');
+        } else if (obj.active === false) {
+          onChange('inactive');
+        } else {
+          onChange('active');
+        }
+      }
+    } else {
+      void checkStudentSessionActive(authHash).then(onChange);
+    }
   });
 }
 
@@ -1538,164 +1043,106 @@ export async function isStudentAlreadyRegistered(rawSid: string): Promise<boolea
   const sid = normalizeStudentId(rawSid);
   if (!/^01\d{9}$/.test(sid)) return false;
   const authHash = hashStudentId(sid);
-  const inAllowlist = Boolean(verifyStudentId(sid));
+  if (verifyStudentHash(authHash)) return true;
 
   if (await isApiBackendOnline()) {
     try {
       const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
-      if (!resp.ok) return inAllowlist;
-      const json = (await resp.json()) as ServerStudentStatusResponse;
-      const customExists = Boolean(json.custom);
-      const dirExists = Boolean(json.directory);
-      const customDeleted = Boolean(json.custom && json.custom.deleted === true);
-      const dirDeleted = Boolean(json.directory && json.directory.deleted === true);
-
-      if (customExists && !customDeleted) return true;
-      if (dirExists && !dirDeleted) return true;
-      if (inAllowlist && !customDeleted && !dirDeleted) return true;
-      return false;
+      if (resp.ok) {
+        const json = (await resp.json()) as ServerStudentStatusResponse;
+        if (json.custom || json.directory) return true;
+      }
     } catch {
-      return inAllowlist;
+      // Fallback
     }
-  } else if (isBrowserSupabaseConfigured) {
-    await Promise.all([
-      browserSyncKvArrayToMap('custom_students', 'auth_hash'),
-      browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
-    ]).catch(() => {});
   }
 
   const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
   const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
-  const cRow = customMap[authHash];
-  const dRow = dirMap[authHash];
-  if (cRow || dRow) {
-    const customDeleted = Boolean(cRow && (cRow.deleted === 1 || cRow.deleted === true));
-    const dirDeleted = Boolean(dRow && (dRow.deleted === 1 || dRow.deleted === true));
-    if (cRow && !customDeleted) return true;
-    if (dRow && !dirDeleted) return true;
-    if (inAllowlist && !customDeleted && !dirDeleted) return true;
-    return false;
-  }
-
-  return inAllowlist;
+  return Boolean((customMap[authHash] && customMap[authHash].deleted !== 1) || (dirMap[authHash] && dirMap[authHash].deleted !== 1));
 }
 
-const inflightStudentPrefFetches = new Map<string, Promise<StudentCloudPrefs | null>>();
+export async function lookupStudentWithCloud(rawSid: string): Promise<StudentAuthMatch | null> {
+  const res = await checkStudentLoginStatus(rawSid);
+  return res.ok ? res.match : null;
+}
 
-export async function loadCloudStudentPrefs(authHash: string, cloudDocId: string): Promise<StudentCloudPrefs | null> {
-  if ((!isValidAuthHash(authHash) && !verifyStudentHash(authHash)) || !isValidCloudDocId(cloudDocId)) {
-    return null;
-  }
+export async function loadCloudStudentPrefs(cloudKey: string): Promise<StudentCloudPrefs | null> {
+  const cleanKey = String(cloudKey || '').trim().toLowerCase();
+  if (!cleanKey) return null;
 
-  const existingInflight = inflightStudentPrefFetches.get(cloudDocId);
-  if (existingInflight) {
-    return existingInflight;
-  }
-
-  const req = (async (): Promise<StudentCloudPrefs | null> => {
-    if (await isApiBackendOnline()) {
-      try {
-        const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cloudDocId)}`, { cache: 'no-store' });
-        if (resp.ok) {
-          const json = (await resp.json()) as { prefs?: Record<string, unknown> | null };
-          const data = json.prefs;
-          if (data) {
-            const latestMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
-            latestMap[cloudDocId] = {
-              cloud_key: cloudDocId,
-              auth_hash: typeof data.authHash === 'string' ? data.authHash : '',
-              last4: typeof data.last4 === 'string' ? data.last4 : '',
-              my_mbu_group: normalizeMbuGroupPref(data.myMbuGroup),
-              my_lab_group: normalizeLabGroupPref(data.myLabGroup),
-              other_group_mode: normalizeOtherGroupModePref(data.otherGroupMode),
-              lang: normalizeLangPref(data.lang),
-              updated_at: Date.now(),
-            };
-            writeStaticJson('student_prefs', latestMap);
-            return {
-              myMbuGroup: normalizeMbuGroupPref(data.myMbuGroup),
-              myLabGroup: normalizeLabGroupPref(data.myLabGroup),
-              otherGroupMode: normalizeOtherGroupModePref(data.otherGroupMode),
-              lang: normalizeLangPref(data.lang),
-              authHash: typeof data.authHash === 'string' && isValidAuthHash(data.authHash) ? data.authHash : undefined,
-              last4: typeof data.last4 === 'string' && /^[0-9]{4}$/.test(data.last4) ? data.last4 : undefined,
-            };
-          }
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cleanKey)}`, { cache: 'no-store' });
+      if (resp.ok) {
+        const json = (await resp.json()) as { prefs?: Record<string, unknown> | null };
+        if (json.prefs && typeof json.prefs === 'object') {
+          const p = json.prefs;
+          const mapped: StudentCloudPrefs = {
+            myMbuGroup: normalizeMbuGroupPref(p.myMbuGroup ?? p.my_mbu_group),
+            myLabGroup: normalizeLabGroupPref(p.myLabGroup ?? p.my_lab_group),
+            otherGroupMode: normalizeOtherGroupModePref(p.otherGroupMode ?? p.other_group_mode),
+            lang: normalizeLangPref(p.lang),
+            authHash: typeof p.authHash === 'string' ? p.authHash : typeof p.auth_hash === 'string' ? p.auth_hash : undefined,
+            last4: typeof p.last4 === 'string' ? p.last4 : undefined,
+          };
+          const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+          prefsMap[cleanKey] = { cloud_key: cleanKey, ...p };
+          writeStaticJson('student_prefs', prefsMap);
+          return mapped;
         }
-      } catch {
-        // Fall through to cached local prefs
       }
-    } else if (isBrowserSupabaseConfigured) {
-      await browserSyncKvArrayToMap('student_prefs', 'cloud_key').catch(() => {});
+    } catch {
+      // Fallback to local storage
     }
-
-    const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
-    const cached = prefsMap[cloudDocId];
-    if (!cached) return null;
-    return {
-      myMbuGroup: normalizeMbuGroupPref(cached.my_mbu_group ?? cached.myMbuGroup),
-      myLabGroup: normalizeLabGroupPref(cached.my_lab_group ?? cached.myLabGroup),
-      otherGroupMode: normalizeOtherGroupModePref(cached.other_group_mode ?? cached.otherGroupMode),
-      lang: normalizeLangPref(cached.lang),
-      authHash: typeof cached.auth_hash === 'string' && isValidAuthHash(cached.auth_hash) ? cached.auth_hash : undefined,
-      last4: typeof cached.last4 === 'string' && /^[0-9]{4}$/.test(cached.last4) ? cached.last4 : undefined,
-    };
-  })();
-
-  inflightStudentPrefFetches.set(cloudDocId, req);
-  try {
-    return await req;
-  } finally {
-    inflightStudentPrefFetches.delete(cloudDocId);
   }
+
+  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+  const row = prefsMap[cleanKey];
+  if (!row) return null;
+  return {
+    myMbuGroup: normalizeMbuGroupPref(row.myMbuGroup ?? row.my_mbu_group),
+    myLabGroup: normalizeLabGroupPref(row.myLabGroup ?? row.my_lab_group),
+    otherGroupMode: normalizeOtherGroupModePref(row.otherGroupMode ?? row.other_group_mode),
+    lang: normalizeLangPref(row.lang),
+    authHash: typeof row.authHash === 'string' ? row.authHash : typeof row.auth_hash === 'string' ? row.auth_hash : undefined,
+    last4: typeof row.last4 === 'string' ? row.last4 : undefined,
+  };
 }
 
 export async function saveCloudStudentPrefs(
   authHash: string,
-  cloudDocId: string,
-  prefs: {
-    myMbuGroup?: unknown;
-    myLabGroup?: unknown;
-    otherGroupMode?: unknown;
-    lang?: unknown;
-    last4?: unknown;
-  },
+  cloudKey: string,
+  prefs: StudentCloudPrefs,
 ): Promise<boolean> {
-  if ((!isValidAuthHash(authHash) && !verifyStudentHash(authHash)) || !isValidCloudDocId(cloudDocId)) {
-    return false;
-  }
-  const cleanLang = normalizeLangPref(prefs.lang);
-  const cleanLast4 =
-    typeof prefs.last4 === 'string' && /^[0-9]{4}$/.test(prefs.last4.trim())
-      ? prefs.last4.trim()
-      : '';
-  const now = Date.now();
+  const cleanKey = String(cloudKey || '').trim().toLowerCase();
+  if (!cleanKey) return false;
+
+  const finalMbu = normalizeMbuGroupPref(prefs.myMbuGroup);
+  const finalLang = normalizeLangPref(prefs.lang);
+  const finalLab = finalLang === 'en' ? '' : normalizeLabGroupPref(prefs.myLabGroup);
+  const finalMode = normalizeOtherGroupModePref(prefs.otherGroupMode);
+  const finalAuthHash = isValidAuthHash(authHash) ? authHash : '';
+  const finalLast4 = typeof prefs.last4 === 'string' && /^[0-9]{4}$/.test(prefs.last4.trim()) ? prefs.last4.trim() : '';
 
   const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
-  const prev = prefsMap[cloudDocId] || {};
-  const finalAuthHash = (isValidAuthHash(authHash) ? authHash : '') || (typeof prev.auth_hash === 'string' ? prev.auth_hash : '');
-  const finalLast4 = cleanLast4 || (typeof prev.last4 === 'string' ? prev.last4 : '');
-  const finalMbu = normalizeMbuGroupPref(prefs.myMbuGroup);
-  const finalLab = normalizeLabGroupPref(prefs.myLabGroup);
-  const finalMode = normalizeOtherGroupModePref(prefs.otherGroupMode);
-  const finalLang = cleanLang || normalizeLangPref(prev.lang);
-
-  const rowPayload: Record<string, unknown> = {
-    cloud_key: cloudDocId,
+  const rowPayload = {
+    cloud_key: cleanKey,
     auth_hash: finalAuthHash,
     last4: finalLast4,
     my_mbu_group: finalMbu,
     my_lab_group: finalLab,
     other_group_mode: finalMode,
     lang: finalLang,
-    updated_at: now,
+    updated_at: Date.now(),
   };
-  prefsMap[cloudDocId] = rowPayload;
+  prefsMap[cleanKey] = rowPayload;
   writeStaticJson('student_prefs', prefsMap);
+  emitLocalTopic('student_prefs', rowPayload);
 
   if (await isApiBackendOnline()) {
     try {
-      const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cloudDocId)}`, {
+      const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cleanKey)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1711,8 +1158,6 @@ export async function saveCloudStudentPrefs(
     } catch {
       return true;
     }
-  } else if (isBrowserSupabaseConfigured) {
-    await browserMergeAndPushKvMap('student_prefs', 'cloud_key', [rowPayload]).catch(() => false);
   }
 
   return true;
@@ -1751,20 +1196,6 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
     } catch {
       // Fallback to local cache
     }
-  } else if (isBrowserSupabaseConfigured) {
-    try {
-      const val = (await browserPullSupabaseKv('announcements')) as Array<Record<string, unknown>> | null;
-      if (Array.isArray(val)) {
-        const apiMap: Record<string, Record<string, unknown>> = {};
-        val.forEach((a) => {
-          const mapped = mapServerAnnouncement(a);
-          if (mapped.id) apiMap[mapped.id] = { ...mapped, deleted: Boolean(a.deleted) };
-        });
-        writeStaticJson('announcements', apiMap);
-      }
-    } catch {
-      // Fallback
-    }
   }
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
@@ -1798,20 +1229,6 @@ export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
       }
     } catch {
       // Fallback to local cache
-    }
-  } else if (isBrowserSupabaseConfigured) {
-    try {
-      const val = (await browserPullSupabaseKv('announcements')) as Array<Record<string, unknown>> | null;
-      if (Array.isArray(val)) {
-        const apiMap: Record<string, Record<string, unknown>> = {};
-        val.forEach((a) => {
-          const mapped = mapServerAnnouncement(a);
-          if (mapped.id) apiMap[mapped.id] = { ...mapped, deleted: Boolean(a.deleted) };
-        });
-        writeStaticJson('announcements', apiMap);
-      }
-    } catch {
-      // Fallback
     }
   }
 
@@ -1893,15 +1310,12 @@ export async function saveAnnouncement(
       map[s.id] = { ...s, deleted: false };
       writeStaticJson('announcements', map);
       emitLocalTopic('announcements', { action: 'save', id: s.id });
-      broadcastSupabaseRealtime('announcements', { action: 'save', id: s.id });
+      bumpAppVersion();
       return s;
     }
-  } else if (isBrowserSupabaseConfigured) {
-    const ok = await browserMergeAndPushKvMap('announcements', 'id', [{ ...saved, deleted: false }]);
-    if (!ok) throw new Error('ANNOUNCEMENT_SAVE_FAILED');
-    broadcastSupabaseRealtime('announcements', { action: 'save', id: saved.id });
   }
 
+  bumpAppVersion();
   return saved;
 }
 
@@ -1923,19 +1337,15 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
         method: 'DELETE',
         headers: { 'X-Admin-Secret': secret },
       });
-      broadcastSupabaseRealtime('announcements', { action: 'delete', id: cleanId });
     } catch {
       // Best-effort delete
     }
-  } else if (isBrowserSupabaseConfigured) {
-    await browserMergeAndPushKvMap('announcements', 'id', [
-      { ...(map[cleanId] || {}), id: cleanId, deleted: true, active: false, updatedAtMs: Date.now() },
-    ]);
-    broadcastSupabaseRealtime('announcements', { action: 'delete', id: cleanId });
   }
+
+  bumpAppVersion();
 }
 
-// ==================== LESSON MATERIALS & SERVER / SUPABASE PDF HOSTING ====================
+// ==================== LESSON MATERIALS & SERVER PDF HOSTING ====================
 export function generateLessonMaterialId(date: string, slotNo: number): string {
   const cleanDate = normalizeMaterialDate(date) || '01.01.2026';
   const dateKey = cleanDate.replace(/[^a-zA-Z0-9_-]/g, '-');
@@ -1948,26 +1358,26 @@ export async function deleteServerPdfByUrl(pdfUrl: string, adminSecret?: string)
   const clean = typeof pdfUrl === 'string' ? pdfUrl.trim() : '';
   if (!clean.startsWith('/api/lesson-pdf/')) return;
   if (!(await isApiBackendOnline())) return;
+  const secret = resolveAdminWriteSecret(adminSecret);
   const fileId = clean.slice('/api/lesson-pdf/'.length).split('?')[0].trim();
   if (!/^[a-zA-Z0-9_-]{8,96}$/.test(fileId)) return;
   try {
-    const secret = resolveAdminWriteSecret(adminSecret);
     await fetch(`/api/lesson-pdf/${encodeURIComponent(fileId)}`, {
       method: 'DELETE',
       headers: { 'X-Admin-Secret': secret },
     });
   } catch {
-    // Best-effort cleanup
+    // Best effort
   }
 }
 
 export async function uploadLessonPdfFile(
   file: File,
-  adminSecret?: string,
-  onProgress?: (percent: number, loadedBytes: number, totalBytes: number) => void,
   materialId?: string,
+  adminSecret?: string,
+  onProgress?: (percent: number, loadedBytes: number) => void,
 ): Promise<{
-  sourceType: 'server' | 'chunks';
+  sourceType: 'server' | 'url' | 'file' | 'chunks';
   materialId: string;
   url: string;
   fileId: string;
@@ -1976,26 +1386,28 @@ export async function uploadLessonPdfFile(
   chunkCount: number;
   fallbackBase64?: string;
 }> {
-  const secret = resolveAdminWriteSecret(adminSecret);
-  if (!file || file.size < 1) {
-    throw new Error('PDF file is empty.');
+  if (!(file instanceof File) || file.size < 1) {
+    throw new Error('INVALID_PDF_FILE');
   }
   if (file.size > MAX_SERVER_PDF_BYTES) {
-    throw new Error('PDF_TOO_LARGE');
+    throw new Error('FILE_TOO_LARGE');
   }
 
-  const cleanMatId = (
-    typeof materialId === 'string' && materialId.trim()
-      ? materialId.trim().replace(/[^a-zA-Z0-9_-]/g, '-')
-      : `mat_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-  ).slice(0, 90);
-  const cleanFileName = (file.name || 'ders.pdf').trim().slice(0, 120);
+  const secret = resolveAdminWriteSecret(adminSecret);
+  const cleanFileName = String(file.name || 'ders-notu.pdf')
+    .replace(/[\r\n"/\\:*?<>|]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 110);
+  const cleanMatId = materialId
+    ? materialId.trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 90)
+    : `mat_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
-  let maxReportedPct = 2;
   const reportProgress = (pct: number, loaded: number) => {
-    if (pct >= maxReportedPct) {
-      maxReportedPct = pct;
-      onProgress?.(pct, loaded, file.size);
+    try {
+      onProgress?.(Math.min(100, Math.max(0, pct)), loaded);
+    } catch {
+      // Ignore progress reporting errors
     }
   };
   reportProgress(4, 0);
@@ -2084,102 +1496,7 @@ export async function uploadLessonPdfFile(
     };
   }
 
-  if (isBrowserSupabaseConfigured) {
-    // 1. Try direct Supabase Storage upload (when bucket exists & allows public anon read/write)
-    try {
-      const storageUrl = `${BROWSER_SUPABASE_URL}/storage/v1/object/${encodeURIComponent(BROWSER_SUPABASE_BUCKET)}/${cleanMatId}.pdf`;
-      reportProgress(12, Math.round(file.size * 0.12));
-      const uploadResp = await fetch(storageUrl, {
-        method: 'POST',
-        headers: browserSupabaseHeaders({
-          'Content-Type': file.type || 'application/pdf',
-          'x-upsert': 'true',
-        }),
-        body: file,
-        signal: AbortSignal.timeout(45_000),
-      });
-      if (uploadResp.ok) {
-        const publicUrl = `${BROWSER_SUPABASE_URL}/storage/v1/object/public/${encodeURIComponent(BROWSER_SUPABASE_BUCKET)}/${cleanMatId}.pdf`;
-        // Verify public anonymous read succeeds so students can actually open it
-        const headResp = await fetch(publicUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) }).catch(() => null);
-        if (headResp && headResp.ok) {
-          reportProgress(100, file.size);
-          return {
-            sourceType: 'server',
-            materialId: cleanMatId,
-            url: publicUrl,
-            fileId: cleanMatId,
-            fileName: cleanFileName,
-            size: file.size,
-            chunkCount: 0,
-          };
-        }
-      }
-    } catch {
-      // Storage bucket not writable/public by anon -> fall back cleanly to KV chunked upload below
-    }
-
-    // 2. Supabase KV chunked storage (works with the exact same inonu_kv table used for site lock!)
-    if (file.size > MAX_SUPABASE_KV_PDF_BYTES) {
-      throw new Error('PDF_TOO_LARGE');
-    }
-    const totalChunks = Math.max(1, Math.ceil(file.size / SUPABASE_KV_CHUNK_BYTES));
-    const concurrency = 3;
-    let uploadedBytes = 0;
-
-    for (let batchStart = 0; batchStart < totalChunks; batchStart += concurrency) {
-      const batchIndices: number[] = [];
-      for (let i = batchStart; i < Math.min(totalChunks, batchStart + concurrency); i++) {
-        batchIndices.push(i);
-      }
-
-      const batchResults = await Promise.all(
-        batchIndices.map(async (idx) => {
-          const start = idx * SUPABASE_KV_CHUNK_BYTES;
-          const end = Math.min(file.size, start + SUPABASE_KV_CHUNK_BYTES);
-          const sliceBuf = await file.slice(start, end).arrayBuffer();
-          const b64Chunk = bytesToB64(new Uint8Array(sliceBuf));
-          const chunkKey = `pdf_chunk_${cleanMatId}_${idx}`;
-          const ok = await browserPushSupabaseKv(
-            chunkKey,
-            {
-              materialId: cleanMatId,
-              index: idx,
-              totalChunks,
-              data: b64Chunk,
-              fileName: cleanFileName,
-              size: file.size,
-            },
-            15_000,
-            2,
-          );
-          if (!ok) {
-            throw new Error(`SUPABASE_CHUNK_UPLOAD_FAILED_${idx}`);
-          }
-          return end - start;
-        }),
-      );
-
-      for (const delta of batchResults) {
-        uploadedBytes += delta;
-      }
-      const pct = Math.min(95, Math.max(14, Math.round((uploadedBytes / file.size) * 94)));
-      reportProgress(pct, uploadedBytes);
-    }
-
-    reportProgress(100, file.size);
-    return {
-      sourceType: 'chunks',
-      materialId: cleanMatId,
-      url: '',
-      fileId: cleanMatId,
-      fileName: cleanFileName,
-      size: file.size,
-      chunkCount: totalChunks,
-    };
-  }
-
-  // Offline / static preview small-file fallback (<= 1.5 MB) when Supabase is not configured
+  // Offline / static preview small-file fallback (<= 1.5 MB)
   if (file.size <= 1_500_000) {
     const arrBuf = await file.arrayBuffer();
     const b64 = bytesToB64(new Uint8Array(arrBuf));
@@ -2201,17 +1518,17 @@ export async function uploadLessonPdfFile(
 
 export async function downloadLessonMaterialChunks(
   materialId: string,
-  chunkCount: number,
+  _chunkCount: number,
   onProgress?: (percent: number, loadedChunks: number, totalChunks: number) => void,
 ): Promise<Blob> {
   const cleanId = String(materialId || '').trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 100);
-  const totalChunks = Math.max(1, Math.round(Number(chunkCount) || 1));
+  const totalChunks = 1;
 
   // 1. Instant local IndexedDB cache check
   try {
     const cachedBlob = await loadStaticPdfBlob(cleanId);
     if (cachedBlob && cachedBlob.size > 0) {
-      onProgress?.(100, totalChunks, totalChunks);
+      onProgress?.(100, 1, 1);
       return cachedBlob;
     }
   } catch {
@@ -2223,82 +1540,20 @@ export async function downloadLessonMaterialChunks(
   const savedMat = matMap[cleanId];
   if (await isApiBackendOnline()) {
     try {
-      if (typeof savedMat?.pdfUrl === 'string' && savedMat.pdfUrl.startsWith('/api/lesson-pdf/')) {
-        const dlUrl = savedMat.pdfUrl.includes('?') ? `${savedMat.pdfUrl}&download=1` : `${savedMat.pdfUrl}?download=1`;
+      const pdfUrlStr = typeof savedMat?.pdfUrl === 'string' ? savedMat.pdfUrl : typeof savedMat?.pdf_url === 'string' ? String(savedMat.pdf_url) : `/api/lesson-pdf/${cleanId}`;
+      if (pdfUrlStr) {
+        const dlUrl = pdfUrlStr.includes('?') ? `${pdfUrlStr}&download=1` : `${pdfUrlStr}?download=1`;
         const resp = await fetch(dlUrl, { cache: 'no-store' });
         const ct = (resp.headers.get('content-type') || '').toLowerCase();
         if (resp.ok && !ct.includes('text/html')) {
           const blob = await resp.blob();
           void saveStaticPdfBlob(cleanId, `${cleanId}.pdf`, blob).catch(() => {});
-          onProgress?.(100, totalChunks, totalChunks);
+          onProgress?.(100, 1, 1);
           return blob;
         }
       }
     } catch {
-      // Continue to Supabase fallback below
-    }
-  }
-
-  // 3. Download chunked PDF from Supabase inonu_kv
-  if (isBrowserSupabaseConfigured) {
-    const parts: Uint8Array[] = new Array<Uint8Array>(totalChunks);
-    const batchSize = 4;
-    let loadedCount = 0;
-    let missingAnyChunk = false;
-
-    for (let startIdx = 0; startIdx < totalChunks; startIdx += batchSize) {
-      const batchKeys: string[] = [];
-      for (let i = startIdx; i < Math.min(totalChunks, startIdx + batchSize); i++) {
-        batchKeys.push(`pdf_chunk_${cleanId}_${i}`);
-      }
-      const rows = await browserPullSupabaseKvBatch(batchKeys, 20_000);
-      for (let i = startIdx; i < Math.min(totalChunks, startIdx + batchSize); i++) {
-        const k = `pdf_chunk_${cleanId}_${i}`;
-        const val = rows[k] as { data?: string } | null | undefined;
-        if (!val || typeof val.data !== 'string' || !val.data) {
-          missingAnyChunk = true;
-          break;
-        }
-        parts[i] = b64ToBytes(val.data);
-        loadedCount++;
-        const pct = Math.min(99, Math.max(5, Math.round((loadedCount / totalChunks) * 100)));
-        onProgress?.(pct, loadedCount, totalChunks);
-      }
-      if (missingAnyChunk) break;
-    }
-
-    if (!missingAnyChunk && loadedCount === totalChunks) {
-      const blobParts = parts.map((p) => p.buffer.slice(p.byteOffset, p.byteOffset + p.byteLength) as ArrayBuffer);
-      const blob = new Blob(blobParts, { type: 'application/pdf' });
-      void saveStaticPdfBlob(cleanId, `${cleanId}.pdf`, blob).catch(() => {});
-      onProgress?.(100, totalChunks, totalChunks);
-      return blob;
-    }
-
-    // 4. Fallback: check Supabase Storage directly (e.g. if uploaded via server.ts or storage bucket)
-    const candidateIds = new Set<string>([cleanId]);
-    if (typeof savedMat?.pdfUrl === 'string' && savedMat.pdfUrl.startsWith('/api/lesson-pdf/')) {
-      const extracted = savedMat.pdfUrl.slice('/api/lesson-pdf/'.length).split('?')[0].trim();
-      if (extracted) candidateIds.add(extracted);
-    }
-    for (const fid of candidateIds) {
-      try {
-        const storageObjUrl = `${BROWSER_SUPABASE_URL}/storage/v1/object/${encodeURIComponent(BROWSER_SUPABASE_BUCKET)}/${encodeURIComponent(fid)}.pdf`;
-        const sResp = await fetch(storageObjUrl, {
-          headers: browserSupabaseHeaders(),
-          signal: AbortSignal.timeout(30_000),
-        });
-        if (sResp.ok) {
-          const blob = await sResp.blob();
-          if (blob.size > 0) {
-            void saveStaticPdfBlob(cleanId, `${cleanId}.pdf`, blob).catch(() => {});
-            onProgress?.(100, totalChunks, totalChunks);
-            return blob;
-          }
-        }
-      } catch {
-        // Ignore storage fallback error
-      }
+      // Fallback
     }
   }
 
@@ -2361,27 +1616,6 @@ export async function loadAllLessonMaterials(): Promise<LessonMaterial[]> {
     } catch {
       // Fallback to local cache
     }
-  } else if (isBrowserSupabaseConfigured) {
-    try {
-      const remote = await browserPullSupabaseKv('materials', 6000);
-      if (Array.isArray(remote)) {
-        const apiMap: Record<string, Record<string, unknown>> = {};
-        remote.forEach((raw) => {
-          if (!raw || typeof raw !== 'object') return;
-          const row = raw as Record<string, unknown>;
-          const mapped = mapServerMaterial(row);
-          if (mapped.id) {
-            apiMap[mapped.id] = {
-              ...mapped,
-              deleted: row.deleted === true || row.deleted === 1,
-            };
-          }
-        });
-        writeStaticJson('materials', apiMap);
-      }
-    } catch {
-      // Fallback to local cache
-    }
   }
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
@@ -2438,12 +1672,6 @@ export async function saveLessonMaterial(
 
   if (!cleanDate || !cleanTitle) {
     throw new Error('Date and title are required.');
-  }
-  if (sourceType === 'file' && !rawData) {
-    throw new Error('PDF file data is required.');
-  }
-  if ((sourceType === 'server' || sourceType === 'url') && !cleanUrl) {
-    throw new Error('PDF URL is required.');
   }
 
   const candidateId = input.id
@@ -2511,16 +1739,11 @@ export async function saveLessonMaterial(
     };
     writeStaticJson('materials', map);
     emitLocalTopic('materials', { action: 'save', id: serverSaved.id });
-    broadcastSupabaseRealtime('materials', { action: 'save', id: serverSaved.id });
+    bumpAppVersion();
     return map[serverSaved.id];
-  } else if (isBrowserSupabaseConfigured) {
-    const ok = await browserMergeAndPushKvMap('materials', 'id', [{ ...saved, deleted: false }]);
-    if (!ok) {
-      throw new Error('MATERIAL_SAVE_FAILED');
-    }
-    broadcastSupabaseRealtime('materials', { action: 'save', id: saved.id });
   }
 
+  bumpAppVersion();
   return saved;
 }
 
@@ -2530,7 +1753,6 @@ export async function deleteLessonMaterial(id: string, adminSecret?: string): Pr
   const secret = resolveAdminWriteSecret(adminSecret);
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
-  const prevRow = map[cleanId];
   if (map[cleanId]) {
     delete map[cleanId];
     writeStaticJson('materials', map);
@@ -2543,19 +1765,13 @@ export async function deleteLessonMaterial(id: string, adminSecret?: string): Pr
         method: 'DELETE',
         headers: { 'X-Admin-Secret': secret },
       });
-      broadcastSupabaseRealtime('materials', { action: 'delete', id: cleanId });
     } catch {
       // Best-effort delete
     }
-  } else if (isBrowserSupabaseConfigured) {
-    await browserMergeAndPushKvMap('materials', 'id', [
-      { ...(prevRow || {}), id: cleanId, deleted: true, updatedAtMs: Date.now() },
-    ]);
-    await browserDeleteSupabaseKvPrefix(`pdf_chunk_${cleanId}_`);
-    broadcastSupabaseRealtime('materials', { action: 'delete', id: cleanId });
   }
 
   void deleteStaticPdfBlob(cleanId);
+  bumpAppVersion();
 }
 
 // ==================== ADMIN STUDENT MANAGEMENT ====================
@@ -2702,24 +1918,17 @@ export async function addOrUpdateCustomStudent(
         builtInAllowlist: Boolean(verifyStudentId(sid)),
       }),
     });
-    const json = (await resp.json().catch(() => ({}))) as { ok?: boolean; error?: string; updatedAtMs?: number };
+    const json = (await resp.json().catch(() => ({}))) as { ok?: boolean; error?: string };
     if (!resp.ok || !json.ok) {
       if (json.error === 'DUPLICATE_STUDENT_ID') {
         throw new Error('DUPLICATE_STUDENT_ID');
       }
       throw new Error(json.error || 'STUDENT_SAVE_FAILED');
     }
-    broadcastSupabaseRealtime('student_status', { authHash, active, deleted: false });
-  } else if (isBrowserSupabaseConfigured) {
-    await Promise.all([
-      browserMergeAndPushKvMap('custom_students', 'auth_hash', [customMap[authHash]]),
-      browserMergeAndPushKvMap('admin_dir', 'auth_hash', [dirMap[authHash]]),
-      browserMergeAndPushKvMap('student_prefs', 'cloud_key', [prefsMap[cloudKey]]),
-    ]);
-    broadcastSupabaseRealtime('student_status', { authHash, active, deleted: false });
   }
 
   emitLocalTopic('student_status', { authHash, active, deleted: false });
+  bumpAppVersion();
 
   return {
     authHash,
@@ -2856,22 +2065,13 @@ export async function deleteCustomStudent(
           encSid,
         }),
       });
-      broadcastSupabaseRealtime('student_status', { authHash, active: false, deleted: true });
     } catch {
       // Best-effort delete
     }
-  } else if (isBrowserSupabaseConfigured) {
-    const tasks: Promise<unknown>[] = [
-      browserMergeAndPushKvMap('custom_students', 'auth_hash', [customMap[authHash]]),
-    ];
-    if (dirMap[authHash]) {
-      tasks.push(browserMergeAndPushKvMap('admin_dir', 'auth_hash', [dirMap[authHash]]));
-    }
-    await Promise.all(tasks);
-    broadcastSupabaseRealtime('student_status', { authHash, active: false, deleted: true });
   }
 
   emitLocalTopic('student_status', { authHash, active: false, deleted: true });
+  bumpAppVersion();
 }
 
 export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStudentListItem | null> {
@@ -2932,18 +2132,6 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
         // Fallback
       }
     }
-  } else if (isBrowserSupabaseConfigured) {
-    await Promise.all([
-      browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
-      browserSyncKvArrayToMap('custom_students', 'auth_hash'),
-      browserSyncKvArrayToMap('student_prefs', 'cloud_key'),
-    ]).catch(() => {});
-    const freshCustomMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
-    const freshDirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
-    const freshPrefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
-    dirData = freshDirMap[authHash] || null;
-    customData = freshCustomMap[authHash] || null;
-    prefsData = freshPrefsMap[cloudKey] || null;
   }
 
   if (dirData && (dirData.deleted === 1 || dirData.deleted === true)) return null;
@@ -3053,13 +2241,6 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
   }
 
   if (!loadedFromServer) {
-    if (isBrowserSupabaseConfigured) {
-      await Promise.all([
-        browserSyncKvArrayToMap('admin_dir', 'auth_hash'),
-        browserSyncKvArrayToMap('custom_students', 'auth_hash'),
-        browserSyncKvArrayToMap('student_prefs', 'cloud_key'),
-      ]).catch(() => {});
-    }
     const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
     const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
     const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
@@ -3304,6 +2485,7 @@ export async function adminSaveStudentSettings(
       lang,
       last4: cleanLast4,
     });
+    bumpAppVersion();
     return;
   }
 
@@ -3413,28 +2595,12 @@ export async function adminSaveStudentSettings(
     if (!resp.ok) {
       throw new Error('STUDENT_SETTINGS_SAVE_FAILED');
     }
-    if (authHash) {
-      broadcastSupabaseRealtime('student_status', { authHash, active: isActive, deleted: false });
-    }
-  } else if (isBrowserSupabaseConfigured) {
-    const tasks: Promise<unknown>[] = [
-      browserMergeAndPushKvMap('student_prefs', 'cloud_key', [prefsMap[input.cloudKey]]),
-    ];
-    if (authHash && customMap[authHash]) {
-      tasks.push(browserMergeAndPushKvMap('custom_students', 'auth_hash', [customMap[authHash]]));
-    }
-    if (authHash && dirMap[authHash]) {
-      tasks.push(browserMergeAndPushKvMap('admin_dir', 'auth_hash', [dirMap[authHash]]));
-    }
-    await Promise.all(tasks);
-    if (authHash) {
-      broadcastSupabaseRealtime('student_status', { authHash, active: isActive, deleted: false });
-    }
   }
 
   if (authHash) {
     emitLocalTopic('student_status', { authHash, active: isActive, deleted: false });
   }
+  bumpAppVersion();
 }
 
 // ==================== GOOGLE SIGN-IN & PERSONAL CLOUD NOTES ====================
@@ -3536,4 +2702,3 @@ export async function deleteCloudUserNote(slotKey: string): Promise<boolean> {
     return false;
   }
 }
-

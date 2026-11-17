@@ -12,9 +12,6 @@ import {
   deleteMaterialPg,
   deletePdfFromPg,
   getAccessConfigPg,
-  getAllAnnouncementsRawPg,
-  getAllMaterialsRawPg,
-  getConfigJsonPg,
   getSecurityConfigPg,
   getStudentLoginStatusPg,
   getStudentPrefsPg,
@@ -23,9 +20,6 @@ import {
   loadAllAdminStudentsPg,
   loadPdfBufferFromPg,
   lookupStudentForAdminPg,
-  mergeRemoteAnnouncementsIntoPg,
-  mergeRemoteMaterialsIntoPg,
-  mergeRemoteStudentsIntoPg,
   saveAdminStudentPg,
   saveAdminStudentSettingsPg,
   saveAnnouncementPg,
@@ -55,207 +49,6 @@ const DB_PATH = path.join(UPLOADS_ROOT, 'inonu_tip.db');
 
 fs.mkdirSync(STORAGE_ROOT, { recursive: true });
 fs.mkdirSync(TMP_ROOT, { recursive: true });
-
-// ==================== OPTIONAL SUPABASE STORAGE & STATE SYNC ====================
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
-const SUPABASE_KEY = (
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_ANON_KEY ||
-  ''
-).trim();
-const SUPABASE_BUCKET =
-  (process.env.SUPABASE_STORAGE_BUCKET || 'lesson-pdfs').trim() || 'lesson-pdfs';
-const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
-const SUPABASE_PULL_TTL_MS = 2000;
-
-type SupabaseKvDomain =
-  | 'access'
-  | 'security'
-  | 'announcements'
-  | 'materials'
-  | 'custom_students'
-  | 'admin_dir'
-  | 'student_prefs';
-
-function encodeStorageObjectPath(objName: string): string {
-  return objName
-    .split('/')
-    .map((part) => encodeURIComponent(part))
-    .join('/');
-}
-
-function supabaseHeaders(extra?: Record<string, string>): Record<string, string> {
-  return {
-    apikey: SUPABASE_KEY,
-    Authorization: `Bearer ${SUPABASE_KEY}`,
-    ...extra,
-  };
-}
-
-async function ensureSupabaseBucket(): Promise<void> {
-  if (!isSupabaseConfigured) return;
-  try {
-    await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
-      method: 'POST',
-      headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({
-        id: SUPABASE_BUCKET,
-        name: SUPABASE_BUCKET,
-        public: false,
-        file_size_limit: MAX_PDF_BYTES,
-      }),
-      signal: AbortSignal.timeout(8000),
-    });
-  } catch {
-    // Bucket may already exist or permissions managed in Supabase dashboard
-  }
-}
-
-async function uploadPdfBufferToSupabase(
-  fileId: string,
-  pdfBuf: Buffer,
-  meta: StoredFileMeta,
-): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-  try {
-    await ensureSupabaseBucket();
-    const pdfKey = encodeStorageObjectPath(`${fileId}.pdf`);
-    const resp = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${pdfKey}`,
-      {
-        method: 'POST',
-        headers: supabaseHeaders({
-          'Content-Type': 'application/pdf',
-          'x-upsert': 'true',
-        }),
-        body: new Uint8Array(pdfBuf),
-        signal: AbortSignal.timeout(60_000),
-      },
-    );
-    if (!resp.ok) return false;
-
-    const metaKey = encodeStorageObjectPath(`${fileId}.json`);
-    void fetch(
-      `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${metaKey}`,
-      {
-        method: 'POST',
-        headers: supabaseHeaders({
-          'Content-Type': 'application/json',
-          'x-upsert': 'true',
-        }),
-        body: JSON.stringify(meta),
-        signal: AbortSignal.timeout(8000),
-      },
-    ).catch(() => {});
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function fetchPdfFromSupabaseToLocal(
-  fileId: string,
-  destPdfPath: string,
-  destMetaPath: string,
-): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-  try {
-    const pdfKey = encodeStorageObjectPath(`${fileId}.pdf`);
-    const resp = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${pdfKey}`,
-      {
-        headers: supabaseHeaders(),
-        signal: AbortSignal.timeout(60_000),
-      },
-    );
-    if (!resp.ok) return false;
-    const arrBuf = await resp.arrayBuffer();
-    const buf = Buffer.from(arrBuf);
-    if (buf.length < 1) return false;
-    const partPath = `${destPdfPath}.dl.${Date.now()}`;
-    fs.writeFileSync(partPath, buf);
-    fs.renameSync(partPath, destPdfPath);
-
-    try {
-      const metaKey = encodeStorageObjectPath(`${fileId}.json`);
-      const mResp = await fetch(
-        `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${metaKey}`,
-        {
-          headers: supabaseHeaders(),
-          signal: AbortSignal.timeout(5000),
-        },
-      );
-      if (mResp.ok) {
-        const metaText = await mResp.text();
-        fs.writeFileSync(destMetaPath, metaText, 'utf8');
-      }
-    } catch {
-      // Optional metadata file
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function deletePdfFromSupabase(fileId: string): Promise<void> {
-  if (!isSupabaseConfigured) return;
-  try {
-    await fetch(`${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}`, {
-      method: 'DELETE',
-      headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ prefixes: [`${fileId}.pdf`, `${fileId}.json`] }),
-      signal: AbortSignal.timeout(8000),
-    });
-  } catch {
-    // Best-effort cleanup
-  }
-}
-
-async function pushSupabaseKv(key: string, value: unknown): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-  try {
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/inonu_kv?on_conflict=key`, {
-      method: 'POST',
-      headers: supabaseHeaders({
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates',
-      }),
-      body: JSON.stringify({ key, value, updated_at: Date.now() }),
-      signal: AbortSignal.timeout(4500),
-    });
-    return resp.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function pullSupabaseKvAll(): Promise<Record<string, { value: unknown; updated_at: number }> | null> {
-  if (!isSupabaseConfigured) return null;
-  try {
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/inonu_kv?select=key,value,updated_at`, {
-      headers: supabaseHeaders(),
-      signal: AbortSignal.timeout(4500),
-    });
-    if (!resp.ok) return null;
-    const rows = (await resp.json()) as Array<{
-      key?: string;
-      value?: unknown;
-      updated_at?: number;
-    }>;
-    if (!Array.isArray(rows)) return null;
-    const out: Record<string, { value: unknown; updated_at: number }> = {};
-    for (const r of rows) {
-      if (r && typeof r.key === 'string') {
-        out[r.key] = { value: r.value, updated_at: Number(r.updated_at) || 0 };
-      }
-    }
-    return out;
-  } catch {
-    return null;
-  }
-}
 
 // ==================== LOCAL SQLITE FALLBACK (ONLY WHEN CLOUD SQL IS NOT CONFIGURED) ====================
 let sqliteDbInstance: DatabaseSync | null = null;
@@ -398,430 +191,6 @@ function setConfigJsonSqlite(key: string, value: unknown): void {
     .run(key, JSON.stringify(value), Date.now());
 }
 
-// ==================== SUPABASE SYNC BRIDGE ====================
-async function getSupabaseDomainPayload(domain: SupabaseKvDomain): Promise<unknown> {
-  if (isCloudSqlConfigured) {
-    switch (domain) {
-      case 'access':
-        return getAccessConfigPg();
-      case 'security':
-        return getSecurityConfigPg();
-      case 'announcements':
-        return getAllAnnouncementsRawPg();
-      case 'materials':
-        return getAllMaterialsRawPg();
-      case 'custom_students':
-        return (await loadAllAdminStudentsPg()).custom;
-      case 'admin_dir':
-        return (await loadAllAdminStudentsPg()).directory;
-      case 'student_prefs':
-        return (await loadAllAdminStudentsPg()).prefs;
-    }
-  }
-
-  const sdb = getSqliteDb();
-  switch (domain) {
-    case 'access':
-      return getConfigJsonSqlite<SiteAccessConfig>('access') || { requireStudentLogin: false, updatedAtMs: 0 };
-    case 'security':
-      return (
-        getConfigJsonSqlite<AdminSecurityConfig>('security') || {
-          passwordHash: DEFAULT_ADMIN_PASSWORD_HASH,
-          proofDigestB64: DEFAULT_PROOF_DIGEST_B64,
-          updatedAtMs: 0,
-        }
-      );
-    case 'announcements':
-      return sdb.prepare('SELECT * FROM announcements').all();
-    case 'materials': {
-      const rows = sdb.prepare('SELECT * FROM lesson_materials').all() as Array<Record<string, unknown>>;
-      return rows.map((r) => {
-        if (typeof r.pdf_data === 'string' && r.pdf_data.length > 32_768 && typeof r.pdf_url === 'string' && r.pdf_url) {
-          return { ...r, pdf_data: '' };
-        }
-        return r;
-      });
-    }
-    case 'custom_students':
-      return sdb.prepare('SELECT * FROM custom_students').all();
-    case 'admin_dir':
-      return sdb.prepare('SELECT * FROM admin_student_directory').all();
-    case 'student_prefs':
-      return sdb.prepare('SELECT * FROM student_prefs').all();
-  }
-}
-
-async function pushDomainToSupabase(domain: SupabaseKvDomain): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-  try {
-    const payload = await getSupabaseDomainPayload(domain);
-    return await pushSupabaseKv(domain, payload);
-  } catch {
-    return false;
-  }
-}
-
-async function mergeRemoteKvIntoDb(
-  kv: Record<string, { value: unknown; updated_at: number }>,
-): Promise<{
-  accessChanged: boolean;
-  accessVal?: SiteAccessConfig;
-  materialsChanged: boolean;
-  announcementsChanged: boolean;
-  studentsChanged: Array<{ authHash: string; active: boolean; deleted: boolean }>;
-}> {
-  let accessChanged = false;
-  let nextAccessVal: SiteAccessConfig | undefined;
-  let materialsChanged = false;
-  let announcementsChanged = false;
-  let studentsChanged: Array<{ authHash: string; active: boolean; deleted: boolean }> = [];
-
-  try {
-    const remoteAccess = kv.access?.value as Partial<SiteAccessConfig> | undefined;
-    if (remoteAccess && typeof remoteAccess === 'object') {
-      const cur = isCloudSqlConfigured
-        ? await getConfigJsonPg<SiteAccessConfig>('access')
-        : getConfigJsonSqlite<SiteAccessConfig>('access');
-      const remoteTs = Number(remoteAccess.updatedAtMs) || 0;
-      const localTs = Number(cur?.updatedAtMs) || 0;
-      if (remoteTs > localTs) {
-        const nextCfg: SiteAccessConfig = {
-          requireStudentLogin: Boolean(remoteAccess.requireStudentLogin),
-          updatedAtMs: remoteTs,
-        };
-        if (isCloudSqlConfigured) {
-          await setConfigJsonPg('access', nextCfg, remoteTs);
-        } else {
-          setConfigJsonSqlite('access', nextCfg);
-        }
-        accessChanged = true;
-        nextAccessVal = nextCfg;
-      }
-    }
-
-    const remoteSec = kv.security?.value as Partial<AdminSecurityConfig> | undefined;
-    if (
-      remoteSec &&
-      typeof remoteSec === 'object' &&
-      typeof remoteSec.passwordHash === 'string' &&
-      /^[a-f0-9]{64}$/.test(remoteSec.passwordHash) &&
-      typeof remoteSec.proofDigestB64 === 'string' &&
-      remoteSec.proofDigestB64.length === 44
-    ) {
-      const curSec = isCloudSqlConfigured
-        ? await getConfigJsonPg<AdminSecurityConfig>('security')
-        : getConfigJsonSqlite<AdminSecurityConfig>('security');
-      const remoteTs = Number(remoteSec.updatedAtMs) || Number(kv.security?.updated_at) || 0;
-      const localTs = Number(curSec?.updatedAtMs) || 0;
-      const localIsDefault = !curSec || curSec.passwordHash === DEFAULT_ADMIN_PASSWORD_HASH;
-      const remoteIsCustom = remoteSec.passwordHash !== DEFAULT_ADMIN_PASSWORD_HASH;
-      if (remoteTs > localTs || (localIsDefault && remoteIsCustom)) {
-        const nextSec: AdminSecurityConfig = {
-          passwordHash: remoteSec.passwordHash,
-          proofDigestB64: remoteSec.proofDigestB64,
-          wrappedRosterKey:
-            typeof remoteSec.wrappedRosterKey === 'string' &&
-            /^[a-f0-9]{64}$/.test(remoteSec.wrappedRosterKey)
-              ? remoteSec.wrappedRosterKey
-              : curSec?.wrappedRosterKey,
-          updatedAtMs: remoteTs,
-        };
-        if (isCloudSqlConfigured) {
-          await setConfigJsonPg('security', nextSec, remoteTs);
-        } else {
-          setConfigJsonSqlite('security', nextSec);
-        }
-      }
-    }
-
-    const mats = kv.materials?.value as Array<Record<string, unknown>> | undefined;
-    const anns = kv.announcements?.value as Array<Record<string, unknown>> | undefined;
-    const customs = kv.custom_students?.value as Array<Record<string, unknown>> | undefined;
-    const dirs = kv.admin_dir?.value as Array<Record<string, unknown>> | undefined;
-    const prefs = kv.student_prefs?.value as Array<Record<string, unknown>> | undefined;
-
-    if (isCloudSqlConfigured) {
-      if (Array.isArray(mats)) {
-        materialsChanged = await mergeRemoteMaterialsIntoPg(mats);
-      }
-      if (Array.isArray(anns)) {
-        announcementsChanged = await mergeRemoteAnnouncementsIntoPg(anns);
-      }
-      if (Array.isArray(customs) || Array.isArray(dirs) || Array.isArray(prefs)) {
-        studentsChanged = await mergeRemoteStudentsIntoPg({ customs, dirs, prefs });
-      }
-    } else {
-      const sdb = getSqliteDb();
-      if (Array.isArray(mats)) {
-        const prevMatStats = sdb
-          .prepare('SELECT COUNT(*) AS cnt, COALESCE(MAX(updated_at), 0) AS mx FROM lesson_materials')
-          .get() as { cnt?: number; mx?: number } | undefined;
-        const stmt = sdb.prepare(`
-          INSERT INTO lesson_materials
-          (id, date, slot_no, target_prog, title, source_type, pdf_url, pdf_data, chunk_count, pdf_name, file_size, deleted, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(id) DO UPDATE SET
-            date = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.date ELSE lesson_materials.date END,
-            slot_no = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.slot_no ELSE lesson_materials.slot_no END,
-            target_prog = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.target_prog ELSE lesson_materials.target_prog END,
-            title = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.title ELSE lesson_materials.title END,
-            source_type = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.source_type ELSE lesson_materials.source_type END,
-            pdf_url = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.pdf_url ELSE lesson_materials.pdf_url END,
-            pdf_data = CASE WHEN excluded.updated_at >= lesson_materials.updated_at AND excluded.pdf_data != '' THEN excluded.pdf_data ELSE lesson_materials.pdf_data END,
-            chunk_count = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.chunk_count ELSE lesson_materials.chunk_count END,
-            pdf_name = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.pdf_name ELSE lesson_materials.pdf_name END,
-            file_size = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.file_size ELSE lesson_materials.file_size END,
-            deleted = CASE WHEN excluded.updated_at >= lesson_materials.updated_at THEN excluded.deleted ELSE lesson_materials.deleted END,
-            updated_at = MAX(lesson_materials.updated_at, excluded.updated_at)
-        `);
-        for (const m of mats) {
-          if (!m || typeof m.id !== 'string') continue;
-          stmt.run(
-            m.id,
-            String(m.date || ''),
-            Number(m.slot_no ?? m.slotNo) || 1,
-            String(m.target_prog ?? m.targetProg ?? ''),
-            String(m.title || 'PDF'),
-            String(m.source_type ?? m.sourceType ?? 'server'),
-            String(m.pdf_url ?? m.pdfUrl ?? ''),
-            String(m.pdf_data ?? m.pdfData ?? ''),
-            Number(m.chunk_count ?? m.chunkCount) || 0,
-            String(m.pdf_name ?? m.pdfName ?? ''),
-            Number(m.file_size ?? m.fileSize) || 0,
-            Number(m.deleted) ? 1 : 0,
-            Number(m.created_at ?? m.createdAtMs) || Date.now(),
-            Number(m.updated_at ?? m.updatedAtMs) || Date.now(),
-          );
-        }
-        const nextMatStats = sdb
-          .prepare('SELECT COUNT(*) AS cnt, COALESCE(MAX(updated_at), 0) AS mx FROM lesson_materials')
-          .get() as { cnt?: number; mx?: number } | undefined;
-        if (
-          (Number(nextMatStats?.cnt) || 0) !== (Number(prevMatStats?.cnt) || 0) ||
-          (Number(nextMatStats?.mx) || 0) > (Number(prevMatStats?.mx) || 0)
-        ) {
-          materialsChanged = true;
-        }
-      }
-
-      if (Array.isArray(anns)) {
-        const prevAnnStats = sdb
-          .prepare('SELECT COUNT(*) AS cnt, COALESCE(MAX(updated_at), 0) AS mx FROM announcements')
-          .get() as { cnt?: number; mx?: number } | undefined;
-        const stmt = sdb.prepare(`
-          INSERT INTO announcements (id, title, message, tone, active, target_group, target_prog, deleted, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(id) DO UPDATE SET
-            title = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.title ELSE announcements.title END,
-            message = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.message ELSE announcements.message END,
-            tone = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.tone ELSE announcements.tone END,
-            active = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.active ELSE announcements.active END,
-            target_group = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.target_group ELSE announcements.target_group END,
-            target_prog = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.target_prog ELSE announcements.target_prog END,
-            deleted = CASE WHEN excluded.updated_at >= announcements.updated_at THEN excluded.deleted ELSE announcements.deleted END,
-            updated_at = MAX(announcements.updated_at, excluded.updated_at)
-        `);
-        for (const a of anns) {
-          if (!a || typeof a.id !== 'string') continue;
-          stmt.run(
-            a.id,
-            String(a.title || ''),
-            String(a.message || ''),
-            String(a.tone || 'info'),
-            Number(a.active) ? 1 : 0,
-            String(a.target_group ?? a.targetGroup ?? ''),
-            String(a.target_prog ?? a.targetProg ?? ''),
-            Number(a.deleted) ? 1 : 0,
-            Number(a.created_at ?? a.createdAtMs) || Date.now(),
-            Number(a.updated_at ?? a.updatedAtMs) || Date.now(),
-          );
-        }
-        const nextAnnStats = sdb
-          .prepare('SELECT COUNT(*) AS cnt, COALESCE(MAX(updated_at), 0) AS mx FROM announcements')
-          .get() as { cnt?: number; mx?: number } | undefined;
-        if (
-          (Number(nextAnnStats?.cnt) || 0) !== (Number(prevAnnStats?.cnt) || 0) ||
-          (Number(nextAnnStats?.mx) || 0) > (Number(prevAnnStats?.mx) || 0)
-        ) {
-          announcementsChanged = true;
-        }
-      }
-
-      if (Array.isArray(customs)) {
-        const prevCustomStats = sdb
-          .prepare('SELECT COALESCE(MAX(updated_at), 0) AS mx FROM custom_students')
-          .get() as { mx?: number } | undefined;
-        const prevMax = Number(prevCustomStats?.mx) || 0;
-        const stmt = sdb.prepare(`
-          INSERT INTO custom_students
-          (auth_hash, cloud_key, last4, group_name, lab_group, prog, enc_name, enc_sid, active, deleted, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(auth_hash) DO UPDATE SET
-            cloud_key = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.cloud_key ELSE custom_students.cloud_key END,
-            last4 = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.last4 ELSE custom_students.last4 END,
-            group_name = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.group_name ELSE custom_students.group_name END,
-            lab_group = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.lab_group ELSE custom_students.lab_group END,
-            prog = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.prog ELSE custom_students.prog END,
-            enc_name = CASE WHEN excluded.updated_at >= custom_students.updated_at AND excluded.enc_name != '' THEN excluded.enc_name ELSE custom_students.enc_name END,
-            enc_sid = CASE WHEN excluded.updated_at >= custom_students.updated_at AND excluded.enc_sid != '' THEN excluded.enc_sid ELSE custom_students.enc_sid END,
-            active = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.active ELSE custom_students.active END,
-            deleted = CASE WHEN excluded.updated_at >= custom_students.updated_at THEN excluded.deleted ELSE custom_students.deleted END,
-            updated_at = MAX(custom_students.updated_at, excluded.updated_at)
-        `);
-        for (const c of customs) {
-          if (!c || typeof c.auth_hash !== 'string' || !HASH32_RE.test(c.auth_hash)) continue;
-          const ts = Number(c.updated_at) || Date.now();
-          const isActive = Number(c.active) !== 0 && c.active !== false;
-          const isDeleted = Number(c.deleted) === 1 || c.deleted === true;
-          stmt.run(
-            c.auth_hash,
-            String(c.cloud_key || ''),
-            String(c.last4 || ''),
-            String(c.group_name || 'I'),
-            String(c.lab_group || ''),
-            String(c.prog || 'tr'),
-            String(c.enc_name || ''),
-            String(c.enc_sid || ''),
-            isActive ? 1 : 0,
-            isDeleted ? 1 : 0,
-            Number(c.created_at) || Date.now(),
-            ts,
-          );
-          if (ts > prevMax && (!isActive || isDeleted)) {
-            studentsChanged.push({ authHash: c.auth_hash, active: isActive, deleted: isDeleted });
-          }
-        }
-      }
-
-      if (Array.isArray(dirs)) {
-        const prevDirStats = sdb
-          .prepare('SELECT COALESCE(MAX(updated_at), 0) AS mx FROM admin_student_directory')
-          .get() as { mx?: number } | undefined;
-        const prevMax = Number(prevDirStats?.mx) || 0;
-        const stmt = sdb.prepare(`
-          INSERT INTO admin_student_directory
-          (auth_hash, cloud_key, last4, enc_full_name, enc_sid, group_name, lab_group, prog, source, active, deleted, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(auth_hash) DO UPDATE SET
-            cloud_key = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.cloud_key ELSE admin_student_directory.cloud_key END,
-            last4 = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.last4 ELSE admin_student_directory.last4 END,
-            enc_full_name = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at AND excluded.enc_full_name != '' THEN excluded.enc_full_name ELSE admin_student_directory.enc_full_name END,
-            enc_sid = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at AND excluded.enc_sid != '' THEN excluded.enc_sid ELSE admin_student_directory.enc_sid END,
-            group_name = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.group_name ELSE admin_student_directory.group_name END,
-            lab_group = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.lab_group ELSE admin_student_directory.lab_group END,
-            prog = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.prog ELSE admin_student_directory.prog END,
-            source = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.source ELSE admin_student_directory.source END,
-            active = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.active ELSE admin_student_directory.active END,
-            deleted = CASE WHEN excluded.updated_at >= admin_student_directory.updated_at THEN excluded.deleted ELSE admin_student_directory.deleted END,
-            updated_at = MAX(admin_student_directory.updated_at, excluded.updated_at)
-        `);
-        for (const d of dirs) {
-          if (!d || typeof d.auth_hash !== 'string' || !HASH32_RE.test(d.auth_hash)) continue;
-          const ts = Number(d.updated_at) || Date.now();
-          const isActive = Number(d.active) !== 0 && d.active !== false;
-          const isDeleted = Number(d.deleted) === 1 || d.deleted === true;
-          stmt.run(
-            d.auth_hash,
-            String(d.cloud_key || ''),
-            String(d.last4 || ''),
-            String(d.enc_full_name || ''),
-            String(d.enc_sid || ''),
-            String(d.group_name || 'I'),
-            String(d.lab_group || ''),
-            String(d.prog || 'tr'),
-            String(d.source || 'allowlist'),
-            isActive ? 1 : 0,
-            isDeleted ? 1 : 0,
-            Number(d.created_at) || Date.now(),
-            ts,
-          );
-          if (ts > prevMax && (!isActive || isDeleted)) {
-            studentsChanged.push({ authHash: d.auth_hash, active: isActive, deleted: isDeleted });
-          }
-        }
-      }
-
-      if (Array.isArray(prefs)) {
-        const stmt = sdb.prepare(`
-          INSERT INTO student_prefs
-          (cloud_key, auth_hash, last4, my_mbu_group, my_lab_group, other_group_mode, lang, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(cloud_key) DO UPDATE SET
-            auth_hash = CASE WHEN excluded.updated_at >= student_prefs.updated_at AND excluded.auth_hash != '' THEN excluded.auth_hash ELSE student_prefs.auth_hash END,
-            last4 = CASE WHEN excluded.updated_at >= student_prefs.updated_at AND excluded.last4 != '' THEN excluded.last4 ELSE student_prefs.last4 END,
-            my_mbu_group = CASE WHEN excluded.updated_at >= student_prefs.updated_at THEN excluded.my_mbu_group ELSE student_prefs.my_mbu_group END,
-            my_lab_group = CASE WHEN excluded.updated_at >= student_prefs.updated_at THEN excluded.my_lab_group ELSE student_prefs.my_lab_group END,
-            other_group_mode = CASE WHEN excluded.updated_at >= student_prefs.updated_at THEN excluded.other_group_mode ELSE student_prefs.other_group_mode END,
-            lang = CASE WHEN excluded.updated_at >= student_prefs.updated_at AND excluded.lang != '' THEN excluded.lang ELSE student_prefs.lang END,
-            updated_at = MAX(student_prefs.updated_at, excluded.updated_at)
-        `);
-        for (const p of prefs) {
-          if (!p || typeof p.cloud_key !== 'string' || !HEX64_RE.test(p.cloud_key)) continue;
-          stmt.run(
-            p.cloud_key,
-            String(p.auth_hash || ''),
-            String(p.last4 || ''),
-            String(p.my_mbu_group || ''),
-            String(p.my_lab_group || ''),
-            String(p.other_group_mode || 'dim'),
-            String(p.lang || ''),
-            Number(p.updated_at) || Date.now(),
-          );
-        }
-      }
-    }
-  } catch {
-    // Non-fatal merge error
-  }
-
-  return {
-    accessChanged,
-    accessVal: nextAccessVal,
-    materialsChanged,
-    announcementsChanged,
-    studentsChanged,
-  };
-}
-
-let lastSupabasePullAt = 0;
-let inflightSupabasePull: Promise<void> | null = null;
-
-async function ensureFreshSupabaseSync(force = false): Promise<void> {
-  if (!isSupabaseConfigured) return;
-  const now = Date.now();
-  if (!force && now - lastSupabasePullAt < SUPABASE_PULL_TTL_MS) {
-    return;
-  }
-  if (inflightSupabasePull) {
-    return inflightSupabasePull;
-  }
-  inflightSupabasePull = (async () => {
-    try {
-      const kv = await pullSupabaseKvAll();
-      lastSupabasePullAt = Date.now();
-      if (!kv) return;
-      const res = await mergeRemoteKvIntoDb(kv);
-      if (res.accessChanged && res.accessVal) {
-        broadcastEvent('access', res.accessVal);
-      }
-      if (res.materialsChanged) {
-        broadcastEvent('materials', { source: 'supabase_sync' });
-      }
-      if (res.announcementsChanged) {
-        broadcastEvent('announcements', { source: 'supabase_sync' });
-      }
-      for (const stu of res.studentsChanged) {
-        broadcastEvent('student_status', stu);
-      }
-    } catch {
-      // Non-fatal pull error
-    } finally {
-      inflightSupabasePull = null;
-    }
-  })();
-  return inflightSupabasePull;
-}
-
 // ==================== SECURITY HELPERS & RATE LIMITER ====================
 function safeEqualString(a: string, b: string): boolean {
   const bufA = Buffer.from(a, 'utf8');
@@ -905,14 +274,6 @@ setInterval(() => {
     }
   }
 }, 25_000);
-
-if (isSupabaseConfigured) {
-  setInterval(() => {
-    if (sseClients.size > 0) {
-      void ensureFreshSupabaseSync(true);
-    }
-  }, 3000);
-}
 
 // ==================== NORMALIZATION HELPERS ====================
 const VALID_MBU_GROUPS = new Set(['', 'I', 'II', 'III', 'IV', 'V']);
@@ -1108,7 +469,6 @@ async function startServer() {
   // ==================== ADMIN AUTH & SECURITY CONFIG ====================
   app.post('/api/admin/verify', jsonParser, async (req: Request, res: Response) => {
     try {
-      await ensureFreshSupabaseSync();
       const ip = req.ip || req.socket.remoteAddress || 'unknown';
       const rl = checkVerifyRateLimit(ip);
       if (!rl.allowed) {
@@ -1185,7 +545,6 @@ async function startServer() {
       } else {
         setConfigJsonSqlite('security', nextCfg);
       }
-      await pushDomainToSupabase('security');
       res.json({ ok: true });
     } catch {
       res.status(500).json({ ok: false, error: 'DATABASE_ERROR' });
@@ -1195,7 +554,6 @@ async function startServer() {
   // ==================== SITE ACCESS SETTINGS ====================
   app.get('/api/access', async (_req: Request, res: Response) => {
     try {
-      await ensureFreshSupabaseSync();
       const cfg = isCloudSqlConfigured
         ? await getAccessConfigPg()
         : getConfigJsonSqlite<SiteAccessConfig>('access') || {
@@ -1235,7 +593,6 @@ async function startServer() {
       } else {
         setConfigJsonSqlite('access', nextCfg);
       }
-      await pushDomainToSupabase('access');
       broadcastEvent('access', { requireStudentLogin, updatedAtMs });
       res.json({ ok: true, requireStudentLogin, updatedAtMs });
     } catch {
@@ -1246,7 +603,6 @@ async function startServer() {
   // ==================== STUDENT LOGIN CHECK & PREFS ====================
   app.get('/api/student/login-status/:authHash', async (req: Request, res: Response) => {
     try {
-      await ensureFreshSupabaseSync();
       const authHash = String(req.params.authHash || '').trim().toLowerCase();
       if (!HASH32_RE.test(authHash)) {
         res.status(400).json({ ok: false, error: 'INVALID_AUTH_HASH' });
@@ -1331,7 +687,6 @@ async function startServer() {
 
   app.get('/api/student/prefs/:cloudKey', async (req: Request, res: Response) => {
     try {
-      await ensureFreshSupabaseSync();
       const cloudKey = String(req.params.cloudKey || '').trim().toLowerCase();
       if (!HEX64_RE.test(cloudKey)) {
         res.status(400).json({ ok: false, error: 'INVALID_CLOUD_KEY' });
@@ -1441,7 +796,6 @@ async function startServer() {
           .run(cloudKey, authHash, last4, mbu, lab, mode, lang, now);
       }
 
-      await pushDomainToSupabase('student_prefs');
       res.json({ ok: true });
     } catch {
       res.status(500).json({ ok: false, error: 'DATABASE_ERROR' });
@@ -1451,7 +805,6 @@ async function startServer() {
   // ==================== ANNOUNCEMENTS ====================
   app.get('/api/announcements', async (req: Request, res: Response) => {
     try {
-      await ensureFreshSupabaseSync();
       const onlyActive = req.query.active === '1' || req.query.active === 'true';
 
       if (isCloudSqlConfigured) {
@@ -1568,7 +921,6 @@ async function startServer() {
         updatedAtMs: now,
       };
       broadcastEvent('announcements', { action: 'save', id: rawId });
-      await pushDomainToSupabase('announcements');
       res.json({ ok: true, announcement: saved });
     } catch {
       res.status(500).json({ ok: false, error: 'DATABASE_ERROR' });
@@ -1594,7 +946,6 @@ async function startServer() {
           .run(Date.now(), id);
       }
       broadcastEvent('announcements', { action: 'delete', id });
-      await pushDomainToSupabase('announcements');
       res.json({ ok: true });
     } catch {
       res.status(500).json({ ok: false, error: 'DATABASE_ERROR' });
@@ -1604,7 +955,6 @@ async function startServer() {
   // ==================== LESSON MATERIALS & PDFs ====================
   app.get('/api/materials', async (_req: Request, res: Response) => {
     try {
-      await ensureFreshSupabaseSync();
       if (isCloudSqlConfigured) {
         const rows = await listMaterialsPg();
         res.json({
@@ -1760,7 +1110,6 @@ async function startServer() {
         updatedAtMs: now,
       };
       broadcastEvent('materials', { action: 'save', id: rawId });
-      await pushDomainToSupabase('materials');
       res.json({ ok: true, material });
     } catch {
       res.status(500).json({ ok: false, error: 'DATABASE_ERROR' });
@@ -1794,8 +1143,6 @@ async function startServer() {
           .run(Date.now(), id);
       }
 
-      await pushDomainToSupabase('materials');
-
       if (existingPdfUrl && existingPdfUrl.startsWith('/api/lesson-pdf/')) {
         const fileId = existingPdfUrl.slice('/api/lesson-pdf/'.length).split('?')[0].trim();
         if (/^[a-zA-Z0-9_-]{8,96}$/.test(fileId)) {
@@ -1804,7 +1151,6 @@ async function startServer() {
           if (isCloudSqlConfigured) {
             void deletePdfFromPg(fileId).catch(() => {});
           }
-          void deletePdfFromSupabase(fileId);
         }
       }
       broadcastEvent('materials', { action: 'delete', id });
@@ -1821,7 +1167,6 @@ async function startServer() {
         res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
         return;
       }
-      await ensureFreshSupabaseSync();
       const sec = await getSecurityConfig();
       if (isCloudSqlConfigured) {
         const { directory, custom, prefs } = await loadAllAdminStudentsPg();
@@ -1857,7 +1202,6 @@ async function startServer() {
         res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
         return;
       }
-      await ensureFreshSupabaseSync();
       const authHash = String(req.params.authHash || '').trim().toLowerCase();
       const cloudKey = String(req.params.cloudKey || '').trim().toLowerCase();
       if (!HASH32_RE.test(authHash) || !HEX64_RE.test(cloudKey)) {
@@ -2048,11 +1392,6 @@ async function startServer() {
         }
       }
 
-      await Promise.all([
-        pushDomainToSupabase('custom_students'),
-        pushDomainToSupabase('admin_dir'),
-        pushDomainToSupabase('student_prefs'),
-      ]);
       broadcastEvent('student_status', { authHash, active: active === 1, deleted: false });
       res.json({ ok: true, updatedAtMs: now });
     } catch {
@@ -2151,10 +1490,6 @@ async function startServer() {
         }
       }
 
-      await Promise.all([
-        pushDomainToSupabase('custom_students'),
-        pushDomainToSupabase('admin_dir'),
-      ]);
       broadcastEvent('student_status', { authHash, active: false, deleted: true });
       res.json({ ok: true });
     } catch {
@@ -2316,11 +1651,6 @@ async function startServer() {
         }
       }
 
-      await Promise.all([
-        pushDomainToSupabase('student_prefs'),
-        pushDomainToSupabase('custom_students'),
-        pushDomainToSupabase('admin_dir'),
-      ]);
       if (hasValidAuthHash) {
         broadcastEvent('student_status', { authHash, active: active === 1, deleted: false });
       }
@@ -2496,9 +1826,6 @@ async function startServer() {
       if (isCloudSqlConfigured && assembledSize <= 60 * 1024 * 1024) {
         await savePdfBufferToPg(meta.fileId, meta.fileName, fullBuf).catch(() => {});
       }
-      if (isSupabaseConfigured) {
-        await uploadPdfBufferToSupabase(meta.fileId, fullBuf, storedMeta);
-      }
 
       res.json({
         ok: true,
@@ -2543,10 +1870,6 @@ async function startServer() {
             'utf8',
           );
         }
-      }
-
-      if (!fs.existsSync(pdfPath) && isSupabaseConfigured) {
-        await fetchPdfFromSupabaseToLocal(fileId, pdfPath, metaPath);
       }
 
       if (!fs.existsSync(pdfPath)) {
@@ -2620,13 +1943,11 @@ async function startServer() {
     if (isCloudSqlConfigured) {
       void deletePdfFromPg(fileId).catch(() => {});
     }
-    void deletePdfFromSupabase(fileId);
     res.json({ ok: true });
   });
 
   app.get(['/', '/index.html'], async (_req: Request, res: Response) => {
     try {
-      await ensureFreshSupabaseSync();
       const indexPath =
         process.env.NODE_ENV === 'production'
           ? path.resolve(process.cwd(), 'dist', 'index.html')

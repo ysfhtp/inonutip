@@ -14,6 +14,8 @@ import {
   deleteLessonMaterial,
   deleteServerPdfByUrl,
   deleteCloudUserNote,
+  getAppVersion,
+  bumpAppVersion,
   downloadLessonMaterialChunks,
   generateLessonMaterialId,
   getCachedLessonPdfBlob,
@@ -114,6 +116,8 @@ declare global {
       loadCloudUserNotes: typeof loadCloudUserNotes;
       saveCloudUserNote: typeof saveCloudUserNote;
       deleteCloudUserNote: typeof deleteCloudUserNote;
+      getAppVersion: typeof getAppVersion;
+      bumpAppVersion: typeof bumpAppVersion;
     };
   }
 }
@@ -171,6 +175,8 @@ window.__INONU_AUTH__ = {
   loadCloudUserNotes,
   saveCloudUserNote,
   deleteCloudUserNote,
+  getAppVersion,
+  bumpAppVersion,
 };
 window.dispatchEvent(new Event('inonu-auth-ready'));
 
