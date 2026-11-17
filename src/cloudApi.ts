@@ -2855,11 +2855,10 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
         lang: effectiveLang,
         source: 'allowlist',
         active:
-          custom && custom.deleted !== 1
-            ? custom.active !== 0
-            : dir && dir.deleted !== 1
-              ? dir.active !== 0
-              : true,
+          (custom && (custom.active === 0 || custom.active === false)) ||
+          (dir && (dir.active === 0 || dir.active === false))
+            ? false
+            : true,
         updatedAtMs: Math.max(Number(prefs?.updated_at) || 0, Number(dir?.updated_at) || 0, Number(custom?.updated_at) || 0),
       });
     }
@@ -2938,7 +2937,11 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
       otherGroupMode: prefs ? normalizeOtherGroupModePref(prefs.other_group_mode) : 'dim',
       lang: effectiveLang,
       source: allowMeta ? 'allowlist' : 'custom',
-      active: custom ? custom.active !== 0 : dir ? dir.active !== 0 : true,
+      active:
+        (custom && (custom.active === 0 || custom.active === false)) ||
+        (dir && (dir.active === 0 || dir.active === false))
+          ? false
+          : true,
       updatedAtMs: Math.max(Number(prefs?.updated_at) || 0, Number(dir?.updated_at) || 0, Number(custom?.updated_at) || 0),
     });
   }
