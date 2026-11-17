@@ -138,6 +138,54 @@ let apiProbePromise: Promise<'online' | 'static'> | null = null;
 let crossTabChannel: BroadcastChannel | null = null;
 let crossTabInitialized = false;
 
+const BROWSER_SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '');
+const BROWSER_SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+const isBrowserSupabaseConfigured = Boolean(BROWSER_SUPABASE_URL && BROWSER_SUPABASE_KEY);
+
+function browserSupabaseHeaders(extra?: Record<string, string>): Record<string, string> {
+  return {
+    apikey: BROWSER_SUPABASE_KEY,
+    Authorization: `Bearer ${BROWSER_SUPABASE_KEY}`,
+    ...extra,
+  };
+}
+
+async function browserPullSupabaseKv(key: string): Promise<unknown> {
+  if (!isBrowserSupabaseConfigured) return null;
+  try {
+    const resp = await fetch(`${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?key=eq.${encodeURIComponent(key)}&select=value`, {
+      headers: browserSupabaseHeaders(),
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!resp.ok) return null;
+    const rows = (await resp.json()) as Array<{ value?: unknown }>;
+    if (Array.isArray(rows) && rows.length > 0) {
+      return rows[0].value ?? null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function browserPushSupabaseKv(key: string, value: unknown): Promise<boolean> {
+  if (!isBrowserSupabaseConfigured) return false;
+  try {
+    const resp = await fetch(`${BROWSER_SUPABASE_URL}/rest/v1/inonu_kv?on_conflict=key`, {
+      method: 'POST',
+      headers: browserSupabaseHeaders({
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates',
+      }),
+      body: JSON.stringify({ key, value, updated_at: Date.now() }),
+      signal: AbortSignal.timeout(4500),
+    });
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
 function notifyLocalSubscribersOnly(topic: string, payload?: unknown): void {
   const handlers = sseListeners.get(topic);
   if (!handlers || handlers.size === 0) return;
@@ -785,6 +833,19 @@ export async function loadSiteAccessSettings(): Promise<SiteAccessSettings> {
     } catch {
       // Use cached access state
     }
+  } else if (isBrowserSupabaseConfigured) {
+    try {
+      const remote = (await browserPullSupabaseKv('access')) as Partial<SiteAccessSettings> | null;
+      if (remote && typeof remote === 'object') {
+        const remoteTs = Number(remote.updatedAtMs) || 0;
+        if (remoteTs >= bestTs) {
+          bestRequire = Boolean(remote.requireStudentLogin);
+          bestTs = remoteTs;
+        }
+      }
+    } catch {
+      // Fallback
+    }
   }
 
   const result: SiteAccessSettings = {
@@ -847,6 +908,8 @@ export async function saveSiteAccessSettings(
     };
     next.requireStudentLogin = json?.requireStudentLogin === true;
     next.updatedAtMs = Math.max(Number(json?.updatedAtMs) || now, now);
+  } else if (isBrowserSupabaseConfigured) {
+    await browserPushSupabaseKv('access', next);
   }
 
   writeStaticJson('access', next);
@@ -1222,6 +1285,20 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
     } catch {
       // Fallback to local cache
     }
+  } else if (isBrowserSupabaseConfigured) {
+    try {
+      const val = (await browserPullSupabaseKv('announcements')) as Array<Record<string, unknown>> | null;
+      if (Array.isArray(val)) {
+        const apiMap: Record<string, Record<string, unknown>> = {};
+        val.forEach((a) => {
+          const mapped = mapServerAnnouncement(a);
+          if (mapped.id) apiMap[mapped.id] = { ...mapped, deleted: Boolean(a.deleted) };
+        });
+        writeStaticJson('announcements', apiMap);
+      }
+    } catch {
+      // Fallback
+    }
   }
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
@@ -1248,6 +1325,20 @@ export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
       }
     } catch {
       // Fallback to local cache
+    }
+  } else if (isBrowserSupabaseConfigured) {
+    try {
+      const val = (await browserPullSupabaseKv('announcements')) as Array<Record<string, unknown>> | null;
+      if (Array.isArray(val)) {
+        const apiMap: Record<string, Record<string, unknown>> = {};
+        val.forEach((a) => {
+          const mapped = mapServerAnnouncement(a);
+          if (mapped.id) apiMap[mapped.id] = { ...mapped, deleted: Boolean(a.deleted) };
+        });
+        writeStaticJson('announcements', apiMap);
+      }
+    } catch {
+      // Fallback
     }
   }
 
@@ -1331,6 +1422,8 @@ export async function saveAnnouncement(
       emitLocalTopic('announcements', { action: 'save', id: s.id });
       return s;
     }
+  } else if (isBrowserSupabaseConfigured) {
+    await browserPushSupabaseKv('announcements', Object.values(map));
   }
 
   return saved;
@@ -1343,7 +1436,7 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
 
   const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   if (map[cleanId]) {
-    delete map[cleanId];
+    map[cleanId] = { ...map[cleanId], deleted: true, active: false, updatedAtMs: Date.now() };
     writeStaticJson('announcements', map);
   }
   emitLocalTopic('announcements', { action: 'delete', id: cleanId });
@@ -1357,6 +1450,8 @@ export async function deleteAnnouncement(id: string, adminSecret?: string): Prom
     } catch {
       // Best-effort delete
     }
+  } else if (isBrowserSupabaseConfigured) {
+    await browserPushSupabaseKv('announcements', Object.values(map));
   }
 }
 
