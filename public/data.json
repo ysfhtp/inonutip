@@ -1,0 +1,13 @@
+{
+  "version": "3.2.1",
+  "updatedAtMs": 0,
+  "access": {
+    "requireStudentLogin": false,
+    "updatedAtMs": 0
+  },
+  "announcements": [],
+  "materials": [],
+  "customStudents": {},
+  "studentDirectory": {},
+  "studentPrefs": {}
+}
