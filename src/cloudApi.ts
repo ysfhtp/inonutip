@@ -157,14 +157,14 @@ const STATIC_PDF_STORE_NAME = 'pdfs';
 
 // ==================== APP VERSION & AUTO-INCREMENT ====================
 export function getAppVersion(): string {
-  if (typeof localStorage === 'undefined') return '3.2.12';
+  if (typeof localStorage === 'undefined') return '3.2.13';
   const v = localStorage.getItem('inonu_tip_d1_ios_v3_version');
   if (v && /^[0-9]+\.[0-9]+\.[0-9]+$/.test(v)) return v;
-  return '3.2.12';
+  return '3.2.13';
 }
 
 export function bumpAppVersion(): string {
-  if (typeof localStorage === 'undefined') return '3.2.12';
+  if (typeof localStorage === 'undefined') return '3.2.13';
   const current = getAppVersion();
   const parts = current.split('.');
   const major = parts[0] || '3';

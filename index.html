@@ -2918,6 +2918,50 @@
     .modal-card-in { animation: modalCardIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
     .modal-card-out { animation: modalCardOut 0.2s cubic-bezier(0.4, 0, 1, 1) forwards; }
 
+    #btnOpenSettingsMenu.is-open svg {
+      transform: rotate(45deg);
+    }
+
+    .ios-toggle-switch {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      width: 46px;
+      height: 28px;
+      padding: 2px;
+      border-radius: 9999px;
+      background: rgba(120, 120, 128, 0.28);
+      transition: background-color 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .dark .ios-toggle-switch {
+      background: rgba(120, 120, 128, 0.42);
+    }
+    .ios-toggle-switch[aria-checked="true"] {
+      background: var(--palette-accent, #2563eb);
+      box-shadow: 0 2px 10px var(--palette-accent-shadow, rgba(37, 99, 235, 0.32));
+    }
+    .ios-toggle-knob {
+      width: 24px;
+      height: 24px;
+      border-radius: 9999px;
+      background: #ffffff;
+      box-shadow: 0 2px 5px rgba(15, 23, 42, 0.22), 0 0 1px rgba(15, 23, 42, 0.12);
+      transform: translate3d(0, 0, 0);
+      transition: transform 0.28s cubic-bezier(0.34, 1.45, 0.64, 1), width 0.18s ease;
+      pointer-events: none;
+    }
+    .ios-toggle-switch[aria-checked="true"] .ios-toggle-knob {
+      transform: translate3d(18px, 0, 0);
+    }
+    .ios-toggle-switch:active .ios-toggle-knob {
+      transform: scale(0.95) translate3d(0, 0, 0);
+    }
+    .ios-toggle-switch[aria-checked="true"]:active .ios-toggle-knob {
+      transform: scale(0.95) translate3d(18px, 0, 0);
+    }
+
     @keyframes toastIn {
       from {
         opacity: 0;
@@ -3329,9 +3373,6 @@
     .theme-transitioning .ios-ambient-bg,
     .theme-transitioning .ambient-top,
     .theme-transitioning .ambient-bottom,
-    .theme-transitioning .segmented-pill-indicator,
-    .theme-transitioning #tabIndicatorPill,
-    .theme-transitioning #adminTabIndicator,
     .theme-transitioning body,
     .theme-transitioning h1,
     .theme-transitioning h2,
@@ -3342,6 +3383,11 @@
     .theme-transitioning button,
     .theme-transitioning a {
       transition: background-color 0.44s cubic-bezier(0.22, 1, 0.36, 1), background 0.44s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.44s cubic-bezier(0.22, 1, 0.36, 1), color 0.34s ease, box-shadow 0.44s ease !important;
+    }
+    .theme-transitioning .segmented-pill-indicator,
+    .theme-transitioning #tabIndicatorPill,
+    .theme-transitioning #adminTabIndicator {
+      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1), height 0.38s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.44s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.44s ease !important;
     }
 
     .segmented-pill-bar {
@@ -3650,16 +3696,106 @@
         <button id="btnOpenInstallModal" type="button" class="ios-press flex w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control items-center justify-center text-slate-700 dark:text-slate-200 transition" aria-label="Uygulamayı Kur" title="Uygulamayı Kur">
           <svg class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
         </button>
-        <button id="btnOpenPaletteModal" type="button" class="ios-press w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition" aria-label="Renk Paleti Seç" title="Renk Paleti">
-          <span id="headerPaletteOrb" class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4 rounded-full ring-2 ring-white/80 dark:ring-slate-900/80 shadow-xs" style="background: linear-gradient(135deg, var(--palette-accent, #2563eb) 0%, var(--color-blue-400, #60a5fa) 100%);"></span>
-        </button>
-        <button id="btnToggleTheme" type="button" class="ios-press w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition" aria-label="Tema Değiştir">
-          <svg id="iconSun" class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
-          <svg id="iconMoon" class="w-3.5 min-[360px]:w-4 h-3.5 min-[360px]:h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        <button id="btnOpenSettingsMenu" type="button" class="ios-press relative w-7 min-[360px]:w-8 h-7 min-[360px]:h-8 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 transition" aria-label="Ayarlar" title="Ayarlar" aria-expanded="false" aria-haspopup="dialog">
+          <svg class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
         </button>
       </div>
     </div>
   </header>
+
+  <!-- Ayarlar Menüsü (Görünüm, Tema Paleti, Titreşim) -->
+  <div id="settingsMenuModal" class="fixed inset-0 z-50 hidden bg-black/35 backdrop-blur-md ios-safe-modal flex items-center justify-center p-3 min-[360px]:p-4">
+    <div id="settingsMenuCard" role="dialog" aria-modal="true" aria-labelledby="settingsMenuTitle" class="ios-glass rounded-3xl max-w-md w-full p-4 min-[360px]:p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-7 h-7 rounded-full ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </span>
+          <h3 id="settingsMenuTitle" class="text-base font-bold text-slate-900 dark:text-white truncate">Ayarlar</h3>
+        </div>
+        <button id="btnCloseSettingsMenu" type="button" class="ios-press w-7 h-7 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0" aria-label="Kapat">✕</button>
+      </div>
+
+      <!-- 1. Görünüm: Açık / Koyu -->
+      <div class="space-y-1.5">
+        <p id="lblSettingsAppearance" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-0.5">Görünüm</p>
+        <div id="appearanceSegmentedBar" class="segmented-pill-bar ios-pill-control p-1 rounded-2xl grid grid-cols-2 gap-1 items-center text-xs" role="group" aria-label="Görünüm Modu">
+          <div id="appearanceSegmentedIndicator" class="segmented-pill-indicator !rounded-xl"></div>
+          <button id="btnAppearanceLight" type="button" class="py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-medium text-slate-600 dark:text-slate-300 transition-colors">
+            <svg id="appearanceSunIcon" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
+            <span id="lblAppearanceLight">Açık</span>
+          </button>
+          <button id="btnAppearanceDark" type="button" class="py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-semibold text-slate-900 dark:text-white transition-colors">
+            <svg id="appearanceMoonIcon" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            <span id="lblAppearanceDark">Koyu</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Tema Rengi -->
+      <div class="space-y-1.5">
+        <p id="lblSettingsPalette" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-0.5">Tema Rengi</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" data-palette-choice="medical-blue" class="palette-card ios-pill-control rounded-2xl min-h-[46px] px-2.5 min-[360px]:px-3 py-2 flex items-center justify-between gap-2 text-left border border-transparent">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-4 h-4 rounded-full shrink-0 shadow-xs ring-1 ring-white/50" style="background: linear-gradient(135deg, #2563eb 0%, #38bdf8 100%);"></span>
+              <span id="palMenuNameMedicalBlue" class="text-[11.5px] min-[390px]:text-xs font-semibold leading-tight text-slate-900 dark:text-white">Klinik Mavi</span>
+            </div>
+            <span class="palette-check w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center opacity-0 transition-opacity shrink-0">✓</span>
+          </button>
+
+          <button type="button" data-palette-choice="surgical-navy" class="palette-card ios-pill-control rounded-2xl min-h-[46px] px-2.5 min-[360px]:px-3 py-2 flex items-center justify-between gap-2 text-left border border-transparent">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-4 h-4 rounded-full shrink-0 shadow-xs ring-1 ring-white/50" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);"></span>
+              <span id="palMenuNameSurgicalNavy" class="text-[11.5px] min-[390px]:text-xs font-semibold leading-tight text-slate-900 dark:text-white">Derin Lacivert</span>
+            </div>
+            <span class="palette-check w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center opacity-0 transition-opacity shrink-0">✓</span>
+          </button>
+
+          <button type="button" data-palette-choice="biochem-mint" class="palette-card ios-pill-control rounded-2xl min-h-[46px] px-2.5 min-[360px]:px-3 py-2 flex items-center justify-between gap-2 text-left border border-transparent">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-4 h-4 rounded-full shrink-0 shadow-xs ring-1 ring-white/50" style="background: linear-gradient(135deg, #0d9488 0%, #34d399 100%);"></span>
+              <span id="palMenuNameBiochemMint" class="text-[11.5px] min-[390px]:text-xs font-semibold leading-tight text-slate-900 dark:text-white">Zümrüt Yeşili</span>
+            </div>
+            <span class="palette-check w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center opacity-0 transition-opacity shrink-0">✓</span>
+          </button>
+
+          <button type="button" data-palette-choice="anatomy-crimson" class="palette-card ios-pill-control rounded-2xl min-h-[46px] px-2.5 min-[360px]:px-3 py-2 flex items-center justify-between gap-2 text-left border border-transparent">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-4 h-4 rounded-full shrink-0 shadow-xs ring-1 ring-white/50" style="background: linear-gradient(135deg, #9f1239 0%, #fb7185 100%);"></span>
+              <span id="palMenuNameAnatomyCrimson" class="text-[11.5px] min-[390px]:text-xs font-semibold leading-tight text-slate-900 dark:text-white">Akademik Bordo</span>
+            </div>
+            <span class="palette-check w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center opacity-0 transition-opacity shrink-0">✓</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Dokunsal Titreşim -->
+      <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="w-8 h-8 rounded-2xl ios-pill-control flex items-center justify-center text-slate-700 dark:text-slate-200 shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.5c-.6.8-.6 4.2 0 5M21 9.5c.6.8.6 4.2 0 5"></path>
+            </svg>
+          </span>
+          <div class="min-w-0">
+            <p id="lblSettingsHaptics" class="text-xs font-bold text-slate-900 dark:text-white">Dokunsal Titreşim</p>
+            <p id="descSettingsHaptics" class="text-[10.5px] text-slate-500 dark:text-slate-400">Dokunuşlarda hafif titreşim</p>
+          </div>
+        </div>
+        <button id="btnToggleHaptics" type="button" role="switch" aria-checked="true" aria-labelledby="lblSettingsHaptics" class="ios-toggle-switch shrink-0">
+          <span class="ios-toggle-knob"></span>
+        </button>
+      </div>
+    </div>
+  </div>
   <div id="headerSpacer" aria-hidden="true" style="height: calc(66px + env(safe-area-inset-top, 0px));"></div>
 
   <main id="appMain" class="max-w-2xl mx-auto px-2.5 min-[360px]:px-3.5 sm:px-4 pt-3.5 pb-6">
@@ -3952,7 +4088,7 @@
         </button>
       </div>
       <div class="ios-tab-card text-center pt-2 pb-1" data-tab-stagger="3">
-        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v3.2.12</span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400/60 dark:text-slate-500/60 select-none">v3.2.13</span>
       </div>
     </section>
 
@@ -4986,6 +5122,15 @@
           'anatomy-crimson': 'Sıcak yakut kırmızısı ve gül vurguları'
         },
         paletteChangedToast: (name) => `${name} paleti uygulandı`,
+        settingsTitle: 'Ayarlar',
+        settingsAppearanceLabel: 'Görünüm',
+        settingsLight: 'Açık',
+        settingsDark: 'Koyu',
+        settingsPaletteLabel: 'Tema Rengi',
+        settingsHapticsLabel: 'Dokunsal Titreşim',
+        settingsHapticsDesc: 'Dokunuşlarda hafif titreşim',
+        hapticsEnabledToast: 'Hafif titreşim açıldı',
+        hapticsDisabledToast: 'Titreşim kapatıldı',
         months: MONTHS_TR,
         monthsShort: MONTHS_SHORT_TR,
         days: DAYS_TR,
@@ -5266,6 +5411,15 @@
           'anatomy-crimson': 'Warm crimson ruby and subtle rose accents'
         },
         paletteChangedToast: (name) => `${name} palette applied`,
+        settingsTitle: 'Settings',
+        settingsAppearanceLabel: 'Appearance',
+        settingsLight: 'Light',
+        settingsDark: 'Dark',
+        settingsPaletteLabel: 'Theme Color',
+        settingsHapticsLabel: 'Haptic Feedback',
+        settingsHapticsDesc: 'Subtle vibration on taps',
+        hapticsEnabledToast: 'Haptic feedback enabled',
+        hapticsDisabledToast: 'Haptic feedback disabled',
         months: MONTHS_EN,
         monthsShort: MONTHS_SHORT_EN,
         days: DAYS_EN,
@@ -5313,6 +5467,7 @@
       modalSlotKey: null,
       darkMode: loadStore('darkMode', true),
       palette: loadStore('palette', 'medical-blue'),
+      hapticsEnabled: loadStore('hapticsEnabled', true) !== false,
       myMbuGroup: loadStore('myMbuGroup', ''),
       myLabGroup: loadStore('myLabGroup', ''),
       otherGroupMode: loadStore('otherGroupMode', 'dim') === 'hide' ? 'hide' : 'dim',
@@ -5633,8 +5788,30 @@
 
     const modalCloseTimers = new WeakMap();
 
+    let lastHapticAt = 0;
+    const HAPTIC_PATTERNS = {
+      tick: 5,
+      light: 7,
+      medium: 12,
+      success: [8, 36, 10],
+      error: [14, 34, 14],
+    };
+
+    function triggerHaptic(kind = 'light', force = false) {
+      if (!force && !state.hapticsEnabled) return;
+      const now = Date.now();
+      if (!force && now - lastHapticAt < 34) return;
+      lastHapticAt = now;
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        try {
+          const pattern = HAPTIC_PATTERNS[kind] ?? HAPTIC_PATTERNS.light;
+          navigator.vibrate(pattern);
+        } catch (e) {}
+      }
+    }
+
     function syncModalScrollLock() {
-      const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden)'));
+      const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden)'));
       document.documentElement.classList.toggle('modal-open', hasOpenModal);
     }
 
@@ -5838,6 +6015,8 @@
       const html = document.documentElement;
       const sun = document.getElementById('iconSun');
       const moon = document.getElementById('iconMoon');
+      const appearanceSun = document.getElementById('appearanceSunIcon');
+      const appearanceMoon = document.getElementById('appearanceMoonIcon');
 
       if (animate) triggerThemeTransitionWindow();
 
@@ -5850,6 +6029,11 @@
           void sun.offsetWidth;
           sun.classList.add('theme-icon-morph');
         }
+        if (animate && appearanceMoon) {
+          appearanceMoon.classList.remove('theme-icon-morph');
+          void appearanceMoon.offsetWidth;
+          appearanceMoon.classList.add('theme-icon-morph');
+        }
       } else {
         html.classList.remove('dark');
         if (sun) sun.classList.add('hidden');
@@ -5859,10 +6043,16 @@
           void moon.offsetWidth;
           moon.classList.add('theme-icon-morph');
         }
+        if (animate && appearanceSun) {
+          appearanceSun.classList.remove('theme-icon-morph');
+          void appearanceSun.offsetWidth;
+          appearanceSun.classList.add('theme-icon-morph');
+        }
       }
       syncSystemBarsThemeColor();
       saveStore('darkMode', state.darkMode);
       syncPaletteModalUI();
+      syncSettingsMenuUI(animate);
     }
 
     function applyPalette(paletteKey, animate = false) {
@@ -5887,6 +6077,69 @@
         const chk = btn.querySelector('.palette-check');
         if (chk) chk.style.opacity = active ? '1' : '0';
       });
+    }
+
+    function syncSettingsMenuUI(animate = false) {
+      const bar = document.getElementById('appearanceSegmentedBar');
+      const ind = document.getElementById('appearanceSegmentedIndicator');
+      const btnLight = document.getElementById('btnAppearanceLight');
+      const btnDark = document.getElementById('btnAppearanceDark');
+      const sunIcon = document.getElementById('appearanceSunIcon');
+      const moonIcon = document.getElementById('appearanceMoonIcon');
+      const activeText = 'py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-semibold text-slate-900 dark:text-white transition-colors';
+      const inactiveText = 'py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-medium text-slate-600 dark:text-slate-300 transition-colors';
+
+      if (btnLight && btnDark) {
+        btnLight.className = state.darkMode ? inactiveText : activeText;
+        btnDark.className = state.darkMode ? activeText : inactiveText;
+        btnLight.setAttribute('aria-pressed', String(!state.darkMode));
+        btnDark.setAttribute('aria-pressed', String(Boolean(state.darkMode)));
+        if (sunIcon) {
+          sunIcon.classList.toggle('text-amber-500', !state.darkMode);
+        }
+        if (moonIcon) {
+          moonIcon.classList.toggle('text-sky-400', Boolean(state.darkMode));
+        }
+        updateSegmentedIndicator(bar, ind, state.darkMode ? btnDark : btnLight, animate, '!rounded-xl');
+      }
+
+      const hapticsBtn = document.getElementById('btnToggleHaptics');
+      if (hapticsBtn) {
+        hapticsBtn.setAttribute('aria-checked', state.hapticsEnabled ? 'true' : 'false');
+      }
+      syncPaletteModalUI();
+    }
+
+    function openSettingsMenu() {
+      const modal = document.getElementById('settingsMenuModal');
+      const card = document.getElementById('settingsMenuCard');
+      const trigger = document.getElementById('btnOpenSettingsMenu');
+      if (!modal || !card) return;
+      if (trigger) {
+        trigger.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+      }
+      openAnimatedModal(modal, card, () => syncSettingsMenuUI(false));
+    }
+
+    function closeSettingsMenu() {
+      const modal = document.getElementById('settingsMenuModal');
+      const card = document.getElementById('settingsMenuCard');
+      const trigger = document.getElementById('btnOpenSettingsMenu');
+      if (trigger) {
+        trigger.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+      closeAnimatedModal(modal, card);
+    }
+
+    function toggleSettingsMenu() {
+      const modal = document.getElementById('settingsMenuModal');
+      if (!modal || modal.classList.contains('hidden')) {
+        openSettingsMenu();
+      } else {
+        closeSettingsMenu();
+      }
     }
 
     function openPaletteModal() {
@@ -6111,6 +6364,23 @@
       setPalTxt('palDescBiochemMint', loc.paletteDescs['biochem-mint']);
       setPalTxt('palNameAnatomyCrimson', loc.paletteNames['anatomy-crimson']);
       setPalTxt('palDescAnatomyCrimson', loc.paletteDescs['anatomy-crimson']);
+      setPalTxt('palMenuNameMedicalBlue', loc.paletteNames['medical-blue']);
+      setPalTxt('palMenuNameSurgicalNavy', loc.paletteNames['surgical-navy']);
+      setPalTxt('palMenuNameBiochemMint', loc.paletteNames['biochem-mint']);
+      setPalTxt('palMenuNameAnatomyCrimson', loc.paletteNames['anatomy-crimson']);
+      setPalTxt('settingsMenuTitle', loc.settingsTitle);
+      setPalTxt('lblSettingsAppearance', loc.settingsAppearanceLabel);
+      setPalTxt('lblAppearanceLight', loc.settingsLight);
+      setPalTxt('lblAppearanceDark', loc.settingsDark);
+      setPalTxt('lblSettingsPalette', loc.settingsPaletteLabel);
+      setPalTxt('lblSettingsHaptics', loc.settingsHapticsLabel);
+      setPalTxt('descSettingsHaptics', loc.settingsHapticsDesc);
+      const openSettingsBtn = document.getElementById('btnOpenSettingsMenu');
+      if (openSettingsBtn) {
+        openSettingsBtn.setAttribute('aria-label', loc.settingsTitle);
+        openSettingsBtn.setAttribute('title', loc.settingsTitle);
+      }
+      syncSettingsMenuUI(false);
       syncPaletteModalUI();
 
       const foodDatePickerBtn = document.getElementById('btnFoodDatePicker');
@@ -6434,6 +6704,7 @@
           if (hoverBtn.tab && hoverBtn.tab !== currentTargetTab) {
             currentTargetTab = hoverBtn.tab;
             setDockActiveVisual(currentTargetTab);
+            triggerHaptic('tick');
           }
         }
       }, { passive: true });
@@ -6467,6 +6738,7 @@
           const closestBtn = metrics && getClosestBtn(e.clientX);
           const clickedTab = (hit && hit.getAttribute('data-tab')) || (closestBtn && closestBtn.tab);
           if (clickedTab) {
+            if (clickedTab !== state.activeTab) triggerHaptic('tick');
             switchTab(clickedTab, true);
           }
         }
@@ -9252,6 +9524,7 @@
         void cardEl.offsetWidth;
         cardEl.classList.add('ios-shake');
       }
+      triggerHaptic('error');
     }
 
     function clearAuthError() {
@@ -11548,13 +11821,75 @@
         }
       })();
 
-      document.getElementById('btnToggleTheme').addEventListener('click', () => {
-        state.darkMode = !state.darkMode;
-        applyTheme(true);
+      // Global subtle micro-haptics on interactive taps (zero buzz on scroll/drag)
+      document.addEventListener('click', (e) => {
+        if (!state.hapticsEnabled) return;
+        const target = e.target && e.target.closest
+          ? e.target.closest('button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"]), [role="switch"], .ios-press, .group-chip, .food-cal-day, .palette-card, .week-day-btn, .food-day-btn, summary')
+          : null;
+        if (target) {
+          triggerHaptic('light');
+        }
       });
 
-      const btnOpenPaletteModal = document.getElementById('btnOpenPaletteModal');
-      if (btnOpenPaletteModal) btnOpenPaletteModal.addEventListener('click', openPaletteModal);
+      const btnOpenSettingsMenu = document.getElementById('btnOpenSettingsMenu');
+      if (btnOpenSettingsMenu) {
+        btnOpenSettingsMenu.addEventListener('click', () => {
+          triggerHaptic('tick');
+          toggleSettingsMenu();
+        });
+      }
+      const btnCloseSettingsMenu = document.getElementById('btnCloseSettingsMenu');
+      if (btnCloseSettingsMenu) {
+        btnCloseSettingsMenu.addEventListener('click', () => {
+          triggerHaptic('tick');
+          closeSettingsMenu();
+        });
+      }
+      const settingsMenuModalEl = document.getElementById('settingsMenuModal');
+      if (settingsMenuModalEl) {
+        settingsMenuModalEl.addEventListener('click', (e) => {
+          if (e.target && !e.target.closest('#settingsMenuCard')) {
+            closeSettingsMenu();
+          }
+        });
+      }
+
+      const btnAppearanceLight = document.getElementById('btnAppearanceLight');
+      const btnAppearanceDark = document.getElementById('btnAppearanceDark');
+      if (btnAppearanceLight) {
+        btnAppearanceLight.addEventListener('click', () => {
+          if (state.darkMode) {
+            state.darkMode = false;
+            triggerHaptic('medium');
+            applyTheme(true);
+          }
+        });
+      }
+      if (btnAppearanceDark) {
+        btnAppearanceDark.addEventListener('click', () => {
+          if (!state.darkMode) {
+            state.darkMode = true;
+            triggerHaptic('medium');
+            applyTheme(true);
+          }
+        });
+      }
+
+      const btnToggleHaptics = document.getElementById('btnToggleHaptics');
+      if (btnToggleHaptics) {
+        btnToggleHaptics.addEventListener('click', () => {
+          state.hapticsEnabled = !state.hapticsEnabled;
+          saveStore('hapticsEnabled', state.hapticsEnabled);
+          syncSettingsMenuUI(false);
+          if (state.hapticsEnabled) {
+            triggerHaptic('medium', true);
+          }
+          const loc = I18N[state.lang];
+          showToast(state.hapticsEnabled ? loc.hapticsEnabledToast : loc.hapticsDisabledToast);
+        });
+      }
+
       const btnClosePaletteModal = document.getElementById('btnClosePaletteModal');
       if (btnClosePaletteModal) btnClosePaletteModal.addEventListener('click', closePaletteModal);
       const paletteModalEl = document.getElementById('paletteModal');
@@ -11566,6 +11901,7 @@
       document.querySelectorAll('[data-palette-choice]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const choice = normalizePaletteKey(btn.getAttribute('data-palette-choice'));
+          triggerHaptic('medium');
           applyPalette(choice, true);
           const loc = I18N[state.lang];
           const pName = (loc.paletteNames && loc.paletteNames[choice]) || choice;
@@ -13041,6 +13377,8 @@
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           toggleAdminMatPicker(null, false);
+          closeSettingsMenu();
+          closePaletteModal();
           closeAdminModal();
           closeAuthModal();
           closeFoodPhotoModal();
