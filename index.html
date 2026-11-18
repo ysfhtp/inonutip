@@ -5788,13 +5788,54 @@
 
     const modalCloseTimers = new WeakMap();
 
+    const IS_IOS_HAPTIC_DEVICE = typeof navigator !== 'undefined' && (
+      /iPhone|iPad|iPod/i.test(navigator.userAgent || '') ||
+      (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1)
+    );
+
+    let iosHapticInputEl = null;
+    let iosHapticLabelEl = null;
+
+    function ensureIosHapticSwitch() {
+      if (iosHapticLabelEl && document.body && document.body.contains(iosHapticLabelEl)) {
+        return iosHapticLabelEl;
+      }
+      if (!document.body) return null;
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.id = 'iosHapticSwitchInput';
+      input.setAttribute('switch', '');
+      input.tabIndex = -1;
+      input.setAttribute('aria-hidden', 'true');
+      input.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0.001;pointer-events:none;margin:0;padding:0;border:0;z-index:-1;';
+
+      const label = document.createElement('label');
+      label.id = 'iosHapticSwitchLabel';
+      label.htmlFor = input.id;
+      label.setAttribute('aria-hidden', 'true');
+      label.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0.001;pointer-events:none;margin:0;padding:0;border:0;z-index:-1;';
+
+      document.body.appendChild(input);
+      document.body.appendChild(label);
+      iosHapticInputEl = input;
+      iosHapticLabelEl = label;
+      return label;
+    }
+
+    function triggerIosHapticPulse() {
+      try {
+        const label = ensureIosHapticSwitch();
+        if (label) label.click();
+      } catch (e) {}
+    }
+
     let lastHapticAt = 0;
     const HAPTIC_PATTERNS = {
-      tick: 5,
-      light: 7,
-      medium: 12,
-      success: [8, 36, 10],
-      error: [14, 34, 14],
+      tick: 18,
+      light: 24,
+      medium: 36,
+      success: [24, 48, 34],
+      error: [36, 48, 36],
     };
 
     function triggerHaptic(kind = 'light', force = false) {
@@ -5802,11 +5843,17 @@
       const now = Date.now();
       if (!force && now - lastHapticAt < 34) return;
       lastHapticAt = now;
+
       if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
         try {
           const pattern = HAPTIC_PATTERNS[kind] ?? HAPTIC_PATTERNS.light;
-          navigator.vibrate(pattern);
+          const ok = navigator.vibrate(pattern);
+          if (ok) return;
         } catch (e) {}
+      }
+
+      if (IS_IOS_HAPTIC_DEVICE) {
+        triggerIosHapticPulse();
       }
     }
 
@@ -6732,13 +6779,14 @@
         });
 
         if (didMove) {
+          triggerHaptic('tick');
           switchTab(currentTargetTab, true);
         } else if (e.type !== 'pointercancel') {
           const hit = (e.target && e.target.closest && e.target.closest('.nav-tab-btn'));
           const closestBtn = metrics && getClosestBtn(e.clientX);
           const clickedTab = (hit && hit.getAttribute('data-tab')) || (closestBtn && closestBtn.tab);
           if (clickedTab) {
-            if (clickedTab !== state.activeTab) triggerHaptic('tick');
+            triggerHaptic('tick');
             switchTab(clickedTab, true);
           }
         }
@@ -11821,16 +11869,24 @@
         }
       })();
 
-      // Global subtle micro-haptics on interactive taps (zero buzz on scroll/drag)
+      // Global subtle micro-haptics on interactive taps (capture phase so DOM re-renders don't cancel bubbling; zero buzz on scroll/drag)
       document.addEventListener('click', (e) => {
-        if (!state.hapticsEnabled) return;
-        const target = e.target && e.target.closest
-          ? e.target.closest('button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"]), [role="switch"], .ios-press, .group-chip, .food-cal-day, .palette-card, .week-day-btn, .food-day-btn, summary')
-          : null;
-        if (target) {
-          triggerHaptic('light');
+        if (!e.isTrusted || !state.hapticsEnabled) return;
+        const rawTarget = e.target;
+        if (!rawTarget || !rawTarget.closest) return;
+        if (rawTarget.id === 'iosHapticSwitchLabel' || rawTarget.id === 'iosHapticSwitchInput') return;
+        const target = rawTarget.closest('button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"]), [role="switch"], .ios-press, .group-chip, .food-cal-day, .palette-card, .week-day-btn, .food-day-btn, summary');
+        if (!target) return;
+        if (
+          target.id === 'btnToggleHaptics' ||
+          target.id === 'btnAppearanceLight' ||
+          target.id === 'btnAppearanceDark' ||
+          target.hasAttribute('data-palette-choice')
+        ) {
+          return;
         }
-      });
+        triggerHaptic('light');
+      }, true);
 
       const btnOpenSettingsMenu = document.getElementById('btnOpenSettingsMenu');
       if (btnOpenSettingsMenu) {
