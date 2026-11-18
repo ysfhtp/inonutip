@@ -1001,6 +1001,111 @@ async function startServer() {
     }
   });
 
+  // ==================== INONU CAFETERIA (YEMEKHANE) LIVE PROXY ====================
+  const foodMemoryCache = new Map<string, { data: unknown; ts: number }>();
+  const FOOD_CACHE_TTL_MS = 20 * 60 * 1000;
+
+  app.get('/api/food', async (req: Request, res: Response) => {
+    try {
+      const type = String(req.query.type || 'list').trim();
+      const rawDate = String(req.query.date || '').trim();
+      const dateIso = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : '';
+
+      if (type !== 'list' && type !== 'announcements') {
+        res.status(400).json({ ok: false, error: 'INVALID_TYPE' });
+        return;
+      }
+      if (type === 'list' && !dateIso) {
+        res.status(400).json({ ok: false, error: 'INVALID_DATE' });
+        return;
+      }
+
+      const cacheKey = type === 'list' ? `list_${dateIso}` : 'announcements';
+      const cached = foodMemoryCache.get(cacheKey);
+      if (cached && Date.now() - cached.ts < FOOD_CACHE_TTL_MS) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, max-age=600');
+        res.json(cached.data);
+        return;
+      }
+
+      const upstreamUrl =
+        type === 'list'
+          ? `https://panel.inonu.edu.tr/servlet/food?type=list&date=${encodeURIComponent(dateIso)}`
+          : 'https://panel.inonu.edu.tr/servlet/food?type=announcements';
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      try {
+        const upstreamResp = await fetch(upstreamUrl, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            Accept: 'application/json, text/plain, */*',
+          },
+        });
+        clearTimeout(timeoutId);
+
+        if (upstreamResp.ok) {
+          const json = await upstreamResp.json();
+          const safeData = Array.isArray(json) ? json : [];
+          foodMemoryCache.set(cacheKey, { data: safeData, ts: Date.now() });
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.setHeader('Cache-Control', 'public, max-age=600');
+          res.json(safeData);
+          return;
+        }
+      } catch (upstreamErr) {
+        clearTimeout(timeoutId);
+        if (cached) {
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.setHeader('Cache-Control', 'public, max-age=60');
+          res.json(cached.data);
+          return;
+        }
+      }
+
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.json([]);
+    } catch {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.json([]);
+    }
+  });
+
+  app.get('/api/food/image/*', async (req: Request, res: Response) => {
+    try {
+      const rawPath = req.params[0] || '';
+      const cleanPath = rawPath.replace(/^\/+/, '');
+      if (!cleanPath || cleanPath.includes('..') || !/^[a-zA-Z0-9_/.-]+$/.test(cleanPath)) {
+        res.status(400).send('Invalid image path');
+        return;
+      }
+      const upstreamUrl = `https://panel.inonu.edu.tr/servlet/image/${cleanPath}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      try {
+        const imgResp = await fetch(upstreamUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (imgResp.ok) {
+          const contentType = imgResp.headers.get('content-type') || 'image/jpeg';
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          const arrayBuffer = await imgResp.arrayBuffer();
+          res.send(Buffer.from(arrayBuffer));
+          return;
+        }
+      } catch {
+        clearTimeout(timeoutId);
+      }
+      res.status(404).send('Image not found');
+    } catch {
+      res.status(500).send('Image proxy error');
+    }
+  });
+
   // ==================== STUDENT LOGIN CHECK & PREFS ====================
   app.get('/api/student/login-status/:authHash', async (req: Request, res: Response) => {
     try {

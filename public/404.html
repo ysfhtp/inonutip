@@ -4193,12 +4193,75 @@
     }
 
     async function fetchFoodDay(iso) {
-      const res = await fetch(`${INONU_PANEL_BASE}servlet/food?type=list&date=${encodeURIComponent(iso)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const items = Array.isArray(data) ? data : [];
-      setFoodCacheForDate(iso, items);
-      return items;
+      // Tier 1: Same-origin API proxy (bypasses iframe sandboxing, CORS & network adblockers)
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 4500);
+        const res = await fetch(`/api/food?type=list&date=${encodeURIComponent(iso)}`, {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+        });
+        clearTimeout(tid);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setFoodCacheForDate(iso, data);
+            return data;
+          }
+        }
+      } catch (e) {
+        // Fall through to Tier 2
+      }
+
+      // Tier 2: Direct fetch from Inonu University panel
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 4500);
+        const res = await fetch(`${INONU_PANEL_BASE}servlet/food?type=list&date=${encodeURIComponent(iso)}`, {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+        });
+        clearTimeout(tid);
+        if (res.ok) {
+          const data = await res.json();
+          const items = Array.isArray(data) ? data : [];
+          setFoodCacheForDate(iso, items);
+          return items;
+        }
+      } catch (e) {
+        // Fall through to Tier 3
+      }
+
+      // Tier 3: CORS proxy mirrors for static hostings (GitHub Pages) or firewalled networks
+      const targetUrl = `${INONU_PANEL_BASE}servlet/food?type=list&date=${encodeURIComponent(iso)}`;
+      const proxies = [
+        `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+      ];
+
+      for (const pUrl of proxies) {
+        try {
+          const controller = new AbortController();
+          const tid = setTimeout(() => controller.abort(), 4500);
+          const res = await fetch(pUrl, { signal: controller.signal });
+          clearTimeout(tid);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              setFoodCacheForDate(iso, data);
+              return data;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // Tier 4: Local storage cached copy if network is completely offline
+      const cached = getFoodCacheMap()[iso];
+      if (cached && Array.isArray(cached.items)) {
+        return cached.items;
+      }
+
+      throw new Error(`FOOD_FETCH_FAILED_${iso}`);
     }
 
     function getFoodImageUrl(item) {
@@ -4450,6 +4513,11 @@
             // Unresized with inverted case
             const altExt = rawExt === extLower ? extLower.toUpperCase() : extLower;
             img.src = `${INONU_PANEL_BASE}servlet/image/${safePath}/${safeName}.${altExt}`;
+            return;
+          }
+          if (fallbackAttempt === 4) {
+            // Local same-origin proxy fallback
+            img.src = `/api/food/image/${safePath}/${safeName}_960x540.${rawExt}`;
             return;
           }
 
@@ -4818,9 +4886,20 @@
       if (foodAnnouncementsLoaded) return;
       foodAnnouncementsLoaded = true;
       try {
-        const res = await fetch(`${INONU_PANEL_BASE}servlet/food?type=announcements`);
-        if (res.ok) {
-          const data = await res.json();
+        let data = null;
+        try {
+          const res = await fetch('/api/food?type=announcements', { signal: AbortSignal.timeout(3500) });
+          if (res.ok) data = await res.json();
+        } catch (e) {}
+
+        if (!data || !Array.isArray(data)) {
+          try {
+            const res = await fetch(`${INONU_PANEL_BASE}servlet/food?type=announcements`, { signal: AbortSignal.timeout(3500) });
+            if (res.ok) data = await res.json();
+          } catch (e) {}
+        }
+
+        if (Array.isArray(data) && data.length > 0) {
           renderFoodAnnouncements(data);
         }
       } catch (e) {}
@@ -4928,7 +5007,16 @@
         triggerFoodTransition();
 
         try {
-          const liveWeek = await Promise.all(weekdays.map((w) => fetchFoodDay(w.iso)));
+          const liveWeek = await Promise.all(
+            weekdays.map(async (w) => {
+              try {
+                return await fetchFoodDay(w.iso);
+              } catch (dayErr) {
+                const c = cache[w.iso];
+                return c && Array.isArray(c.items) ? c.items : [];
+              }
+            })
+          );
           if (seq === foodFetchSeq && state.foodDateISO === targetIso && state.foodViewMode === 'weekly') {
             if (!hasFullWeekCached || forceRefresh || JSON.stringify(cachedWeek) !== JSON.stringify(liveWeek)) {
               runWithStaggerSuppressed(() => renderFoodWeeklyItems(liveWeek, weekdays));
