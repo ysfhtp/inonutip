@@ -6,6 +6,7 @@ import {
   onSnapshot,
   setDoc,
   deleteDoc,
+  getDoc,
   getDocFromServer,
   Unsubscribe,
 } from 'firebase/firestore';
@@ -260,15 +261,25 @@ export function subscribeFirebaseStudentDirectory(
       doc(db, 'directory', 'students'),
       (snap) => {
         if (!snap.exists()) return;
-        const d = snap.data() as { payload?: string };
-        if (d && typeof d.payload === 'string') {
+        const d = snap.data() as {
+          payload?: string;
+          customStudents?: Record<string, unknown>;
+          studentDirectory?: Record<string, unknown>;
+        };
+        let customStudents = d.customStudents;
+        let studentDirectory = d.studentDirectory;
+        if (typeof d.payload === 'string') {
           try {
             const parsed = JSON.parse(d.payload) as {
               customStudents?: Record<string, unknown>;
               studentDirectory?: Record<string, unknown>;
             };
-            onChange(parsed);
+            if (parsed.customStudents) customStudents = parsed.customStudents;
+            if (parsed.studentDirectory) studentDirectory = parsed.studentDirectory;
           } catch {}
+        }
+        if (customStudents || studentDirectory) {
+          onChange({ customStudents, studentDirectory });
         }
       },
       (err) => {
@@ -278,6 +289,45 @@ export function subscribeFirebaseStudentDirectory(
   } catch (err) {
     handleFirestoreError(err, OperationType.GET, path);
     return () => {};
+  }
+}
+
+export async function fetchFirebaseStudentDirectory(): Promise<{
+  customStudents?: Record<string, unknown>;
+  studentDirectory?: Record<string, unknown>;
+  updatedAtMs?: number;
+} | null> {
+  if (!db || isFirebaseQuotaExceeded()) return null;
+  const path = 'directory/students';
+  try {
+    const snap = await getDoc(doc(db, 'directory', 'students'));
+    if (!snap.exists()) return null;
+    const d = snap.data() as {
+      payload?: string;
+      customStudents?: Record<string, unknown>;
+      studentDirectory?: Record<string, unknown>;
+      updatedAtMs?: number;
+    };
+    let customStudents = d.customStudents;
+    let studentDirectory = d.studentDirectory;
+    if (typeof d.payload === 'string') {
+      try {
+        const parsed = JSON.parse(d.payload) as {
+          customStudents?: Record<string, unknown>;
+          studentDirectory?: Record<string, unknown>;
+        };
+        if (parsed.customStudents) customStudents = parsed.customStudents;
+        if (parsed.studentDirectory) studentDirectory = parsed.studentDirectory;
+      } catch {}
+    }
+    return {
+      customStudents,
+      studentDirectory,
+      updatedAtMs: d.updatedAtMs || 0,
+    };
+  } catch (err) {
+    handleFirestoreError(err, OperationType.GET, path);
+    return null;
   }
 }
 

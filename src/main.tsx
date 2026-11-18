@@ -48,6 +48,10 @@ import {
   exportSiteDataJsonObject,
   isFirebaseQuotaExceeded,
   onFirebaseQuotaChange,
+  fetchFirebaseStudentDirectory,
+  saveFirebaseStudentDirectory,
+  subscribeFirebaseStudentDirectory,
+  initFirebaseDirectorySync,
 } from './cloudApi.ts';
 import {
   deriveAdminWriteSecret,
@@ -118,6 +122,10 @@ declare global {
       publishDataJsonToGitHub: typeof publishDataJsonToGitHub;
       isFirebaseQuotaExceeded: typeof isFirebaseQuotaExceeded;
       onFirebaseQuotaChange: typeof onFirebaseQuotaChange;
+      fetchFirebaseStudentDirectory: typeof fetchFirebaseStudentDirectory;
+      saveFirebaseStudentDirectory: typeof saveFirebaseStudentDirectory;
+      subscribeFirebaseStudentDirectory: typeof subscribeFirebaseStudentDirectory;
+      initFirebaseDirectorySync: typeof initFirebaseDirectorySync;
     };
   }
 }
@@ -177,6 +185,10 @@ window.__INONU_AUTH__ = {
   publishDataJsonToGitHub,
   isFirebaseQuotaExceeded,
   onFirebaseQuotaChange,
+  fetchFirebaseStudentDirectory,
+  saveFirebaseStudentDirectory,
+  subscribeFirebaseStudentDirectory,
+  initFirebaseDirectorySync,
 };
 window.dispatchEvent(new Event('inonu-auth-ready'));
 

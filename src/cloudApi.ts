@@ -36,12 +36,20 @@ import {
   deleteFirebaseAnnouncement,
   subscribeFirebaseStudentDirectory,
   saveFirebaseStudentDirectory,
+  fetchFirebaseStudentDirectory,
   isFirebaseQuotaExceeded,
   setFirebaseQuotaExceeded,
   onFirebaseQuotaChange,
 } from './firebaseSync.ts';
 
-export { isFirebaseQuotaExceeded, onFirebaseQuotaChange, setFirebaseQuotaExceeded };
+export {
+  isFirebaseQuotaExceeded,
+  onFirebaseQuotaChange,
+  setFirebaseQuotaExceeded,
+  subscribeFirebaseStudentDirectory,
+  saveFirebaseStudentDirectory,
+  fetchFirebaseStudentDirectory,
+};
 
 export type Unsubscribe = () => void;
 
@@ -266,6 +274,74 @@ function initCrossTabSync(): void {
     });
   } catch {
     // Ignore storage event listener errors
+  }
+
+  initFirebaseDirectorySync();
+}
+
+let firebaseDirUnsub: (() => void) | null = null;
+let firebaseDirSyncStarted = false;
+
+export function initFirebaseDirectorySync(): void {
+  if (firebaseDirSyncStarted || typeof window === 'undefined') return;
+  firebaseDirSyncStarted = true;
+  try {
+    firebaseDirUnsub = subscribeFirebaseStudentDirectory((data) => {
+      if (!data) return;
+      let changed = false;
+      const cMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+      const dMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+
+      if (data.customStudents && typeof data.customStudents === 'object') {
+        Object.entries(data.customStudents).forEach(([k, v]) => {
+          if (v && typeof v === 'object') {
+            const rawV = v as Record<string, unknown>;
+            const existing = cMap[k];
+            const localTs = Number(existing?.updated_at) || 0;
+            const remoteTs = Number(rawV.updated_at) || 0;
+            if (!existing || remoteTs >= localTs || existing.active !== rawV.active || existing.deleted !== rawV.deleted) {
+              cMap[k] = rawV;
+              changed = true;
+              emitLocalTopic('student_status', {
+                authHash: k,
+                active: rawV.active === 1 || rawV.active === true,
+                deleted: rawV.deleted === 1 || rawV.deleted === true,
+                source: 'firebase',
+              });
+            }
+          }
+        });
+      }
+
+      if (data.studentDirectory && typeof data.studentDirectory === 'object') {
+        Object.entries(data.studentDirectory).forEach(([k, v]) => {
+          if (v && typeof v === 'object') {
+            const rawV = v as Record<string, unknown>;
+            const existing = dMap[k];
+            const localTs = Number(existing?.updated_at) || 0;
+            const remoteTs = Number(rawV.updated_at) || 0;
+            if (!existing || remoteTs >= localTs || existing.active !== rawV.active || existing.deleted !== rawV.deleted) {
+              dMap[k] = rawV;
+              changed = true;
+              emitLocalTopic('student_status', {
+                authHash: k,
+                active: rawV.active === 1 || rawV.active === true,
+                deleted: rawV.deleted === 1 || rawV.deleted === true,
+                source: 'firebase',
+              });
+            }
+          }
+        });
+      }
+
+      if (changed) {
+        writeStaticJson('custom_students', cMap);
+        writeStaticJson('admin_dir', dMap);
+        bumpAppVersion();
+      }
+    });
+  } catch (err) {
+    console.warn('Firebase student directory sync init error:', err);
   }
 }
 
@@ -795,7 +871,17 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
       const remoteSig = JSON.stringify(remoteMap);
       nextSigs.customStudents = remoteSig;
       if (prevSigs.customStudents !== remoteSig || force) {
-        writeStaticJson('custom_students', remoteMap);
+        const localCurrent = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+        const merged: Record<string, Record<string, unknown>> = { ...remoteMap };
+        Object.entries(localCurrent).forEach(([k, localRec]) => {
+          const remoteRec = merged[k];
+          const localTs = Number(localRec?.updated_at) || 0;
+          const remoteTs = Number(remoteRec?.updated_at) || 0;
+          if (localTs > remoteTs) {
+            merged[k] = localRec;
+          }
+        });
+        writeStaticJson('custom_students', merged);
         studentChanged = true;
       }
     }
@@ -805,7 +891,17 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
       const remoteSig = JSON.stringify(remoteMap);
       nextSigs.studentDirectory = remoteSig;
       if (prevSigs.studentDirectory !== remoteSig || force) {
-        writeStaticJson('admin_dir', remoteMap);
+        const localCurrent = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+        const merged: Record<string, Record<string, unknown>> = { ...remoteMap };
+        Object.entries(localCurrent).forEach(([k, localRec]) => {
+          const remoteRec = merged[k];
+          const localTs = Number(localRec?.updated_at) || 0;
+          const remoteTs = Number(remoteRec?.updated_at) || 0;
+          if (localTs > remoteTs) {
+            merged[k] = localRec;
+          }
+        });
+        writeStaticJson('admin_dir', merged);
         studentChanged = true;
       }
     }
@@ -1409,10 +1505,58 @@ export async function checkStudentLoginStatus(rawSid: string): Promise<StudentLo
   const allowlistMatch = verifyStudentId(sid);
   const authHash = hashStudentId(sid);
 
-  const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
-  const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+  // 1. Primary tier: Sync freshest student directory from Firebase Firestore if available
+  if (!isFirebaseQuotaExceeded()) {
+    try {
+      const fbData = await fetchFirebaseStudentDirectory();
+      if (fbData) {
+        let changed = false;
+        const cMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+        const dMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+        if (fbData.customStudents && typeof fbData.customStudents === 'object') {
+          Object.assign(cMap, fbData.customStudents);
+          changed = true;
+        }
+        if (fbData.studentDirectory && typeof fbData.studentDirectory === 'object') {
+          Object.assign(dMap, fbData.studentDirectory);
+          changed = true;
+        }
+        if (changed) {
+          writeStaticJson('custom_students', cMap);
+          writeStaticJson('admin_dir', dMap);
+        }
+      }
+    } catch {
+      // Graceful fallback to server / static store
+    }
+  }
+
+  // 2. Query server backend if online
+  let customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+  let dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
   let custom: Record<string, unknown> | null = customMap[authHash] || null;
   let directory: Record<string, unknown> | null = dirMap[authHash] || null;
+
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
+      if (resp.ok) {
+        const json = (await resp.json()) as ServerStudentStatusResponse;
+        if (json.custom) {
+          custom = json.custom as Record<string, unknown>;
+          customMap[authHash] = { ...(customMap[authHash] || {}), ...custom };
+          writeStaticJson('custom_students', customMap);
+        }
+        if (json.directory) {
+          directory = json.directory as Record<string, unknown>;
+          dirMap[authHash] = { ...(dirMap[authHash] || {}), ...directory };
+          writeStaticJson('admin_dir', dirMap);
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }
 
   if (allowlistMatch) {
     const isCustomDeleted = custom && (custom.deleted === 1 || custom.deleted === true);
@@ -1449,22 +1593,7 @@ export async function checkStudentLoginStatus(rawSid: string): Promise<StudentLo
     };
   }
 
-  let loadedFromServer = false;
-  if (await isApiBackendOnline()) {
-    try {
-      const resp = await fetch(`/api/student/login-status/${encodeURIComponent(authHash)}`, { cache: 'no-store' });
-      if (resp.ok) {
-        const json = (await resp.json()) as ServerStudentStatusResponse;
-        custom = (json.custom as Record<string, unknown> | null) ?? null;
-        directory = (json.directory as Record<string, unknown> | null) ?? null;
-        loadedFromServer = true;
-      }
-    } catch {
-      // Fallback
-    }
-  }
-
-  if (!loadedFromServer) {
+  if (!custom && !directory) {
     await syncStaticStoreFromDataJson();
     const cMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
     const dMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
@@ -1556,6 +1685,7 @@ export async function checkStudentSessionActive(authHash: string): Promise<Stude
 }
 
 export function subscribeStudentAccountStatus(authHash: string, onChange: (status: StudentAccountStatus) => void): Unsubscribe {
+  initFirebaseDirectorySync();
   void checkStudentSessionActive(authHash).then((st) => {
     if (st === 'inactive' || st === 'deleted') {
       onChange(st);
@@ -2501,6 +2631,7 @@ export async function addOrUpdateCustomStudent(
   writeStaticJson('custom_students', customMap);
   writeStaticJson('admin_dir', dirMap);
   writeStaticJson('student_prefs', prefsMap);
+  void saveFirebaseStudentDirectory(customMap, dirMap);
 
   if (await isApiBackendOnline()) {
     const resp = await fetch('/api/admin/students', {
@@ -2651,6 +2782,7 @@ export async function deleteCustomStudent(
   }
   writeStaticJson('custom_students', customMap);
   writeStaticJson('admin_dir', dirMap);
+  void saveFirebaseStudentDirectory(customMap, dirMap);
 
   if (await isApiBackendOnline()) {
     try {
@@ -2689,6 +2821,29 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
   const cloudKey = await deriveCloudDocId(sid);
   const last4 = sid.slice(-4);
   const allowMatch = verifyStudentId(sid);
+
+  if (!isFirebaseQuotaExceeded()) {
+    try {
+      const fbData = await fetchFirebaseStudentDirectory();
+      if (fbData) {
+        let changed = false;
+        const cMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+        const dMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+        if (fbData.customStudents && typeof fbData.customStudents === 'object') {
+          Object.assign(cMap, fbData.customStudents);
+          changed = true;
+        }
+        if (fbData.studentDirectory && typeof fbData.studentDirectory === 'object') {
+          Object.assign(dMap, fbData.studentDirectory);
+          changed = true;
+        }
+        if (changed) {
+          writeStaticJson('custom_students', cMap);
+          writeStaticJson('admin_dir', dMap);
+        }
+      }
+    } catch {}
+  }
 
   if (!(await isApiBackendOnline())) {
     await syncStaticStoreFromDataJson();
@@ -2853,6 +3008,19 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
   }
 
   if (!loadedFromServer) {
+    if (!isFirebaseQuotaExceeded()) {
+      try {
+        const fbData = await fetchFirebaseStudentDirectory();
+        if (fbData) {
+          const cMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+          const dMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+          if (fbData.customStudents) Object.assign(cMap, fbData.customStudents);
+          if (fbData.studentDirectory) Object.assign(dMap, fbData.studentDirectory);
+          writeStaticJson('custom_students', cMap);
+          writeStaticJson('admin_dir', dMap);
+        }
+      } catch {}
+    }
     await syncStaticStoreFromDataJson();
     sec = getStaticSecurityConfig();
     wrappedRosterKey = sec.wrappedRosterKey;
@@ -3186,6 +3354,7 @@ export async function adminSaveStudentSettings(
   writeStaticJson('student_prefs', prefsMap);
   writeStaticJson('custom_students', customMap);
   writeStaticJson('admin_dir', dirMap);
+  void saveFirebaseStudentDirectory(customMap, dirMap);
 
   if (await isApiBackendOnline()) {
     const resp = await fetch('/api/admin/students/settings', {
