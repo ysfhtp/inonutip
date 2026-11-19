@@ -1214,6 +1214,7 @@ async function startServer() {
             lang: normLang(row.lang),
             authHash: HASH32_RE.test(row.authHash) ? row.authHash : undefined,
             last4: /^[0-9]{4}$/.test(row.last4) ? row.last4 : undefined,
+            updatedAtMs: Number(row.updatedAt) || 0,
           },
         });
         return;
@@ -1242,6 +1243,7 @@ async function startServer() {
             typeof row.last4 === 'string' && /^[0-9]{4}$/.test(row.last4)
               ? row.last4
               : undefined,
+          updatedAtMs: Number(row.updated_at) || 0,
         },
       });
     } catch {

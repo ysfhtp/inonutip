@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
-import { db } from './index.ts';
+import { db, withPgRetry } from './index.ts';
 import {
   adminConfig,
   adminStudentDirectory,
@@ -33,23 +33,42 @@ function wrapDbError(op: string, error: unknown): never {
   throw new Error('Database query failed. Please try again later.', { cause: error });
 }
 
-export async function getConfigJsonPg<T>(key: string): Promise<T | null> {
+async function runPg<T>(op: string, fn: () => Promise<T>): Promise<T> {
   try {
+    return await withPgRetry(fn);
+  } catch (error) {
+    wrapDbError(op, error);
+  }
+}
+
+const CONFIG_CACHE_TTL_MS = 5000;
+const configMemoryCache = new Map<string, { value: unknown; expiresAt: number }>();
+
+let defaultConfigsEnsured = false;
+let ensureDefaultConfigsPromise: Promise<void> | null = null;
+
+export async function getConfigJsonPg<T>(key: string): Promise<T | null> {
+  const cached = configMemoryCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value as T;
+  }
+  return runPg(`getConfigJsonPg:${key}`, async () => {
     const rows = await db.select().from(adminConfig).where(eq(adminConfig.key, key));
     const row = rows[0];
     if (!row || typeof row.value !== 'string') return null;
     try {
-      return JSON.parse(row.value) as T;
+      const parsed = JSON.parse(row.value) as T;
+      configMemoryCache.set(key, { value: parsed, expiresAt: Date.now() + CONFIG_CACHE_TTL_MS });
+      return parsed;
     } catch {
       return null;
     }
-  } catch (error) {
-    wrapDbError(`getConfigJsonPg:${key}`, error);
-  }
+  });
 }
 
 export async function setConfigJsonPg(key: string, value: unknown, updatedAtMs?: number): Promise<void> {
-  try {
+  configMemoryCache.delete(key);
+  await runPg(`setConfigJsonPg:${key}`, async () => {
     const now = updatedAtMs ?? Date.now();
     const serialized = JSON.stringify(value);
     await db
@@ -59,43 +78,50 @@ export async function setConfigJsonPg(key: string, value: unknown, updatedAtMs?:
         target: adminConfig.key,
         set: { value: serialized, updatedAt: now },
       });
-  } catch (error) {
-    wrapDbError(`setConfigJsonPg:${key}`, error);
-  }
+  });
+  configMemoryCache.set(key, { value, expiresAt: Date.now() + CONFIG_CACHE_TTL_MS });
 }
 
 export async function ensureDefaultConfigsPg(): Promise<void> {
-  try {
-    await db
-      .insert(adminConfig)
-      .values([
-        {
-          key: 'security',
-          value: JSON.stringify({
-            passwordHash: DEFAULT_ADMIN_PASSWORD_HASH,
-            proofDigestB64: DEFAULT_PROOF_DIGEST_B64,
-            updatedAtMs: 0,
-          } satisfies AdminSecurityConfig),
-          updatedAt: 0,
-        },
-        {
-          key: 'access',
-          value: JSON.stringify({
-            requireStudentLogin: false,
-            updatedAtMs: 0,
-          } satisfies SiteAccessConfig),
-          updatedAt: 0,
-        },
-      ])
-      .onConflictDoNothing();
-  } catch (error) {
-    wrapDbError('ensureDefaultConfigsPg', error);
+  if (defaultConfigsEnsured) return;
+  if (!ensureDefaultConfigsPromise) {
+    ensureDefaultConfigsPromise = runPg('ensureDefaultConfigsPg', async () => {
+      await db
+        .insert(adminConfig)
+        .values([
+          {
+            key: 'security',
+            value: JSON.stringify({
+              passwordHash: DEFAULT_ADMIN_PASSWORD_HASH,
+              proofDigestB64: DEFAULT_PROOF_DIGEST_B64,
+              updatedAtMs: 0,
+            } satisfies AdminSecurityConfig),
+            updatedAt: 0,
+          },
+          {
+            key: 'access',
+            value: JSON.stringify({
+              requireStudentLogin: false,
+              updatedAtMs: 0,
+            } satisfies SiteAccessConfig),
+            updatedAt: 0,
+          },
+        ])
+        .onConflictDoNothing();
+      defaultConfigsEnsured = true;
+    }).finally(() => {
+      ensureDefaultConfigsPromise = null;
+    });
   }
+  await ensureDefaultConfigsPromise;
 }
 
 export async function getSecurityConfigPg(): Promise<AdminSecurityConfig> {
-  await ensureDefaultConfigsPg();
-  const cfg = await getConfigJsonPg<AdminSecurityConfig>('security');
+  let cfg = await getConfigJsonPg<AdminSecurityConfig>('security');
+  if (!cfg) {
+    await ensureDefaultConfigsPg();
+    cfg = await getConfigJsonPg<AdminSecurityConfig>('security');
+  }
   return {
     passwordHash:
       cfg && typeof cfg.passwordHash === 'string' && /^[a-f0-9]{64}$/.test(cfg.passwordHash)
@@ -114,8 +140,11 @@ export async function getSecurityConfigPg(): Promise<AdminSecurityConfig> {
 }
 
 export async function getAccessConfigPg(): Promise<SiteAccessConfig> {
-  await ensureDefaultConfigsPg();
-  const cfg = await getConfigJsonPg<SiteAccessConfig>('access');
+  let cfg = await getConfigJsonPg<SiteAccessConfig>('access');
+  if (!cfg) {
+    await ensureDefaultConfigsPg();
+    cfg = await getConfigJsonPg<SiteAccessConfig>('access');
+  }
   return {
     requireStudentLogin: Boolean(cfg?.requireStudentLogin),
     updatedAtMs: Number(cfg?.updatedAtMs) || 0,
@@ -124,7 +153,7 @@ export async function getAccessConfigPg(): Promise<SiteAccessConfig> {
 
 // ==================== STUDENT LOGIN STATUS & PREFS ====================
 export async function getStudentLoginStatusPg(authHash: string) {
-  try {
+  return runPg('getStudentLoginStatusPg', async () => {
     const [customRows, dirRows] = await Promise.all([
       db.select().from(customStudents).where(eq(customStudents.authHash, authHash)),
       db.select().from(adminStudentDirectory).where(eq(adminStudentDirectory.authHash, authHash)),
@@ -133,18 +162,14 @@ export async function getStudentLoginStatusPg(authHash: string) {
       custom: customRows[0] ?? null,
       directory: dirRows[0] ?? null,
     };
-  } catch (error) {
-    wrapDbError('getStudentLoginStatusPg', error);
-  }
+  });
 }
 
 export async function getStudentPrefsPg(cloudKey: string) {
-  try {
+  return runPg('getStudentPrefsPg', async () => {
     const rows = await db.select().from(studentPrefs).where(eq(studentPrefs.cloudKey, cloudKey));
     return rows[0] ?? null;
-  } catch (error) {
-    wrapDbError('getStudentPrefsPg', error);
-  }
+  });
 }
 
 export async function upsertStudentPrefsPg(input: {
@@ -157,7 +182,7 @@ export async function upsertStudentPrefsPg(input: {
   lang: string;
   updatedAt: number;
 }): Promise<void> {
-  try {
+  await runPg('upsertStudentPrefsPg', async () => {
     await db
       .insert(studentPrefs)
       .values({
@@ -184,14 +209,12 @@ export async function upsertStudentPrefsPg(input: {
           updatedAt: input.updatedAt,
         },
       });
-  } catch (error) {
-    wrapDbError('upsertStudentPrefsPg', error);
-  }
+  });
 }
 
 // ==================== ANNOUNCEMENTS ====================
 export async function listAnnouncementsPg(onlyActive: boolean) {
-  try {
+  return runPg('listAnnouncementsPg', async () => {
     const whereClause = onlyActive
       ? and(eq(announcements.deleted, 0), eq(announcements.active, 1))
       : eq(announcements.deleted, 0);
@@ -201,9 +224,7 @@ export async function listAnnouncementsPg(onlyActive: boolean) {
       .from(announcements)
       .where(whereClause)
       .orderBy(desc(announcements.updatedAt), desc(announcements.createdAt));
-  } catch (error) {
-    wrapDbError('listAnnouncementsPg', error);
-  }
+  });
 }
 
 export async function saveAnnouncementPg(input: {
@@ -216,7 +237,7 @@ export async function saveAnnouncementPg(input: {
   targetProg: string;
   now: number;
 }) {
-  try {
+  return runPg('saveAnnouncementPg', async () => {
     const existingRows = await db
       .select({ createdAt: announcements.createdAt })
       .from(announcements)
@@ -252,33 +273,27 @@ export async function saveAnnouncementPg(input: {
       });
 
     return { createdAt, updatedAt: input.now };
-  } catch (error) {
-    wrapDbError('saveAnnouncementPg', error);
-  }
+  });
 }
 
 export async function deleteAnnouncementPg(id: string, now: number): Promise<void> {
-  try {
+  await runPg('deleteAnnouncementPg', async () => {
     await db
       .update(announcements)
       .set({ deleted: 1, active: 0, updatedAt: now })
       .where(eq(announcements.id, id));
-  } catch (error) {
-    wrapDbError('deleteAnnouncementPg', error);
-  }
+  });
 }
 
 // ==================== LESSON MATERIALS & CHUNKS ====================
 export async function listMaterialsPg() {
-  try {
+  return runPg('listMaterialsPg', async () => {
     return await db
       .select()
       .from(lessonMaterials)
       .where(eq(lessonMaterials.deleted, 0))
       .orderBy(asc(lessonMaterials.createdAt), asc(lessonMaterials.updatedAt));
-  } catch (error) {
-    wrapDbError('listMaterialsPg', error);
-  }
+  });
 }
 
 export async function saveMaterialPg(input: {
@@ -295,7 +310,7 @@ export async function saveMaterialPg(input: {
   fileSize: number;
   now: number;
 }) {
-  try {
+  return runPg('saveMaterialPg', async () => {
     const existingRows = await db
       .select({ createdAt: lessonMaterials.createdAt })
       .from(lessonMaterials)
@@ -339,13 +354,11 @@ export async function saveMaterialPg(input: {
       });
 
     return { createdAt, updatedAt: input.now };
-  } catch (error) {
-    wrapDbError('saveMaterialPg', error);
-  }
+  });
 }
 
 export async function deleteMaterialPg(id: string, now: number): Promise<{ pdfUrl: string }> {
-  try {
+  return runPg('deleteMaterialPg', async () => {
     const rows = await db
       .select({ pdfUrl: lessonMaterials.pdfUrl })
       .from(lessonMaterials)
@@ -355,9 +368,7 @@ export async function deleteMaterialPg(id: string, now: number): Promise<{ pdfUr
       .set({ deleted: 1, updatedAt: now })
       .where(eq(lessonMaterials.id, id));
     return { pdfUrl: rows[0]?.pdfUrl || '' };
-  } catch (error) {
-    wrapDbError('deleteMaterialPg', error);
-  }
+  });
 }
 
 export async function savePdfBufferToPg(
@@ -365,7 +376,7 @@ export async function savePdfBufferToPg(
   fileName: string,
   buf: Buffer,
 ): Promise<void> {
-  try {
+  await runPg('savePdfBufferToPg', async () => {
     const now = Date.now();
     const totalChunks = Math.max(1, Math.ceil(buf.length / PDF_CHUNK_BYTES));
     await db.transaction(async (tx) => {
@@ -385,15 +396,13 @@ export async function savePdfBufferToPg(
         });
       }
     });
-  } catch (error) {
-    wrapDbError('savePdfBufferToPg', error);
-  }
+  });
 }
 
 export async function loadPdfBufferFromPg(
   fileId: string,
 ): Promise<{ buffer: Buffer; fileName: string } | null> {
-  try {
+  return runPg('loadPdfBufferFromPg', async () => {
     const rows = await db
       .select()
       .from(lessonPdfChunks)
@@ -403,22 +412,18 @@ export async function loadPdfBufferFromPg(
     const buffers = rows.map((r) => Buffer.from(r.dataB64, 'base64'));
     const fileName = rows.find((r) => r.fileName)?.fileName || `${fileId}.pdf`;
     return { buffer: Buffer.concat(buffers), fileName };
-  } catch (error) {
-    wrapDbError('loadPdfBufferFromPg', error);
-  }
+  });
 }
 
 export async function deletePdfFromPg(fileId: string): Promise<void> {
-  try {
+  await runPg('deletePdfFromPg', async () => {
     await db.delete(lessonPdfChunks).where(eq(lessonPdfChunks.fileId, fileId));
-  } catch (error) {
-    wrapDbError('deletePdfFromPg', error);
-  }
+  });
 }
 
 // ==================== ADMIN STUDENT DIRECTORY ====================
 export async function loadAllAdminStudentsPg() {
-  try {
+  return runPg('loadAllAdminStudentsPg', async () => {
     const [directory, custom, prefs] = await Promise.all([
       db.select().from(adminStudentDirectory),
       db.select().from(customStudents),
@@ -465,13 +470,11 @@ export async function loadAllAdminStudentsPg() {
         updated_at: p.updatedAt,
       })),
     };
-  } catch (error) {
-    wrapDbError('loadAllAdminStudentsPg', error);
-  }
+  });
 }
 
 export async function lookupStudentForAdminPg(authHash: string, cloudKey: string) {
-  try {
+  return runPg('lookupStudentForAdminPg', async () => {
     const [dirRows, customRows, prefRows] = await Promise.all([
       db.select().from(adminStudentDirectory).where(eq(adminStudentDirectory.authHash, authHash)),
       db.select().from(customStudents).where(eq(customStudents.authHash, authHash)),
@@ -527,9 +530,7 @@ export async function lookupStudentForAdminPg(authHash: string, cloudKey: string
           }
         : null,
     };
-  } catch (error) {
-    wrapDbError('lookupStudentForAdminPg', error);
-  }
+  });
 }
 
 export async function saveAdminStudentPg(input: {
@@ -549,7 +550,7 @@ export async function saveAdminStudentPg(input: {
   rejectIfExists: boolean;
   builtInAllowlist: boolean;
 }): Promise<{ conflict: boolean }> {
-  try {
+  return runPg('saveAdminStudentPg', async () => {
     return await db.transaction(async (tx) => {
       const [existingCustomRows, existingDirRows] = await Promise.all([
         tx.select().from(customStudents).where(eq(customStudents.authHash, input.authHash)),
@@ -664,9 +665,7 @@ export async function saveAdminStudentPg(input: {
 
       return { conflict: false };
     });
-  } catch (error) {
-    wrapDbError('saveAdminStudentPg', error);
-  }
+  });
 }
 
 export async function deleteAdminStudentPg(input: {
@@ -683,7 +682,7 @@ export async function deleteAdminStudentPg(input: {
   source: string;
   now: number;
 }): Promise<void> {
-  try {
+  await runPg('deleteAdminStudentPg', async () => {
     await db.transaction(async (tx) => {
       await tx
         .insert(customStudents)
@@ -738,9 +737,7 @@ export async function deleteAdminStudentPg(input: {
           });
       }
     });
-  } catch (error) {
-    wrapDbError('deleteAdminStudentPg', error);
-  }
+  });
 }
 
 export async function saveAdminStudentSettingsPg(input: {
@@ -760,7 +757,7 @@ export async function saveAdminStudentSettingsPg(input: {
   source: string;
   now: number;
 }): Promise<void> {
-  try {
+  await runPg('saveAdminStudentSettingsPg', async () => {
     await db.transaction(async (tx) => {
       await tx
         .insert(studentPrefs)
@@ -856,14 +853,12 @@ export async function saveAdminStudentSettingsPg(input: {
           });
       }
     });
-  } catch (error) {
-    wrapDbError('saveAdminStudentSettingsPg', error);
-  }
+  });
 }
 
 // ==================== SUPABASE <-> CLOUD SQL MERGE HELPERS ====================
 export async function getAllAnnouncementsRawPg() {
-  try {
+  return runPg('getAllAnnouncementsRawPg', async () => {
     const rows = await db.select().from(announcements);
     return rows.map((r) => ({
       id: r.id,
@@ -877,13 +872,11 @@ export async function getAllAnnouncementsRawPg() {
       created_at: r.createdAt,
       updated_at: r.updatedAt,
     }));
-  } catch (error) {
-    wrapDbError('getAllAnnouncementsRawPg', error);
-  }
+  });
 }
 
 export async function getAllMaterialsRawPg() {
-  try {
+  return runPg('getAllMaterialsRawPg', async () => {
     const rows = await db.select().from(lessonMaterials);
     return rows.map((r) => ({
       id: r.id,
@@ -901,13 +894,11 @@ export async function getAllMaterialsRawPg() {
       created_at: r.createdAt,
       updated_at: r.updatedAt,
     }));
-  } catch (error) {
-    wrapDbError('getAllMaterialsRawPg', error);
-  }
+  });
 }
 
 export async function getMaterialStatsPg(): Promise<{ count: number; maxUpdatedAt: number }> {
-  try {
+  return runPg('getMaterialStatsPg', async () => {
     const rows = await db
       .select({
         count: sql<number>`count(*)::int`,
@@ -918,13 +909,11 @@ export async function getMaterialStatsPg(): Promise<{ count: number; maxUpdatedA
       count: Number(rows[0]?.count) || 0,
       maxUpdatedAt: Number(rows[0]?.maxUpdatedAt) || 0,
     };
-  } catch (error) {
-    wrapDbError('getMaterialStatsPg', error);
-  }
+  });
 }
 
 export async function getAnnouncementStatsPg(): Promise<{ count: number; maxUpdatedAt: number }> {
-  try {
+  return runPg('getAnnouncementStatsPg', async () => {
     const rows = await db
       .select({
         count: sql<number>`count(*)::int`,
@@ -935,13 +924,11 @@ export async function getAnnouncementStatsPg(): Promise<{ count: number; maxUpda
       count: Number(rows[0]?.count) || 0,
       maxUpdatedAt: Number(rows[0]?.maxUpdatedAt) || 0,
     };
-  } catch (error) {
-    wrapDbError('getAnnouncementStatsPg', error);
-  }
+  });
 }
 
 export async function getStudentMaxUpdatedAtPg(): Promise<{ customMax: number; dirMax: number }> {
-  try {
+  return runPg('getStudentMaxUpdatedAtPg', async () => {
     const [cRows, dRows] = await Promise.all([
       db.select({ mx: max(customStudents.updatedAt) }).from(customStudents),
       db.select({ mx: max(adminStudentDirectory.updatedAt) }).from(adminStudentDirectory),
@@ -950,13 +937,11 @@ export async function getStudentMaxUpdatedAtPg(): Promise<{ customMax: number; d
       customMax: Number(cRows[0]?.mx) || 0,
       dirMax: Number(dRows[0]?.mx) || 0,
     };
-  } catch (error) {
-    wrapDbError('getStudentMaxUpdatedAtPg', error);
-  }
+  });
 }
 
 export async function mergeRemoteMaterialsIntoPg(mats: Array<Record<string, unknown>>): Promise<boolean> {
-  try {
+  return runPg('mergeRemoteMaterialsIntoPg', async () => {
     const prev = await getMaterialStatsPg();
     for (const m of mats) {
       if (!m || typeof m.id !== 'string') continue;
@@ -1000,13 +985,11 @@ export async function mergeRemoteMaterialsIntoPg(mats: Array<Record<string, unkn
     }
     const next = await getMaterialStatsPg();
     return next.count !== prev.count || next.maxUpdatedAt > prev.maxUpdatedAt;
-  } catch (error) {
-    wrapDbError('mergeRemoteMaterialsIntoPg', error);
-  }
+  });
 }
 
 export async function mergeRemoteAnnouncementsIntoPg(anns: Array<Record<string, unknown>>): Promise<boolean> {
-  try {
+  return runPg('mergeRemoteAnnouncementsIntoPg', async () => {
     const prev = await getAnnouncementStatsPg();
     for (const a of anns) {
       if (!a || typeof a.id !== 'string') continue;
@@ -1041,9 +1024,7 @@ export async function mergeRemoteAnnouncementsIntoPg(anns: Array<Record<string, 
     }
     const next = await getAnnouncementStatsPg();
     return next.count !== prev.count || next.maxUpdatedAt > prev.maxUpdatedAt;
-  } catch (error) {
-    wrapDbError('mergeRemoteAnnouncementsIntoPg', error);
-  }
+  });
 }
 
 export async function mergeRemoteStudentsIntoPg(input: {
@@ -1053,9 +1034,9 @@ export async function mergeRemoteStudentsIntoPg(input: {
 }): Promise<Array<{ authHash: string; active: boolean; deleted: boolean }>> {
   const hash32Re = /^[a-f0-9]{32}$/;
   const hex64Re = /^[a-f0-9]{64}$/;
-  const studentsChanged: Array<{ authHash: string; active: boolean; deleted: boolean }> = [];
 
-  try {
+  return runPg('mergeRemoteStudentsIntoPg', async () => {
+    const studentsChanged: Array<{ authHash: string; active: boolean; deleted: boolean }> = [];
     const prevMax = await getStudentMaxUpdatedAtPg();
 
     if (Array.isArray(input.customs)) {
@@ -1185,7 +1166,5 @@ export async function mergeRemoteStudentsIntoPg(input: {
     }
 
     return studentsChanged;
-  } catch (error) {
-    wrapDbError('mergeRemoteStudentsIntoPg', error);
-  }
+  });
 }

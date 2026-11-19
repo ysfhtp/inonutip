@@ -9,6 +9,7 @@ import {
   checkStudentLoginStatus,
   checkStudentSessionActive,
   clearAdminWriteSecret,
+  clearStudentPrefsSessionSync,
   deleteAnnouncement,
   deleteCustomStudent,
   deleteLessonMaterial,
@@ -36,6 +37,7 @@ import {
   saveSiteAccessSettings,
   setAdminWriteSecret,
   subscribeAnnouncements,
+  subscribeCloudStudentPrefs,
   subscribeLessonMaterials,
   subscribeSiteAccessSettings,
   subscribeStudentAccountStatus,
@@ -93,6 +95,8 @@ declare global {
       saveSiteAccessSettings: typeof saveSiteAccessSettings;
       loadCloudStudentPrefs: typeof loadCloudStudentPrefs;
       saveCloudStudentPrefs: typeof saveCloudStudentPrefs;
+      subscribeCloudStudentPrefs: typeof subscribeCloudStudentPrefs;
+      clearStudentPrefsSessionSync: typeof clearStudentPrefsSessionSync;
       loadActiveAnnouncements: typeof loadActiveAnnouncements;
       subscribeAnnouncements: typeof subscribeAnnouncements;
       listAllAnnouncements: typeof listAllAnnouncements;
@@ -156,6 +160,8 @@ window.__INONU_AUTH__ = {
   saveSiteAccessSettings,
   loadCloudStudentPrefs,
   saveCloudStudentPrefs,
+  subscribeCloudStudentPrefs,
+  clearStudentPrefsSessionSync,
   loadActiveAnnouncements,
   subscribeAnnouncements,
   listAllAnnouncements,

@@ -78,6 +78,50 @@
         }
       },
       "required": ["updatedAtMs"]
+    },
+    "StudentPrefs": {
+      "title": "StudentPrefs",
+      "description": "Cross-device persisted student MBU/LAB group and language preferences",
+      "type": "object",
+      "properties": {
+        "cloudKey": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "maxLength": 64
+        },
+        "authHash": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "last4": {
+          "type": "string",
+          "maxLength": 4
+        },
+        "myMbuGroup": {
+          "type": "string",
+          "enum": ["", "I", "II", "III", "IV", "V"],
+          "maxLength": 4
+        },
+        "myLabGroup": {
+          "type": "string",
+          "enum": ["", "1", "2"],
+          "maxLength": 2
+        },
+        "otherGroupMode": {
+          "type": "string",
+          "enum": ["dim", "hide"],
+          "maxLength": 8
+        },
+        "lang": {
+          "type": "string",
+          "enum": ["", "tr", "en"],
+          "maxLength": 4
+        },
+        "updatedAtMs": {
+          "type": "number"
+        }
+      },
+      "required": ["cloudKey", "myMbuGroup", "myLabGroup", "otherGroupMode", "lang", "updatedAtMs"]
     }
   },
   "firestore": {
@@ -98,6 +142,12 @@
         "$ref": "#/entities/StudentDirectory"
       },
       "description": "Consolidated student directory"
+    },
+    "/studentPrefs/{cloudKey}": {
+      "schema": {
+        "$ref": "#/entities/StudentPrefs"
+      },
+      "description": "Per-student MBU/LAB group, other-group display mode, and language preferences synced across devices"
     }
   }
 }

@@ -19,6 +19,23 @@ service cloud.firestore {
       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    function isValidCloudKey(key) {
+      return key is string && key.size() == 64 && key.matches('^[a-f0-9]{64}$');
+    }
+
+    function isValidStudentPrefs(data, cloudKey) {
+      return data.keys().hasAll(['cloudKey', 'myMbuGroup', 'myLabGroup', 'otherGroupMode', 'lang', 'updatedAtMs']) &&
+        data.keys().hasOnly(['cloudKey', 'authHash', 'last4', 'myMbuGroup', 'myLabGroup', 'otherGroupMode', 'lang', 'updatedAtMs']) &&
+        data.cloudKey is string && data.cloudKey == cloudKey &&
+        (!('authHash' in data) || (data.authHash is string && data.authHash.size() <= 64 && (data.authHash == '' || data.authHash.matches('^[a-f0-9]{32,64}$')))) &&
+        (!('last4' in data) || (data.last4 is string && data.last4.size() <= 4 && (data.last4 == '' || data.last4.matches('^[0-9]{4}$')))) &&
+        data.myMbuGroup is string && data.myMbuGroup.size() <= 4 && data.myMbuGroup in ['', 'I', 'II', 'III', 'IV', 'V'] &&
+        data.myLabGroup is string && data.myLabGroup.size() <= 2 && data.myLabGroup in ['', '1', '2'] &&
+        data.otherGroupMode is string && data.otherGroupMode.size() <= 8 && data.otherGroupMode in ['dim', 'hide'] &&
+        data.lang is string && data.lang.size() <= 4 && data.lang in ['', 'tr', 'en'] &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
     // Startup connection validation
     match /test/{docId} {
       allow get: if true;
@@ -41,6 +58,17 @@ service cloud.firestore {
     match /directory/students {
       allow get, list: if true;
       allow write: if true;
+    }
+
+    // Cross-device student preferences (MBU/LAB groups, display mode, language)
+    match /studentPrefs/{cloudKey} {
+      allow get: if isValidCloudKey(cloudKey);
+      allow list: if false;
+      allow create: if isValidCloudKey(cloudKey) && isValidStudentPrefs(request.resource.data, cloudKey);
+      allow update: if isValidCloudKey(cloudKey) &&
+        isValidStudentPrefs(request.resource.data, cloudKey) &&
+        request.resource.data.cloudKey == resource.data.cloudKey &&
+        request.resource.data.updatedAtMs >= resource.data.updatedAtMs;
     }
   }
 }

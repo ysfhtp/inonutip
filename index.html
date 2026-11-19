@@ -9384,7 +9384,6 @@
       const session = getActiveAuthSession();
       const studentGroup = session ? session.group : state.myMbuGroup;
       const studentProg = session ? session.prog : state.lang;
-
       const visibleAnns = (activeAnnouncementsList || []).filter((ann) => {
         if (ann.targetGroup && ann.targetGroup !== studentGroup) return false;
         if (ann.targetProg && ann.targetProg !== studentProg) return false;
@@ -9676,20 +9675,56 @@
         myMbuGroup: typeof prefs.myMbuGroup === 'string' ? prefs.myMbuGroup : '',
         myLabGroup: typeof prefs.myLabGroup === 'string' ? prefs.myLabGroup : '',
         otherGroupMode: prefs.otherGroupMode === 'hide' ? 'hide' : 'dim',
-        lang: prefs.lang === 'en' ? 'en' : prefs.lang === 'tr' ? 'tr' : ''
+        lang: prefs.lang === 'en' ? 'en' : prefs.lang === 'tr' ? 'tr' : '',
+        updatedAtMs: typeof prefs.updatedAtMs === 'number' && prefs.updatedAtMs > 0 ? prefs.updatedAtMs : Date.now()
       };
       saveStore('studentPrefs', next);
+    }
+
+    let lastLocalPrefsWriteAt = 0;
+    let studentPrefsCloudUnsub = null;
+    let studentPrefsWatchedKey = '';
+
+    function stopStudentPrefsCloudSubscription() {
+      if (typeof studentPrefsCloudUnsub === 'function') {
+        try { studentPrefsCloudUnsub(); } catch (e) {}
+      }
+      studentPrefsCloudUnsub = null;
+      studentPrefsWatchedKey = '';
+    }
+
+    function syncStudentPrefsCloudSubscription() {
+      const session = getActiveAuthSession();
+      const api = window.__INONU_AUTH__;
+      if (!session || !session.hash || !session.cloudKey || !api || typeof api.subscribeCloudStudentPrefs !== 'function') {
+        if (!session) stopStudentPrefsCloudSubscription();
+        return;
+      }
+      if (studentPrefsWatchedKey === session.cloudKey && studentPrefsCloudUnsub) return;
+      stopStudentPrefsCloudSubscription();
+      studentPrefsWatchedKey = session.cloudKey;
+      studentPrefsCloudUnsub = api.subscribeCloudStudentPrefs(session.cloudKey, (cloudPrefs) => {
+        if (!cloudPrefs || typeof cloudPrefs !== 'object') return;
+        const incomingTs = Number(cloudPrefs.updatedAtMs) || 0;
+        if (lastLocalPrefsWriteAt > 0 && Date.now() - lastLocalPrefsWriteAt < 1200 && incomingTs < lastLocalPrefsWriteAt) {
+          return;
+        }
+        applySyncedCloudPrefs(session.hash, cloudPrefs);
+      });
     }
 
     function saveCurrentStudentPrefs(syncToCloud = true) {
       const session = getActiveAuthSession();
       if (!session || !session.hash) return;
+      const nowTs = Date.now();
+      lastLocalPrefsWriteAt = nowTs;
       const payload = {
         myMbuGroup: state.myMbuGroup || '',
         myLabGroup: state.myLabGroup || '',
         otherGroupMode: state.otherGroupMode === 'hide' ? 'hide' : 'dim',
         lang: state.lang === 'en' ? 'en' : 'tr',
-        last4: session.last4 || ''
+        last4: session.last4 || '',
+        updatedAtMs: nowTs
       };
       saveLocalStudentPrefs(session.hash, payload);
       if (syncToCloud && session.cloudKey) {
@@ -9708,6 +9743,7 @@
       const nextLab = typeof cloudPrefs.myLabGroup === 'string' ? cloudPrefs.myLabGroup : '';
       const nextMode = cloudPrefs.otherGroupMode === 'hide' ? 'hide' : 'dim';
       const nextLang = cloudPrefs.lang === 'tr' || cloudPrefs.lang === 'en' ? cloudPrefs.lang : '';
+      const incomingTs = Number(cloudPrefs.updatedAtMs) || Date.now();
       const changed =
         state.myMbuGroup !== nextMbu ||
         state.myLabGroup !== nextLab ||
@@ -9717,7 +9753,8 @@
         myMbuGroup: nextMbu,
         myLabGroup: nextLab,
         otherGroupMode: nextMode,
-        lang: nextLang || state.lang
+        lang: nextLang || state.lang,
+        updatedAtMs: incomingTs
       });
       if (!changed) return false;
       state.myMbuGroup = nextMbu;
@@ -9735,20 +9772,29 @@
     }
 
     let cloudStartupSyncDoneForHash = '';
-    async function syncActiveStudentCloudPrefs() {
+    let cloudStartupSyncInFlight = null;
+    async function syncActiveStudentCloudPrefs(force = false) {
       const session = getActiveAuthSession();
       const api = window.__INONU_AUTH__;
       if (!session || !session.hash || !session.cloudKey || !api || typeof api.loadCloudStudentPrefs !== 'function') return;
-      if (cloudStartupSyncDoneForHash === session.hash) return;
-      cloudStartupSyncDoneForHash = session.hash;
-      try {
-        const cloudPrefs = await api.loadCloudStudentPrefs(session.hash, session.cloudKey);
-        if (cloudPrefs) {
-          applySyncedCloudPrefs(session.hash, cloudPrefs);
-        } else {
-          saveCurrentStudentPrefs(true);
+      if (!force && cloudStartupSyncDoneForHash === session.hash) return;
+      if (cloudStartupSyncInFlight) return cloudStartupSyncInFlight;
+      cloudStartupSyncInFlight = (async () => {
+        try {
+          const cloudPrefs = await api.loadCloudStudentPrefs(session.hash, session.cloudKey, { force: Boolean(force) });
+          cloudStartupSyncDoneForHash = session.hash;
+          if (cloudPrefs && typeof cloudPrefs === 'object') {
+            applySyncedCloudPrefs(session.hash, cloudPrefs);
+          } else if (cloudPrefs === null) {
+            saveCurrentStudentPrefs(true);
+          }
+        } catch (e) {
+          // Leave cloudStartupSyncDoneForHash unset if offline/unreachable so online recovery can run once
+        } finally {
+          cloudStartupSyncInFlight = null;
         }
-      } catch (e) {}
+      })();
+      return cloudStartupSyncInFlight;
     }
 
     function openAuthModal(byLock = false) {
@@ -9850,6 +9896,7 @@
       if (locked) {
         authGateOpenedByLock = true;
         closeAdminModal();
+        closeSettingsMenu();
         closeGroupModal();
         closeNoteModal();
         closeLessonPdfsModal();
@@ -9974,12 +10021,17 @@
     }
 
     function signOutStudent(customToastMsg) {
+      const prevSession = getActiveAuthSession();
       stopActiveStudentAccountWatch();
+      stopStudentPrefsCloudSubscription();
       cloudStartupSyncDoneForHash = '';
       try {
         localStorage.removeItem(STORE_KEY + 'authSession');
       } catch (e) {}
       const api = window.__INONU_AUTH__;
+      if (api && typeof api.clearStudentPrefsSessionSync === 'function') {
+        api.clearStudentPrefsSessionSync(prevSession && prevSession.cloudKey ? prevSession.cloudKey : '');
+      }
       if (api && typeof api.clearAdminWriteSecret === 'function') {
         api.clearAdminWriteSecret();
       }
@@ -12142,11 +12194,11 @@
             let cloudPromise = null;
             let resolvedCloudPrefs = undefined;
             if (cloudKey && typeof api.loadCloudStudentPrefs === 'function') {
-              cloudPromise = api.loadCloudStudentPrefs(match.hash, cloudKey).catch(() => null);
+              cloudPromise = api.loadCloudStudentPrefs(match.hash, cloudKey, { force: true }).catch(() => undefined);
               try {
                 resolvedCloudPrefs = await Promise.race([
                   cloudPromise,
-                  new Promise((resolve) => setTimeout(() => resolve(undefined), 1500))
+                  new Promise((resolve) => setTimeout(() => resolve(undefined), 3000))
                 ]);
                 if (resolvedCloudPrefs && typeof resolvedCloudPrefs === 'object') {
                   state.myMbuGroup = typeof resolvedCloudPrefs.myMbuGroup === 'string'
@@ -12164,7 +12216,8 @@
                     myMbuGroup: state.myMbuGroup,
                     myLabGroup: state.myLabGroup,
                     otherGroupMode: state.otherGroupMode,
-                    lang: state.lang
+                    lang: state.lang,
+                    updatedAtMs: Number(resolvedCloudPrefs.updatedAtMs) || Date.now()
                   });
                 }
               } catch (err) {}
@@ -12191,7 +12244,7 @@
               saveCurrentStudentPrefs(true);
             } else if (resolvedCloudPrefs === undefined && cloudPromise) {
               cloudPromise.then((lateCloudPrefs) => {
-                if (lateCloudPrefs) {
+                if (lateCloudPrefs && typeof lateCloudPrefs === 'object') {
                   applySyncedCloudPrefs(match.hash, lateCloudPrefs);
                 } else if (lateCloudPrefs === null) {
                   saveCurrentStudentPrefs(true);
@@ -12206,6 +12259,7 @@
             closeAuthModal(true);
             syncSiteAccessGateUI();
             syncActiveStudentAccountWatch();
+            syncStudentPrefsCloudSubscription();
             refreshAllVisibleTabsAfterAuthChange();
             void refreshDailyAnnouncements(true);
             void refreshLessonMaterials(true);
@@ -13480,6 +13534,7 @@
       window.addEventListener('online', () => {
         showToast(t('onlineToast'));
         void verifyActiveStudentSessionNow();
+        void syncActiveStudentCloudPrefs(false);
       });
       window.addEventListener('offline', () => {
         showToast(t('offlineToast'));
@@ -13606,6 +13661,7 @@
         }
         updateAuthSessionSummary();
         syncActiveStudentAccountWatch();
+        syncStudentPrefsCloudSubscription();
         syncActiveStudentCloudPrefs();
         refreshDailyAnnouncements(true);
         void refreshLessonMaterials(true);

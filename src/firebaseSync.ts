@@ -68,7 +68,17 @@ export function isFirebaseQuotaExceeded(): boolean {
   try {
     if (typeof localStorage !== 'undefined') {
       const cached = localStorage.getItem('inonu_firebase_quota_exceeded');
-      if (cached === 'true') return true;
+      if (cached === 'true') {
+        const atStr = localStorage.getItem('inonu_firebase_quota_exceeded_at');
+        const atMs = Number(atStr) || 0;
+        if (atMs > 0 && Date.now() - atMs > 6 * 60 * 60 * 1000) {
+          localStorage.removeItem('inonu_firebase_quota_exceeded');
+          localStorage.removeItem('inonu_firebase_quota_exceeded_at');
+          firebaseQuotaExceeded = false;
+          return false;
+        }
+        return true;
+      }
     }
   } catch {}
   return firebaseQuotaExceeded;
@@ -80,8 +90,10 @@ export function setFirebaseQuotaExceeded(exceeded: boolean): void {
     if (typeof localStorage !== 'undefined') {
       if (exceeded) {
         localStorage.setItem('inonu_firebase_quota_exceeded', 'true');
+        localStorage.setItem('inonu_firebase_quota_exceeded_at', String(Date.now()));
       } else {
         localStorage.removeItem('inonu_firebase_quota_exceeded');
+        localStorage.removeItem('inonu_firebase_quota_exceeded_at');
       }
     }
   } catch {}
@@ -128,6 +140,9 @@ export async function testConnection(): Promise<boolean> {
   }
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
+    if (isFirebaseQuotaExceeded()) {
+      setFirebaseQuotaExceeded(false);
+    }
     return true;
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
@@ -137,6 +152,9 @@ export async function testConnection(): Promise<boolean> {
     if (isFirestoreQuotaError(error)) {
       setFirebaseQuotaExceeded(true);
       return false;
+    }
+    if (isFirebaseQuotaExceeded()) {
+      setFirebaseQuotaExceeded(false);
     }
     return true;
   }
@@ -347,5 +365,144 @@ export async function saveFirebaseStudentDirectory(
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
     return false;
+  }
+}
+
+export interface FirebaseStudentPrefsRecord {
+  cloudKey: string;
+  authHash?: string;
+  last4?: string;
+  myMbuGroup: string;
+  myLabGroup: string;
+  otherGroupMode: string;
+  lang: string;
+  updatedAtMs: number;
+}
+
+const VALID_CLOUD_KEY_RE = /^[a-f0-9]{64}$/;
+const inFlightStudentPrefsReads = new Map<
+  string,
+  Promise<{ ok: true; record: FirebaseStudentPrefsRecord | null } | { ok: false }>
+>();
+
+export async function fetchFirebaseStudentPrefs(
+  cloudKey: string,
+): Promise<{ ok: true; record: FirebaseStudentPrefsRecord | null } | { ok: false }> {
+  const cleanKey = String(cloudKey || '').trim().toLowerCase();
+  if (!db || isFirebaseQuotaExceeded() || !VALID_CLOUD_KEY_RE.test(cleanKey)) {
+    return { ok: false };
+  }
+  const existing = inFlightStudentPrefsReads.get(cleanKey);
+  if (existing) {
+    return existing;
+  }
+  const path = `studentPrefs/${cleanKey}`;
+  const req = (async (): Promise<
+    { ok: true; record: FirebaseStudentPrefsRecord | null } | { ok: false }
+  > => {
+    try {
+      let snap;
+      try {
+        snap = await getDocFromServer(doc(db, 'studentPrefs', cleanKey));
+      } catch {
+        snap = await getDoc(doc(db, 'studentPrefs', cleanKey));
+      }
+      if (!snap.exists()) {
+        return { ok: true, record: null };
+      }
+      const d = snap.data() as Record<string, unknown>;
+      return {
+        ok: true,
+        record: {
+          cloudKey: cleanKey,
+          authHash: typeof d.authHash === 'string' ? d.authHash : '',
+          last4: typeof d.last4 === 'string' ? d.last4 : '',
+          myMbuGroup: typeof d.myMbuGroup === 'string' ? d.myMbuGroup : '',
+          myLabGroup: typeof d.myLabGroup === 'string' ? d.myLabGroup : '',
+          otherGroupMode: d.otherGroupMode === 'hide' ? 'hide' : 'dim',
+          lang: d.lang === 'en' ? 'en' : d.lang === 'tr' ? 'tr' : '',
+          updatedAtMs: Number(d.updatedAtMs) || 0,
+        },
+      };
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, path);
+      return { ok: false };
+    } finally {
+      inFlightStudentPrefsReads.delete(cleanKey);
+    }
+  })();
+  inFlightStudentPrefsReads.set(cleanKey, req);
+  return req;
+}
+
+export async function saveFirebaseStudentPrefs(
+  cloudKey: string,
+  prefs: FirebaseStudentPrefsRecord,
+): Promise<boolean> {
+  const cleanKey = String(cloudKey || '').trim().toLowerCase();
+  if (!db || isFirebaseQuotaExceeded() || !VALID_CLOUD_KEY_RE.test(cleanKey)) {
+    return false;
+  }
+  const path = `studentPrefs/${cleanKey}`;
+  const cleanAuthHash =
+    typeof prefs.authHash === 'string' && /^[a-f0-9]{32,64}$/.test(prefs.authHash.trim().toLowerCase())
+      ? prefs.authHash.trim().toLowerCase()
+      : '';
+  const cleanLast4 =
+    typeof prefs.last4 === 'string' && /^[0-9]{4}$/.test(prefs.last4.trim())
+      ? prefs.last4.trim()
+      : '';
+  const payload: FirebaseStudentPrefsRecord = {
+    cloudKey: cleanKey,
+    authHash: cleanAuthHash,
+    last4: cleanLast4,
+    myMbuGroup: ['', 'I', 'II', 'III', 'IV', 'V'].includes(prefs.myMbuGroup) ? prefs.myMbuGroup : '',
+    myLabGroup: ['', '1', '2'].includes(prefs.myLabGroup) ? prefs.myLabGroup : '',
+    otherGroupMode: prefs.otherGroupMode === 'hide' ? 'hide' : 'dim',
+    lang: prefs.lang === 'en' ? 'en' : prefs.lang === 'tr' ? 'tr' : '',
+    updatedAtMs: Math.max(1, Number(prefs.updatedAtMs) || Date.now()),
+  };
+  try {
+    await setDoc(doc(db, 'studentPrefs', cleanKey), payload);
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, path);
+    return false;
+  }
+}
+
+export function subscribeFirebaseStudentPrefs(
+  cloudKey: string,
+  onChange: (record: FirebaseStudentPrefsRecord) => void,
+): Unsubscribe {
+  const cleanKey = String(cloudKey || '').trim().toLowerCase();
+  if (!db || isFirebaseQuotaExceeded() || !VALID_CLOUD_KEY_RE.test(cleanKey)) {
+    return () => {};
+  }
+  const path = `studentPrefs/${cleanKey}`;
+  try {
+    return onSnapshot(
+      doc(db, 'studentPrefs', cleanKey),
+      (snap) => {
+        if (!snap.exists()) return;
+        const d = snap.data() as Record<string, unknown>;
+        onChange({
+          cloudKey: cleanKey,
+          authHash: typeof d.authHash === 'string' ? d.authHash : '',
+          last4: typeof d.last4 === 'string' ? d.last4 : '',
+          myMbuGroup: typeof d.myMbuGroup === 'string' ? d.myMbuGroup : '',
+          myLabGroup: typeof d.myLabGroup === 'string' ? d.myLabGroup : '',
+          otherGroupMode: d.otherGroupMode === 'hide' ? 'hide' : 'dim',
+          lang: d.lang === 'en' ? 'en' : d.lang === 'tr' ? 'tr' : '',
+          updatedAtMs: Number(d.updatedAtMs) || 0,
+        });
+      },
+      (err) => {
+        handleFirestoreError(err, OperationType.GET, path);
+      },
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.GET, path);
+    return () => {};
   }
 }

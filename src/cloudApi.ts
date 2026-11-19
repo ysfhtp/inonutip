@@ -37,6 +37,8 @@ import {
   subscribeFirebaseStudentDirectory,
   saveFirebaseStudentDirectory,
   fetchFirebaseStudentDirectory,
+  fetchFirebaseStudentPrefs,
+  saveFirebaseStudentPrefs,
   isFirebaseQuotaExceeded,
   setFirebaseQuotaExceeded,
   onFirebaseQuotaChange,
@@ -60,6 +62,7 @@ export interface StudentCloudPrefs {
   lang?: '' | 'tr' | 'en';
   authHash?: string;
   last4?: string;
+  updatedAtMs?: number;
 }
 
 export type AnnouncementTone = 'info' | 'warn' | 'urgent';
@@ -412,17 +415,24 @@ function ensureStaticLivePolling(): void {
   }
 
   if (staticLivePollTimer !== null) return;
+  let lastOnlineAccessPollMs = 0;
+  let lastOfflineStaticPollMs = 0;
   staticLivePollTimer = setInterval(() => {
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    const now = Date.now();
     void probeApiBackend().then((status) => {
       if (status !== 'online') {
+        if (now - lastOfflineStaticPollMs < 5000) return;
+        lastOfflineStaticPollMs = now;
         void syncStaticStoreFromDataJson(false);
       } else {
+        if (now - lastOnlineAccessPollMs < 30_000) return;
+        lastOnlineAccessPollMs = now;
         void loadSiteAccessSettings().then((s) => notifyLocalSubscribersOnly('access', s));
       }
     });
-  }, 1000);
+  }, 5000);
 }
 
 function addSseListener(topic: string, handler: SseHandler): Unsubscribe {
@@ -1746,52 +1756,264 @@ export async function lookupStudentWithCloud(rawSid: string): Promise<StudentAut
   return res.ok ? res.match : null;
 }
 
+function mapRawToStudentCloudPrefs(raw: Record<string, unknown>): StudentCloudPrefs {
+  const langVal = normalizeLangPref(raw.lang);
+  return {
+    myMbuGroup: normalizeMbuGroupPref(raw.myMbuGroup ?? raw.my_mbu_group),
+    myLabGroup: normalizeLabGroupPref(raw.myLabGroup ?? raw.my_lab_group),
+    otherGroupMode: normalizeOtherGroupModePref(raw.otherGroupMode ?? raw.other_group_mode),
+    lang: langVal,
+    authHash:
+      typeof raw.authHash === 'string'
+        ? raw.authHash
+        : typeof raw.auth_hash === 'string'
+          ? raw.auth_hash
+          : undefined,
+    last4: typeof raw.last4 === 'string' ? raw.last4 : undefined,
+    updatedAtMs: Number(raw.updatedAtMs ?? raw.updated_at) || 0,
+  };
+}
+
+const STUDENT_PREFS_SESSION_PREFIX = 'inonu_prefs_synced_session_';
+const lastFirebasePrefsSignature = new Map<string, string>();
+
+function buildPrefsSignature(p: {
+  myMbuGroup?: string;
+  myLabGroup?: string;
+  otherGroupMode?: string;
+  lang?: string;
+}): string {
+  const mbu = normalizeMbuGroupPref(p.myMbuGroup);
+  const lang = normalizeLangPref(p.lang);
+  const lab = lang === 'en' ? '' : normalizeLabGroupPref(p.myLabGroup);
+  const mode = normalizeOtherGroupModePref(p.otherGroupMode);
+  return `${mbu}|${lab}|${mode}|${lang}`;
+}
+
+function isStudentPrefsSyncedThisSession(cleanKey: string): boolean {
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem(`${STUDENT_PREFS_SESSION_PREFIX}${cleanKey}`) === '1';
+    }
+  } catch {}
+  return false;
+}
+
+function markStudentPrefsSyncedThisSession(cleanKey: string): void {
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(`${STUDENT_PREFS_SESSION_PREFIX}${cleanKey}`, '1');
+    }
+  } catch {}
+}
+
+export function clearStudentPrefsSessionSync(cloudKey?: string): void {
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    const cleanKey = String(cloudKey || '').trim().toLowerCase();
+    if (cleanKey) {
+      sessionStorage.removeItem(`${STUDENT_PREFS_SESSION_PREFIX}${cleanKey}`);
+      lastFirebasePrefsSignature.delete(cleanKey);
+      return;
+    }
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith(STUDENT_PREFS_SESSION_PREFIX)) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+    lastFirebasePrefsSignature.clear();
+  } catch {}
+}
+
 export async function loadCloudStudentPrefs(
   authHashOrCloudKey: string,
   maybeCloudKey?: string,
+  options?: { force?: boolean },
 ): Promise<StudentCloudPrefs | null> {
   const rawKey = typeof maybeCloudKey === 'string' && maybeCloudKey.trim() ? maybeCloudKey : authHashOrCloudKey;
   const cleanKey = String(rawKey || '').trim().toLowerCase();
   if (!cleanKey) return null;
 
-  if (await isApiBackendOnline()) {
+  const forceRefresh = Boolean(options?.force);
+  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+  const localRow = prefsMap[cleanKey];
+  const localCandidate: { prefs: StudentCloudPrefs; ts: number } | null = localRow
+    ? {
+        prefs: mapRawToStudentCloudPrefs(localRow),
+        ts: Number(localRow.updated_at ?? localRow.updatedAtMs) || 0,
+      }
+    : null;
+
+  // Strictly 1 Firestore read per session: if already synced in this browser session, serve from local cache
+  if (!forceRefresh && isStudentPrefsSyncedThisSession(cleanKey)) {
+    return localCandidate ? localCandidate.prefs : null;
+  }
+
+  const [fbOutcome, apiOnline] = await Promise.all([
+    fetchFirebaseStudentPrefs(cleanKey).catch(() => ({ ok: false as const })),
+    isApiBackendOnline().catch(() => false),
+  ]);
+
+  let fbCandidate: { prefs: StudentCloudPrefs; ts: number } | null = null;
+  if (fbOutcome.ok && fbOutcome.record) {
+    const r = fbOutcome.record;
+    const mapped = mapRawToStudentCloudPrefs(r as unknown as Record<string, unknown>);
+    fbCandidate = {
+      prefs: mapped,
+      ts: Number(r.updatedAtMs) || 0,
+    };
+    lastFirebasePrefsSignature.set(cleanKey, buildPrefsSignature(mapped));
+  }
+
+  let serverCandidate: { prefs: StudentCloudPrefs; ts: number } | null = null;
+  let serverChecked = false;
+  if (apiOnline) {
     try {
       const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cleanKey)}`, { cache: 'no-store' });
       if (resp.ok) {
+        serverChecked = true;
         const json = (await resp.json()) as { prefs?: Record<string, unknown> | null };
         if (json.prefs && typeof json.prefs === 'object') {
-          const p = json.prefs;
-          const mapped: StudentCloudPrefs = {
-            myMbuGroup: normalizeMbuGroupPref(p.myMbuGroup ?? p.my_mbu_group),
-            myLabGroup: normalizeLabGroupPref(p.myLabGroup ?? p.my_lab_group),
-            otherGroupMode: normalizeOtherGroupModePref(p.otherGroupMode ?? p.other_group_mode),
-            lang: normalizeLangPref(p.lang),
-            authHash: typeof p.authHash === 'string' ? p.authHash : typeof p.auth_hash === 'string' ? p.auth_hash : undefined,
-            last4: typeof p.last4 === 'string' ? p.last4 : undefined,
+          const mapped = mapRawToStudentCloudPrefs(json.prefs);
+          serverCandidate = {
+            prefs: mapped,
+            ts: Number(mapped.updatedAtMs) || 0,
           };
-          const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
-          prefsMap[cleanKey] = { cloud_key: cleanKey, ...p };
-          writeStaticJson('student_prefs', prefsMap);
-          return mapped;
         }
       }
     } catch {
-      // Fallback to local storage
+      // Fallback to Firestore / local storage
     }
   } else {
-    await syncStaticStoreFromDataJson();
+    await syncStaticStoreFromDataJson().catch(() => false);
   }
 
-  const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
-  const row = prefsMap[cleanKey];
-  if (!row) return null;
-  return {
-    myMbuGroup: normalizeMbuGroupPref(row.myMbuGroup ?? row.my_mbu_group),
-    myLabGroup: normalizeLabGroupPref(row.myLabGroup ?? row.my_lab_group),
-    otherGroupMode: normalizeOtherGroupModePref(row.otherGroupMode ?? row.other_group_mode),
-    lang: normalizeLangPref(row.lang),
-    authHash: typeof row.authHash === 'string' ? row.authHash : typeof row.auth_hash === 'string' ? row.auth_hash : undefined,
-    last4: typeof row.last4 === 'string' ? row.last4 : undefined,
+  if (fbOutcome.ok || serverChecked) {
+    markStudentPrefsSyncedThisSession(cleanKey);
+  }
+
+  // Prefer remote sources (Firestore / Backend API) by newest timestamp, falling back to local cache
+  let best: { prefs: StudentCloudPrefs; ts: number; source: 'firebase' | 'server' | 'local' } | null = null;
+  if (fbCandidate && serverCandidate) {
+    best =
+      fbCandidate.ts >= serverCandidate.ts
+        ? { ...fbCandidate, source: 'firebase' }
+        : { ...serverCandidate, source: 'server' };
+  } else if (fbCandidate) {
+    best = { ...fbCandidate, source: 'firebase' };
+  } else if (serverCandidate) {
+    best = { ...serverCandidate, source: 'server' };
+  }
+
+  // Only let local cache win if it's strictly newer than what remote has, or if no remote existed
+  if (localCandidate) {
+    if (!best || localCandidate.ts > best.ts) {
+      best = { ...localCandidate, source: 'local' };
+    }
+  }
+
+  if (!best) {
+    if (!fbOutcome.ok && !serverChecked) {
+      throw new Error('CLOUD_PREFS_UNREACHABLE');
+    }
+    return null;
+  }
+
+  // Persist chosen record into local cache and backfill any lagging remote store only when data differs
+  const chosen = best.prefs;
+  const effectiveTs = best.ts || Date.now();
+  const chosenSig = buildPrefsSignature(chosen);
+  prefsMap[cleanKey] = {
+    cloud_key: cleanKey,
+    auth_hash: chosen.authHash || '',
+    last4: chosen.last4 || '',
+    my_mbu_group: chosen.myMbuGroup,
+    my_lab_group: chosen.myLabGroup,
+    other_group_mode: chosen.otherGroupMode,
+    lang: chosen.lang || '',
+    updated_at: effectiveTs,
+  };
+  writeStaticJson('student_prefs', prefsMap);
+
+  const fbNeedsBackfill =
+    fbOutcome.ok &&
+    (!fbCandidate || (fbCandidate.ts < effectiveTs && buildPrefsSignature(fbCandidate.prefs) !== chosenSig));
+  if (fbNeedsBackfill) {
+    void saveFirebaseStudentPrefs(cleanKey, {
+      cloudKey: cleanKey,
+      authHash: chosen.authHash || '',
+      last4: chosen.last4 || '',
+      myMbuGroup: chosen.myMbuGroup,
+      myLabGroup: chosen.myLabGroup,
+      otherGroupMode: chosen.otherGroupMode,
+      lang: chosen.lang || '',
+      updatedAtMs: effectiveTs,
+    }).then((ok) => {
+      if (ok) lastFirebasePrefsSignature.set(cleanKey, chosenSig);
+    });
+  }
+  if (apiOnline && (!serverCandidate || serverCandidate.ts < effectiveTs)) {
+    void fetch(`/api/student/prefs/${encodeURIComponent(cleanKey)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        myMbuGroup: chosen.myMbuGroup,
+        myLabGroup: chosen.myLabGroup,
+        otherGroupMode: chosen.otherGroupMode,
+        lang: chosen.lang || '',
+        authHash: chosen.authHash && isValidAuthHash(chosen.authHash) ? chosen.authHash : '',
+        last4: chosen.last4 || '',
+      }),
+    }).catch(() => undefined);
+  }
+
+  return chosen;
+}
+
+export function subscribeCloudStudentPrefs(
+  cloudKey: string,
+  onChange: (prefs: StudentCloudPrefs) => void,
+): Unsubscribe {
+  const cleanKey = String(cloudKey || '').trim().toLowerCase();
+  if (!cleanKey) return () => {};
+
+  // Zero-read subscription: only listen to local same-browser / SSE updates (no Firestore onSnapshot)
+  const handleIncoming = (raw: Record<string, unknown>) => {
+    const mapped = mapRawToStudentCloudPrefs(raw);
+    const ts = Number(mapped.updatedAtMs) || Date.now();
+    const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
+    const existing = prefsMap[cleanKey];
+    const existingTs = Number(existing?.updated_at ?? existing?.updatedAtMs) || 0;
+    if (ts >= existingTs) {
+      prefsMap[cleanKey] = {
+        cloud_key: cleanKey,
+        auth_hash: mapped.authHash || existing?.auth_hash || '',
+        last4: mapped.last4 || existing?.last4 || '',
+        my_mbu_group: mapped.myMbuGroup,
+        my_lab_group: mapped.myLabGroup,
+        other_group_mode: mapped.otherGroupMode,
+        lang: mapped.lang || existing?.lang || '',
+        updated_at: ts,
+      };
+      writeStaticJson('student_prefs', prefsMap);
+    }
+    onChange(mapped);
+  };
+
+  const unsubLocal = addSseListener('student_prefs', (payload) => {
+    if (!payload || typeof payload !== 'object') return;
+    const p = payload as Record<string, unknown>;
+    const pKey = String(p.cloud_key ?? p.cloudKey ?? '').trim().toLowerCase();
+    if (pKey === cleanKey) {
+      handleIncoming(p);
+    }
+  });
+
+  return () => {
+    unsubLocal();
   };
 }
 
@@ -1809,6 +2031,7 @@ export async function saveCloudStudentPrefs(
   const finalMode = normalizeOtherGroupModePref(prefs.otherGroupMode);
   const finalAuthHash = isValidAuthHash(authHash) ? authHash : '';
   const finalLast4 = typeof prefs.last4 === 'string' && /^[0-9]{4}$/.test(prefs.last4.trim()) ? prefs.last4.trim() : '';
+  const nowTs = typeof prefs.updatedAtMs === 'number' && prefs.updatedAtMs > 0 ? prefs.updatedAtMs : Date.now();
 
   const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
   const rowPayload = {
@@ -1819,13 +2042,43 @@ export async function saveCloudStudentPrefs(
     my_lab_group: finalLab,
     other_group_mode: finalMode,
     lang: finalLang,
-    updated_at: Date.now(),
+    updated_at: nowTs,
   };
   prefsMap[cleanKey] = rowPayload;
   writeStaticJson('student_prefs', prefsMap);
   emitLocalTopic('student_prefs', rowPayload);
 
-  if (await isApiBackendOnline()) {
+  const nextSig = buildPrefsSignature({
+    myMbuGroup: finalMbu,
+    myLabGroup: finalLab,
+    otherGroupMode: finalMode,
+    lang: finalLang,
+  });
+
+  const fbPromise =
+    lastFirebasePrefsSignature.get(cleanKey) === nextSig
+      ? Promise.resolve(true)
+      : saveFirebaseStudentPrefs(cleanKey, {
+          cloudKey: cleanKey,
+          authHash: finalAuthHash,
+          last4: finalLast4,
+          myMbuGroup: finalMbu,
+          myLabGroup: finalLab,
+          otherGroupMode: finalMode,
+          lang: finalLang,
+          updatedAtMs: nowTs,
+        })
+          .then((ok) => {
+            if (ok) {
+              lastFirebasePrefsSignature.set(cleanKey, nextSig);
+              markStudentPrefsSyncedThisSession(cleanKey);
+            }
+            return ok;
+          })
+          .catch(() => false);
+
+  const apiPromise = (async () => {
+    if (!(await isApiBackendOnline())) return false;
     try {
       const resp = await fetch(`/api/student/prefs/${encodeURIComponent(cleanKey)}`, {
         method: 'PUT',
@@ -1841,11 +2094,12 @@ export async function saveCloudStudentPrefs(
       });
       return resp.ok;
     } catch {
-      return true;
+      return false;
     }
-  }
+  })();
 
-  return true;
+  const [fbOk, apiOk] = await Promise.all([fbPromise, apiPromise]);
+  return Boolean(fbOk || apiOk);
 }
 
 // ==================== ANNOUNCEMENTS ====================
@@ -2632,6 +2886,16 @@ export async function addOrUpdateCustomStudent(
   writeStaticJson('admin_dir', dirMap);
   writeStaticJson('student_prefs', prefsMap);
   void saveFirebaseStudentDirectory(customMap, dirMap);
+  void saveFirebaseStudentPrefs(cloudKey, {
+    cloudKey,
+    authHash,
+    last4,
+    myMbuGroup: group,
+    myLabGroup: labGroup,
+    otherGroupMode,
+    lang: prog,
+    updatedAtMs: now,
+  });
 
   if (await isApiBackendOnline()) {
     const resp = await fetch('/api/admin/students', {
@@ -3355,6 +3619,16 @@ export async function adminSaveStudentSettings(
   writeStaticJson('custom_students', customMap);
   writeStaticJson('admin_dir', dirMap);
   void saveFirebaseStudentDirectory(customMap, dirMap);
+  void saveFirebaseStudentPrefs(input.cloudKey, {
+    cloudKey: input.cloudKey,
+    authHash,
+    last4: effectiveLast4,
+    myMbuGroup: mbu,
+    myLabGroup: lab,
+    otherGroupMode: mode,
+    lang,
+    updatedAtMs: now,
+  });
 
   if (await isApiBackendOnline()) {
     const resp = await fetch('/api/admin/students/settings', {
