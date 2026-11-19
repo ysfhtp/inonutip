@@ -379,17 +379,83 @@ export interface FirebaseStudentPrefsRecord {
   updatedAtMs: number;
 }
 
+interface CompactStudentPrefsDoc {
+  g: '' | 'I' | 'II' | 'III' | 'IV' | 'V';
+  l: '' | '1' | '2';
+  m: 'd' | 'h';
+  p: '' | 'tr' | 'en';
+  t: number;
+}
+
 const VALID_CLOUD_KEY_RE = /^[a-f0-9]{64}$/;
-const inFlightStudentPrefsReads = new Map<
-  string,
-  Promise<{ ok: true; record: FirebaseStudentPrefsRecord | null } | { ok: false }>
->();
+const VALID_MBU_GROUPS = ['', 'I', 'II', 'III', 'IV', 'V'] as const;
+const VALID_LAB_GROUPS = ['', '1', '2'] as const;
+
+type FetchStudentPrefsResult =
+  | { ok: true; record: FirebaseStudentPrefsRecord | null; isLegacy: boolean }
+  | { ok: false };
+
+const inFlightStudentPrefsReads = new Map<string, Promise<FetchStudentPrefsResult>>();
+
+function decodeFirebaseStudentPrefsDoc(
+  cleanKey: string,
+  d: Record<string, unknown>,
+): { record: FirebaseStudentPrefsRecord; isLegacy: boolean } {
+  const isCompact =
+    typeof d.g === 'string' ||
+    typeof d.l === 'string' ||
+    typeof d.m === 'string' ||
+    typeof d.p === 'string' ||
+    typeof d.t === 'number';
+  const hasLegacyKeys =
+    'myMbuGroup' in d || 'myLabGroup' in d || 'otherGroupMode' in d || 'updatedAtMs' in d || 'cloudKey' in d;
+
+  if (isCompact && !hasLegacyKeys) {
+    const rawG = typeof d.g === 'string' ? d.g : '';
+    const rawL = typeof d.l === 'string' ? d.l : '';
+    const rawP = typeof d.p === 'string' ? d.p : '';
+    return {
+      isLegacy: false,
+      record: {
+        cloudKey: cleanKey,
+        myMbuGroup: (VALID_MBU_GROUPS as readonly string[]).includes(rawG) ? rawG : '',
+        myLabGroup: (VALID_LAB_GROUPS as readonly string[]).includes(rawL) ? rawL : '',
+        otherGroupMode: d.m === 'h' ? 'hide' : 'dim',
+        lang: rawP === 'en' ? 'en' : rawP === 'tr' ? 'tr' : '',
+        updatedAtMs: Number(d.t) || 0,
+      },
+    };
+  }
+
+  const rawMbu = typeof d.myMbuGroup === 'string' ? d.myMbuGroup : typeof d.g === 'string' ? d.g : '';
+  const rawLab = typeof d.myLabGroup === 'string' ? d.myLabGroup : typeof d.l === 'string' ? d.l : '';
+  const rawLang = typeof d.lang === 'string' ? d.lang : typeof d.p === 'string' ? d.p : '';
+  const rawMode =
+    d.otherGroupMode === 'hide' || d.m === 'h' ? 'hide' : 'dim';
+  return {
+    isLegacy: true,
+    record: {
+      cloudKey: cleanKey,
+      authHash: typeof d.authHash === 'string' ? d.authHash : '',
+      last4: typeof d.last4 === 'string' ? d.last4 : '',
+      myMbuGroup: (VALID_MBU_GROUPS as readonly string[]).includes(rawMbu) ? rawMbu : '',
+      myLabGroup: (VALID_LAB_GROUPS as readonly string[]).includes(rawLab) ? rawLab : '',
+      otherGroupMode: rawMode,
+      lang: rawLang === 'en' ? 'en' : rawLang === 'tr' ? 'tr' : '',
+      updatedAtMs: Number(d.updatedAtMs ?? d.t) || 0,
+    },
+  };
+}
 
 export async function fetchFirebaseStudentPrefs(
   cloudKey: string,
-): Promise<{ ok: true; record: FirebaseStudentPrefsRecord | null } | { ok: false }> {
+  options?: { bypassQuotaCache?: boolean },
+): Promise<FetchStudentPrefsResult> {
   const cleanKey = String(cloudKey || '').trim().toLowerCase();
-  if (!db || isFirebaseQuotaExceeded() || !VALID_CLOUD_KEY_RE.test(cleanKey)) {
+  if (!db || !VALID_CLOUD_KEY_RE.test(cleanKey)) {
+    return { ok: false };
+  }
+  if (!options?.bypassQuotaCache && isFirebaseQuotaExceeded()) {
     return { ok: false };
   }
   const existing = inFlightStudentPrefsReads.get(cleanKey);
@@ -397,32 +463,29 @@ export async function fetchFirebaseStudentPrefs(
     return existing;
   }
   const path = `studentPrefs/${cleanKey}`;
-  const req = (async (): Promise<
-    { ok: true; record: FirebaseStudentPrefsRecord | null } | { ok: false }
-  > => {
+  const req = (async (): Promise<FetchStudentPrefsResult> => {
     try {
       let snap;
       try {
         snap = await getDocFromServer(doc(db, 'studentPrefs', cleanKey));
-      } catch {
+      } catch (serverErr) {
+        if (isFirestoreQuotaError(serverErr)) {
+          throw serverErr;
+        }
         snap = await getDoc(doc(db, 'studentPrefs', cleanKey));
       }
+      if (isFirebaseQuotaExceeded()) {
+        setFirebaseQuotaExceeded(false);
+      }
       if (!snap.exists()) {
-        return { ok: true, record: null };
+        return { ok: true, record: null, isLegacy: false };
       }
       const d = snap.data() as Record<string, unknown>;
+      const decoded = decodeFirebaseStudentPrefsDoc(cleanKey, d);
       return {
         ok: true,
-        record: {
-          cloudKey: cleanKey,
-          authHash: typeof d.authHash === 'string' ? d.authHash : '',
-          last4: typeof d.last4 === 'string' ? d.last4 : '',
-          myMbuGroup: typeof d.myMbuGroup === 'string' ? d.myMbuGroup : '',
-          myLabGroup: typeof d.myLabGroup === 'string' ? d.myLabGroup : '',
-          otherGroupMode: d.otherGroupMode === 'hide' ? 'hide' : 'dim',
-          lang: d.lang === 'en' ? 'en' : d.lang === 'tr' ? 'tr' : '',
-          updatedAtMs: Number(d.updatedAtMs) || 0,
-        },
+        record: decoded.record,
+        isLegacy: decoded.isLegacy,
       };
     } catch (err) {
       handleFirestoreError(err, OperationType.GET, path);
@@ -440,30 +503,37 @@ export async function saveFirebaseStudentPrefs(
   prefs: FirebaseStudentPrefsRecord,
 ): Promise<boolean> {
   const cleanKey = String(cloudKey || '').trim().toLowerCase();
-  if (!db || isFirebaseQuotaExceeded() || !VALID_CLOUD_KEY_RE.test(cleanKey)) {
+  if (!db || !VALID_CLOUD_KEY_RE.test(cleanKey)) {
     return false;
   }
   const path = `studentPrefs/${cleanKey}`;
-  const cleanAuthHash =
-    typeof prefs.authHash === 'string' && /^[a-f0-9]{32,64}$/.test(prefs.authHash.trim().toLowerCase())
-      ? prefs.authHash.trim().toLowerCase()
-      : '';
-  const cleanLast4 =
-    typeof prefs.last4 === 'string' && /^[0-9]{4}$/.test(prefs.last4.trim())
-      ? prefs.last4.trim()
-      : '';
-  const payload: FirebaseStudentPrefsRecord = {
-    cloudKey: cleanKey,
-    authHash: cleanAuthHash,
-    last4: cleanLast4,
-    myMbuGroup: ['', 'I', 'II', 'III', 'IV', 'V'].includes(prefs.myMbuGroup) ? prefs.myMbuGroup : '',
-    myLabGroup: ['', '1', '2'].includes(prefs.myLabGroup) ? prefs.myLabGroup : '',
-    otherGroupMode: prefs.otherGroupMode === 'hide' ? 'hide' : 'dim',
-    lang: prefs.lang === 'en' ? 'en' : prefs.lang === 'tr' ? 'tr' : '',
-    updatedAtMs: Math.max(1, Number(prefs.updatedAtMs) || Date.now()),
+  const gVal = (VALID_MBU_GROUPS as readonly string[]).includes(prefs.myMbuGroup)
+    ? (prefs.myMbuGroup as CompactStudentPrefsDoc['g'])
+    : '';
+  const pVal: CompactStudentPrefsDoc['p'] =
+    prefs.lang === 'en' ? 'en' : prefs.lang === 'tr' ? 'tr' : '';
+  const lVal: CompactStudentPrefsDoc['l'] =
+    pVal === 'en'
+      ? ''
+      : (VALID_LAB_GROUPS as readonly string[]).includes(prefs.myLabGroup)
+        ? (prefs.myLabGroup as CompactStudentPrefsDoc['l'])
+        : '';
+  const mVal: CompactStudentPrefsDoc['m'] = prefs.otherGroupMode === 'hide' ? 'h' : 'd';
+  const tVal = Math.max(1, Math.floor(Number(prefs.updatedAtMs) || Date.now()));
+
+  // Ultra-compact Firestore document (~45 bytes): omits cloudKey (already doc ID), authHash, and last4
+  const payload: CompactStudentPrefsDoc = {
+    g: gVal,
+    l: lVal,
+    m: mVal,
+    p: pVal,
+    t: tVal,
   };
   try {
     await setDoc(doc(db, 'studentPrefs', cleanKey), payload);
+    if (isFirebaseQuotaExceeded()) {
+      setFirebaseQuotaExceeded(false);
+    }
     return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
@@ -486,16 +556,8 @@ export function subscribeFirebaseStudentPrefs(
       (snap) => {
         if (!snap.exists()) return;
         const d = snap.data() as Record<string, unknown>;
-        onChange({
-          cloudKey: cleanKey,
-          authHash: typeof d.authHash === 'string' ? d.authHash : '',
-          last4: typeof d.last4 === 'string' ? d.last4 : '',
-          myMbuGroup: typeof d.myMbuGroup === 'string' ? d.myMbuGroup : '',
-          myLabGroup: typeof d.myLabGroup === 'string' ? d.myLabGroup : '',
-          otherGroupMode: d.otherGroupMode === 'hide' ? 'hide' : 'dim',
-          lang: d.lang === 'en' ? 'en' : d.lang === 'tr' ? 'tr' : '',
-          updatedAtMs: Number(d.updatedAtMs) || 0,
-        });
+        const { record } = decodeFirebaseStudentPrefsDoc(cleanKey, d);
+        onChange(record);
       },
       (err) => {
         handleFirestoreError(err, OperationType.GET, path);

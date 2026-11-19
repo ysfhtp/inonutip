@@ -81,47 +81,39 @@
     },
     "StudentPrefs": {
       "title": "StudentPrefs",
-      "description": "Cross-device persisted student MBU/LAB group and language preferences",
+      "description": "Ultra-compact cross-device persisted student MBU/LAB group, display mode, and language preferences",
       "type": "object",
       "properties": {
-        "cloudKey": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$",
-          "maxLength": 64
-        },
-        "authHash": {
-          "type": "string",
-          "maxLength": 64
-        },
-        "last4": {
-          "type": "string",
-          "maxLength": 4
-        },
-        "myMbuGroup": {
+        "g": {
           "type": "string",
           "enum": ["", "I", "II", "III", "IV", "V"],
-          "maxLength": 4
+          "maxLength": 4,
+          "description": "MBU group (myMbuGroup)"
         },
-        "myLabGroup": {
+        "l": {
           "type": "string",
           "enum": ["", "1", "2"],
-          "maxLength": 2
+          "maxLength": 2,
+          "description": "LAB group (myLabGroup)"
         },
-        "otherGroupMode": {
+        "m": {
           "type": "string",
-          "enum": ["dim", "hide"],
-          "maxLength": 8
+          "enum": ["d", "h"],
+          "maxLength": 1,
+          "description": "Other group display mode: d=dim, h=hide"
         },
-        "lang": {
+        "p": {
           "type": "string",
           "enum": ["", "tr", "en"],
-          "maxLength": 4
+          "maxLength": 2,
+          "description": "Program language preference"
         },
-        "updatedAtMs": {
-          "type": "number"
+        "t": {
+          "type": "number",
+          "description": "Last updated timestamp in milliseconds"
         }
       },
-      "required": ["cloudKey", "myMbuGroup", "myLabGroup", "otherGroupMode", "lang", "updatedAtMs"]
+      "required": ["g", "l", "m", "p", "t"]
     }
   },
   "firestore": {

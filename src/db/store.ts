@@ -206,7 +206,7 @@ export async function upsertStudentPrefsPg(input: {
           myLabGroup: input.myLabGroup,
           otherGroupMode: input.otherGroupMode,
           lang: input.lang ? input.lang : sql`${studentPrefs.lang}`,
-          updatedAt: input.updatedAt,
+          updatedAt: sql`GREATEST(${studentPrefs.updatedAt}, ${input.updatedAt})`,
         },
       });
   });

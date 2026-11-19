@@ -1037,6 +1037,69 @@ export async function cacheLessonPdfBlob(materialId: string, fileName: string, b
   }
 }
 
+export async function getLessonPdfCacheStats(): Promise<{
+  count: number;
+  totalBytes: number;
+  cachedIds: string[];
+}> {
+  try {
+    const db = await openStaticPdfDb();
+    return await new Promise<{ count: number; totalBytes: number; cachedIds: string[] }>((resolve) => {
+      const tx = db.transaction(STATIC_PDF_STORE_NAME, 'readonly');
+      const store = tx.objectStore(STATIC_PDF_STORE_NAME);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        db.close();
+        const rows = Array.isArray(req.result) ? req.result : [];
+        let totalBytes = 0;
+        const cachedIds: string[] = [];
+        for (const r of rows) {
+          if (!r || typeof r !== 'object') continue;
+          const rec = r as { id?: unknown; size?: unknown; blob?: unknown };
+          const id = typeof rec.id === 'string' ? rec.id : '';
+          const sz =
+            typeof rec.size === 'number' && Number.isFinite(rec.size)
+              ? rec.size
+              : rec.blob instanceof Blob
+                ? rec.blob.size
+                : 0;
+          if (id && sz > 0) {
+            cachedIds.push(id);
+            totalBytes += sz;
+          }
+        }
+        resolve({ count: cachedIds.length, totalBytes, cachedIds });
+      };
+      req.onerror = () => {
+        db.close();
+        resolve({ count: 0, totalBytes: 0, cachedIds: [] });
+      };
+    });
+  } catch {
+    return { count: 0, totalBytes: 0, cachedIds: [] };
+  }
+}
+
+export async function clearLessonPdfCache(): Promise<void> {
+  try {
+    const db = await openStaticPdfDb();
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STATIC_PDF_STORE_NAME, 'readwrite');
+      tx.objectStore(STATIC_PDF_STORE_NAME).clear();
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+      tx.onerror = () => {
+        db.close();
+        resolve();
+      };
+    });
+  } catch {
+    // Ignore IndexedDB errors
+  }
+}
+
 // ==================== ADMIN SECRET & ROSTER CRYPTO ====================
 export function setAdminWriteSecret(secret: string): void {
   const clean = typeof secret === 'string' ? secret.trim().toLowerCase() : '';
@@ -1495,6 +1558,7 @@ export async function saveSiteAccessSettings(
 interface ServerStudentStatusResponse {
   ok?: boolean;
   custom?: {
+    cloudKey?: string;
     group?: string;
     labGroup?: string;
     prog?: string;
@@ -1503,6 +1567,7 @@ interface ServerStudentStatusResponse {
     deleted?: boolean;
   } | null;
   directory?: {
+    cloudKey?: string;
     active?: boolean;
     deleted?: boolean;
   } | null;
@@ -1775,7 +1840,58 @@ function mapRawToStudentCloudPrefs(raw: Record<string, unknown>): StudentCloudPr
 }
 
 const STUDENT_PREFS_SESSION_PREFIX = 'inonu_prefs_synced_session_';
+const PENDING_PREFS_SYNC_KEY = 'inonu_pending_prefs_sync_v1';
 const lastFirebasePrefsSignature = new Map<string, string>();
+
+interface PendingPrefsSyncEntry {
+  cloudKey: string;
+  authHash: string;
+  last4: string;
+  myMbuGroup: '' | 'I' | 'II' | 'III' | 'IV' | 'V';
+  myLabGroup: '' | '1' | '2';
+  otherGroupMode: 'dim' | 'hide';
+  lang: '' | 'tr' | 'en';
+  updatedAtMs: number;
+}
+
+function readPendingPrefsMap(): Record<string, PendingPrefsSyncEntry> {
+  try {
+    if (typeof localStorage === 'undefined') return {};
+    const raw = localStorage.getItem(PENDING_PREFS_SYNC_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, PendingPrefsSyncEntry>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePendingPrefsMap(map: Record<string, PendingPrefsSyncEntry>): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const keys = Object.keys(map);
+    if (keys.length === 0) {
+      localStorage.removeItem(PENDING_PREFS_SYNC_KEY);
+    } else {
+      localStorage.setItem(PENDING_PREFS_SYNC_KEY, JSON.stringify(map));
+    }
+  } catch {}
+}
+
+function queuePendingPrefsSync(entry: PendingPrefsSyncEntry): void {
+  const map = readPendingPrefsMap();
+  map[entry.cloudKey] = entry;
+  writePendingPrefsMap(map);
+}
+
+function clearPendingPrefsSyncIfNotNewer(cleanKey: string, syncedTs: number): void {
+  const map = readPendingPrefsMap();
+  const cur = map[cleanKey];
+  if (cur && (Number(cur.updatedAtMs) || 0) <= syncedTs) {
+    delete map[cleanKey];
+    writePendingPrefsMap(map);
+  }
+}
 
 function buildPrefsSignature(p: {
   myMbuGroup?: string;
@@ -1828,6 +1944,103 @@ export function clearStudentPrefsSessionSync(cloudKey?: string): void {
   } catch {}
 }
 
+export async function resolveStudentCloudKey(authHash: string): Promise<string> {
+  const cleanHash = String(authHash || '').trim().toLowerCase();
+  if (!isValidAuthHash(cleanHash)) return '';
+
+  const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
+  const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
+  const localRawKey =
+    String(
+      customMap[cleanHash]?.cloud_key ??
+        customMap[cleanHash]?.cloudKey ??
+        dirMap[cleanHash]?.cloud_key ??
+        dirMap[cleanHash]?.cloudKey ??
+        '',
+    )
+      .trim()
+      .toLowerCase();
+  if (isValidCloudDocId(localRawKey)) {
+    return localRawKey;
+  }
+
+  if (await isApiBackendOnline().catch(() => false)) {
+    try {
+      const resp = await fetch(`/api/student/login-status/${encodeURIComponent(cleanHash)}`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(2500),
+      });
+      if (resp.ok) {
+        const json = (await resp.json()) as ServerStudentStatusResponse;
+        const remoteKey = String(json.custom?.cloudKey || json.directory?.cloudKey || '')
+          .trim()
+          .toLowerCase();
+        if (isValidCloudDocId(remoteKey)) {
+          return remoteKey;
+        }
+      }
+    } catch {
+      // Ignore network errors
+    }
+  }
+
+  return '';
+}
+
+export async function flushPendingStudentPrefsSync(): Promise<number> {
+  const map = readPendingPrefsMap();
+  const entries = Object.values(map);
+  if (entries.length === 0) return 0;
+
+  let flushed = 0;
+  const apiOnline = await isApiBackendOnline().catch(() => false);
+
+  for (const entry of entries) {
+    const cleanKey = String(entry.cloudKey || '').trim().toLowerCase();
+    if (!isValidCloudDocId(cleanKey)) {
+      clearPendingPrefsSyncIfNotNewer(cleanKey, Number.MAX_SAFE_INTEGER);
+      continue;
+    }
+    const ts = Number(entry.updatedAtMs) || Date.now();
+    const compactSig = `c:${buildPrefsSignature(entry)}`;
+    const fbOk = await saveFirebaseStudentPrefs(cleanKey, {
+      cloudKey: cleanKey,
+      authHash: entry.authHash,
+      last4: entry.last4,
+      myMbuGroup: entry.myMbuGroup,
+      myLabGroup: entry.myLabGroup,
+      otherGroupMode: entry.otherGroupMode,
+      lang: entry.lang,
+      updatedAtMs: ts,
+    }).catch(() => false);
+
+    if (apiOnline) {
+      void fetch(`/api/student/prefs/${encodeURIComponent(cleanKey)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          myMbuGroup: entry.myMbuGroup,
+          myLabGroup: entry.myLabGroup,
+          otherGroupMode: entry.otherGroupMode,
+          lang: entry.lang,
+          authHash: isValidAuthHash(entry.authHash) ? entry.authHash : '',
+          last4: entry.last4 || '',
+          updatedAtMs: ts,
+        }),
+      }).catch(() => undefined);
+    }
+
+    if (fbOk) {
+      lastFirebasePrefsSignature.set(cleanKey, compactSig);
+      markStudentPrefsSyncedThisSession(cleanKey);
+      clearPendingPrefsSyncIfNotNewer(cleanKey, ts);
+      flushed += 1;
+    }
+  }
+
+  return flushed;
+}
+
 export async function loadCloudStudentPrefs(
   authHashOrCloudKey: string,
   maybeCloudKey?: string,
@@ -1847,25 +2060,43 @@ export async function loadCloudStudentPrefs(
       }
     : null;
 
+  const pendingMap = readPendingPrefsMap();
+  const pendingEntry = pendingMap[cleanKey];
+  const pendingCandidate: { prefs: StudentCloudPrefs; ts: number } | null = pendingEntry
+    ? {
+        prefs: mapRawToStudentCloudPrefs(pendingEntry as unknown as Record<string, unknown>),
+        ts: Number(pendingEntry.updatedAtMs) || 0,
+      }
+    : null;
+
   // Strictly 1 Firestore read per session: if already synced in this browser session, serve from local cache
   if (!forceRefresh && isStudentPrefsSyncedThisSession(cleanKey)) {
+    if (pendingCandidate) {
+      void flushPendingStudentPrefsSync();
+      return pendingCandidate.prefs;
+    }
     return localCandidate ? localCandidate.prefs : null;
   }
 
+  // Always bypass stale quota cache on the single per-session fetch so transient flags don't hide saved groups
   const [fbOutcome, apiOnline] = await Promise.all([
-    fetchFirebaseStudentPrefs(cleanKey).catch(() => ({ ok: false as const })),
+    fetchFirebaseStudentPrefs(cleanKey, { bypassQuotaCache: true }).catch(() => ({ ok: false as const })),
     isApiBackendOnline().catch(() => false),
   ]);
 
-  let fbCandidate: { prefs: StudentCloudPrefs; ts: number } | null = null;
+  let fbCandidate: { prefs: StudentCloudPrefs; ts: number; isLegacy: boolean } | null = null;
   if (fbOutcome.ok && fbOutcome.record) {
     const r = fbOutcome.record;
     const mapped = mapRawToStudentCloudPrefs(r as unknown as Record<string, unknown>);
     fbCandidate = {
       prefs: mapped,
       ts: Number(r.updatedAtMs) || 0,
+      isLegacy: Boolean(fbOutcome.isLegacy),
     };
-    lastFirebasePrefsSignature.set(cleanKey, buildPrefsSignature(mapped));
+    lastFirebasePrefsSignature.set(
+      cleanKey,
+      `${fbOutcome.isLegacy ? 'l:' : 'c:'}${buildPrefsSignature(mapped)}`,
+    );
   }
 
   let serverCandidate: { prefs: StudentCloudPrefs; ts: number } | null = null;
@@ -1891,24 +2122,30 @@ export async function loadCloudStudentPrefs(
     await syncStaticStoreFromDataJson().catch(() => false);
   }
 
-  if (fbOutcome.ok || serverChecked) {
+  // Only mark session synced when Firestore itself succeeded (or server returned an actual record)
+  if (fbOutcome.ok || serverCandidate) {
     markStudentPrefsSyncedThisSession(cleanKey);
   }
 
-  // Prefer remote sources (Firestore / Backend API) by newest timestamp, falling back to local cache
-  let best: { prefs: StudentCloudPrefs; ts: number; source: 'firebase' | 'server' | 'local' } | null = null;
+  // Prefer remote sources (Firestore / Backend API) by newest timestamp
+  let best: { prefs: StudentCloudPrefs; ts: number; source: 'firebase' | 'server' | 'pending' | 'local' } | null = null;
   if (fbCandidate && serverCandidate) {
     best =
       fbCandidate.ts >= serverCandidate.ts
-        ? { ...fbCandidate, source: 'firebase' }
+        ? { prefs: fbCandidate.prefs, ts: fbCandidate.ts, source: 'firebase' }
         : { ...serverCandidate, source: 'server' };
   } else if (fbCandidate) {
-    best = { ...fbCandidate, source: 'firebase' };
+    best = { prefs: fbCandidate.prefs, ts: fbCandidate.ts, source: 'firebase' };
   } else if (serverCandidate) {
     best = { ...serverCandidate, source: 'server' };
   }
 
-  // Only let local cache win if it's strictly newer than what remote has, or if no remote existed
+  // Pending offline write wins if it is newer than or equal to remote
+  if (pendingCandidate && (!best || pendingCandidate.ts >= best.ts)) {
+    best = { ...pendingCandidate, source: 'pending' };
+  }
+
+  // Local cache wins only if strictly newer than remote/pending or if no remote existed
   if (localCandidate) {
     if (!best || localCandidate.ts > best.ts) {
       best = { ...localCandidate, source: 'local' };
@@ -1916,16 +2153,18 @@ export async function loadCloudStudentPrefs(
   }
 
   if (!best) {
-    if (!fbOutcome.ok && !serverChecked) {
+    // CRITICAL: Never claim "authoritatively empty" (return null) if Firestore couldn't be reached!
+    if (!fbOutcome.ok) {
       throw new Error('CLOUD_PREFS_UNREACHABLE');
     }
     return null;
   }
 
-  // Persist chosen record into local cache and backfill any lagging remote store only when data differs
+  // Persist chosen record into local cache and backfill/migrate any lagging or legacy remote store
   const chosen = best.prefs;
   const effectiveTs = best.ts || Date.now();
   const chosenSig = buildPrefsSignature(chosen);
+  const chosenCompactSig = `c:${chosenSig}`;
   prefsMap[cleanKey] = {
     cloud_key: cleanKey,
     auth_hash: chosen.authHash || '',
@@ -1939,8 +2178,11 @@ export async function loadCloudStudentPrefs(
   writeStaticJson('student_prefs', prefsMap);
 
   const fbNeedsBackfill =
-    fbOutcome.ok &&
-    (!fbCandidate || (fbCandidate.ts < effectiveTs && buildPrefsSignature(fbCandidate.prefs) !== chosenSig));
+    !fbCandidate ||
+    fbCandidate.isLegacy ||
+    best.source === 'pending' ||
+    (fbCandidate.ts < effectiveTs && buildPrefsSignature(fbCandidate.prefs) !== chosenSig);
+
   if (fbNeedsBackfill) {
     void saveFirebaseStudentPrefs(cleanKey, {
       cloudKey: cleanKey,
@@ -1952,10 +2194,16 @@ export async function loadCloudStudentPrefs(
       lang: chosen.lang || '',
       updatedAtMs: effectiveTs,
     }).then((ok) => {
-      if (ok) lastFirebasePrefsSignature.set(cleanKey, chosenSig);
+      if (ok) {
+        lastFirebasePrefsSignature.set(cleanKey, chosenCompactSig);
+        clearPendingPrefsSyncIfNotNewer(cleanKey, effectiveTs);
+      }
     });
+  } else if (pendingCandidate && best.source !== 'pending') {
+    clearPendingPrefsSyncIfNotNewer(cleanKey, effectiveTs);
   }
-  if (apiOnline && (!serverCandidate || serverCandidate.ts < effectiveTs)) {
+
+  if (apiOnline && (!serverCandidate || serverCandidate.ts < effectiveTs || best.source === 'pending')) {
     void fetch(`/api/student/prefs/${encodeURIComponent(cleanKey)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -1966,6 +2214,7 @@ export async function loadCloudStudentPrefs(
         lang: chosen.lang || '',
         authHash: chosen.authHash && isValidAuthHash(chosen.authHash) ? chosen.authHash : '',
         last4: chosen.last4 || '',
+        updatedAtMs: effectiveTs,
       }),
     }).catch(() => undefined);
   }
@@ -2031,7 +2280,7 @@ export async function saveCloudStudentPrefs(
   const finalMode = normalizeOtherGroupModePref(prefs.otherGroupMode);
   const finalAuthHash = isValidAuthHash(authHash) ? authHash : '';
   const finalLast4 = typeof prefs.last4 === 'string' && /^[0-9]{4}$/.test(prefs.last4.trim()) ? prefs.last4.trim() : '';
-  const nowTs = typeof prefs.updatedAtMs === 'number' && prefs.updatedAtMs > 0 ? prefs.updatedAtMs : Date.now();
+  const nowTs = typeof prefs.updatedAtMs === 'number' && prefs.updatedAtMs > 0 ? Math.floor(prefs.updatedAtMs) : Date.now();
 
   const prefsMap = readStaticJson<Record<string, Record<string, unknown>>>('student_prefs', {});
   const rowPayload = {
@@ -2048,16 +2297,28 @@ export async function saveCloudStudentPrefs(
   writeStaticJson('student_prefs', prefsMap);
   emitLocalTopic('student_prefs', rowPayload);
 
-  const nextSig = buildPrefsSignature({
+  // Queue in pending sync map until Firestore confirms the compact write
+  queuePendingPrefsSync({
+    cloudKey: cleanKey,
+    authHash: finalAuthHash,
+    last4: finalLast4,
     myMbuGroup: finalMbu,
     myLabGroup: finalLab,
     otherGroupMode: finalMode,
     lang: finalLang,
+    updatedAtMs: nowTs,
   });
 
+  const nextCompactSig = `c:${buildPrefsSignature({
+    myMbuGroup: finalMbu,
+    myLabGroup: finalLab,
+    otherGroupMode: finalMode,
+    lang: finalLang,
+  })}`;
+
   const fbPromise =
-    lastFirebasePrefsSignature.get(cleanKey) === nextSig
-      ? Promise.resolve(true)
+    lastFirebasePrefsSignature.get(cleanKey) === nextCompactSig
+      ? (clearPendingPrefsSyncIfNotNewer(cleanKey, nowTs), Promise.resolve(true))
       : saveFirebaseStudentPrefs(cleanKey, {
           cloudKey: cleanKey,
           authHash: finalAuthHash,
@@ -2070,8 +2331,9 @@ export async function saveCloudStudentPrefs(
         })
           .then((ok) => {
             if (ok) {
-              lastFirebasePrefsSignature.set(cleanKey, nextSig);
+              lastFirebasePrefsSignature.set(cleanKey, nextCompactSig);
               markStudentPrefsSyncedThisSession(cleanKey);
+              clearPendingPrefsSyncIfNotNewer(cleanKey, nowTs);
             }
             return ok;
           })
@@ -2090,6 +2352,7 @@ export async function saveCloudStudentPrefs(
           lang: finalLang,
           authHash: isValidAuthHash(finalAuthHash) ? finalAuthHash : '',
           last4: finalLast4,
+          updatedAtMs: nowTs,
         }),
       });
       return resp.ok;

@@ -1271,7 +1271,12 @@ async function startServer() {
         typeof body.last4 === 'string' && /^[0-9]{4}$/.test(body.last4.trim())
           ? body.last4.trim()
           : '';
-      const now = Date.now();
+      const serverNow = Date.now();
+      const rawTs = Number(body.updatedAtMs);
+      const now =
+        Number.isFinite(rawTs) && rawTs > 0 && rawTs <= serverNow + 5 * 60 * 1000
+          ? Math.floor(rawTs)
+          : serverNow;
 
       if (isCloudSqlConfigured) {
         await upsertStudentPrefsPg({
@@ -1298,14 +1303,14 @@ async function startServer() {
             my_lab_group = excluded.my_lab_group,
             other_group_mode = excluded.other_group_mode,
             lang = CASE WHEN excluded.lang != '' THEN excluded.lang ELSE student_prefs.lang END,
-            updated_at = excluded.updated_at
+            updated_at = MAX(student_prefs.updated_at, excluded.updated_at)
         `,
           )
           .run(cloudKey, authHash, last4, mbu, lab, mode, lang, now);
       }
 
       void writePublicDataJsonSnapshot();
-      res.json({ ok: true });
+      res.json({ ok: true, updatedAtMs: now });
     } catch {
       res.status(500).json({ ok: false, error: 'DATABASE_ERROR' });
     }

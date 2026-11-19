@@ -23,17 +23,14 @@ service cloud.firestore {
       return key is string && key.size() == 64 && key.matches('^[a-f0-9]{64}$');
     }
 
-    function isValidStudentPrefs(data, cloudKey) {
-      return data.keys().hasAll(['cloudKey', 'myMbuGroup', 'myLabGroup', 'otherGroupMode', 'lang', 'updatedAtMs']) &&
-        data.keys().hasOnly(['cloudKey', 'authHash', 'last4', 'myMbuGroup', 'myLabGroup', 'otherGroupMode', 'lang', 'updatedAtMs']) &&
-        data.cloudKey is string && data.cloudKey == cloudKey &&
-        (!('authHash' in data) || (data.authHash is string && data.authHash.size() <= 64 && (data.authHash == '' || data.authHash.matches('^[a-f0-9]{32,64}$')))) &&
-        (!('last4' in data) || (data.last4 is string && data.last4.size() <= 4 && (data.last4 == '' || data.last4.matches('^[0-9]{4}$')))) &&
-        data.myMbuGroup is string && data.myMbuGroup.size() <= 4 && data.myMbuGroup in ['', 'I', 'II', 'III', 'IV', 'V'] &&
-        data.myLabGroup is string && data.myLabGroup.size() <= 2 && data.myLabGroup in ['', '1', '2'] &&
-        data.otherGroupMode is string && data.otherGroupMode.size() <= 8 && data.otherGroupMode in ['dim', 'hide'] &&
-        data.lang is string && data.lang.size() <= 4 && data.lang in ['', 'tr', 'en'] &&
-        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    function isValidStudentPrefs(data) {
+      return data.keys().hasAll(['g', 'l', 'm', 'p', 't']) &&
+        data.keys().hasOnly(['g', 'l', 'm', 'p', 't']) &&
+        data.g is string && data.g.size() <= 4 && data.g in ['', 'I', 'II', 'III', 'IV', 'V'] &&
+        data.l is string && data.l.size() <= 2 && data.l in ['', '1', '2'] &&
+        data.m is string && data.m.size() == 1 && data.m in ['d', 'h'] &&
+        data.p is string && data.p.size() <= 2 && data.p in ['', 'tr', 'en'] &&
+        (data.t is int || data.t is float) && data.t >= 0;
     }
 
     // Startup connection validation
@@ -60,15 +57,11 @@ service cloud.firestore {
       allow write: if true;
     }
 
-    // Cross-device student preferences (MBU/LAB groups, display mode, language)
+    // Cross-device student preferences (ultra-compact {g,l,m,p,t})
     match /studentPrefs/{cloudKey} {
       allow get: if isValidCloudKey(cloudKey);
       allow list: if false;
-      allow create: if isValidCloudKey(cloudKey) && isValidStudentPrefs(request.resource.data, cloudKey);
-      allow update: if isValidCloudKey(cloudKey) &&
-        isValidStudentPrefs(request.resource.data, cloudKey) &&
-        request.resource.data.cloudKey == resource.data.cloudKey &&
-        request.resource.data.updatedAtMs >= resource.data.updatedAtMs;
+      allow create, update: if isValidCloudKey(cloudKey) && isValidStudentPrefs(request.resource.data);
     }
   }
 }

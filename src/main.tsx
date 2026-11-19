@@ -2,6 +2,7 @@ import {createRoot} from 'react-dom/client';
 import {registerSW} from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
+import './styles/app.css';
 import {
   addOrUpdateCustomStudent,
   adminSaveStudentSettings,
@@ -9,16 +10,19 @@ import {
   checkStudentLoginStatus,
   checkStudentSessionActive,
   clearAdminWriteSecret,
+  clearLessonPdfCache,
   clearStudentPrefsSessionSync,
   deleteAnnouncement,
   deleteCustomStudent,
   deleteLessonMaterial,
   deleteServerPdfByUrl,
+  flushPendingStudentPrefsSync,
   getAppVersion,
   bumpAppVersion,
   downloadLessonMaterialChunks,
   generateLessonMaterialId,
   getCachedLessonPdfBlob,
+  getLessonPdfCacheStats,
   hasAdminWriteSecret,
   isStaticDeployment,
   isStudentAlreadyRegistered,
@@ -31,6 +35,7 @@ import {
   lookupStudentForAdmin,
   lookupStudentWithCloud,
   publishDataJsonToGitHub,
+  resolveStudentCloudKey,
   saveAnnouncement,
   saveCloudStudentPrefs,
   saveLessonMaterial,
@@ -55,6 +60,7 @@ import {
   subscribeFirebaseStudentDirectory,
   initFirebaseDirectorySync,
 } from './cloudApi.ts';
+import { initInonuApp } from './legacyApp.ts';
 import {
   deriveAdminWriteSecret,
   deriveCloudDocId,
@@ -97,6 +103,8 @@ declare global {
       saveCloudStudentPrefs: typeof saveCloudStudentPrefs;
       subscribeCloudStudentPrefs: typeof subscribeCloudStudentPrefs;
       clearStudentPrefsSessionSync: typeof clearStudentPrefsSessionSync;
+      flushPendingStudentPrefsSync: typeof flushPendingStudentPrefsSync;
+      resolveStudentCloudKey: typeof resolveStudentCloudKey;
       loadActiveAnnouncements: typeof loadActiveAnnouncements;
       subscribeAnnouncements: typeof subscribeAnnouncements;
       listAllAnnouncements: typeof listAllAnnouncements;
@@ -110,6 +118,8 @@ declare global {
       downloadLessonMaterialChunks: typeof downloadLessonMaterialChunks;
       getCachedLessonPdfBlob: typeof getCachedLessonPdfBlob;
       cacheLessonPdfBlob: typeof cacheLessonPdfBlob;
+      getLessonPdfCacheStats: typeof getLessonPdfCacheStats;
+      clearLessonPdfCache: typeof clearLessonPdfCache;
       generateLessonMaterialId: typeof generateLessonMaterialId;
       deleteServerPdfByUrl: typeof deleteServerPdfByUrl;
       addOrUpdateCustomStudent: typeof addOrUpdateCustomStudent;
@@ -162,6 +172,8 @@ window.__INONU_AUTH__ = {
   saveCloudStudentPrefs,
   subscribeCloudStudentPrefs,
   clearStudentPrefsSessionSync,
+  flushPendingStudentPrefsSync,
+  resolveStudentCloudKey,
   loadActiveAnnouncements,
   subscribeAnnouncements,
   listAllAnnouncements,
@@ -175,6 +187,8 @@ window.__INONU_AUTH__ = {
   downloadLessonMaterialChunks,
   getCachedLessonPdfBlob,
   cacheLessonPdfBlob,
+  getLessonPdfCacheStats,
+  clearLessonPdfCache,
   generateLessonMaterialId,
   deleteServerPdfByUrl,
   addOrUpdateCustomStudent,
@@ -197,6 +211,7 @@ window.__INONU_AUTH__ = {
   initFirebaseDirectorySync,
 };
 window.dispatchEvent(new Event('inonu-auth-ready'));
+initInonuApp();
 
 if (import.meta.env.DEV) {
   const hasStaleDom = Boolean(document.getElementById('adminCloudAuthBar'));
