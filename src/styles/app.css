@@ -1261,16 +1261,10 @@ body {
   animation: iosShake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Admin Modal Cohesive Animations, Clean Surfaces & Gliding Pill */
+/* Admin Modal — Native iOS Liquid Glass & Fluid Animations */
 #adminTabsBar {
   position: relative;
   isolation: isolate;
-  background: rgba(15, 23, 42, 0.055);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-}
-.dark #adminTabsBar {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
 }
 #adminTabIndicator {
   position: absolute;
@@ -1278,69 +1272,41 @@ body {
   left: 0;
   border-radius: 0.75rem;
   background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(15, 23, 42, 0.05);
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   will-change: transform, width, height;
   pointer-events: none;
   z-index: 0;
-  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), width 0.36s cubic-bezier(0.22, 1, 0.36, 1), height 0.36s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease;
+  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), width 0.36s cubic-bezier(0.22, 1, 0.36, 1), height 0.36s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.24s ease;
 }
 .dark #adminTabIndicator {
-  background: rgba(30, 41, 59, 0.95);
-  border-color: rgba(255, 255, 255, 0.10);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.44);
+  background: rgba(30, 41, 59, 0.96);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.10);
 }
 .admin-tab-btn {
   position: relative;
   z-index: 1;
-  transition: color 0.2s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: color 0.2s ease, transform 0.22s cubic-bezier(0.34, 1.45, 0.64, 1);
   white-space: nowrap;
+  touch-action: manipulation;
 }
 .admin-tab-btn:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
 }
-.admin-panel-card {
+
+/* Native iOS Glass Sub-Card (Harmonized with .ios-glass & .ios-pill-control) */
+.admin-glass-section {
   background: rgba(255, 255, 255, 0.56);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 1.125rem;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 4px 18px -4px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.68);
+  border-radius: 1.5rem;
 }
-.dark .admin-panel-card {
-  background: rgba(15, 23, 42, 0.42);
-  border-color: rgba(255, 255, 255, 0.08);
+.dark .admin-glass-section {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
-.admin-field {
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
-}
-.admin-field:hover {
-  border-color: rgba(15, 23, 42, 0.18);
-}
-.dark .admin-field {
-  background: rgba(2, 6, 23, 0.46);
-  border-color: rgba(255, 255, 255, 0.10);
-}
-.dark .admin-field:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-}
-.admin-row-item {
-  background: rgba(255, 255, 255, 0.52);
-  border: 1px solid rgba(15, 23, 42, 0.075);
-  border-radius: 1rem;
-  transition: border-color 0.18s ease, background-color 0.18s ease;
-}
-.admin-row-item:hover {
-  background: rgba(255, 255, 255, 0.72);
-  border-color: rgba(15, 23, 42, 0.13);
-}
-.dark .admin-row-item {
-  background: rgba(15, 23, 42, 0.36);
-  border-color: rgba(255, 255, 255, 0.075);
-}
-.dark .admin-row-item:hover {
-  background: rgba(15, 23, 42, 0.54);
-  border-color: rgba(255, 255, 255, 0.14);
-}
+
+/* Directional Pane Enter Animations (Matches Main Dock Tabs) */
 @keyframes adminPaneIn {
   from {
     opacity: 0;
@@ -1351,13 +1317,48 @@ body {
     transform: translate3d(0, 0, 0) scale(1);
   }
 }
-.admin-pane-enter {
-  animation: adminPaneIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+@keyframes adminPaneEnterRight {
+  from {
+    opacity: 0;
+    transform: translate3d(20px, 0, 0) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
+@keyframes adminPaneEnterLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(-20px, 0, 0) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+.admin-pane-enter {
+  animation: adminPaneIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.admin-pane-enter-right {
+  animation: adminPaneEnterRight 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.admin-pane-enter-left {
+  animation: adminPaneEnterLeft 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Directional Day/List Slide Animations (Cancellations & Filters) */
+.admin-slide-next {
+  animation: daySlideNext 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.admin-slide-prev {
+  animation: daySlidePrev 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @keyframes adminItemIn {
   from {
     opacity: 0;
-    transform: translate3d(0, 10px, 0) scale(0.988);
+    transform: translate3d(0, 12px, 0) scale(0.985);
   }
   to {
     opacity: 1;
@@ -1365,33 +1366,105 @@ body {
   }
 }
 .admin-stagger-item {
-  animation: adminItemIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation: adminItemIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   animation-delay: var(--admin-delay, 0ms);
 }
 .admin-card-reveal {
-  animation: adminItemIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: adminItemIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.admin-lab-collapse {
+
+/* Tactile Cancel / Restore Micro-Animations */
+@keyframes adminCancelPop {
+  0% {
+    transform: scale(0.975);
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.36);
+  }
+  45% {
+    transform: scale(1.012);
+    box-shadow: 0 0 0 6px rgba(244, 63, 94, 0.14);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+  }
+}
+@keyframes adminRestorePop {
+  0% {
+    transform: scale(0.975);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.36);
+  }
+  45% {
+    transform: scale(1.012);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.14);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+@keyframes adminRowExit {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(18px, 0, 0) scale(0.96);
+  }
+}
+.admin-cancel-pop {
+  animation: adminCancelPop 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.admin-restore-pop {
+  animation: adminRestorePop 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.admin-row-exit {
+  animation: adminRowExit 0.24s cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
+/* Smooth Spring Collapse / Expand (Pickers, LAB Group, Optional Sections) */
+.admin-lab-collapse,
+.admin-collapse-panel {
   display: grid;
   grid-template-rows: 1fr;
   opacity: 1;
   transform: translate3d(0, 0, 0);
   transition:
-    grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    grid-template-rows 0.34s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.24s ease,
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   margin-top: 0 !important;
 }
-.admin-lab-collapse > .admin-lab-inner {
+.admin-lab-collapse > .admin-lab-inner,
+.admin-collapse-panel > .admin-collapse-inner {
   overflow: hidden;
   min-height: 0;
 }
-.admin-lab-collapse.is-collapsed {
+.admin-lab-collapse.is-collapsed,
+.admin-collapse-panel.is-collapsed {
   grid-template-rows: 0fr;
   opacity: 0;
   transform: translate3d(0, -6px, 0);
   pointer-events: none;
 }
+
+/* Smooth Animated Dropdown Drawer (Date & Slot Pickers) */
+@keyframes adminDropdownIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+.admin-dropdown-enter {
+  animation: adminDropdownIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top center;
+}
+
 
 /* ==================== 44px TOUCH TARGETS & 360px WRAP HARDENING ==================== */
 .touch-target-44 {

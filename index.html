@@ -856,204 +856,241 @@
   </div>
 
   <!-- Admin Settings Modal -->
-  <div id="adminModal" class="fixed inset-0 z-50 hidden bg-black/45 backdrop-blur-md ios-safe-modal flex items-center justify-center p-2.5 min-[360px]:p-4">
+  <div id="adminModal" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-md ios-safe-modal flex items-center justify-center p-2.5 min-[360px]:p-4">
     <div id="adminModalCard" class="ios-glass rounded-3xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
-      <!-- Refreshed Modal Header -->
-      <div class="px-4 sm:px-5 pt-3.5 pb-3 border-b border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between gap-3 shrink-0">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="w-9 h-9 rounded-2xl bg-amber-500/15 border border-amber-500/25 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
+      <!-- Site-Native Modal Header -->
+      <div class="px-4 sm:px-5 pt-4 pb-3 flex items-center justify-between gap-2.5 shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="w-9 h-9 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
             <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          </div>
+          </span>
           <div class="min-w-0">
-            <span id="adminModalBadge" class="block text-[10.5px] font-bold tracking-wider uppercase text-amber-700 dark:text-amber-300 tabular-nums truncate">01260102038 • YÖNETİCİ</span>
-            <h3 id="adminModalTitle" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate leading-tight">Admin Ayarları</h3>
+            <span id="adminModalBadge" class="block text-[10.5px] font-bold tracking-wider uppercase text-amber-600/90 dark:text-amber-300/90 tabular-nums truncate">01260102038 • YÖNETİCİ</span>
+            <h3 id="adminModalTitle" class="text-base font-bold text-slate-900 dark:text-white truncate leading-tight">Admin Ayarları</h3>
           </div>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
-          <button id="btnAdminRefreshAll" type="button" class="ios-press w-9 h-9 rounded-xl admin-field text-slate-700 dark:text-slate-200 flex items-center justify-center transition" aria-label="Yenile" title="Yenile">
+          <button id="btnAdminRefreshAll" type="button" class="ios-press touch-target-44 w-8 h-8 rounded-full ios-pill-control hover:bg-slate-500/15 text-slate-700 dark:text-slate-200 flex items-center justify-center transition" aria-label="Yenile" title="Yenile">
             <svg id="iconAdminRefresh" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
           </button>
-          <button id="btnCloseAdminModal" type="button" class="ios-press w-9 h-9 rounded-xl admin-field text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center justify-center shrink-0 transition" aria-label="Kapat">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <button id="btnCloseAdminModal" type="button" class="ios-press touch-target-44 w-8 h-8 rounded-full ios-pill-control hover:bg-slate-500/15 text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center justify-center shrink-0 transition" aria-label="Kapat">✕</button>
         </div>
       </div>
 
       <!-- Optional Legacy Session Unlock Strip -->
-      <form id="adminReunlockBar" class="hidden px-4 sm:px-5 py-2.5 border-b border-amber-500/20 bg-amber-500/10 flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0" novalidate>
+      <form id="adminReunlockBar" class="hidden px-4 sm:px-5 py-2.5 border-y border-amber-500/20 bg-amber-500/10 flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0" novalidate>
         <p id="adminUnlockBannerText" class="text-[11px] sm:text-xs font-semibold text-amber-800 dark:text-amber-200 flex-1 min-w-[160px]">Düzenleme yapmak için yönetici şifresini bir kez doğrulayın:</p>
         <div class="flex items-center gap-1.5 w-full sm:w-auto">
-          <input id="adminUnlockPwdInput" type="password" maxlength="64" placeholder="Yönetici şifresi" class="flex-1 sm:w-44 min-w-0 admin-field rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
-          <button id="btnAdminUnlockSubmit" type="submit" class="ios-press min-h-[36px] px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shrink-0 transition">Kilidi Aç</button>
+          <input id="adminUnlockPwdInput" type="password" maxlength="64" placeholder="Yönetici şifresi" class="flex-1 sm:w-44 min-w-0 ios-pill-control rounded-full px-3.5 py-1.5 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+          <button id="btnAdminUnlockSubmit" type="submit" class="ios-press min-h-[36px] px-3.5 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shrink-0 transition">Kilidi Aç</button>
         </div>
       </form>
 
-      <!-- Single-Line Scrollable Segmented Rail with Icons -->
-      <div class="px-3 sm:px-5 pt-2.5 pb-2 shrink-0">
-        <div id="adminTabsBar" class="p-1 rounded-2xl flex items-center gap-1 overflow-x-auto no-scrollbar sm:grid sm:grid-cols-5 relative">
-          <div id="adminTabIndicator" style="transform: translate3d(4px, 4px, 0); width: 92px; height: 36px;"></div>
-          <button type="button" data-admin-tab="announcements" class="admin-tab-btn min-h-[36px] py-1.5 px-3 sm:px-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 sm:shrink">
-            <svg class="w-3.5 h-3.5 shrink-0 opacity-85" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+      <!-- Site-Native Gliding Segmented Tab Rail -->
+      <div class="px-4 sm:px-5 pb-3 shrink-0">
+        <div id="adminTabsBar" class="ios-pill-control p-1 rounded-2xl flex items-center gap-1 overflow-x-auto no-scrollbar sm:grid sm:grid-cols-5 relative">
+          <div id="adminTabIndicator" style="transform: translate3d(4px, 4px, 0); width: 92px; height: 34px;"></div>
+          <button type="button" data-admin-tab="announcements" class="admin-tab-btn min-h-[34px] py-1.5 px-3 sm:px-2 rounded-xl text-xs font-bold text-slate-900 dark:text-white flex items-center justify-center shrink-0 sm:shrink">
             <span class="admin-tab-label">Duyurular</span>
           </button>
-          <button type="button" data-admin-tab="materials" class="admin-tab-btn min-h-[36px] py-1.5 px-3 sm:px-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 sm:shrink">
-            <svg class="w-3.5 h-3.5 shrink-0 opacity-85" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            <span class="admin-tab-label">Ders PDF'leri</span>
+          <button type="button" data-admin-tab="materials" class="admin-tab-btn min-h-[34px] py-1.5 px-3 sm:px-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 sm:shrink">
+            <span class="admin-tab-label">PDF'ler</span>
           </button>
-          <button type="button" data-admin-tab="cancellations" class="admin-tab-btn min-h-[36px] py-1.5 px-3 sm:px-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 sm:shrink">
-            <svg class="w-3.5 h-3.5 shrink-0 opacity-85" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+          <button type="button" data-admin-tab="cancellations" class="admin-tab-btn min-h-[34px] py-1.5 px-3 sm:px-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 sm:shrink">
             <span class="admin-tab-label">Ders İptali</span>
           </button>
-          <button type="button" data-admin-tab="add-student" class="admin-tab-btn min-h-[36px] py-1.5 px-3 sm:px-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 sm:shrink">
-            <svg class="w-3.5 h-3.5 shrink-0 opacity-85" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+          <button type="button" data-admin-tab="add-student" class="admin-tab-btn min-h-[34px] py-1.5 px-3 sm:px-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 sm:shrink">
             <span class="admin-tab-label">Öğrenci Ekle</span>
           </button>
-          <button type="button" data-admin-tab="students" class="admin-tab-btn min-h-[36px] py-1.5 px-3 sm:px-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 sm:shrink">
-            <svg class="w-3.5 h-3.5 shrink-0 opacity-85" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          <button type="button" data-admin-tab="students" class="admin-tab-btn min-h-[34px] py-1.5 px-3 sm:px-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 sm:shrink">
             <span class="admin-tab-label">Ayarlar</span>
           </button>
         </div>
       </div>
 
       <!-- Scrollable Body -->
-      <div id="adminModalScrollBody" class="flex-1 overflow-y-auto px-4 sm:px-5 pb-5 pt-1 space-y-4">
-        <!-- PANE 1: DUYURULAR -->
+      <div id="adminModalScrollBody" class="flex-1 overflow-y-auto px-4 sm:px-5 pb-5 space-y-4">
+        <!-- ==================== PANE 1: DUYURULAR ==================== -->
         <div id="adminPaneAnnouncements" class="space-y-4">
-          <form id="adminAnnForm" class="admin-panel-card p-3.5 sm:p-4 space-y-3" novalidate>
+          <form id="adminAnnForm" class="admin-glass-section p-3.5 sm:p-4 space-y-3" novalidate>
             <div class="flex items-center justify-between gap-2">
-              <h4 id="adminAnnFormTitle" class="text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-100">Yeni Duyuru</h4>
+              <h4 id="adminAnnFormTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Yeni Duyuru</h4>
               <div class="flex items-center gap-1.5">
-                <button id="btnAdminAnnActiveToggle" type="button" class="ios-press min-h-[34px] px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Yayında</button>
-                <button id="btnAdminAnnCancelEdit" type="button" class="hidden ios-press min-h-[34px] px-3 py-1 rounded-xl admin-field text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">İptal</button>
-              </div>
-            </div>
-            <input id="adminAnnTitleInput" type="text" maxlength="120" placeholder="Duyuru başlığı..." class="w-full admin-field rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-            <textarea id="adminAnnMsgInput" rows="3" maxlength="800" placeholder="Tüm öğrencilere gösterilecek duyuru mesajı..." class="w-full admin-field rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"></textarea>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
-              <div class="space-y-1.5">
-                <span class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Hedef Grup (Opsiyonel)</span>
-                <div id="adminAnnTargetGroupChips" class="flex items-center gap-1 flex-wrap">
-                  <button type="button" data-ann-target-group="" class="group-chip min-h-[36px] px-2.5">Tümü</button>
-                  <button type="button" data-ann-target-group="I" class="group-chip min-h-[36px] px-2.5">I</button>
-                  <button type="button" data-ann-target-group="II" class="group-chip min-h-[36px] px-2.5">II</button>
-                  <button type="button" data-ann-target-group="III" class="group-chip min-h-[36px] px-2.5">III</button>
-                  <button type="button" data-ann-target-group="IV" class="group-chip min-h-[36px] px-2.5">IV</button>
-                  <button type="button" data-ann-target-group="V" class="group-chip min-h-[36px] px-2.5">V</button>
-                </div>
-              </div>
-              <div class="space-y-1.5">
-                <span class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Hedef Program (Opsiyonel)</span>
-                <div id="adminAnnTargetProgChips" class="flex items-center gap-1 flex-wrap">
-                  <button type="button" data-ann-target-prog="" class="group-chip min-h-[36px] px-3">Tümü</button>
-                  <button type="button" data-ann-target-prog="tr" class="group-chip min-h-[36px] px-3">TR</button>
-                  <button type="button" data-ann-target-prog="en" class="group-chip min-h-[36px] px-3">EN</button>
-                </div>
+                <button id="btnAdminAnnActiveToggle" type="button" class="ios-press min-h-[32px] px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Yayında</button>
+                <button id="btnAdminAnnCancelEdit" type="button" class="hidden ios-press min-h-[32px] px-3 py-1 rounded-full ios-pill-control text-[11px] font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">İptal</button>
               </div>
             </div>
 
-            <div class="flex items-center justify-between gap-2.5 flex-wrap pt-1 border-t border-slate-200/60 dark:border-slate-700/50">
-              <div id="adminAnnToneChips" class="flex items-center gap-1.5">
-                <button type="button" data-ann-tone="info" class="group-chip min-h-[38px] px-3">Bilgi</button>
-                <button type="button" data-ann-tone="warn" class="group-chip min-h-[38px] px-3">Önemli</button>
-                <button type="button" data-ann-tone="urgent" class="group-chip min-h-[38px] px-3">Acil</button>
-              </div>
-              <button id="btnAdminAnnSubmit" type="submit" class="ios-press flex-1 sm:flex-initial min-h-[40px] px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">Duyuruyu Yayınla</button>
+            <div class="space-y-2">
+              <input id="adminAnnTitleInput" type="text" maxlength="120" placeholder="Duyuru başlığı..." class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              <textarea id="adminAnnMsgInput" rows="3" maxlength="800" placeholder="Tüm öğrencilere gösterilecek duyuru mesajı..." class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"></textarea>
             </div>
+
+            <!-- Tone & Optional Targeting Toggle -->
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div id="adminAnnToneChips" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full inline-flex items-center text-[11px]">
+                <div id="adminAnnToneIndicator" class="segmented-pill-indicator"></div>
+                <button type="button" data-ann-tone="info" class="px-3 py-1.5 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">Bilgi</button>
+                <button type="button" data-ann-tone="warn" class="px-3 py-1.5 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">Önemli</button>
+                <button type="button" data-ann-tone="urgent" class="px-3 py-1.5 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">Acil</button>
+              </div>
+              <button id="btnAdminAnnToggleTarget" type="button" aria-expanded="false" class="ios-press min-h-[34px] px-3 py-1 rounded-full ios-pill-control text-[11px] font-semibold text-slate-600 dark:text-slate-300 inline-flex items-center gap-1.5 transition">
+                <span id="lblAdminAnnTargetSummary">Hedef: Tümü</span>
+                <svg class="w-3.5 h-3.5 opacity-70 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+            </div>
+
+            <!-- Smooth Collapsible Targeting Panel -->
+            <div id="adminAnnTargetCollapse" class="admin-collapse-panel is-collapsed" aria-hidden="true">
+              <div class="admin-collapse-inner">
+                <div class="pt-2.5 border-t border-slate-200/60 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div class="space-y-1.5">
+                    <span id="lblAdminAnnTargetGroup" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Hedef Grup</span>
+                    <div id="adminAnnTargetGroupChips" class="flex items-center gap-1 flex-wrap">
+                      <button type="button" data-ann-target-group="" class="group-chip min-h-[34px] px-2.5">Tümü</button>
+                      <button type="button" data-ann-target-group="I" class="group-chip min-h-[34px] px-2.5">I</button>
+                      <button type="button" data-ann-target-group="II" class="group-chip min-h-[34px] px-2.5">II</button>
+                      <button type="button" data-ann-target-group="III" class="group-chip min-h-[34px] px-2.5">III</button>
+                      <button type="button" data-ann-target-group="IV" class="group-chip min-h-[34px] px-2.5">IV</button>
+                      <button type="button" data-ann-target-group="V" class="group-chip min-h-[34px] px-2.5">V</button>
+                    </div>
+                  </div>
+                  <div class="space-y-1.5">
+                    <span id="lblAdminAnnTargetProg" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Hedef Program</span>
+                    <div id="adminAnnTargetProgChips" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full inline-flex items-center text-[11px]">
+                      <div id="adminAnnTargetProgIndicator" class="segmented-pill-indicator"></div>
+                      <button type="button" data-ann-target-prog="" class="px-3 py-1.5 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">Tümü</button>
+                      <button type="button" data-ann-target-prog="tr" class="px-3 py-1.5 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">TR</button>
+                      <button type="button" data-ann-target-prog="en" class="px-3 py-1.5 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">EN</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button id="btnAdminAnnSubmit" type="submit" class="ios-press w-full min-h-[42px] py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">Duyuruyu Yayınla</button>
           </form>
 
           <div class="space-y-2.5">
-            <div class="flex items-center justify-between gap-2 flex-wrap px-0.5">
-              <h4 id="adminAnnListHeading" class="text-xs font-bold text-slate-600 dark:text-slate-300">Kayıtlı Duyurular</h4>
-              <div id="adminAnnListFilterChips" class="flex items-center gap-1">
-                <button type="button" data-ann-list-filter="" class="group-chip group-chip-active min-h-[30px] px-2.5 text-[11px]">Tümü</button>
-                <button type="button" data-ann-list-filter="tr" class="group-chip min-h-[30px] px-2.5 text-[11px]">TR</button>
-                <button type="button" data-ann-list-filter="en" class="group-chip min-h-[30px] px-2.5 text-[11px]">EN</button>
+            <div class="flex items-center justify-between gap-2 flex-wrap px-1">
+              <h4 id="adminAnnListHeading" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Kayıtlı Duyurular</h4>
+              <div id="adminAnnListFilterChips" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full inline-flex items-center text-[11px]">
+                <div id="adminAnnListFilterIndicator" class="segmented-pill-indicator"></div>
+                <button type="button" data-ann-list-filter="" class="px-2.5 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">Tümü</button>
+                <button type="button" data-ann-list-filter="tr" class="px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">TR</button>
+                <button type="button" data-ann-list-filter="en" class="px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">EN</button>
               </div>
             </div>
             <div id="adminAnnouncementsList" class="space-y-2"></div>
           </div>
         </div>
 
-        <!-- PANE 2B: DERS İPTALİ -->
+        <!-- ==================== PANE 2: DERS İPTALİ ==================== -->
         <div id="adminPaneCancellations" class="hidden space-y-4">
-          <div class="admin-panel-card p-3.5 sm:p-4 space-y-3">
+          <div class="admin-glass-section p-3.5 sm:p-4 space-y-3">
+            <!-- Header + Gliding TR/EN Switcher -->
             <div class="flex items-center justify-between gap-2 flex-wrap">
-              <h4 id="adminCancelFormHeading" class="text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-100">Ders İptal Et / Geri Al</h4>
-              <div id="adminCancelProgChips" class="flex items-center gap-1">
-                <button type="button" data-cancel-prog="tr" class="group-chip group-chip-active min-h-[32px] px-3 text-[11px]">Türkçe (TR)</button>
-                <button type="button" data-cancel-prog="en" class="group-chip min-h-[32px] px-3 text-[11px]">İngilizce (EN)</button>
+              <h4 id="adminCancelFormHeading" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Ders İptal Et / Geri Al</h4>
+              <div id="adminCancelProgChips" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full inline-flex items-center text-[11px]">
+                <div id="adminCancelProgIndicator" class="segmented-pill-indicator"></div>
+                <button type="button" data-cancel-prog="tr" class="px-3 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">TR</button>
+                <button type="button" data-cancel-prog="en" class="px-3 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">EN</button>
               </div>
             </div>
             <span id="lblAdminCancelProg" class="sr-only">Program</span>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="space-y-1 relative">
-                <label id="lblAdminCancelDate" for="btnAdminCancelDateTrigger" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Ders Tarihi</label>
-                <input id="adminCancelDateSelect" type="hidden" value="">
-                <button id="btnAdminCancelDateTrigger" type="button" aria-expanded="false" class="ios-press w-full admin-field rounded-xl px-3 py-2.5 text-left flex items-center justify-between gap-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/40">
-                  <span id="adminCancelDateLabel" class="truncate tabular-nums">Tarih seç...</span>
-                  <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+
+            <!-- Quick Date Stepper (Matches Site Native Day Nav) -->
+            <div class="space-y-1.5 relative">
+              <label id="lblAdminCancelDate" for="btnAdminCancelDateTrigger" class="sr-only">Ders Tarihi</label>
+              <input id="adminCancelDateSelect" type="hidden" value="">
+              <div class="flex items-center gap-1.5">
+                <button id="btnAdminCancelPrevDay" type="button" aria-label="Önceki Ders Günü" class="ios-press w-10 h-10 rounded-full ios-pill-control hover:bg-slate-500/15 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                 </button>
-                <div id="adminCancelDatePickerPanel" class="hidden mt-1.5 ios-glass rounded-2xl p-2 space-y-1.5 border border-rose-500/20 shadow-xl">
-                  <input id="adminCancelDateSearch" type="text" placeholder="Tarih, gün veya hafta ara..." class="w-full admin-field rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40">
-                  <div id="adminCancelDateOptions" class="admin-picker-panel space-y-1 pr-0.5"></div>
-                </div>
+                <button id="btnAdminCancelDateTrigger" type="button" aria-expanded="false" class="ios-press flex-1 min-w-0 h-10 ios-pill-control hover:bg-slate-500/15 rounded-full px-3.5 flex items-center justify-between gap-2 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/40 transition">
+                  <span class="flex items-center gap-2 min-w-0">
+                    <svg class="w-4 h-4 text-rose-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span id="adminCancelDateLabel" class="truncate tabular-nums">Tarih seç...</span>
+                  </span>
+                  <svg class="admin-picker-chevron w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <button id="btnAdminCancelNextDay" type="button" aria-label="Sonraki Ders Günü" class="ios-press w-10 h-10 rounded-full ios-pill-control hover:bg-slate-500/15 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </button>
               </div>
-              <div class="space-y-1">
-                <label id="lblAdminCancelReason" for="adminCancelReasonInput" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">İptal Notu (Opsiyonel)</label>
-                <input id="adminCancelReasonInput" type="text" maxlength="200" placeholder="Örn: Hoca mazeretli, telafi yapılacak..." class="w-full admin-field rounded-xl px-3 py-2.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40">
+              <div id="adminCancelDatePickerPanel" class="hidden mt-2 ios-glass rounded-2xl p-2 space-y-1.5 border border-rose-500/20 shadow-xl">
+                <input id="adminCancelDateSearch" type="text" placeholder="Tarih, gün veya hafta ara..." class="w-full ios-pill-control rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40">
+                <div id="adminCancelDateOptions" class="admin-picker-panel space-y-1 pr-0.5"></div>
               </div>
             </div>
-            <div class="space-y-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/50">
-              <span id="lblAdminCancelDaySlots" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Seçili Günün Dersleri</span>
-              <div id="adminCancelDaySlotsList" class="space-y-1.5"></div>
+
+            <!-- Optional Reason Input -->
+            <div>
+              <label id="lblAdminCancelReason" for="adminCancelReasonInput" class="sr-only">İptal Notu (Opsiyonel)</label>
+              <input id="adminCancelReasonInput" type="text" maxlength="200" placeholder="İptal notu (opsiyonel) — Örn: Hoca mazeretli..." class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40">
+            </div>
+
+            <!-- Selected Day's Lessons -->
+            <div class="space-y-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
+              <div class="flex items-center justify-between gap-2 px-0.5">
+                <span id="lblAdminCancelDaySlots" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Seçili Günün Dersleri</span>
+                <span id="adminCancelDaySlotCount" class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 tabular-nums"></span>
+              </div>
+              <div id="adminCancelDaySlotsList" class="space-y-2"></div>
             </div>
           </div>
 
+          <!-- Active Cancelled Lessons List -->
           <div class="space-y-2.5">
-            <div class="flex items-center justify-between gap-2 flex-wrap px-0.5">
-              <h4 id="adminCancelledListHeading" class="text-xs font-bold text-slate-600 dark:text-slate-300">İptal Edilen Dersler</h4>
-              <div id="adminCancelledListFilterChips" class="flex items-center gap-1">
-                <button type="button" data-cancel-list-filter="" class="group-chip group-chip-active min-h-[30px] px-2.5 text-[11px]">Tümü</button>
-                <button type="button" data-cancel-list-filter="tr" class="group-chip min-h-[30px] px-2.5 text-[11px]">TR</button>
-                <button type="button" data-cancel-list-filter="en" class="group-chip min-h-[30px] px-2.5 text-[11px]">EN</button>
+            <div class="flex items-center justify-between gap-2 flex-wrap px-1">
+              <div class="flex items-center gap-2">
+                <h4 id="adminCancelledListHeading" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">İptal Edilen Dersler</h4>
+                <span id="adminCancelledCountBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300 tabular-nums">0</span>
+              </div>
+              <div id="adminCancelledListFilterChips" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full inline-flex items-center text-[11px]">
+                <div id="adminCancelledListFilterIndicator" class="segmented-pill-indicator"></div>
+                <button type="button" data-cancel-list-filter="" class="px-2.5 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">Tümü</button>
+                <button type="button" data-cancel-list-filter="tr" class="px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">TR</button>
+                <button type="button" data-cancel-list-filter="en" class="px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">EN</button>
               </div>
             </div>
             <div id="adminCancelledList" class="space-y-2"></div>
           </div>
         </div>
 
-        <!-- PANE 2: DERS PDF'LERİ -->
+        <!-- ==================== PANE 3: DERS PDF'LERİ ==================== -->
         <div id="adminPaneMaterials" class="hidden space-y-4">
-          <form id="adminMaterialForm" class="admin-panel-card p-3.5 sm:p-4 space-y-3" novalidate>
+          <form id="adminMaterialForm" class="admin-glass-section p-3.5 sm:p-4 space-y-3" novalidate>
             <div class="flex items-center justify-between gap-2 flex-wrap">
-              <h4 id="adminMatFormHeading" class="text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-100">Ders Notu / PDF Ekle</h4>
+              <h4 id="adminMatFormHeading" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Ders Notu / PDF Ekle</h4>
               <div class="flex items-center gap-1.5">
-                <div id="adminMatProgChips" class="flex items-center gap-1">
-                  <button type="button" data-mat-prog="tr" class="group-chip group-chip-active min-h-[32px] px-3 text-[11px]">TR</button>
-                  <button type="button" data-mat-prog="en" class="group-chip min-h-[32px] px-3 text-[11px]">EN</button>
+                <div id="adminMatProgChips" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full inline-flex items-center text-[11px]">
+                  <div id="adminMatProgIndicator" class="segmented-pill-indicator"></div>
+                  <button type="button" data-mat-prog="tr" class="px-3 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">TR</button>
+                  <button type="button" data-mat-prog="en" class="px-3 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">EN</button>
                 </div>
-                <button id="btnAdminMatCancelEdit" type="button" class="hidden ios-press min-h-[32px] px-3 py-1 rounded-xl admin-field text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">İptal</button>
+                <button id="btnAdminMatCancelEdit" type="button" class="hidden ios-press min-h-[32px] px-3 py-1 rounded-full ios-pill-control text-[11px] font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">İptal</button>
               </div>
             </div>
             <span id="lblAdminMatProg" class="sr-only">Hedef Program</span>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div class="space-y-1 relative">
-                <label id="lblAdminMatDate" for="btnAdminMatDateTrigger" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Ders Tarihi</label>
+                <label id="lblAdminMatDate" for="btnAdminMatDateTrigger" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">Ders Tarihi</label>
                 <input id="adminMatDateSelect" type="hidden" value="">
-                <button id="btnAdminMatDateTrigger" type="button" aria-expanded="false" class="ios-press w-full admin-field rounded-xl px-3 py-2.5 text-left flex items-center justify-between gap-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <button id="btnAdminMatDateTrigger" type="button" aria-expanded="false" class="ios-press w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-left flex items-center justify-between gap-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                   <span id="adminMatDateLabel" class="truncate tabular-nums">Tarih seç...</span>
                   <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
                 <div id="adminMatDatePickerPanel" class="hidden mt-1.5 ios-glass rounded-2xl p-2 space-y-1.5 border border-blue-500/20 shadow-xl">
-                  <input id="adminMatDateSearch" type="text" placeholder="Tarih, gün veya hafta ara..." class="w-full admin-field rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                  <input id="adminMatDateSearch" type="text" placeholder="Tarih, gün veya hafta ara..." class="w-full ios-pill-control rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                   <div id="adminMatDateOptions" class="admin-picker-panel space-y-1 pr-0.5"></div>
                 </div>
               </div>
               <div class="space-y-1 relative">
-                <label id="lblAdminMatSlot" for="btnAdminMatSlotTrigger" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Ders Saati</label>
+                <label id="lblAdminMatSlot" for="btnAdminMatSlotTrigger" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">Ders Saati</label>
                 <input id="adminMatSlotSelect" type="hidden" value="1">
-                <button id="btnAdminMatSlotTrigger" type="button" aria-expanded="false" class="ios-press w-full admin-field rounded-xl px-3 py-2.5 text-left flex items-center justify-between gap-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <button id="btnAdminMatSlotTrigger" type="button" aria-expanded="false" class="ios-press w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-left flex items-center justify-between gap-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                   <span id="adminMatSlotLabel" class="truncate">Ders seç...</span>
                   <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
@@ -1062,25 +1099,28 @@
                 </div>
               </div>
             </div>
+
             <div class="space-y-1">
-              <label id="lblAdminMatTitle" for="adminMatTitleInput" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">PDF Başlığı / Konu</label>
-              <input id="adminMatTitleInput" type="text" maxlength="120" placeholder="Örn: Biyokimya Ders Notu" class="w-full admin-field rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              <label id="lblAdminMatTitle" for="adminMatTitleInput" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">PDF Başlığı / Konu</label>
+              <input id="adminMatTitleInput" type="text" maxlength="120" placeholder="Örn: Biyokimya Ders Notu" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </div>
+
             <div class="space-y-2">
               <div class="flex items-center justify-between gap-2 flex-wrap">
-                <span id="lblAdminMatSourceMode" class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">PDF Kaynağı</span>
-                <div class="flex items-center gap-1">
-                  <button type="button" data-mat-mode="file" class="group-chip group-chip-active min-h-[32px] px-3 text-[11px]">PDF Dosyası</button>
-                  <button type="button" data-mat-mode="url" class="group-chip min-h-[32px] px-3 text-[11px]">URL Bağlantısı</button>
+                <span id="lblAdminMatSourceMode" class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">PDF Kaynağı</span>
+                <div id="adminMatModeBar" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full inline-flex items-center text-[11px]">
+                  <div id="adminMatModeIndicator" class="segmented-pill-indicator"></div>
+                  <button type="button" data-mat-mode="file" class="px-3 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">PDF Dosyası</button>
+                  <button type="button" data-mat-mode="url" class="px-3 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">URL</button>
                 </div>
               </div>
               <div id="adminMatFileWrap" class="space-y-1.5">
-                <div id="adminMatFileDropzone" class="ios-press relative overflow-hidden cursor-pointer flex items-center justify-between gap-2 w-full admin-field rounded-xl px-3.5 py-2.5 border border-dashed border-blue-500/45 hover:border-blue-500/80 transition">
+                <div id="adminMatFileDropzone" class="ios-press relative overflow-hidden cursor-pointer flex items-center justify-between gap-2 w-full ios-pill-control rounded-2xl px-3.5 py-2.5 border border-dashed border-blue-500/45 hover:border-blue-500/80 transition">
                   <div class="flex items-center gap-2 min-w-0 pointer-events-none">
                     <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <span id="adminMatFileLabel" class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">Cihazdan PDF dosyası seç (maks. 250 MB)...</span>
                   </div>
-                  <span class="pointer-events-none px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-300 text-[11px] font-bold shrink-0">Dosya Seç</span>
+                  <span class="pointer-events-none px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-[11px] font-bold shrink-0">Dosya Seç</span>
                   <input id="adminMatFileInput" type="file" accept="application/pdf,.pdf" aria-label="Cihazdan PDF dosyası seç" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                 </div>
                 <div id="adminMatUploadProgressWrap" class="hidden space-y-1 pt-0.5">
@@ -1094,41 +1134,43 @@
                 </div>
               </div>
               <div id="adminMatUrlWrap" class="hidden space-y-1">
-                <input id="adminMatUrlInput" type="url" maxlength="2000" placeholder="https://drive.google.com/... veya PDF bağlantısı" class="w-full admin-field rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <input id="adminMatUrlInput" type="url" maxlength="2000" placeholder="https://drive.google.com/... veya PDF bağlantısı" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
               </div>
             </div>
-            <button id="btnAdminMatSubmit" type="submit" class="ios-press w-full min-h-[42px] py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">PDF Materyalini Kaydet</button>
+
+            <button id="btnAdminMatSubmit" type="submit" class="ios-press w-full min-h-[42px] py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">PDF Materyalini Kaydet</button>
           </form>
 
           <div class="space-y-2.5">
-            <div class="flex items-center justify-between gap-2 flex-wrap px-0.5">
-              <h4 id="adminMatListHeading" class="text-xs font-bold text-slate-600 dark:text-slate-300">Yüklenen Ders PDF'leri</h4>
-              <div id="adminMatListFilterChips" class="flex items-center gap-1">
-                <button type="button" data-mat-list-filter="" class="group-chip group-chip-active min-h-[30px] px-2.5 text-[11px]">Tümü</button>
-                <button type="button" data-mat-list-filter="tr" class="group-chip min-h-[30px] px-2.5 text-[11px]">TR</button>
-                <button type="button" data-mat-list-filter="en" class="group-chip min-h-[30px] px-2.5 text-[11px]">EN</button>
+            <div class="flex items-center justify-between gap-2 flex-wrap px-1">
+              <h4 id="adminMatListHeading" class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Yüklenen Ders PDF'leri</h4>
+              <div id="adminMatListFilterChips" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full inline-flex items-center text-[11px]">
+                <div id="adminMatListFilterIndicator" class="segmented-pill-indicator"></div>
+                <button type="button" data-mat-list-filter="" class="px-2.5 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">Tümü</button>
+                <button type="button" data-mat-list-filter="tr" class="px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">TR</button>
+                <button type="button" data-mat-list-filter="en" class="px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">EN</button>
               </div>
             </div>
             <div id="adminMaterialsList" class="space-y-2"></div>
           </div>
         </div>
 
-        <!-- PANE 2: ÖĞRENCİ EKLE -->
+        <!-- ==================== PANE 4: ÖĞRENCİ EKLE ==================== -->
         <div id="adminPaneAddStudent" class="hidden space-y-4">
-          <form id="adminAddStudentForm" class="admin-panel-card p-3.5 sm:p-4 space-y-3.5" novalidate>
+          <form id="adminAddStudentForm" class="admin-glass-section p-3.5 sm:p-4 space-y-3.5" novalidate>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div class="space-y-1">
-                <label id="lblAdminAddSid" for="adminAddSid" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Öğrenci Numarası</label>
-                <input id="adminAddSid" type="text" inputmode="numeric" maxlength="11" placeholder="01260100000" class="w-full admin-field rounded-xl px-3.5 py-2.5 text-sm font-semibold font-mono tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <label id="lblAdminAddSid" for="adminAddSid" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">Öğrenci Numarası</label>
+                <input id="adminAddSid" type="text" inputmode="numeric" maxlength="11" placeholder="01260100000" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-sm font-semibold font-mono tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
               </div>
               <div class="space-y-1">
-                <label id="lblAdminAddName" for="adminAddName" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">İsim Soyisim</label>
-                <input id="adminAddName" type="text" maxlength="120" placeholder="Ad Soyad" class="w-full admin-field rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <label id="lblAdminAddName" for="adminAddName" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">İsim Soyisim</label>
+                <input id="adminAddName" type="text" maxlength="120" placeholder="Ad Soyad" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
               </div>
             </div>
 
             <div class="space-y-1.5">
-              <span id="lblAdminAddGroup" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">MBU / PSP Grup Numarası</span>
+              <span id="lblAdminAddGroup" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">MBU / PSP Grup Numarası</span>
               <div id="adminAddGroupChips" class="flex items-center gap-1.5 flex-wrap">
                 <button type="button" data-add-group="I" class="group-chip min-h-[38px] px-3.5">Grup I</button>
                 <button type="button" data-add-group="II" class="group-chip min-h-[38px] px-3.5">Grup II</button>
@@ -1139,45 +1181,134 @@
             </div>
 
             <div class="space-y-1.5">
-              <span id="lblAdminAddLang" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Program Dili</span>
-              <div id="adminAddLangChips" class="flex items-center gap-1.5 flex-wrap">
-                <button type="button" data-add-lang="tr" class="group-chip min-h-[38px] px-3.5">Türkçe (TR)</button>
-                <button type="button" data-add-lang="en" class="group-chip min-h-[38px] px-3.5">English (EN)</button>
+              <span id="lblAdminAddLang" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">Program Dili</span>
+              <div id="adminAddLangChips" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full inline-flex items-center text-xs">
+                <div id="adminAddLangIndicator" class="segmented-pill-indicator"></div>
+                <button type="button" data-add-lang="tr" class="px-4 py-1.5 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">Türkçe (TR)</button>
+                <button type="button" data-add-lang="en" class="px-4 py-1.5 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">English (EN)</button>
               </div>
             </div>
 
             <div id="adminAddLabSection" class="admin-lab-collapse">
               <div class="admin-lab-inner pt-3 space-y-1.5">
-                <span id="lblAdminAddLab" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">LAB Grubu (Opsiyonel)</span>
+                <span id="lblAdminAddLab" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">LAB Grubu (Opsiyonel)</span>
                 <div id="adminAddLabChips" class="flex items-center gap-1.5 flex-wrap">
-                  <button type="button" data-add-lab="" class="group-chip min-h-[38px] px-3">Tümü</button>
-                  <button type="button" data-add-lab="1" class="group-chip min-h-[38px] px-3">LAB 1</button>
-                  <button type="button" data-add-lab="2" class="group-chip min-h-[38px] px-3">LAB 2</button>
+                  <button type="button" data-add-lab="" class="group-chip min-h-[36px] px-3">Tümü</button>
+                  <button type="button" data-add-lab="1" class="group-chip min-h-[36px] px-3">LAB 1</button>
+                  <button type="button" data-add-lab="2" class="group-chip min-h-[36px] px-3">LAB 2</button>
                 </div>
               </div>
             </div>
 
-            <button id="btnAdminSaveNewStudent" type="submit" class="ios-press w-full min-h-[42px] py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">Öğrenciyi Kaydet</button>
+            <button id="btnAdminSaveNewStudent" type="submit" class="ios-press w-full min-h-[42px] py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition">Öğrenciyi Kaydet</button>
           </form>
         </div>
 
-        <!-- PANE 3: TÜM ÖĞRENCİLERİN AYARLARINI KONTROL ETME -->
-        <div id="adminPaneStudents" class="hidden space-y-4">
-          <!-- Firebase Canlı / Kota Bildirim Afişi -->
-          <div id="adminFirebaseQuotaBanner" class="hidden p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-200">
-            <svg class="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-            <div class="flex-1 min-w-0">
-              <p class="font-bold text-amber-900 dark:text-amber-100">Firebase Günlük Kota Sınırına Ulaştı (Spark Plan)</p>
-              <p class="text-[11px] mt-0.5 opacity-90 leading-snug">Kesinti yaşanmaması için sistem otomatik olarak <strong>data.json / GitHub Gist</strong> yedek altyapısına geçti. Öğrenciler kesintisiz kullanmaya devam ediyor.</p>
+        <!-- ==================== PANE 5: AYARLAR (ÖĞRENCİLER & SİSTEM) ==================== -->
+        <div id="adminPaneStudents" class="hidden space-y-3.5">
+          <!-- Clean 2-Way Sub-Tab Switcher (Matches Site Settings Modal) -->
+          <div id="adminSettingsSubBar" class="segmented-pill-bar ios-pill-control p-1 rounded-2xl grid grid-cols-2 gap-1 items-center text-xs">
+            <div id="adminSettingsSubIndicator" class="segmented-pill-indicator !rounded-xl"></div>
+            <button type="button" data-admin-subtab="roster" class="py-2 px-3 rounded-xl font-semibold text-slate-900 dark:text-white transition-colors text-center">Öğrenciler</button>
+            <button type="button" data-admin-subtab="system" class="py-2 px-3 rounded-xl font-medium text-slate-600 dark:text-slate-300 transition-colors text-center">Site &amp; Güvenlik</button>
+          </div>
+
+          <!-- SUB-PANE A: ÖĞRENCİ LİSTESİ & DÜZENLEYİCİ -->
+          <div id="adminSubPaneRoster" class="space-y-3">
+            <!-- Seçili Öğrenci Ayar Düzenleyici -->
+            <div id="adminStudentEditorCard" class="hidden ios-glass rounded-3xl p-4 space-y-3 border border-blue-500/35 shadow-md">
+              <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <p id="adminEditStudentBadge" class="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 tabular-nums"></p>
+                  <h4 id="adminEditStudentTitle" class="text-sm font-bold text-slate-900 dark:text-white truncate"></h4>
+                </div>
+                <button id="btnAdminCancelStudentEdit" type="button" class="ios-press min-h-[34px] px-3 py-1 rounded-full ios-pill-control text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300">Kapat</button>
+              </div>
+              <div class="space-y-1">
+                <label id="lblAdminEditName" for="adminEditNameInput" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">İsim Soyisim</label>
+                <input id="adminEditNameInput" type="text" maxlength="120" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              </div>
+              <div class="space-y-1.5">
+                <span id="lblAdminEditMbu" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">MBU / PSP Grubu</span>
+                <div id="adminEditMbuChips" class="flex items-center gap-1.5 flex-wrap">
+                  <button type="button" data-edit-mbu="" class="group-chip min-h-[36px] px-3">Tümü</button>
+                  <button type="button" data-edit-mbu="I" class="group-chip min-h-[36px] px-3">I</button>
+                  <button type="button" data-edit-mbu="II" class="group-chip min-h-[36px] px-3">II</button>
+                  <button type="button" data-edit-mbu="III" class="group-chip min-h-[36px] px-3">III</button>
+                  <button type="button" data-edit-mbu="IV" class="group-chip min-h-[36px] px-3">IV</button>
+                  <button type="button" data-edit-mbu="V" class="group-chip min-h-[36px] px-3">V</button>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div class="space-y-1.5">
+                  <span id="lblAdminEditLang" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">Dil</span>
+                  <div id="adminEditLangChips" class="flex items-center gap-1.5 flex-wrap">
+                    <button type="button" data-edit-lang="tr" class="group-chip min-h-[36px] px-3.5">TR</button>
+                    <button type="button" data-edit-lang="en" class="group-chip min-h-[36px] px-3.5">EN</button>
+                  </div>
+                </div>
+                <div class="space-y-1.5">
+                  <span id="lblAdminEditMode" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">Diğer Gruplar</span>
+                  <div id="adminEditModeChips" class="flex items-center gap-1.5 flex-wrap">
+                    <button type="button" data-edit-mode="dim" class="group-chip min-h-[36px] px-3.5">Soluk</button>
+                    <button type="button" data-edit-mode="hide" class="group-chip min-h-[36px] px-3.5">Gizle</button>
+                  </div>
+                </div>
+              </div>
+              <div id="adminEditLabSection" class="admin-lab-collapse">
+                <div class="admin-lab-inner pt-2 space-y-1.5">
+                  <span id="lblAdminEditLab" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">LAB Grubu</span>
+                  <div id="adminEditLabChips" class="flex items-center gap-1.5 flex-wrap">
+                    <button type="button" data-edit-lab="" class="group-chip min-h-[36px] px-3">Tümü</button>
+                    <button type="button" data-edit-lab="1" class="group-chip min-h-[36px] px-3">LAB 1</button>
+                    <button type="button" data-edit-lab="2" class="group-chip min-h-[36px] px-3">LAB 2</button>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/80 flex-wrap">
+                <div class="flex items-center gap-2">
+                  <button id="btnAdminEditActiveToggle" type="button" class="ios-press min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Hesap Aktif</button>
+                  <button id="btnAdminDeleteCustomStudent" type="button" class="hidden ios-press min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400">Öğrenciyi Sil</button>
+                </div>
+                <button id="btnAdminSaveStudentEdit" type="button" class="ios-press min-h-[40px] px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition">Ayarları Kaydet</button>
+              </div>
+            </div>
+
+            <!-- Search & Group Filter -->
+            <div class="space-y-2.5">
+              <div class="relative flex items-center">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input id="adminStudentFilterInput" type="text" placeholder="İsim, 11 haneli numara veya grup ara..." class="w-full ios-pill-control rounded-2xl pl-9 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <button id="btnClearAdminStudentFilter" type="button" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full ios-pill-control text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-xs font-bold transition active:scale-90" aria-label="Aramayı temizle">✕</button>
+              </div>
+              <div id="adminStudentGroupFilterChips" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                <button type="button" data-filter-sgroup="" class="group-chip min-h-[34px] px-3 shrink-0">Tümü</button>
+                <button type="button" data-filter-sgroup="I" class="group-chip min-h-[34px] px-3 shrink-0">Grup I</button>
+                <button type="button" data-filter-sgroup="II" class="group-chip min-h-[34px] px-3 shrink-0">Grup II</button>
+                <button type="button" data-filter-sgroup="III" class="group-chip min-h-[34px] px-3 shrink-0">Grup III</button>
+                <button type="button" data-filter-sgroup="IV" class="group-chip min-h-[34px] px-3 shrink-0">Grup IV</button>
+                <button type="button" data-filter-sgroup="V" class="group-chip min-h-[34px] px-3 shrink-0">Grup V</button>
+              </div>
+              <p id="adminStudentsCountLabel" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 px-1 tabular-nums"></p>
+              <div id="adminStudentsList" class="space-y-2"></div>
             </div>
           </div>
 
-          <!-- Erişim & Yayın Kontrolleri (Birleşik Panel) -->
-          <div class="admin-panel-card divide-y divide-slate-200/70 dark:divide-slate-700/50 overflow-hidden">
+          <!-- SUB-PANE B: SİTE & GÜVENLİK -->
+          <div id="adminSubPaneSystem" class="hidden space-y-3">
+            <!-- Firebase Canlı / Kota Bildirim Afişi -->
+            <div id="adminFirebaseQuotaBanner" class="hidden p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+              <svg class="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+              <div class="flex-1 min-w-0">
+                <p class="font-bold text-amber-900 dark:text-amber-100">Firebase Günlük Kota Sınırına Ulaştı</p>
+                <p class="text-[11px] mt-0.5 opacity-90 leading-snug">Sistem otomatik olarak <strong>data.json / GitHub Gist</strong> yedek altyapısına geçti.</p>
+              </div>
+            </div>
+
             <!-- Site Erişim Modu -->
-            <div id="adminSiteAccessCard" class="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+            <div id="adminSiteAccessCard" class="admin-glass-section p-3.5 sm:p-4 flex items-center justify-between gap-3">
               <div class="flex items-center gap-3 min-w-0 flex-1">
-                <span id="adminSiteAccessIconWrap" class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0 transition">
+                <span id="adminSiteAccessIconWrap" class="w-9 h-9 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0 transition">
                   <svg id="iconSiteAccessPublic" class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                   <svg id="iconSiteAccessLocked" class="w-4.5 h-4.5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </span>
@@ -1194,126 +1325,55 @@
               </button>
             </div>
 
-            <!-- GitHub Pages / data.json Senkronizasyon & Yayın -->
-            <div id="adminDataJsonCard" class="p-3.5 sm:p-4 space-y-3">
-              <div class="flex items-start justify-between gap-2.5 flex-wrap">
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <h4 id="lblAdminDataJsonTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">GitHub Pages / Gist Yayını</h4>
-                    <span id="adminDataJsonModeBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0">data.json</span>
+            <!-- Yönetici Şifresini Güncelle -->
+            <form id="adminPwdForm" class="admin-glass-section p-3.5 sm:p-4 space-y-2.5" novalidate>
+              <h4 id="lblAdminPwdChangeTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Yönetici Giriş Şifresini Güncelle</h4>
+              <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                <input id="adminNewPwdInput" type="password" maxlength="64" placeholder="Yeni şifre (en az 4 karakter)" class="flex-1 min-w-0 ios-pill-control rounded-2xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+                <button id="btnAdminSaveNewPwd" type="submit" class="ios-press min-h-[42px] w-full sm:w-auto px-4 py-2 rounded-2xl bg-amber-500/18 hover:bg-amber-500/28 text-amber-700 dark:text-amber-300 text-xs font-bold shrink-0 transition">Şifreyi Kaydet</button>
+              </div>
+            </form>
+
+            <!-- Gelişmiş: GitHub Pages / data.json Senkronizasyon (Katlanabilir) -->
+            <div id="adminDataJsonCard" class="admin-glass-section p-3.5 sm:p-4 space-y-2.5">
+              <div class="flex items-center justify-between gap-2.5">
+                <button id="btnAdminToggleGhConfig" type="button" aria-expanded="false" class="flex-1 min-w-0 text-left flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h4 id="lblAdminDataJsonTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">GitHub / Gist Yayını</h4>
+                      <span id="adminDataJsonModeBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0">data.json</span>
+                    </div>
+                    <p id="adminDataJsonModeText" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug mt-0.5 truncate">Gelişmiş statik yedekleme ayarları</p>
                   </div>
-                  <p id="adminDataJsonModeText" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug mt-0.5">Kilit, öğrenci ve duyuru ayarlarını GitHub veya Gist'e aktararak statik sitede anında canlıya geçirin.</p>
-                </div>
-                <button id="btnAdminSyncRemoteDataJson" type="button" class="ios-press min-h-[34px] px-3 py-1 rounded-xl admin-field text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0">Canlı Eşitle</button>
+                  <svg class="admin-gh-chevron w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <button id="btnAdminSyncRemoteDataJson" type="button" class="ios-press min-h-[32px] px-3 py-1 rounded-full ios-pill-control text-[11px] font-semibold text-slate-700 dark:text-slate-200 shrink-0">Yenile</button>
               </div>
 
-              <div class="space-y-2.5">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label for="adminGhRepoInput" class="block text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 mb-1">GitHub Repo veya Gist ID</label>
-                    <input id="adminGhRepoInput" type="text" placeholder="kullanici/repo veya Gist ID" class="w-full admin-field rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+              <div id="adminGitHubPushConfigWrap" class="admin-collapse-panel is-collapsed" aria-hidden="true">
+                <div class="admin-collapse-inner">
+                  <div class="pt-2.5 border-t border-slate-200/60 dark:border-slate-800/80 space-y-2.5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label for="adminGhRepoInput" class="block text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 mb-1 px-0.5">GitHub Repo veya Gist ID</label>
+                        <input id="adminGhRepoInput" type="text" placeholder="kullanici/repo veya Gist ID" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                      </div>
+                      <div>
+                        <label for="adminGhTokenInput" class="block text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 mb-1 px-0.5">GitHub PAT (Token)</label>
+                        <input id="adminGhTokenInput" type="password" autocomplete="off" placeholder="ghp_... (yalnızca bu tarayıcıda)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                      </div>
+                    </div>
+                    <input id="adminGhBranchInput" type="hidden" value="main">
+                    <input id="adminGhPathInput" type="hidden" value="public/data.json">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                      <span id="adminGhHelpHint" class="text-[10.5px] text-slate-500 dark:text-slate-400">Token yalnızca tarayıcınızda saklanır.</span>
+                      <button id="btnAdminPushGitHubDataJson" type="button" class="ios-press min-h-[36px] px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shrink-0">Şimdi Yayınla</button>
+                    </div>
                   </div>
-                  <div>
-                    <label for="adminGhTokenInput" class="block text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 mb-1">GitHub PAT (Token)</label>
-                    <input id="adminGhTokenInput" type="password" autocomplete="off" placeholder="ghp_... (yalnızca bu tarayıcıda)" class="w-full admin-field rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-                  </div>
-                </div>
-                <input id="adminGhBranchInput" type="hidden" value="main">
-                <input id="adminGhPathInput" type="hidden" value="public/data.json">
-                <div class="flex items-center justify-between gap-2 flex-wrap">
-                  <span id="adminGhHelpHint" class="text-[10.5px] text-slate-500 dark:text-slate-400">Token yalnızca tarayıcınızda saklanır.</span>
-                  <button id="btnAdminPushGitHubDataJson" type="button" class="ios-press min-h-[36px] px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shrink-0">Şimdi Yayınla</button>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- Seçili Öğrenci Ayar Düzenleyici -->
-          <div id="adminStudentEditorCard" class="hidden ios-glass rounded-2xl p-4 space-y-3 border border-blue-500/35 shadow-md">
-            <div class="flex items-center justify-between gap-2">
-              <div class="min-w-0">
-                <p id="adminEditStudentBadge" class="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 tabular-nums"></p>
-                <h4 id="adminEditStudentTitle" class="text-sm font-bold text-slate-900 dark:text-white truncate"></h4>
-              </div>
-              <button id="btnAdminCancelStudentEdit" type="button" class="ios-press min-h-[36px] px-3 py-1 rounded-xl admin-field text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300">Kapat</button>
-            </div>
-            <div class="space-y-1">
-              <label id="lblAdminEditName" for="adminEditNameInput" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">İsim Soyisim</label>
-              <input id="adminEditNameInput" type="text" maxlength="120" class="w-full admin-field rounded-xl px-3.5 py-2 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-            </div>
-            <div class="space-y-1.5">
-              <span id="lblAdminEditMbu" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">MBU / PSP Grubu</span>
-              <div id="adminEditMbuChips" class="flex items-center gap-1.5 flex-wrap">
-                <button type="button" data-edit-mbu="" class="group-chip min-h-[36px] px-3">Tümü</button>
-                <button type="button" data-edit-mbu="I" class="group-chip min-h-[36px] px-3">I</button>
-                <button type="button" data-edit-mbu="II" class="group-chip min-h-[36px] px-3">II</button>
-                <button type="button" data-edit-mbu="III" class="group-chip min-h-[36px] px-3">III</button>
-                <button type="button" data-edit-mbu="IV" class="group-chip min-h-[36px] px-3">IV</button>
-                <button type="button" data-edit-mbu="V" class="group-chip min-h-[36px] px-3">V</button>
-              </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div class="space-y-1.5">
-                <span id="lblAdminEditLang" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Dil</span>
-                <div id="adminEditLangChips" class="flex items-center gap-1 flex-wrap">
-                  <button type="button" data-edit-lang="tr" class="group-chip min-h-[36px] px-3">TR</button>
-                  <button type="button" data-edit-lang="en" class="group-chip min-h-[36px] px-3">EN</button>
-                </div>
-              </div>
-              <div class="space-y-1.5">
-                <span id="lblAdminEditMode" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Diğer Gruplar</span>
-                <div id="adminEditModeChips" class="flex items-center gap-1 flex-wrap">
-                  <button type="button" data-edit-mode="dim" class="group-chip min-h-[36px] px-3">Soluk</button>
-                  <button type="button" data-edit-mode="hide" class="group-chip min-h-[36px] px-3">Gizle</button>
-                </div>
-              </div>
-            </div>
-            <div id="adminEditLabSection" class="admin-lab-collapse">
-              <div class="admin-lab-inner pt-2 space-y-1.5">
-                <span id="lblAdminEditLab" class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">LAB Grubu</span>
-                <div id="adminEditLabChips" class="flex items-center gap-1 flex-wrap">
-                  <button type="button" data-edit-lab="" class="group-chip min-h-[36px] px-3">Tümü</button>
-                  <button type="button" data-edit-lab="1" class="group-chip min-h-[36px] px-3">LAB 1</button>
-                  <button type="button" data-edit-lab="2" class="group-chip min-h-[36px] px-3">LAB 2</button>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/50 flex-wrap">
-              <div class="flex items-center gap-2">
-                <button id="btnAdminEditActiveToggle" type="button" class="ios-press min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Hesap Aktif</button>
-                <button id="btnAdminDeleteCustomStudent" type="button" class="hidden ios-press min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400">Öğrenciyi Sil</button>
-              </div>
-              <button id="btnAdminSaveStudentEdit" type="button" class="ios-press min-h-[40px] px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition">Ayarları Kaydet</button>
-            </div>
-          </div>
-
-          <!-- Kayıtlı Tüm Öğrenciler Listesi & Hızlı Filtre -->
-          <div class="space-y-2.5">
-            <div class="relative flex items-center">
-              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              <input id="adminStudentFilterInput" type="text" placeholder="İsim, 11 haneli numara veya grup ara..." class="w-full admin-field rounded-xl pl-9 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-              <button id="btnClearAdminStudentFilter" type="button" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg admin-field text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-xs font-bold transition active:scale-90" aria-label="Aramayı temizle">✕</button>
-            </div>
-            <div id="adminStudentGroupFilterChips" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-              <button type="button" data-filter-sgroup="" class="group-chip min-h-[34px] px-3 shrink-0">Tümü</button>
-              <button type="button" data-filter-sgroup="I" class="group-chip min-h-[34px] px-3 shrink-0">Grup I</button>
-              <button type="button" data-filter-sgroup="II" class="group-chip min-h-[34px] px-3 shrink-0">Grup II</button>
-              <button type="button" data-filter-sgroup="III" class="group-chip min-h-[34px] px-3 shrink-0">Grup III</button>
-              <button type="button" data-filter-sgroup="IV" class="group-chip min-h-[34px] px-3 shrink-0">Grup IV</button>
-              <button type="button" data-filter-sgroup="V" class="group-chip min-h-[34px] px-3 shrink-0">Grup V</button>
-            </div>
-            <p id="adminStudentsCountLabel" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 px-0.5 tabular-nums"></p>
-            <div id="adminStudentsList" class="space-y-2"></div>
-          </div>
-
-          <!-- Yönetici Şifresini Güncelle -->
-          <form id="adminPwdForm" class="admin-panel-card p-3.5 sm:p-4 space-y-2.5" novalidate>
-            <h4 id="lblAdminPwdChangeTitle" class="text-xs font-bold text-slate-700 dark:text-slate-200">Yönetici Giriş Şifresini Güncelle</h4>
-            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <input id="adminNewPwdInput" type="password" maxlength="64" placeholder="Yeni şifre (en az 4 karakter)" class="flex-1 min-w-0 admin-field rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
-              <button id="btnAdminSaveNewPwd" type="submit" class="ios-press min-h-[42px] w-full sm:w-auto px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold shrink-0 transition">Şifreyi Kaydet</button>
-            </div>
-          </form>
         </div>
       </div>
     </div>

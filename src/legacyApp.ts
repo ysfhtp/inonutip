@@ -5113,8 +5113,8 @@ export function initInonuApp() {
     }
     if (iconWrap) {
       iconWrap.className = lockedOnly
-        ? 'w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0 transition'
-        : 'w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0 transition';
+        ? 'w-9 h-9 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0 transition'
+        : 'w-9 h-9 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0 transition';
     }
     if (iconPublic) iconPublic.classList.toggle('hidden', lockedOnly);
     if (iconLocked) iconLocked.classList.toggle('hidden', !lockedOnly);
@@ -5785,6 +5785,9 @@ export function initInonuApp() {
   // ==================== ADMIN SETTINGS MODAL CONTROLLER ====================
   const adminState = {
     activeTab: 'announcements',
+    settingsSubTab: 'roster',
+    annTargetOpen: false,
+    ghConfigOpen: false,
     editingAnnId: '',
     annTone: 'info',
     annActive: true,
@@ -5795,6 +5798,8 @@ export function initInonuApp() {
     cancelDate: '',
     cancelListFilterProg: '',
     cancelledLessons: [],
+    lastCancelAnimKey: '',
+    lastCancelAnimType: '',
     matProg: 'tr',
     matMode: 'file',
     matFileObj: null,
@@ -5896,8 +5901,7 @@ export function initInonuApp() {
     const cfg = readLiveGhPublishConfig();
     if (!isValidGhOrGistConfig(cfg)) {
       if (showFeedbackToast) {
-        const wrap = document.getElementById('adminGitHubPushConfigWrap');
-        if (wrap) wrap.classList.remove('hidden');
+        setAdminGhConfigOpen(true);
         showToast(loc.adminDataJsonAutoPushNoCfgToast);
       }
       return false;
@@ -6022,8 +6026,101 @@ export function initInonuApp() {
     return 'active';
   }
 
+  const ADMIN_TAB_ORDER = ['announcements', 'materials', 'cancellations', 'add-student', 'students'];
+
+  function syncAdminSegmentedControl(barId, indicatorId, attrName, activeValue, animate = true, extraClass = '') {
+    const bar = document.getElementById(barId);
+    const ind = document.getElementById(indicatorId);
+    if (!bar) return;
+    let activeBtn = null;
+    bar.querySelectorAll(`[${attrName}]`).forEach((btn) => {
+      const val = btn.getAttribute(attrName) || '';
+      const isAct = val === String(activeValue ?? '');
+      if (isAct) activeBtn = btn;
+      btn.classList.toggle('font-semibold', isAct);
+      btn.classList.toggle('font-medium', !isAct);
+      btn.classList.toggle('text-slate-900', isAct);
+      btn.classList.toggle('dark:text-white', isAct);
+      btn.classList.toggle('text-slate-600', !isAct);
+      btn.classList.toggle('dark:text-slate-300', !isAct);
+    });
+    if (ind) {
+      updateSegmentedIndicator(bar, ind, activeBtn, animate, extraClass);
+    }
+  }
+
+  function setAdminAnnTargetOpen(isOpen) {
+    adminState.annTargetOpen = Boolean(isOpen);
+    const panel = document.getElementById('adminAnnTargetCollapse');
+    const btn = document.getElementById('btnAdminAnnToggleTarget');
+    if (panel) {
+      panel.classList.toggle('is-collapsed', !adminState.annTargetOpen);
+      panel.setAttribute('aria-hidden', adminState.annTargetOpen ? 'false' : 'true');
+    }
+    if (btn) {
+      btn.setAttribute('aria-expanded', adminState.annTargetOpen ? 'true' : 'false');
+      const arrow = btn.querySelector('svg');
+      if (arrow) arrow.style.transform = adminState.annTargetOpen ? 'rotate(180deg)' : '';
+    }
+    if (adminState.annTargetOpen) {
+      requestAnimationFrame(() => {
+        syncAdminSegmentedControl('adminAnnTargetProgChips', 'adminAnnTargetProgIndicator', 'data-ann-target-prog', adminState.annTargetProg || '', false);
+      });
+    }
+  }
+
+  function setAdminGhConfigOpen(isOpen) {
+    adminState.ghConfigOpen = Boolean(isOpen);
+    const panel = document.getElementById('adminGitHubPushConfigWrap');
+    const btn = document.getElementById('btnAdminToggleGhConfig');
+    if (panel) {
+      panel.classList.toggle('is-collapsed', !adminState.ghConfigOpen);
+      panel.setAttribute('aria-hidden', adminState.ghConfigOpen ? 'false' : 'true');
+    }
+    if (btn) {
+      btn.setAttribute('aria-expanded', adminState.ghConfigOpen ? 'true' : 'false');
+      const arrow = btn.querySelector('.admin-gh-chevron');
+      if (arrow) arrow.style.transform = adminState.ghConfigOpen ? 'rotate(180deg)' : '';
+    }
+  }
+
+  function switchAdminSettingsSubTab(subKey, animate = true) {
+    const nextKey = subKey === 'system' ? 'system' : 'roster';
+    const prevKey = adminState.settingsSubTab || 'roster';
+    adminState.settingsSubTab = nextKey;
+
+    const pRoster = document.getElementById('adminSubPaneRoster');
+    const pSystem = document.getElementById('adminSubPaneSystem');
+    const dir = nextKey === prevKey ? 'none' : (nextKey === 'system' ? 'right' : 'left');
+
+    if (pRoster) {
+      pRoster.classList.toggle('hidden', nextKey !== 'roster');
+      if (nextKey === 'roster' && animate && dir !== 'none') replayAdminPaneEnter(pRoster, dir);
+    }
+    if (pSystem) {
+      pSystem.classList.toggle('hidden', nextKey !== 'system');
+      if (nextKey === 'system' && animate && dir !== 'none') replayAdminPaneEnter(pSystem, dir);
+    }
+    syncAdminSegmentedControl('adminSettingsSubBar', 'adminSettingsSubIndicator', 'data-admin-subtab', nextKey, animate, '!rounded-xl');
+  }
+
+  function syncAllAdminSegmentedIndicators(animate = false) {
+    updateAdminTabIndicator(adminState.activeTab || 'announcements', animate);
+    syncAdminSegmentedControl('adminAnnToneChips', 'adminAnnToneIndicator', 'data-ann-tone', adminState.annTone || 'info', animate);
+    syncAdminSegmentedControl('adminAnnTargetProgChips', 'adminAnnTargetProgIndicator', 'data-ann-target-prog', adminState.annTargetProg || '', animate);
+    syncAdminSegmentedControl('adminAnnListFilterChips', 'adminAnnListFilterIndicator', 'data-ann-list-filter', adminState.annListFilter || '', animate);
+    syncAdminSegmentedControl('adminCancelProgChips', 'adminCancelProgIndicator', 'data-cancel-prog', adminState.cancelProg === 'en' ? 'en' : 'tr', animate);
+    syncAdminSegmentedControl('adminCancelledListFilterChips', 'adminCancelledListFilterIndicator', 'data-cancel-list-filter', adminState.cancelListFilterProg || '', animate);
+    syncAdminSegmentedControl('adminMatProgChips', 'adminMatProgIndicator', 'data-mat-prog', adminState.matProg === 'en' ? 'en' : 'tr', animate);
+    syncAdminSegmentedControl('adminMatModeBar', 'adminMatModeIndicator', 'data-mat-mode', adminState.matMode === 'url' ? 'url' : 'file', animate);
+    syncAdminSegmentedControl('adminMatListFilterChips', 'adminMatListFilterIndicator', 'data-mat-list-filter', adminState.matListFilterProg || '', animate);
+    syncAdminSegmentedControl('adminAddLangChips', 'adminAddLangIndicator', 'data-add-lang', adminState.addLang === 'en' ? 'en' : 'tr', animate);
+    syncAdminSegmentedControl('adminSettingsSubBar', 'adminSettingsSubIndicator', 'data-admin-subtab', adminState.settingsSubTab || 'roster', animate, '!rounded-xl');
+  }
+
   function syncAdminModalLanguageUI() {
     const loc = I18N[state.lang];
+    const isEn = state.lang === 'en';
     const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     const setPh = (id, val) => { const el = document.getElementById(id); if (el) el.placeholder = val; };
 
@@ -6037,19 +6134,26 @@ export function initInonuApp() {
       const key = btn.getAttribute('data-admin-tab');
       const lbl = btn.querySelector('.admin-tab-label') || btn;
       if (key === 'announcements') lbl.textContent = loc.adminTabAnn;
-      if (key === 'materials') lbl.textContent = loc.adminTabMaterials;
-      if (key === 'cancellations') lbl.textContent = state.lang === 'en' ? 'Cancel Class' : 'Ders İptali';
+      if (key === 'materials') lbl.textContent = isEn ? 'PDFs' : "PDF'ler";
+      if (key === 'cancellations') lbl.textContent = isEn ? 'Cancel' : 'Ders İptali';
       if (key === 'add-student') lbl.textContent = loc.adminTabAdd;
-      if (key === 'students') lbl.textContent = state.lang === 'en' ? 'Settings' : 'Ayarlar';
+      if (key === 'students') lbl.textContent = isEn ? 'Settings' : 'Ayarlar';
+    });
+
+    document.querySelectorAll('[data-admin-subtab]').forEach((btn) => {
+      const key = btn.getAttribute('data-admin-subtab');
+      if (key === 'roster') btn.textContent = isEn ? 'Students' : 'Öğrenciler';
+      if (key === 'system') btn.textContent = isEn ? 'Site & Security' : 'Site & Güvenlik';
     });
 
     setTxt('btnAdminAnnCancelEdit', loc.adminAnnCancelBtn);
     setPh('adminAnnTitleInput', loc.adminAnnTitlePlaceholder);
     setPh('adminAnnMsgInput', loc.adminAnnMsgPlaceholder);
+    setTxt('lblAdminAnnTargetGroup', isEn ? 'Target Group' : 'Hedef Grup');
+    setTxt('lblAdminAnnTargetProg', isEn ? 'Target Program' : 'Hedef Program');
     setTxt('adminAnnListHeading', loc.adminAnnListHeading);
-    document.querySelectorAll('[data-ann-list-filter]').forEach((b) => {
-      const f = b.getAttribute('data-ann-list-filter') || '';
-      if (!f) b.textContent = loc.groupAllLabel;
+    document.querySelectorAll('[data-ann-target-group=""], [data-ann-target-prog=""], [data-ann-list-filter=""]').forEach((b) => {
+      b.textContent = loc.groupAllLabel;
     });
     document.querySelectorAll('[data-ann-tone]').forEach((b) => {
       const tKey = b.getAttribute('data-ann-tone');
@@ -6058,22 +6162,16 @@ export function initInonuApp() {
       if (tKey === 'urgent') b.textContent = loc.adminAnnBadgeUrgent;
     });
 
-    setTxt('adminCancelFormHeading', state.lang === 'en' ? 'Cancel / Restore Lesson' : 'Ders İptal Et / Geri Al');
-    setTxt('lblAdminCancelProg', state.lang === 'en' ? 'Program' : 'Program');
-    setTxt('lblAdminCancelDate', state.lang === 'en' ? 'Lesson Date' : 'Ders Tarihi');
-    setTxt('lblAdminCancelReason', state.lang === 'en' ? 'Reason (Optional)' : 'İptal Notu (Opsiyonel)');
-    setPh('adminCancelReasonInput', state.lang === 'en' ? 'e.g. Instructor excused, make-up TBA...' : 'Örn: Hoca mazeretli, telafi yapılacak...');
+    setTxt('adminCancelFormHeading', isEn ? 'Cancel / Restore Lesson' : 'Ders İptal Et / Geri Al');
+    setTxt('lblAdminCancelProg', isEn ? 'Program' : 'Program');
+    setTxt('lblAdminCancelDate', isEn ? 'Lesson Date' : 'Ders Tarihi');
+    setTxt('lblAdminCancelReason', isEn ? 'Reason (Optional)' : 'İptal Notu (Opsiyonel)');
+    setPh('adminCancelReasonInput', isEn ? 'Note (optional) — e.g. Instructor excused...' : 'İptal notu (opsiyonel) — Örn: Hoca mazeretli...');
     setPh('adminCancelDateSearch', loc.adminMatSearchDatePlaceholder);
-    setTxt('lblAdminCancelDaySlots', state.lang === 'en' ? 'Lessons on Selected Date' : 'Seçili Günün Dersleri');
-    setTxt('adminCancelledListHeading', state.lang === 'en' ? 'Cancelled Lessons' : 'İptal Edilen Dersler');
-    document.querySelectorAll('[data-cancel-list-filter]').forEach((b) => {
-      const f = b.getAttribute('data-cancel-list-filter') || '';
-      if (!f) b.textContent = loc.groupAllLabel;
-    });
-    document.querySelectorAll('[data-cancel-prog]').forEach((b) => {
-      const p = b.getAttribute('data-cancel-prog');
-      if (p === 'tr') b.textContent = state.lang === 'en' ? 'Turkish (TR)' : 'Türkçe (TR)';
-      if (p === 'en') b.textContent = state.lang === 'en' ? 'English (EN)' : 'İngilizce (EN)';
+    setTxt('lblAdminCancelDaySlots', isEn ? 'Lessons on Selected Date' : 'Seçili Günün Dersleri');
+    setTxt('adminCancelledListHeading', isEn ? 'Cancelled Lessons' : 'İptal Edilen Dersler');
+    document.querySelectorAll('[data-cancel-list-filter=""], [data-mat-list-filter=""]').forEach((b) => {
+      b.textContent = loc.groupAllLabel;
     });
 
     setTxt('lblAdminAddSid', loc.adminAddSidLabel);
@@ -6082,7 +6180,7 @@ export function initInonuApp() {
     setTxt('lblAdminAddGroup', loc.adminAddGroupLabel);
     document.querySelectorAll('[data-add-group]').forEach((b) => {
       const g = b.getAttribute('data-add-group') || '';
-      b.textContent = state.lang === 'en' ? `Group ${g}` : `Grup ${g}`;
+      b.textContent = isEn ? `Group ${g}` : `Grup ${g}`;
     });
     setTxt('lblAdminAddLab', loc.adminAddLabLabel);
     const addLabAllBtn = document.querySelector('[data-add-lab=""]');
@@ -6112,29 +6210,29 @@ export function initInonuApp() {
     }
     document.querySelectorAll('[data-filter-sgroup]').forEach((b) => {
       const g = b.getAttribute('data-filter-sgroup') || '';
-      b.textContent = g ? (state.lang === 'en' ? `Group ${g}` : `Grup ${g}`) : loc.groupAllLabel;
+      b.textContent = g ? (isEn ? `Group ${g}` : `Grup ${g}`) : loc.groupAllLabel;
     });
     setTxt('lblAdminPwdChangeTitle', loc.adminPwdChangeTitle);
     setPh('adminNewPwdInput', loc.adminPwdChangePlaceholder);
     setTxt('btnAdminSaveNewPwd', loc.adminPwdSaveBtn);
 
     syncAdminUnlockBarUI();
-    syncAdminAnnFormUI();
+    syncAdminAnnFormUI(false);
     syncAdminSiteAccessUI();
     void syncAdminDataJsonUI();
 
     const modalEl = document.getElementById('adminModal');
     if (modalEl && !modalEl.classList.contains('hidden')) {
-      updateAdminTabIndicator(adminState.activeTab || 'announcements', false);
-      renderAdminAnnouncementsList();
-      renderAdminCancelDaySlots();
-      renderAdminCancelledList();
+      renderAdminAnnouncementsList(false);
+      renderAdminCancelDaySlots('none');
+      renderAdminCancelledList(false);
       renderAdminStudentsList();
       syncAdminStudentEditorUI();
+      requestAnimationFrame(() => syncAllAdminSegmentedIndicators(false));
     }
   }
 
-  const ADMIN_PILL_SPRING = 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease';
+  const ADMIN_PILL_SPRING = 'transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), width 0.36s cubic-bezier(0.22, 1, 0.36, 1), height 0.36s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.24s ease';
 
   function updateAdminTabIndicator(tabKey, animate = true) {
     const bar = document.getElementById('adminTabsBar');
@@ -6161,29 +6259,44 @@ export function initInonuApp() {
     }
   }
 
-  function replayAdminPaneEnter(paneEl) {
+  function replayAdminPaneEnter(paneEl, direction = 'up') {
     if (!paneEl) return;
-    paneEl.classList.remove('admin-pane-enter');
+    paneEl.classList.remove('admin-pane-enter', 'admin-pane-enter-right', 'admin-pane-enter-left');
     void paneEl.offsetWidth;
-    paneEl.classList.add('admin-pane-enter');
+    if (direction === 'right') {
+      paneEl.classList.add('admin-pane-enter-right');
+    } else if (direction === 'left') {
+      paneEl.classList.add('admin-pane-enter-left');
+    } else {
+      paneEl.classList.add('admin-pane-enter');
+    }
   }
 
   function switchAdminTab(tabKey, animate = true) {
+    const prevTab = adminState.activeTab || 'announcements';
+    const prevIdx = ADMIN_TAB_ORDER.indexOf(prevTab);
+    const nextIdx = ADMIN_TAB_ORDER.indexOf(tabKey);
+    const dir = !animate || prevTab === tabKey || prevIdx < 0 || nextIdx < 0
+      ? 'up'
+      : (nextIdx > prevIdx ? 'right' : 'left');
     adminState.activeTab = tabKey;
+
     document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
       const isAct = btn.getAttribute('data-admin-tab') === tabKey;
       btn.className = isAct
-        ? 'admin-tab-btn min-h-[36px] py-1.5 px-3 sm:px-1.5 rounded-xl text-xs font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5 shrink-0 sm:shrink transition'
-        : 'admin-tab-btn min-h-[36px] py-1.5 px-3 sm:px-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-center gap-1.5 shrink-0 sm:shrink transition';
+        ? 'admin-tab-btn min-h-[34px] py-1.5 px-3 sm:px-2 rounded-xl text-xs font-bold text-slate-900 dark:text-white flex items-center justify-center shrink-0 sm:shrink transition'
+        : 'admin-tab-btn min-h-[34px] py-1.5 px-3 sm:px-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 sm:shrink transition';
     });
+
     const pAnn = document.getElementById('adminPaneAnnouncements');
     const pMat = document.getElementById('adminPaneMaterials');
     const pCan = document.getElementById('adminPaneCancellations');
     const pAdd = document.getElementById('adminPaneAddStudent');
     const pStu = document.getElementById('adminPaneStudents');
+
     if (pAnn) {
       pAnn.classList.toggle('hidden', tabKey !== 'announcements');
-      if (tabKey === 'announcements') replayAdminPaneEnter(pAnn);
+      if (tabKey === 'announcements') replayAdminPaneEnter(pAnn, dir);
     }
     if (pMat) {
       pMat.classList.toggle('hidden', tabKey !== 'materials');
@@ -6192,8 +6305,8 @@ export function initInonuApp() {
           adminState.materials = Object.values(lessonMaterialsMap).flat();
         }
         syncAdminMaterialFormDefaults();
-        renderAdminMaterialsList();
-        replayAdminPaneEnter(pMat);
+        renderAdminMaterialsList(false);
+        replayAdminPaneEnter(pMat, dir);
         if (adminCloudDirty.materials) {
           void refreshAdminCloudData('materials');
         }
@@ -6205,10 +6318,10 @@ export function initInonuApp() {
         if (adminState.cancelledLessons.length === 0 && Array.isArray(cancelledLessonsList) && cancelledLessonsList.length > 0) {
           adminState.cancelledLessons = [...cancelledLessonsList];
         }
-        syncAdminCancelFormDefaults();
-        renderAdminCancelDaySlots();
-        renderAdminCancelledList();
-        replayAdminPaneEnter(pCan);
+        syncAdminCancelFormDefaults(false);
+        renderAdminCancelDaySlots('none');
+        renderAdminCancelledList(false);
+        replayAdminPaneEnter(pCan, dir);
         if (adminCloudDirty.cancellations) {
           void refreshAdminCloudData('cancellations');
         }
@@ -6216,12 +6329,16 @@ export function initInonuApp() {
     }
     if (pAdd) {
       pAdd.classList.toggle('hidden', tabKey !== 'add-student');
-      if (tabKey === 'add-student') replayAdminPaneEnter(pAdd);
+      if (tabKey === 'add-student') {
+        syncAdminAddStudentChips(false);
+        replayAdminPaneEnter(pAdd, dir);
+      }
     }
     if (pStu) {
       pStu.classList.toggle('hidden', tabKey !== 'students');
       if (tabKey === 'students') {
-        replayAdminPaneEnter(pStu);
+        switchAdminSettingsSubTab(adminState.settingsSubTab || 'roster', false);
+        replayAdminPaneEnter(pStu, dir);
         if (adminCloudDirty.students) {
           void refreshAdminCloudData('students');
         } else {
@@ -6234,39 +6351,47 @@ export function initInonuApp() {
     }
     const scrollBody = document.getElementById('adminModalScrollBody');
     if (scrollBody) scrollBody.scrollTop = 0;
-    requestAnimationFrame(() => updateAdminTabIndicator(tabKey, animate));
+    requestAnimationFrame(() => {
+      updateAdminTabIndicator(tabKey, animate);
+      syncAllAdminSegmentedIndicators(false);
+    });
   }
 
-  function syncAdminAnnFormUI() {
+  function syncAdminAnnFormUI(animateSeg = true) {
     const loc = I18N[state.lang];
+    const isEn = state.lang === 'en';
     const heading = document.getElementById('adminAnnFormTitle');
     const cancelBtn = document.getElementById('btnAdminAnnCancelEdit');
     const submitBtn = document.getElementById('btnAdminAnnSubmit');
     const activeToggle = document.getElementById('btnAdminAnnActiveToggle');
+    const summaryEl = document.getElementById('lblAdminAnnTargetSummary');
+
     if (heading) heading.textContent = adminState.editingAnnId ? loc.adminAnnEditTitle : loc.adminAnnNewTitle;
     if (cancelBtn) cancelBtn.classList.toggle('hidden', !adminState.editingAnnId);
     if (submitBtn) submitBtn.textContent = adminState.editingAnnId ? loc.adminAnnUpdateBtn : loc.adminAnnPublishBtn;
     if (activeToggle) {
       activeToggle.textContent = adminState.annActive ? loc.adminAnnLive : loc.adminAnnDraft;
       activeToggle.className = adminState.annActive
-        ? 'ios-press min-h-[34px] px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-        : 'ios-press min-h-[34px] px-3 py-1 rounded-xl text-xs font-semibold admin-field text-slate-500 dark:text-slate-400';
+        ? 'ios-press min-h-[32px] px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+        : 'ios-press min-h-[32px] px-3 py-1 rounded-full text-[11px] font-semibold ios-pill-control text-slate-500 dark:text-slate-400';
     }
-    document.querySelectorAll('[data-ann-tone]').forEach((b) => {
-      const tone = b.getAttribute('data-ann-tone');
-      b.classList.toggle('group-chip-active', tone === adminState.annTone);
-    });
+    syncAdminSegmentedControl('adminAnnToneChips', 'adminAnnToneIndicator', 'data-ann-tone', adminState.annTone || 'info', animateSeg);
     document.querySelectorAll('[data-ann-target-group]').forEach((b) => {
       const grp = b.getAttribute('data-ann-target-group') || '';
       b.classList.toggle('group-chip-active', grp === (adminState.annTargetGroup || ''));
     });
-    document.querySelectorAll('[data-ann-target-prog]').forEach((b) => {
-      const prog = b.getAttribute('data-ann-target-prog') || '';
-      b.classList.toggle('group-chip-active', prog === (adminState.annTargetProg || ''));
-    });
+    syncAdminSegmentedControl('adminAnnTargetProgChips', 'adminAnnTargetProgIndicator', 'data-ann-target-prog', adminState.annTargetProg || '', animateSeg);
+    if (summaryEl) {
+      const parts = [];
+      if (adminState.annTargetProg) parts.push(adminState.annTargetProg.toUpperCase());
+      if (adminState.annTargetGroup) parts.push(`${isEn ? 'Group' : 'Grup'} ${adminState.annTargetGroup}`);
+      summaryEl.textContent = parts.length > 0
+        ? `${isEn ? 'Target' : 'Hedef'}: ${parts.join(' · ')}`
+        : (isEn ? 'Target: All' : 'Hedef: Tümü');
+    }
   }
 
-  function syncAdminAddStudentChips() {
+  function syncAdminAddStudentChips(animateSeg = true) {
     const isEnglish = adminState.addLang === 'en';
     if (isEnglish) {
       adminState.addLab = '';
@@ -6279,9 +6404,7 @@ export function initInonuApp() {
       b.disabled = isEnglish;
       b.tabIndex = isEnglish ? -1 : 0;
     });
-    document.querySelectorAll('[data-add-lang]').forEach((b) => {
-      b.classList.toggle('group-chip-active', b.getAttribute('data-add-lang') === adminState.addLang);
-    });
+    syncAdminSegmentedControl('adminAddLangChips', 'adminAddLangIndicator', 'data-add-lang', adminState.addLang === 'en' ? 'en' : 'tr', animateSeg);
     const labSection = document.getElementById('adminAddLabSection');
     if (labSection) {
       labSection.classList.toggle('is-collapsed', isEnglish);
@@ -6289,16 +6412,14 @@ export function initInonuApp() {
     }
   }
 
-  function renderAdminAnnouncementsList() {
+  function renderAdminAnnouncementsList(animateSeg = true) {
     const listEl = document.getElementById('adminAnnouncementsList');
     if (!listEl) return;
     const loc = I18N[state.lang];
     listEl.innerHTML = '';
 
     const activeFilter = adminState.annListFilter || '';
-    document.querySelectorAll('[data-ann-list-filter]').forEach((b) => {
-      b.classList.toggle('group-chip-active', (b.getAttribute('data-ann-list-filter') || '') === activeFilter);
-    });
+    syncAdminSegmentedControl('adminAnnListFilterChips', 'adminAnnListFilterIndicator', 'data-ann-list-filter', activeFilter, animateSeg);
 
     const filteredAnns = (adminState.announcements || []).filter((ann) => {
       if (!activeFilter) return true;
@@ -6306,21 +6427,21 @@ export function initInonuApp() {
     });
 
     if (!filteredAnns || filteredAnns.length === 0) {
-      listEl.innerHTML = `<div class="admin-row-item p-5 text-center text-xs text-slate-500 dark:text-slate-400 admin-card-reveal">${escapeHtml(loc.adminAnnEmpty)}</div>`;
+      listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-5 text-center text-xs text-slate-500 dark:text-slate-400 admin-card-reveal">${escapeHtml(loc.adminAnnEmpty)}</div>`;
       return;
     }
 
     filteredAnns.forEach((ann, idx) => {
       const row = document.createElement('div');
-      row.className = 'admin-row-item p-3.5 space-y-2 admin-stagger-item';
-      row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 24}ms`);
+      row.className = 'ios-pill-control rounded-2xl p-3.5 space-y-2 admin-stagger-item';
+      row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 28}ms`);
 
-      const toneColor =
+      const toneBadgeCls =
         ann.tone === 'urgent'
-          ? 'bg-rose-500'
+          ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300'
           : ann.tone === 'warn'
-            ? 'bg-amber-500'
-            : 'bg-blue-500';
+            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+            : 'bg-blue-500/15 text-blue-600 dark:text-blue-300';
       const toneLabel =
         ann.tone === 'urgent'
           ? loc.adminAnnBadgeUrgent
@@ -6328,32 +6449,32 @@ export function initInonuApp() {
             ? loc.adminAnnBadgeWarn
             : loc.adminAnnBadgeInfo;
       const statusLabel = ann.active ? loc.adminAnnLive : loc.adminAnnDraft;
-      const targetGroupLabel = ann.targetGroup ? `Grup ${ann.targetGroup}` : '';
       const targetProgLabel = ann.targetProg ? ann.targetProg.toUpperCase() : 'TR+EN';
-      const metaParts = [toneLabel, statusLabel, targetProgLabel];
+      const targetGroupLabel = ann.targetGroup ? `Grup ${ann.targetGroup}` : '';
+      const metaParts = [statusLabel, targetProgLabel];
       if (targetGroupLabel) metaParts.push(targetGroupLabel);
 
       const header = document.createElement('div');
-      header.className = 'flex items-start justify-between gap-2.5';
+      header.className = 'flex items-start justify-between gap-2';
       header.innerHTML = `
-        <div class="min-w-0 flex-1 space-y-0.5">
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="w-2 h-2 rounded-full shrink-0 ${toneColor}"></span>
-            <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(ann.title)}</h5>
+        <div class="min-w-0 flex-1 space-y-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${toneBadgeCls}">${escapeHtml(toneLabel)}</span>
+            <span class="text-[11px] font-medium ${ann.active ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'}">${escapeHtml(metaParts.join(' · '))}</span>
           </div>
-          <p class="text-[11px] font-medium ${ann.active ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'} pl-4">${escapeHtml(metaParts.join(' · '))}</p>
+          <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">${escapeHtml(ann.title)}</h5>
         </div>
       `;
       const msg = document.createElement('p');
-      msg.className = 'text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line pl-4';
+      msg.className = 'text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line';
       msg.textContent = ann.message;
 
       const actions = document.createElement('div');
-      actions.className = 'flex items-center justify-end gap-1.5 flex-wrap pt-1 pl-4';
+      actions.className = 'flex items-center justify-end gap-1.5 flex-wrap pt-1';
 
       const toggleBtn = document.createElement('button');
       toggleBtn.type = 'button';
-      toggleBtn.className = 'ios-press min-h-[34px] px-3 py-1 rounded-xl admin-field text-xs font-semibold text-slate-700 dark:text-slate-200';
+      toggleBtn.className = 'ios-press min-h-[34px] px-3 py-1 rounded-full ios-pill-control hover:bg-slate-500/15 text-xs font-semibold text-slate-700 dark:text-slate-200 transition';
       toggleBtn.textContent = ann.active ? loc.adminAnnHideAction : loc.adminAnnShowAction;
       toggleBtn.addEventListener('click', async () => {
         const api = window.__INONU_AUTH__;
@@ -6373,7 +6494,7 @@ export function initInonuApp() {
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
-      editBtn.className = 'ios-press min-h-[34px] px-3 py-1 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold transition';
+      editBtn.className = 'ios-press min-h-[34px] px-3 py-1 rounded-full bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold transition';
       editBtn.textContent = loc.adminAnnEditAction;
       editBtn.addEventListener('click', () => {
         adminState.editingAnnId = ann.id;
@@ -6383,6 +6504,9 @@ export function initInonuApp() {
         adminState.annTargetProg = ann.targetProg || '';
         document.getElementById('adminAnnTitleInput').value = ann.title;
         document.getElementById('adminAnnMsgInput').value = ann.message;
+        if (ann.targetGroup || ann.targetProg) {
+          setAdminAnnTargetOpen(true);
+        }
         syncAdminAnnFormUI();
         const formEl = document.getElementById('adminAnnForm');
         if (formEl && typeof formEl.scrollIntoView === 'function') {
@@ -6394,8 +6518,8 @@ export function initInonuApp() {
       delBtn.type = 'button';
       const isConfirming = adminState.deleteConfirmAnnId === ann.id;
       delBtn.className = isConfirming
-        ? 'ios-press min-h-[34px] px-3 py-1 rounded-xl bg-rose-600 text-white text-xs font-bold'
-        : 'ios-press min-h-[34px] px-3 py-1 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-semibold transition';
+        ? 'ios-press min-h-[34px] px-3 py-1 rounded-full bg-rose-600 text-white text-xs font-bold'
+        : 'ios-press min-h-[34px] px-3 py-1 rounded-full bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-semibold transition';
       delBtn.textContent = isConfirming ? loc.adminAnnConfirmDeleteAction : loc.adminAnnDeleteAction;
       delBtn.addEventListener('click', async () => {
         const api = window.__INONU_AUTH__;
@@ -6403,10 +6527,11 @@ export function initInonuApp() {
         if (!api || !secret) return;
         if (adminState.deleteConfirmAnnId !== ann.id) {
           adminState.deleteConfirmAnnId = ann.id;
-          renderAdminAnnouncementsList();
+          renderAdminAnnouncementsList(false);
           return;
         }
         adminState.deleteConfirmAnnId = '';
+        row.classList.add('admin-row-exit');
         try {
           await api.deleteAnnouncement(ann.id, secret === 'active' ? undefined : secret);
           await refreshAdminCloudData('announcements');
@@ -6414,6 +6539,7 @@ export function initInonuApp() {
           showToast(loc.adminAnnDeletedToast);
           void queueAutoPushDataJsonToGitHub(false);
         } catch (err) {
+          row.classList.remove('admin-row-exit');
           console.warn('Announcement delete error:', err);
           showToast(loc.adminSaveErrorToast);
         }
@@ -6560,7 +6686,7 @@ export function initInonuApp() {
     listEl.innerHTML = '';
     if (filtered.length === 0) {
       const emptyWrap = document.createElement('div');
-      emptyWrap.className = 'admin-row-item p-5 text-center space-y-2.5 admin-card-reveal';
+      emptyWrap.className = 'ios-pill-control rounded-2xl p-5 text-center space-y-2.5 admin-card-reveal';
       const emptyMsg = document.createElement('p');
       emptyMsg.className = 'text-xs text-slate-500 dark:text-slate-400';
       emptyMsg.textContent = loc.adminStudentsEmpty;
@@ -6570,7 +6696,7 @@ export function initInonuApp() {
       if (/^01\d{9}$/.test(cleanNumeric) && typeof loc.adminStudentsLookupFallbackBtn === 'function') {
         const fallbackBtn = document.createElement('button');
         fallbackBtn.type = 'button';
-        fallbackBtn.className = 'ios-press min-h-[40px] px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition';
+        fallbackBtn.className = 'ios-press min-h-[40px] px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition';
         fallbackBtn.textContent = loc.adminStudentsLookupFallbackBtn(cleanNumeric);
         fallbackBtn.addEventListener('click', async () => {
           const api = window.__INONU_AUTH__;
@@ -6597,10 +6723,10 @@ export function initInonuApp() {
     filtered.forEach((st, idx) => {
       const card = document.createElement('div');
       card.className = idx < 18
-        ? 'admin-row-item px-3.5 py-2.5 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item'
-        : 'admin-row-item px-3.5 py-2.5 flex items-center justify-between gap-2.5 flex-wrap';
+        ? 'ios-pill-control rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item'
+        : 'ios-pill-control rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2.5 flex-wrap';
       if (idx < 18) {
-        card.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 16}ms`);
+        card.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 18}ms`);
       }
       const effGroup = st.myMbuGroup || st.group || loc.groupAllLabel;
       const effLang = (st.lang || st.prog || 'tr').toUpperCase();
@@ -6613,16 +6739,10 @@ export function initInonuApp() {
       const allowBadgeText = state.lang === 'en' ? 'Term I' : 'Dönem I';
       const inactiveText = state.lang === 'en' ? 'Inactive' : 'Pasif';
 
-      const dotCls = st.active === false
-        ? 'bg-rose-500'
-        : st.source === 'custom'
-          ? 'bg-amber-500'
-          : 'bg-emerald-500';
       const srcLabel = st.source === 'custom' ? customBadgeText : allowBadgeText;
       const sidDisplay = st.studentId ? st.studentId : `•••••••${st.last4}`;
       const metaParts = [
         `<span class="font-mono font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(sidDisplay)}</span>`,
-        escapeHtml(srcLabel),
         `${escapeHtml(groupWord)} ${escapeHtml(effGroup)}`,
       ];
       if (effLab) metaParts.push(escapeHtml(effLab));
@@ -6631,19 +6751,23 @@ export function initInonuApp() {
         metaParts.push(`<span class="font-semibold text-rose-600 dark:text-rose-400">${escapeHtml(inactiveText)}</span>`);
       }
 
+      const badgeCls = st.source === 'custom'
+        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+        : 'bg-blue-500/12 text-blue-600 dark:text-blue-300';
+
       const left = document.createElement('div');
       left.className = 'min-w-0 flex-1 space-y-0.5';
       left.innerHTML = `
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="w-2 h-2 rounded-full shrink-0 ${dotCls}"></span>
+        <div class="flex items-center gap-1.5 min-w-0">
           <p class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(st.fullName)}</p>
+          <span class="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold shrink-0 ${badgeCls}">${escapeHtml(srcLabel)}</span>
         </div>
-        <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums pl-4 truncate">${metaParts.join(' · ')}</p>
+        <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums truncate">${metaParts.join(' · ')}</p>
       `;
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
-      editBtn.className = 'ios-press min-h-[36px] px-3 py-1.5 rounded-xl bg-blue-500/12 hover:bg-blue-500/22 text-blue-600 dark:text-blue-300 text-xs font-semibold shrink-0 transition';
+      editBtn.className = 'ios-press min-h-[34px] px-3.5 py-1 rounded-full bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold shrink-0 transition';
       editBtn.textContent = loc.adminAnnEditAction;
       editBtn.addEventListener('click', () => openStudentEditorInAdmin(st));
 
@@ -6673,16 +6797,19 @@ export function initInonuApp() {
     const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : datePanel.classList.contains('hidden');
     datePanel.classList.toggle('hidden', !nextOpen);
     dateBtn.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
-    const arrow = dateBtn.querySelector('svg');
+    const arrow = dateBtn.querySelector('.admin-picker-chevron') || dateBtn.querySelector('svg:last-child');
     if (arrow) arrow.style.transform = nextOpen ? 'rotate(180deg)' : '';
     if (nextOpen) {
+      datePanel.classList.remove('admin-dropdown-enter');
+      void datePanel.offsetWidth;
+      datePanel.classList.add('admin-dropdown-enter');
       renderAdminCancelDateOptions(document.getElementById('adminCancelDateSearch')?.value || '', true);
       const listEl = document.getElementById('adminCancelDateOptions');
       if (listEl) listEl.scrollTop = 0;
     }
   }
 
-  function setAdminCancelSelectedDate(dateStr) {
+  function setAdminCancelSelectedDate(dateStr, animDir = 'none') {
     const dateInp = document.getElementById('adminCancelDateSelect');
     const dateLbl = document.getElementById('adminCancelDateLabel');
     const days = getAdminCancelScheduleDays();
@@ -6694,7 +6821,26 @@ export function initInonuApp() {
       dateLbl.textContent = match
         ? `${match.date} • ${match.dayName}`
         : (finalDate || (state.lang === 'en' ? 'Select date...' : 'Tarih seç...'));
+      if (animDir === 'next' || animDir === 'prev') {
+        dateLbl.classList.remove('food-cal-label-next', 'food-cal-label-prev');
+        void dateLbl.offsetWidth;
+        dateLbl.classList.add(animDir === 'next' ? 'food-cal-label-next' : 'food-cal-label-prev');
+      }
     }
+  }
+
+  function stepAdminCancelDate(delta) {
+    const days = getAdminCancelScheduleDays();
+    if (!days || days.length === 0) return;
+    const curIdx = days.findIndex((d) => d.date === adminState.cancelDate);
+    const safeIdx = curIdx >= 0 ? curIdx : 0;
+    const nextIdx = (safeIdx + delta + days.length) % days.length;
+    const nextDay = days[nextIdx];
+    if (!nextDay) return;
+    const dir = delta >= 0 ? 'next' : 'prev';
+    toggleAdminCancelDatePicker(false);
+    setAdminCancelSelectedDate(nextDay.date, dir);
+    renderAdminCancelDaySlots(dir);
   }
 
   function renderAdminCancelDateOptions(query = '', forceRender = false) {
@@ -6739,7 +6885,7 @@ export function initInonuApp() {
       const cancelCount = (d.slots || []).reduce((acc, s) => acc + (getCancelledLessonInfo(s, adminState.cancelProg) ? 1 : 0), 0);
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 transition ${
+      btn.className = `ios-press w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 transition ${
         isSel
           ? 'bg-rose-600 text-white shadow-xs'
           : 'text-slate-700 dark:text-slate-200 hover:bg-slate-500/12'
@@ -6753,9 +6899,12 @@ export function initInonuApp() {
         <span class="text-[10px] font-bold shrink-0 ${isSel ? 'text-white/85' : 'text-slate-400 dark:text-slate-500'}">K${d.kurulNo}•${adminState.cancelProg === 'en' ? 'W' : 'H'}${d.haftaNo}</span>
       `;
       btn.addEventListener('click', () => {
-        setAdminCancelSelectedDate(d.date);
+        const oldIdx = days.findIndex((x) => x.date === adminState.cancelDate);
+        const newIdx = days.findIndex((x) => x.date === d.date);
+        const dir = oldIdx >= 0 && newIdx >= 0 && oldIdx !== newIdx ? (newIdx > oldIdx ? 'next' : 'prev') : 'next';
+        setAdminCancelSelectedDate(d.date, dir);
         toggleAdminCancelDatePicker(false);
-        renderAdminCancelDaySlots();
+        renderAdminCancelDaySlots(dir);
       });
       frag.appendChild(btn);
     });
@@ -6763,47 +6912,76 @@ export function initInonuApp() {
     if (!norm) listEl.scrollTop = 0;
   }
 
-  function syncAdminCancelFormDefaults() {
-    document.querySelectorAll('[data-cancel-prog]').forEach((b) => {
-      b.classList.toggle('group-chip-active', b.getAttribute('data-cancel-prog') === adminState.cancelProg);
-    });
+  function syncAdminCancelFormDefaults(animateSeg = true) {
+    syncAdminSegmentedControl('adminCancelProgChips', 'adminCancelProgIndicator', 'data-cancel-prog', adminState.cancelProg === 'en' ? 'en' : 'tr', animateSeg);
     const days = getAdminCancelScheduleDays();
     const preferred = (adminState.cancelDate && days.some((d) => d.date === adminState.cancelDate))
       ? adminState.cancelDate
       : ((state.selectedDate && days.some((d) => d.date === state.selectedDate))
           ? state.selectedDate
           : (days[0] ? days[0].date : ''));
-    setAdminCancelSelectedDate(preferred);
+    setAdminCancelSelectedDate(preferred, 'none');
   }
 
-  function renderAdminCancelDaySlots() {
+  function renderAdminCancelDaySlots(slideDir = 'none') {
     const listEl = document.getElementById('adminCancelDaySlotsList');
+    const countEl = document.getElementById('adminCancelDaySlotCount');
     if (!listEl) return;
     const isEn = state.lang === 'en';
     const prog = adminState.cancelProg === 'en' ? 'en' : 'tr';
     const days = getAdminCancelScheduleDays(prog);
     const dayObj = days.find((d) => d.date === adminState.cancelDate) || days[0];
+
+    listEl.classList.remove('admin-slide-next', 'admin-slide-prev');
     listEl.innerHTML = '';
 
+    if (slideDir === 'next' || slideDir === 'prev') {
+      void listEl.offsetWidth;
+      listEl.classList.add(slideDir === 'next' ? 'admin-slide-next' : 'admin-slide-prev');
+    }
+
     if (!dayObj || !Array.isArray(dayObj.slots) || dayObj.slots.length === 0) {
-      listEl.innerHTML = `<div class="admin-row-item p-4 text-center text-xs text-slate-500 dark:text-slate-400">${isEn ? 'No lessons on this date.' : 'Bu tarihte ders bulunamadı.'}</div>`;
+      if (countEl) countEl.textContent = '';
+      listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400 admin-card-reveal">${isEn ? 'No lessons on this date.' : 'Bu tarihte ders bulunamadı.'}</div>`;
       return;
     }
 
+    const cancelledInDay = dayObj.slots.filter((s) => Boolean(getCancelledLessonInfo(s, prog))).length;
+    if (countEl) {
+      countEl.textContent = cancelledInDay > 0
+        ? (isEn ? `${dayObj.slots.length} lessons · ${cancelledInDay} cancelled` : `${dayObj.slots.length} ders · ${cancelledInDay} iptal`)
+        : (isEn ? `${dayObj.slots.length} lessons` : `${dayObj.slots.length} ders`);
+    }
+
+    const animKey = adminState.lastCancelAnimKey || '';
+    const animType = adminState.lastCancelAnimType || '';
+
     const frag = document.createDocumentFragment();
-    dayObj.slots.forEach((slot) => {
+    dayObj.slots.forEach((slot, idx) => {
       const cancelInfo = getCancelledLessonInfo(slot, prog);
       const isCancelled = Boolean(cancelInfo);
+      const slotAnimKey = `${dayObj.date}_${slot.slotNo}_${prog}`;
+      const isJustChanged = Boolean(animKey && animKey === slotAnimKey);
+
       const row = document.createElement('div');
-      row.className = `admin-row-item px-3.5 py-2.5 flex items-center justify-between gap-2.5 ${isCancelled ? 'slot-card-cancelled' : ''}`;
+      let animCls = 'admin-stagger-item';
+      if (isJustChanged) {
+        animCls = animType === 'cancel' ? 'admin-cancel-pop' : 'admin-restore-pop';
+      } else if (animKey) {
+        animCls = '';
+      }
+      row.className = `ios-pill-control rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition-all duration-200 ${isCancelled ? 'slot-card-cancelled' : ''} ${animCls}`;
+      if (animCls === 'admin-stagger-item') {
+        row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 28}ms`);
+      }
 
       const info = document.createElement('div');
       info.className = 'min-w-0 flex-1 space-y-0.5';
       const meta = document.createElement('div');
-      meta.className = 'text-[10.5px] font-bold text-slate-500 dark:text-slate-400 tabular-nums';
-      meta.textContent = `${slot.slotNo}. ${isEn ? 'Hour' : 'Ders'} (${slot.time || ''})${slot.group ? ` • ${slot.group.toUpperCase()}` : ''}`;
+      meta.className = 'flex items-center gap-1.5 flex-wrap text-[10.5px] font-bold text-slate-500 dark:text-slate-400 tabular-nums';
+      meta.innerHTML = `<span>${slot.slotNo}. ${isEn ? 'Hour' : 'Ders'}${slot.time ? ` · ${escapeHtml(slot.time)}` : ''}${slot.group ? ` · ${escapeHtml(slot.group.toUpperCase())}` : ''}</span>${isCancelled ? `<span class="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300">${isEn ? 'CANCELLED' : 'İPTAL'}</span>` : ''}`;
       const title = document.createElement('div');
-      title.className = `text-xs font-bold leading-snug ${isCancelled ? 'line-through opacity-75 text-slate-600 dark:text-slate-300' : 'text-slate-900 dark:text-white'}`;
+      title.className = `text-xs sm:text-[13px] font-bold leading-snug transition-opacity ${isCancelled ? 'line-through opacity-75 text-slate-600 dark:text-slate-300' : 'text-slate-900 dark:text-white'}`;
       title.textContent = slot.title;
       info.appendChild(meta);
       info.appendChild(title);
@@ -6815,7 +6993,7 @@ export function initInonuApp() {
       }
       if (isCancelled && cancelInfo.reason) {
         const rEl = document.createElement('div');
-        rEl.className = 'text-[11px] font-semibold text-rose-700 dark:text-rose-300';
+        rEl.className = 'text-[11px] font-semibold text-rose-600 dark:text-rose-300';
         rEl.textContent = cancelInfo.reason;
         info.appendChild(rEl);
       }
@@ -6823,10 +7001,10 @@ export function initInonuApp() {
       const actionBtn = document.createElement('button');
       actionBtn.type = 'button';
       actionBtn.className = isCancelled
-        ? 'ios-press min-h-[38px] px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold shrink-0 transition'
-        : 'ios-press min-h-[38px] px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-300 text-xs font-bold shrink-0 transition';
+        ? 'ios-press min-h-[36px] px-3.5 py-1.5 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold shrink-0 transition'
+        : 'ios-press min-h-[36px] px-3.5 py-1.5 rounded-full bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-300 text-xs font-bold shrink-0 transition';
       actionBtn.textContent = isCancelled
-        ? (isEn ? 'Restore' : 'İptali Kaldır')
+        ? (isEn ? 'Restore' : 'Geri Al')
         : (isEn ? 'Cancel' : 'İptal Et');
 
       actionBtn.addEventListener('click', async () => {
@@ -6836,11 +7014,15 @@ export function initInonuApp() {
         actionBtn.disabled = true;
         try {
           if (isCancelled && cancelInfo) {
+            adminState.lastCancelAnimKey = slotAnimKey;
+            adminState.lastCancelAnimType = 'restore';
             await api.deleteCancelledLesson(cancelInfo.id, secret === 'active' ? undefined : secret);
             const nextList = cancelledLessonsList.filter((x) => x.id !== cancelInfo.id);
             applyLoadedCancelledLessonsList(nextList);
             showToast(isEn ? 'Lesson restored.' : 'Ders iptali kaldırıldı.');
           } else {
+            adminState.lastCancelAnimKey = slotAnimKey;
+            adminState.lastCancelAnimType = 'cancel';
             const reasonVal = (document.getElementById('adminCancelReasonInput')?.value || '').trim();
             const saved = await api.saveCancelledLesson({
               date: dayObj.date,
@@ -6852,8 +7034,16 @@ export function initInonuApp() {
             applyLoadedCancelledLessonsList(nextList);
             showToast(isEn ? 'Lesson marked as cancelled.' : 'Ders iptal edildi.');
           }
+          setTimeout(() => {
+            if (adminState.lastCancelAnimKey === slotAnimKey) {
+              adminState.lastCancelAnimKey = '';
+              adminState.lastCancelAnimType = '';
+            }
+          }, 520);
           void queueAutoPushDataJsonToGitHub(false);
         } catch (err) {
+          adminState.lastCancelAnimKey = '';
+          adminState.lastCancelAnimType = '';
           console.warn('Toggle cancel lesson error:', err);
           showToast(I18N[state.lang].adminSaveErrorToast);
         } finally {
@@ -6868,45 +7058,57 @@ export function initInonuApp() {
     listEl.appendChild(frag);
   }
 
-  function renderAdminCancelledList() {
+  function renderAdminCancelledList(animateSeg = true) {
     const listEl = document.getElementById('adminCancelledList');
+    const badgeEl = document.getElementById('adminCancelledCountBadge');
     if (!listEl) return;
     const isEn = state.lang === 'en';
     const filterProg = adminState.cancelListFilterProg || '';
-    document.querySelectorAll('[data-cancel-list-filter]').forEach((b) => {
-      b.classList.toggle('group-chip-active', (b.getAttribute('data-cancel-list-filter') || '') === filterProg);
-    });
+    syncAdminSegmentedControl('adminCancelledListFilterChips', 'adminCancelledListFilterIndicator', 'data-cancel-list-filter', filterProg, animateSeg);
 
     const source = Array.isArray(adminState.cancelledLessons) && adminState.cancelledLessons.length > 0
       ? adminState.cancelledLessons
       : (cancelledLessonsList || []);
     const filtered = source.filter((item) => !filterProg || item.targetProg === filterProg);
 
+    if (badgeEl) {
+      badgeEl.textContent = String(filtered.length);
+      badgeEl.classList.toggle('hidden', filtered.length === 0);
+    }
+
     listEl.innerHTML = '';
     if (filtered.length === 0) {
-      listEl.innerHTML = `<div class="admin-row-item p-5 text-center text-xs text-slate-500 dark:text-slate-400">${isEn ? 'No cancelled lessons.' : 'İptal edilmiş ders bulunmuyor.'}</div>`;
+      listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-5 text-center text-xs text-slate-500 dark:text-slate-400 admin-card-reveal">${isEn ? 'No cancelled lessons.' : 'İptal edilmiş ders bulunmuyor.'}</div>`;
       return;
     }
 
+    const animKey = adminState.lastCancelAnimKey || '';
+    const animType = adminState.lastCancelAnimType || '';
+
     const frag = document.createDocumentFragment();
-    filtered.forEach((item) => {
+    filtered.forEach((item, idx) => {
       const days = getAdminCancelScheduleDays(item.targetProg);
       const dayObj = days.find((d) => d.date === item.date);
       const slotObj = dayObj && Array.isArray(dayObj.slots) ? dayObj.slots.find((s) => Number(s.slotNo) === Number(item.slotNo)) : null;
+      const itemKey = `${item.date}_${item.slotNo}_${item.targetProg}`;
+      const isJustAdded = Boolean(animKey && animType === 'cancel' && animKey === itemKey);
 
       const row = document.createElement('div');
-      row.className = 'admin-row-item slot-card-cancelled px-3.5 py-2.5 flex items-center justify-between gap-2.5';
+      row.className = `ios-pill-control slot-card-cancelled rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2.5 ${isJustAdded ? 'admin-cancel-pop' : (animKey ? '' : 'admin-stagger-item')}`;
+      if (!isJustAdded && !animKey) {
+        row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 28}ms`);
+      }
 
       const info = document.createElement('div');
       info.className = 'min-w-0 flex-1 space-y-0.5';
       const top = document.createElement('div');
-      top.className = 'flex items-center gap-2 min-w-0';
+      top.className = 'flex items-center gap-1.5 flex-wrap';
       top.innerHTML = `
-        <span class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
-        <span class="text-[11px] font-bold text-slate-700 dark:text-slate-200 tabular-nums truncate">${escapeHtml(item.targetProg.toUpperCase())} · ${escapeHtml(item.date)} · ${item.slotNo}. ${isEn ? 'Hour' : 'Ders'}${slotObj && slotObj.time ? ` (${escapeHtml(slotObj.time)})` : ''}</span>
+        <span class="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-500/18 text-rose-700 dark:text-rose-300 shrink-0">${escapeHtml(item.targetProg.toUpperCase())}</span>
+        <span class="text-[11px] font-bold text-slate-700 dark:text-slate-200 tabular-nums truncate">${escapeHtml(item.date)} · ${item.slotNo}. ${isEn ? 'Hour' : 'Ders'}${slotObj && slotObj.time ? ` (${escapeHtml(slotObj.time)})` : ''}</span>
       `;
       const title = document.createElement('div');
-      title.className = 'text-xs font-bold text-slate-900 dark:text-white truncate pl-4';
+      title.className = 'text-xs sm:text-[13px] font-bold text-slate-900 dark:text-white truncate';
       title.textContent = slotObj ? slotObj.title : `${item.slotNo}. ${isEn ? 'Lesson' : 'Ders'}`;
       info.appendChild(top);
       info.appendChild(title);
@@ -6919,20 +7121,35 @@ export function initInonuApp() {
 
       const restoreBtn = document.createElement('button');
       restoreBtn.type = 'button';
-      restoreBtn.className = 'ios-press min-h-[38px] px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold shrink-0 transition';
+      restoreBtn.className = 'ios-press min-h-[36px] px-3.5 py-1.5 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold shrink-0 transition';
       restoreBtn.textContent = isEn ? 'Restore' : 'Geri Al';
       restoreBtn.addEventListener('click', async () => {
         const api = window.__INONU_AUTH__;
         const secret = ensureAdminSecretReady();
         if (!api || !secret) return;
         restoreBtn.disabled = true;
+        row.classList.add('admin-row-exit');
+        adminState.lastCancelAnimKey = itemKey;
+        adminState.lastCancelAnimType = 'restore';
         try {
-          await api.deleteCancelledLesson(item.id, secret === 'active' ? undefined : secret);
+          await Promise.all([
+            api.deleteCancelledLesson(item.id, secret === 'active' ? undefined : secret),
+            new Promise((resolve) => setTimeout(resolve, 210))
+          ]);
           const nextList = cancelledLessonsList.filter((x) => x.id !== item.id);
           applyLoadedCancelledLessonsList(nextList);
           showToast(isEn ? 'Lesson restored.' : 'Ders iptali kaldırıldı.');
+          setTimeout(() => {
+            if (adminState.lastCancelAnimKey === itemKey) {
+              adminState.lastCancelAnimKey = '';
+              adminState.lastCancelAnimType = '';
+            }
+          }, 520);
           void queueAutoPushDataJsonToGitHub(false);
         } catch (err) {
+          row.classList.remove('admin-row-exit');
+          adminState.lastCancelAnimKey = '';
+          adminState.lastCancelAnimType = '';
           console.warn('Restore cancelled lesson error:', err);
           showToast(I18N[state.lang].adminSaveErrorToast);
         } finally {
@@ -6964,6 +7181,11 @@ export function initInonuApp() {
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
       const arrow = btn.querySelector('svg');
       if (arrow) arrow.style.transform = open ? 'rotate(180deg)' : '';
+      if (open) {
+        panel.classList.remove('admin-dropdown-enter');
+        void panel.offsetWidth;
+        panel.classList.add('admin-dropdown-enter');
+      }
     };
 
     if (!which) {
@@ -7051,7 +7273,7 @@ export function initInonuApp() {
       const isTodayDate = d.date === todayStr;
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 transition ${
+      btn.className = `ios-press w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 transition ${
         isSel
           ? 'bg-blue-600 text-white shadow-xs'
           : 'text-slate-700 dark:text-slate-200 hover:bg-slate-500/12'
@@ -7114,7 +7336,7 @@ export function initInonuApp() {
       const isSel = item.value === targetVal;
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-start justify-between gap-2 ${
+      btn.className = `ios-press w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-start justify-between gap-2 ${
         isSel
           ? 'bg-blue-600 text-white shadow-xs'
           : 'text-slate-700 dark:text-slate-200 hover:bg-slate-500/12'
@@ -7155,7 +7377,7 @@ export function initInonuApp() {
     }
   }
 
-  function syncAdminMaterialModeUI() {
+  function syncAdminMaterialModeUI(animateSeg = true) {
     const isFile = adminState.matMode !== 'url';
     const fileWrap = document.getElementById('adminMatFileWrap');
     const urlWrap = document.getElementById('adminMatUrlWrap');
@@ -7163,14 +7385,26 @@ export function initInonuApp() {
     const heading = document.getElementById('adminMatFormHeading');
     const cancelBtn = document.getElementById('btnAdminMatCancelEdit');
     const submitBtn = document.getElementById('btnAdminMatSubmit');
-    document.querySelectorAll('[data-mat-prog]').forEach((b) => {
-      b.classList.toggle('group-chip-active', b.getAttribute('data-mat-prog') === (adminState.matProg === 'en' ? 'en' : 'tr'));
-    });
-    document.querySelectorAll('[data-mat-mode]').forEach((b) => {
-      b.classList.toggle('group-chip-active', b.getAttribute('data-mat-mode') === (isFile ? 'file' : 'url'));
-    });
-    if (fileWrap) fileWrap.classList.toggle('hidden', !isFile);
-    if (urlWrap) urlWrap.classList.toggle('hidden', isFile);
+    syncAdminSegmentedControl('adminMatProgChips', 'adminMatProgIndicator', 'data-mat-prog', adminState.matProg === 'en' ? 'en' : 'tr', animateSeg);
+    syncAdminSegmentedControl('adminMatModeBar', 'adminMatModeIndicator', 'data-mat-mode', isFile ? 'file' : 'url', animateSeg);
+    if (fileWrap) {
+      const wasHidden = fileWrap.classList.contains('hidden');
+      fileWrap.classList.toggle('hidden', !isFile);
+      if (isFile && wasHidden && animateSeg) {
+        fileWrap.classList.remove('admin-card-reveal');
+        void fileWrap.offsetWidth;
+        fileWrap.classList.add('admin-card-reveal');
+      }
+    }
+    if (urlWrap) {
+      const wasHidden = urlWrap.classList.contains('hidden');
+      urlWrap.classList.toggle('hidden', isFile);
+      if (!isFile && wasHidden && animateSeg) {
+        urlWrap.classList.remove('admin-card-reveal');
+        void urlWrap.offsetWidth;
+        urlWrap.classList.add('admin-card-reveal');
+      }
+    }
     if (fileLabel) {
       if (adminState.matFileName) {
         const sizeTxt = adminState.matFileSize > 0 ? ` (${formatPdfBytesLabel(adminState.matFileSize)})` : '';
@@ -7205,23 +7439,21 @@ export function initInonuApp() {
     renderAdminMatDateOptions(document.getElementById('adminMatDateSearch')?.value || '');
     const slotSel = document.getElementById('adminMatSlotSelect');
     populateAdminMatSlotSelect(targetDate, slotSel ? slotSel.value : '1');
-    syncAdminMaterialModeUI();
+    syncAdminMaterialModeUI(false);
   }
 
-  function renderAdminMaterialsList() {
+  function renderAdminMaterialsList(animateSeg = true) {
     const listEl = document.getElementById('adminMaterialsList');
     if (!listEl) return;
     listEl.innerHTML = '';
-    document.querySelectorAll('[data-mat-list-filter]').forEach((b) => {
-      b.classList.toggle('group-chip-active', (b.getAttribute('data-mat-list-filter') || '') === (adminState.matListFilterProg || ''));
-    });
-    const allMats = adminState.materials || [];
     const filterProg = adminState.matListFilterProg || '';
+    syncAdminSegmentedControl('adminMatListFilterChips', 'adminMatListFilterIndicator', 'data-mat-list-filter', filterProg, animateSeg);
+    const allMats = adminState.materials || [];
     const mats = filterProg
       ? allMats.filter((m) => (m.targetProg || '') === filterProg)
       : allMats;
     if (mats.length === 0) {
-      listEl.innerHTML = `<div class="admin-row-item p-5 text-center text-xs text-slate-500 dark:text-slate-400">Bu filtre için eklenmiş ders PDF'i yok.</div>`;
+      listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-5 text-center text-xs text-slate-500 dark:text-slate-400 admin-card-reveal">Bu filtre için eklenmiş ders PDF'i yok.</div>`;
       return;
     }
     mats.forEach((mat, idx) => {
@@ -7237,22 +7469,22 @@ export function initInonuApp() {
         : mat.pdfUrl;
 
       const row = document.createElement('div');
-      row.className = 'admin-row-item px-3.5 py-3 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item';
-      row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 24}ms`);
+      row.className = 'ios-pill-control rounded-2xl px-3.5 py-3 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item';
+      row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 28}ms`);
       row.innerHTML = `
         <div class="min-w-0 flex-1 space-y-0.5">
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="w-2 h-2 rounded-full shrink-0 ${isFile ? 'bg-rose-500' : 'bg-indigo-500'}"></span>
-            <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(mat.title)}</h5>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold shrink-0 ${isFile ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300' : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300'}">${isFile ? 'PDF' : 'URL'}</span>
+            <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">${progText} · ${escapeHtml(mat.date)} · ${mat.slotNo}. Ders</span>
           </div>
-          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums pl-4 truncate">${progText} · ${escapeHtml(mat.date)} · ${mat.slotNo}. Ders · ${isFile ? (sizeLabel || 'PDF') : 'URL'}</p>
-          ${lessonInfo ? `<p class="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate pl-4">${escapeHtml(lessonInfo)}</p>` : ''}
-          <p class="text-[11px] text-slate-400 dark:text-slate-500 truncate pl-4">${escapeHtml(subInfo)}</p>
+          <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(mat.title)}</h5>
+          ${lessonInfo ? `<p class="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate">${escapeHtml(lessonInfo)}</p>` : ''}
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 truncate">${escapeHtml(subInfo)}</p>
         </div>
-        <div class="flex items-center gap-1.5 shrink-0 pl-4 sm:pl-0">
-          <button type="button" class="btn-view-mat ios-press min-h-[34px] px-3 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition">${isFile ? 'İndir' : 'Görüntüle'}</button>
-          <button type="button" class="btn-edit-mat ios-press min-h-[34px] px-3 py-1 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold transition">Düzenle</button>
-          <button type="button" class="btn-del-mat ios-press min-h-[34px] px-3 py-1 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-semibold transition" data-mat-id="${escapeHtml(mat.id)}">${adminState.deleteConfirmMatId === mat.id ? 'Emin misin? Sil' : 'Sil'}</button>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" class="btn-view-mat ios-press min-h-[34px] px-3 py-1 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition">${isFile ? 'İndir' : 'Aç'}</button>
+          <button type="button" class="btn-edit-mat ios-press min-h-[34px] px-3 py-1 rounded-full bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold transition">Düzenle</button>
+          <button type="button" class="btn-del-mat ios-press min-h-[34px] px-3 py-1 rounded-full bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-semibold transition" data-mat-id="${escapeHtml(mat.id)}">${adminState.deleteConfirmMatId === mat.id ? 'Emin misin?' : 'Sil'}</button>
         </div>
       `;
       row.querySelector('.btn-view-mat').addEventListener('click', () => {
@@ -7290,14 +7522,17 @@ export function initInonuApp() {
         if (!api || !secret) return;
         if (adminState.deleteConfirmMatId !== mat.id) {
           adminState.deleteConfirmMatId = mat.id;
-          renderAdminMaterialsList();
+          renderAdminMaterialsList(false);
           return;
         }
         adminState.deleteConfirmMatId = '';
         const prevMats = Array.isArray(adminState.materials) ? [...adminState.materials] : [];
-        adminState.materials = prevMats.filter((m) => m.id !== mat.id);
-        applyLoadedLessonMaterialsList(adminState.materials);
-        renderAdminMaterialsList();
+        row.classList.add('admin-row-exit');
+        setTimeout(() => {
+          adminState.materials = prevMats.filter((m) => m.id !== mat.id);
+          applyLoadedLessonMaterialsList(adminState.materials);
+          renderAdminMaterialsList(false);
+        }, 200);
         showToast('Ders PDF\'i silindi');
         try {
           await api.deleteLessonMaterial(mat.id, secret === 'active' ? undefined : secret);
@@ -7306,7 +7541,7 @@ export function initInonuApp() {
         } catch (err) {
           adminState.materials = prevMats;
           applyLoadedLessonMaterialsList(prevMats);
-          renderAdminMaterialsList();
+          renderAdminMaterialsList(false);
           console.warn('Lesson material delete error:', err);
           showToast('Silme başarısız oldu');
         }
@@ -7407,9 +7642,9 @@ export function initInonuApp() {
     const targetTab = adminState.activeTab || 'announcements';
     switchAdminTab(targetTab, false);
     openAnimatedModal(document.getElementById('adminModal'), document.getElementById('adminModalCard'), () => {
-      updateAdminTabIndicator(targetTab, false);
+      syncAllAdminSegmentedIndicators(false);
     });
-    requestAnimationFrame(() => updateAdminTabIndicator(targetTab, false));
+    requestAnimationFrame(() => syncAllAdminSegmentedIndicators(false));
     void refreshAdminCloudData(targetTab, { includeAccess: true });
   }
 
@@ -8458,25 +8693,58 @@ export function initInonuApp() {
       });
     }
 
+    const btnAdminAnnToggleTarget = document.getElementById('btnAdminAnnToggleTarget');
+    if (btnAdminAnnToggleTarget) {
+      btnAdminAnnToggleTarget.addEventListener('click', () => {
+        setAdminAnnTargetOpen(!adminState.annTargetOpen);
+      });
+    }
+
+    document.querySelectorAll('[data-admin-subtab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const subKey = btn.getAttribute('data-admin-subtab') || 'roster';
+        switchAdminSettingsSubTab(subKey, true);
+      });
+    });
+
+    const btnAdminToggleGhConfig = document.getElementById('btnAdminToggleGhConfig');
+    if (btnAdminToggleGhConfig) {
+      btnAdminToggleGhConfig.addEventListener('click', () => {
+        setAdminGhConfigOpen(!adminState.ghConfigOpen);
+      });
+    }
+
     document.querySelectorAll('[data-ann-list-filter]').forEach((btn) => {
       btn.addEventListener('click', () => {
         adminState.annListFilter = btn.getAttribute('data-ann-list-filter') || '';
-        renderAdminAnnouncementsList();
+        renderAdminAnnouncementsList(true);
       });
     });
 
     document.querySelectorAll('[data-cancel-prog]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        adminState.cancelProg = btn.getAttribute('data-cancel-prog') === 'en' ? 'en' : 'tr';
+        const nextProg = btn.getAttribute('data-cancel-prog') === 'en' ? 'en' : 'tr';
+        const dir = nextProg === adminState.cancelProg ? 'none' : (nextProg === 'en' ? 'next' : 'prev');
+        adminState.cancelProg = nextProg;
         toggleAdminCancelDatePicker(false);
-        syncAdminCancelFormDefaults();
-        renderAdminCancelDaySlots();
+        syncAdminCancelFormDefaults(true);
+        renderAdminCancelDaySlots(dir);
       });
     });
 
+    const btnAdminCancelPrevDay = document.getElementById('btnAdminCancelPrevDay');
+    if (btnAdminCancelPrevDay) {
+      btnAdminCancelPrevDay.addEventListener('click', () => stepAdminCancelDate(-1));
+    }
+    const btnAdminCancelNextDay = document.getElementById('btnAdminCancelNextDay');
+    if (btnAdminCancelNextDay) {
+      btnAdminCancelNextDay.addEventListener('click', () => stepAdminCancelDate(1));
+    }
+
     const btnAdminCancelDateTrigger = document.getElementById('btnAdminCancelDateTrigger');
     if (btnAdminCancelDateTrigger) {
-      btnAdminCancelDateTrigger.addEventListener('click', () => {
+      btnAdminCancelDateTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
         toggleAdminCancelDatePicker();
       });
     }
@@ -8491,7 +8759,7 @@ export function initInonuApp() {
     document.querySelectorAll('[data-cancel-list-filter]').forEach((btn) => {
       btn.addEventListener('click', () => {
         adminState.cancelListFilterProg = btn.getAttribute('data-cancel-list-filter') || '';
-        renderAdminCancelledList();
+        renderAdminCancelledList(true);
       });
     });
 
@@ -8530,20 +8798,21 @@ export function initInonuApp() {
       btn.addEventListener('click', () => {
         adminState.matProg = btn.getAttribute('data-mat-prog') === 'en' ? 'en' : 'tr';
         syncAdminMaterialFormDefaults();
+        syncAdminSegmentedControl('adminMatProgChips', 'adminMatProgIndicator', 'data-mat-prog', adminState.matProg, true);
       });
     });
 
     document.querySelectorAll('[data-mat-list-filter]').forEach((btn) => {
       btn.addEventListener('click', () => {
         adminState.matListFilterProg = btn.getAttribute('data-mat-list-filter') || '';
-        renderAdminMaterialsList();
+        renderAdminMaterialsList(true);
       });
     });
 
     document.querySelectorAll('[data-mat-mode]').forEach((btn) => {
       btn.addEventListener('click', () => {
         adminState.matMode = btn.getAttribute('data-mat-mode') === 'url' ? 'url' : 'file';
-        syncAdminMaterialModeUI();
+        syncAdminMaterialModeUI(true);
       });
     });
 
@@ -8577,6 +8846,12 @@ export function initInonuApp() {
         !target.closest('#btnAdminMatSlotTrigger')
       ) {
         toggleAdminMatPicker(null, false);
+      }
+      if (
+        !target.closest('#adminCancelDatePickerPanel') &&
+        !target.closest('#btnAdminCancelDateTrigger')
+      ) {
+        toggleAdminCancelDatePicker(false);
       }
     });
 
@@ -9378,7 +9653,7 @@ export function initInonuApp() {
       }
       const adminModalEl = document.getElementById('adminModal');
       if (adminModalEl && !adminModalEl.classList.contains('hidden')) {
-        updateAdminTabIndicator(adminState.activeTab || 'announcements', false);
+        syncAllAdminSegmentedIndicators(false);
       }
       const carousel = document.getElementById('weekCarousel');
       if (curDay && carousel.clientWidth > 0) {
