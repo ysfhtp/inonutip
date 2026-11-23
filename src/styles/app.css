@@ -1261,36 +1261,43 @@ body {
   animation: iosShake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Admin Modal — Native iOS Liquid Glass & Fluid Animations */
-#adminTabsBar {
-  position: relative;
-  isolation: isolate;
+/* Admin Modal — Native iOS Bottom Sheet, Hub Rows & Fluid Animations */
+@keyframes adminSheetInMobile {
+  from {
+    opacity: 0.72;
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
-#adminTabIndicator {
-  position: absolute;
-  top: 0;
-  left: 0;
-  border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  will-change: transform, width, height;
-  pointer-events: none;
-  z-index: 0;
-  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), width 0.36s cubic-bezier(0.22, 1, 0.36, 1), height 0.36s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.24s ease;
+@keyframes adminSheetOutMobile {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
 }
-.dark #adminTabIndicator {
-  background: rgba(30, 41, 59, 0.96);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+@media (max-width: 639px) {
+  .admin-sheet-card.modal-card-in {
+    animation: adminSheetInMobile 0.36s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+  }
+  .admin-sheet-card.modal-card-out {
+    animation: adminSheetOutMobile 0.24s cubic-bezier(0.4, 0, 1, 1) both !important;
+  }
 }
-.admin-tab-btn {
-  position: relative;
-  z-index: 1;
-  transition: color 0.2s ease, transform 0.22s cubic-bezier(0.34, 1.45, 0.64, 1);
-  white-space: nowrap;
-  touch-action: manipulation;
+.admin-sheet-card.is-dragging {
+  animation: none !important;
+  transition: none !important;
+  will-change: transform;
 }
-.admin-tab-btn:active {
-  transform: scale(0.95);
+.admin-sheet-card.is-snapping-back {
+  animation: none !important;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
 /* Native iOS Glass Sub-Card (Harmonized with .ios-glass & .ios-pill-control) */
@@ -1304,6 +1311,47 @@ body {
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* iOS Settings-Style Hub Rows */
+.admin-hub-row {
+  position: relative;
+  transition: background-color 0.18s ease, transform 0.2s cubic-bezier(0.34, 1.45, 0.64, 1);
+  touch-action: manipulation;
+}
+.admin-hub-row:hover {
+  background: rgba(15, 23, 42, 0.035);
+}
+.dark .admin-hub-row:hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+.admin-hub-row:active {
+  transform: scale(0.988);
+  background: rgba(15, 23, 42, 0.06);
+}
+.dark .admin-hub-row:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+.admin-hub-row + .admin-hub-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 3.75rem;
+  right: 1rem;
+  height: 1px;
+  background: rgba(148, 163, 184, 0.22);
+}
+.dark .admin-hub-row + .admin-hub-row::before {
+  background: rgba(148, 163, 184, 0.14);
+}
+
+/* iOS Control Center Quick-Action Tiles */
+.admin-quick-tile {
+  transition: transform 0.22s cubic-bezier(0.34, 1.45, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  touch-action: manipulation;
+}
+.admin-quick-tile:active {
+  transform: scale(0.95);
 }
 
 /* Directional Pane Enter Animations (Matches Main Dock Tabs) */

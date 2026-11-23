@@ -5129,6 +5129,7 @@ export function initInonuApp() {
         ? 'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 translate-x-5'
         : 'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 translate-x-0';
     }
+    if (typeof syncAdminHubSummary === 'function') syncAdminHubSummary();
   }
 
   function syncSiteAccessGateUI() {
@@ -6219,6 +6220,8 @@ export function initInonuApp() {
     syncAdminUnlockBarUI();
     syncAdminAnnFormUI(false);
     syncAdminSiteAccessUI();
+    syncAdminHubLanguageUI();
+    syncAdminHubSummary();
     void syncAdminDataJsonUI();
 
     const modalEl = document.getElementById('adminModal');
@@ -6228,35 +6231,112 @@ export function initInonuApp() {
       renderAdminCancelledList(false);
       renderAdminStudentsList();
       syncAdminStudentEditorUI();
+      updateAdminHeaderForTab(adminState.activeTab || 'hub');
       requestAnimationFrame(() => syncAllAdminSegmentedIndicators(false));
     }
   }
 
-  const ADMIN_PILL_SPRING = 'transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), width 0.36s cubic-bezier(0.22, 1, 0.36, 1), height 0.36s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.24s ease';
+  function syncAdminHubLanguageUI() {
+    const isEn = state.lang === 'en';
+    const setTxt = (id, text) => {
+      const el = document.getElementById(id);
+      if (el && typeof text === 'string') el.textContent = text;
+    };
+    setTxt('lblAdminBackBtn', 'Admin');
+    setTxt('lblAdminQuickActions', isEn ? 'Quick Actions' : 'Hızlı İşlemler');
+    setTxt('lblAdminQuickCancelTitle', isEn ? 'Cancel Today' : 'Bugün İptal');
+    setTxt('lblAdminQuickCancelSub', isEn ? 'Quick cancel' : 'Hızlı iptal et');
+    setTxt('lblAdminQuickAnnTitle', isEn ? 'Urgent Notice' : 'Acil Duyuru');
+    setTxt('lblAdminQuickAnnSub', isEn ? 'Post now' : 'Hemen yayınla');
+    setTxt('lblAdminQuickLockTitle', isEn ? 'Site Lock' : 'Site Kilidi');
+    setTxt('lblAdminHubGroupContent', isEn ? 'Schedule & Content' : 'Dersler & İçerik');
+    setTxt('lblAdminHubGroupSystem', isEn ? 'Students & System' : 'Öğrenciler & Sistem');
+    setTxt('lblHubAnnouncements', isEn ? 'Announcements' : 'Duyurular');
+    setTxt('subHubAnnouncements', isEn ? 'Publish, target & edit' : 'Yayınla, hedefle ve düzenle');
+    setTxt('lblHubCancellations', isEn ? 'Cancellations' : 'Ders İptali');
+    setTxt('subHubCancellations', isEn ? 'Cancel or restore lessons' : 'İptal et veya geri al');
+    setTxt('lblHubMaterials', isEn ? 'Lesson PDFs' : "Ders PDF'leri");
+    setTxt('subHubMaterials', isEn ? 'Upload PDF files or links' : 'PDF dosyası veya bağlantı ekle');
+    setTxt('lblHubAddStudent', isEn ? 'Add Student' : 'Öğrenci Ekle');
+    setTxt('subHubAddStudent', isEn ? 'Register student ID & group' : 'Yeni öğrenci numarası ve grup kaydı');
+    setTxt('lblHubStudents', isEn ? 'Students & Settings' : 'Öğrenciler & Ayarlar');
+    setTxt('subHubStudents', isEn ? 'Roster, site lock & security' : 'Öğrenci listesi, site kilidi, şifre');
+  }
 
-  function updateAdminTabIndicator(tabKey, animate = true) {
-    const bar = document.getElementById('adminTabsBar');
-    const pill = document.getElementById('adminTabIndicator');
-    const btn = bar && bar.querySelector(`.admin-tab-btn[data-admin-tab="${tabKey}"]`);
-    if (!bar || !pill || !btn || btn.offsetWidth === 0) return;
+  function syncAdminHubSummary() {
+    const isEn = state.lang === 'en';
+    const activeAnns = (adminState.announcements && adminState.announcements.length > 0
+      ? adminState.announcements
+      : (Array.isArray(activeAnnouncementsList) ? activeAnnouncementsList : [])
+    ).filter((a) => a && a.active !== false).length;
+    const cancelCount = (adminState.cancelledLessons && adminState.cancelledLessons.length > 0
+      ? adminState.cancelledLessons.length
+      : (Array.isArray(cancelledLessonsList) ? cancelledLessonsList.length : 0));
+    const matCount = (adminState.materials && adminState.materials.length > 0
+      ? adminState.materials.length
+      : (lessonMaterialsMap ? Object.values(lessonMaterialsMap).flat().length : 0));
+    const stuCount = (adminState.students && adminState.students.length > 0)
+      ? adminState.students.length
+      : (typeof STUDENT_ROSTER === 'object' && STUDENT_ROSTER ? Object.keys(STUDENT_ROSTER).length : 0);
 
-    if (!animate) {
-      pill.style.transition = 'none';
-    } else {
-      pill.style.transition = ADMIN_PILL_SPRING;
+    const setBadge = (id, text) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+    setBadge('countHubAnnouncements', isEn ? `${activeAnns} active` : `${activeAnns} aktif`);
+    setBadge('countHubCancellations', isEn ? `${cancelCount}` : `${cancelCount} iptal`);
+    setBadge('countHubMaterials', isEn ? `${matCount}` : `${matCount} PDF`);
+    setBadge('countHubStudents', `${stuCount}`);
+
+    const lockedOnly = Boolean(siteRequireStudentLogin);
+    const lockIconWrap = document.getElementById('adminQuickLockIconWrap');
+    const iconUnlock = document.getElementById('iconAdminQuickUnlock');
+    const iconLock = document.getElementById('iconAdminQuickLock');
+    const stateEl = document.getElementById('lblAdminQuickLockState');
+    if (lockIconWrap) {
+      lockIconWrap.className = lockedOnly
+        ? 'w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0 transition-colors'
+        : 'w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 transition-colors';
     }
-    pill.style.transform = `translate3d(${btn.offsetLeft}px, ${btn.offsetTop}px, 0)`;
-    pill.style.width = `${btn.offsetWidth}px`;
-    pill.style.height = `${btn.offsetHeight}px`;
-    if (!animate) {
-      pill.getBoundingClientRect();
-      pill.style.transition = ADMIN_PILL_SPRING;
+    if (iconUnlock) iconUnlock.classList.toggle('hidden', lockedOnly);
+    if (iconLock) iconLock.classList.toggle('hidden', !lockedOnly);
+    if (stateEl) {
+      stateEl.textContent = lockedOnly
+        ? (isEn ? 'Login Only' : 'Giriş Kilitli')
+        : (isEn ? 'Public' : 'Herkese Açık');
+      stateEl.className = lockedOnly
+        ? 'block text-[10.5px] font-semibold text-amber-600 dark:text-amber-300 truncate mt-0.5'
+        : 'block text-[10.5px] font-semibold text-emerald-600 dark:text-emerald-400 truncate mt-0.5';
     }
-    if (bar.scrollWidth > bar.clientWidth && typeof btn.scrollIntoView === 'function') {
-      try {
-        btn.scrollIntoView({ behavior: animate ? 'smooth' : 'auto', block: 'nearest', inline: 'center' });
-      } catch {}
+  }
+
+  function updateAdminHeaderForTab(tabKey) {
+    const isHub = !tabKey || tabKey === 'hub';
+    const isEn = state.lang === 'en';
+    const loc = I18N[state.lang];
+    const backBtn = document.getElementById('btnAdminBackToHub');
+    const brandIcon = document.getElementById('adminHeaderBrandIcon');
+    const badgeEl = document.getElementById('adminModalBadge');
+    const titleEl = document.getElementById('adminModalTitle');
+
+    if (backBtn) backBtn.classList.toggle('hidden', isHub);
+    if (brandIcon) brandIcon.classList.toggle('hidden', !isHub);
+    if (badgeEl) badgeEl.classList.toggle('hidden', !isHub);
+    if (titleEl) {
+      const titles = {
+        hub: loc.adminModalTitle,
+        announcements: isEn ? 'Announcements' : 'Duyurular',
+        cancellations: isEn ? 'Cancellations' : 'Ders İptali',
+        materials: isEn ? 'Lesson PDFs' : "Ders PDF'leri",
+        'add-student': isEn ? 'Add Student' : 'Öğrenci Ekle',
+        students: isEn ? 'Students & Settings' : 'Öğrenciler & Ayarlar'
+      };
+      titleEl.textContent = titles[tabKey] || loc.adminModalTitle;
     }
+  }
+
+  function updateAdminTabIndicator(_tabKey, _animate = true) {
+    // Legacy no-op: navigation now uses iOS Settings Hub + Back header.
   }
 
   function replayAdminPaneEnter(paneEl, direction = 'up') {
@@ -6273,34 +6353,42 @@ export function initInonuApp() {
   }
 
   function switchAdminTab(tabKey, animate = true) {
-    const prevTab = adminState.activeTab || 'announcements';
-    const prevIdx = ADMIN_TAB_ORDER.indexOf(prevTab);
-    const nextIdx = ADMIN_TAB_ORDER.indexOf(tabKey);
-    const dir = !animate || prevTab === tabKey || prevIdx < 0 || nextIdx < 0
-      ? 'up'
-      : (nextIdx > prevIdx ? 'right' : 'left');
-    adminState.activeTab = tabKey;
+    const nextTab = tabKey || 'hub';
+    const prevTab = adminState.activeTab || 'hub';
+    let dir = 'up';
+    if (animate && prevTab !== nextTab) {
+      if (nextTab === 'hub') dir = 'left';
+      else if (prevTab === 'hub') dir = 'right';
+      else {
+        const prevIdx = ADMIN_TAB_ORDER.indexOf(prevTab);
+        const nextIdx = ADMIN_TAB_ORDER.indexOf(nextTab);
+        dir = (prevIdx >= 0 && nextIdx >= 0) ? (nextIdx > prevIdx ? 'right' : 'left') : 'right';
+      }
+    }
+    adminState.activeTab = nextTab;
+    updateAdminHeaderForTab(nextTab);
 
-    document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
-      const isAct = btn.getAttribute('data-admin-tab') === tabKey;
-      btn.className = isAct
-        ? 'admin-tab-btn min-h-[34px] py-1.5 px-3 sm:px-2 rounded-xl text-xs font-bold text-slate-900 dark:text-white flex items-center justify-center shrink-0 sm:shrink transition'
-        : 'admin-tab-btn min-h-[34px] py-1.5 px-3 sm:px-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 sm:shrink transition';
-    });
-
+    const pHub = document.getElementById('adminPaneHub');
     const pAnn = document.getElementById('adminPaneAnnouncements');
     const pMat = document.getElementById('adminPaneMaterials');
     const pCan = document.getElementById('adminPaneCancellations');
     const pAdd = document.getElementById('adminPaneAddStudent');
     const pStu = document.getElementById('adminPaneStudents');
 
+    if (pHub) {
+      pHub.classList.toggle('hidden', nextTab !== 'hub');
+      if (nextTab === 'hub') {
+        syncAdminHubSummary();
+        replayAdminPaneEnter(pHub, dir);
+      }
+    }
     if (pAnn) {
-      pAnn.classList.toggle('hidden', tabKey !== 'announcements');
-      if (tabKey === 'announcements') replayAdminPaneEnter(pAnn, dir);
+      pAnn.classList.toggle('hidden', nextTab !== 'announcements');
+      if (nextTab === 'announcements') replayAdminPaneEnter(pAnn, dir);
     }
     if (pMat) {
-      pMat.classList.toggle('hidden', tabKey !== 'materials');
-      if (tabKey === 'materials') {
+      pMat.classList.toggle('hidden', nextTab !== 'materials');
+      if (nextTab === 'materials') {
         if (adminState.materials.length === 0 && lessonMaterialsMap && Object.keys(lessonMaterialsMap).length > 0) {
           adminState.materials = Object.values(lessonMaterialsMap).flat();
         }
@@ -6313,8 +6401,8 @@ export function initInonuApp() {
       }
     }
     if (pCan) {
-      pCan.classList.toggle('hidden', tabKey !== 'cancellations');
-      if (tabKey === 'cancellations') {
+      pCan.classList.toggle('hidden', nextTab !== 'cancellations');
+      if (nextTab === 'cancellations') {
         if (adminState.cancelledLessons.length === 0 && Array.isArray(cancelledLessonsList) && cancelledLessonsList.length > 0) {
           adminState.cancelledLessons = [...cancelledLessonsList];
         }
@@ -6328,15 +6416,15 @@ export function initInonuApp() {
       }
     }
     if (pAdd) {
-      pAdd.classList.toggle('hidden', tabKey !== 'add-student');
-      if (tabKey === 'add-student') {
+      pAdd.classList.toggle('hidden', nextTab !== 'add-student');
+      if (nextTab === 'add-student') {
         syncAdminAddStudentChips(false);
         replayAdminPaneEnter(pAdd, dir);
       }
     }
     if (pStu) {
-      pStu.classList.toggle('hidden', tabKey !== 'students');
-      if (tabKey === 'students') {
+      pStu.classList.toggle('hidden', nextTab !== 'students');
+      if (nextTab === 'students') {
         switchAdminSettingsSubTab(adminState.settingsSubTab || 'roster', false);
         replayAdminPaneEnter(pStu, dir);
         if (adminCloudDirty.students) {
@@ -6346,13 +6434,12 @@ export function initInonuApp() {
         }
       }
     }
-    if (tabKey === 'announcements' && adminCloudDirty.announcements) {
+    if (nextTab === 'announcements' && adminCloudDirty.announcements) {
       void refreshAdminCloudData('announcements');
     }
     const scrollBody = document.getElementById('adminModalScrollBody');
     if (scrollBody) scrollBody.scrollTop = 0;
     requestAnimationFrame(() => {
-      updateAdminTabIndicator(tabKey, animate);
       syncAllAdminSegmentedIndicators(false);
     });
   }
@@ -7616,6 +7703,7 @@ export function initInonuApp() {
         adminCloudDirty.students = false;
         renderAdminStudentsList();
       }
+      syncAdminHubSummary();
     } finally {
       if (icon) icon.classList.remove('animate-spin-ios');
     }
@@ -7639,17 +7727,30 @@ export function initInonuApp() {
     if (sClearBtn) sClearBtn.classList.toggle('hidden', !String(sFilterEl?.value || '').trim());
     syncAdminModalLanguageUI();
     syncAdminAddStudentChips();
-    const targetTab = adminState.activeTab || 'announcements';
-    switchAdminTab(targetTab, false);
-    openAnimatedModal(document.getElementById('adminModal'), document.getElementById('adminModalCard'), () => {
+    const cardEl = document.getElementById('adminModalCard');
+    if (cardEl) {
+      cardEl.classList.remove('is-dragging', 'is-snapping-back');
+      cardEl.style.transform = '';
+    }
+    const overlayEl = document.getElementById('adminModal');
+    if (overlayEl) overlayEl.style.backgroundColor = '';
+    switchAdminTab('hub', false);
+    openAnimatedModal(overlayEl, cardEl, () => {
       syncAllAdminSegmentedIndicators(false);
     });
     requestAnimationFrame(() => syncAllAdminSegmentedIndicators(false));
-    void refreshAdminCloudData(targetTab, { includeAccess: true });
+    void refreshAdminCloudData('all', { includeAccess: true });
   }
 
   function closeAdminModal() {
-    closeAnimatedModal(document.getElementById('adminModal'), document.getElementById('adminModalCard'));
+    const cardEl = document.getElementById('adminModalCard');
+    const overlayEl = document.getElementById('adminModal');
+    if (cardEl) {
+      cardEl.classList.remove('is-dragging', 'is-snapping-back');
+      cardEl.style.transform = '';
+    }
+    if (overlayEl) overlayEl.style.backgroundColor = '';
+    closeAnimatedModal(overlayEl, cardEl);
   }
 
   // ==================== BOOTSTRAP ====================
@@ -8547,12 +8648,135 @@ export function initInonuApp() {
       });
     }
 
-    document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
+    // Hub Navigation & Back Button
+    const btnAdminBackToHub = document.getElementById('btnAdminBackToHub');
+    if (btnAdminBackToHub) {
+      btnAdminBackToHub.addEventListener('click', () => {
+        switchAdminTab('hub', true);
+      });
+    }
+    document.querySelectorAll('[data-admin-hub-open]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const tKey = btn.getAttribute('data-admin-tab') || 'announcements';
-        switchAdminTab(tKey);
+        const tKey = btn.getAttribute('data-admin-hub-open') || 'announcements';
+        switchAdminTab(tKey, true);
       });
     });
+
+    // Feature 5: Quick Actions
+    const btnAdminQuickCancelToday = document.getElementById('btnAdminQuickCancelToday');
+    if (btnAdminQuickCancelToday) {
+      btnAdminQuickCancelToday.addEventListener('click', () => {
+        adminState.cancelProg = state.lang === 'en' ? 'en' : 'tr';
+        adminState.cancelDate = '';
+        switchAdminTab('cancellations', true);
+        const days = getAdminCancelDays();
+        const todayIso = getTodayIso();
+        const preferred = (days.find((d) => d.date === todayIso) || days.find((d) => d.date >= todayIso) || days[0]);
+        if (preferred) {
+          setAdminCancelSelectedDate(preferred.date, 'none');
+          renderAdminCancelDaySlots('next');
+        }
+      });
+    }
+
+    const btnAdminQuickUrgentAnn = document.getElementById('btnAdminQuickUrgentAnn');
+    if (btnAdminQuickUrgentAnn) {
+      btnAdminQuickUrgentAnn.addEventListener('click', () => {
+        adminState.editingAnnId = '';
+        adminState.annTone = 'urgent';
+        adminState.annActive = true;
+        adminState.annTargetGroup = '';
+        adminState.annTargetProg = '';
+        const tInp = document.getElementById('adminAnnTitleInput');
+        const mInp = document.getElementById('adminAnnMsgInput');
+        if (tInp) tInp.value = '';
+        if (mInp) mInp.value = '';
+        switchAdminTab('announcements', true);
+        syncAdminAnnFormUI(false);
+        setTimeout(() => {
+          if (tInp) tInp.focus();
+        }, 220);
+      });
+    }
+
+    const btnAdminQuickSiteLock = document.getElementById('btnAdminQuickSiteLock');
+    if (btnAdminQuickSiteLock) {
+      btnAdminQuickSiteLock.addEventListener('click', () => {
+        const toggleBtn = document.getElementById('btnToggleSiteRequireLogin');
+        if (toggleBtn) toggleBtn.click();
+      });
+    }
+
+    // Feature 4: Mobile Bottom-Sheet Swipe-to-Dismiss on Grab Handle & Header
+    (() => {
+      const sheetCard = document.getElementById('adminModalCard');
+      const sheetOverlay = document.getElementById('adminModal');
+      const dragTargets = [
+        document.getElementById('adminSheetHandle'),
+        document.getElementById('adminModalHeader')
+      ].filter(Boolean);
+      if (!sheetCard || !sheetOverlay || dragTargets.length === 0) return;
+
+      let dragging = false;
+      let startY = 0;
+      let startTime = 0;
+      let currentDy = 0;
+
+      const onTouchStart = (e) => {
+        if (window.innerWidth >= 640) return;
+        if (!e.touches || e.touches.length !== 1) return;
+        const targetEl = e.target;
+        if (targetEl && typeof targetEl.closest === 'function' && targetEl.closest('button, input, a')) return;
+        dragging = true;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+        currentDy = 0;
+        sheetCard.classList.remove('is-snapping-back');
+        sheetCard.classList.add('is-dragging');
+      };
+
+      const onTouchMove = (e) => {
+        if (!dragging || !e.touches || e.touches.length !== 1) return;
+        const dy = e.touches[0].clientY - startY;
+        if (dy <= 0) {
+          currentDy = dy * 0.14;
+        } else {
+          currentDy = dy;
+          if (e.cancelable) e.preventDefault();
+        }
+        sheetCard.style.transform = `translate3d(0, ${currentDy}px, 0)`;
+        const fadeRatio = Math.max(0.08, 0.4 * (1 - Math.min(Math.max(dy, 0) / 360, 0.85)));
+        sheetOverlay.style.backgroundColor = `rgba(0, 0, 0, ${fadeRatio.toFixed(3)})`;
+      };
+
+      const onTouchEnd = () => {
+        if (!dragging) return;
+        dragging = false;
+        sheetCard.classList.remove('is-dragging');
+        const elapsed = Math.max(1, Date.now() - startTime);
+        const velocity = currentDy / elapsed;
+        if (currentDy > 95 || (currentDy > 42 && velocity > 0.45)) {
+          sheetCard.style.transform = '';
+          sheetOverlay.style.backgroundColor = '';
+          closeAdminModal();
+        } else {
+          sheetCard.classList.add('is-snapping-back');
+          sheetCard.style.transform = 'translate3d(0, 0, 0)';
+          sheetOverlay.style.backgroundColor = '';
+          setTimeout(() => {
+            sheetCard.classList.remove('is-snapping-back');
+            sheetCard.style.transform = '';
+          }, 330);
+        }
+      };
+
+      dragTargets.forEach((el) => {
+        el.addEventListener('touchstart', onTouchStart, { passive: true });
+        el.addEventListener('touchmove', onTouchMove, { passive: false });
+        el.addEventListener('touchend', onTouchEnd, { passive: true });
+        el.addEventListener('touchcancel', onTouchEnd, { passive: true });
+      });
+    })();
 
     const adminReunlockBar = document.getElementById('adminReunlockBar');
     if (adminReunlockBar) {
@@ -8592,7 +8816,8 @@ export function initInonuApp() {
     const btnAdminRefreshAll = document.getElementById('btnAdminRefreshAll');
     if (btnAdminRefreshAll) {
       btnAdminRefreshAll.addEventListener('click', () => {
-        void refreshAdminCloudData(adminState.activeTab || 'announcements', { markAllDirty: true, includeAccess: true });
+        const curScope = adminState.activeTab === 'hub' ? 'all' : (adminState.activeTab || 'all');
+        void refreshAdminCloudData(curScope, { markAllDirty: true, includeAccess: true });
       });
     }
 
