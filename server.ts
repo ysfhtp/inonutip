@@ -140,6 +140,15 @@ function getSqliteDb(): DatabaseSync {
       lang TEXT NOT NULL DEFAULT '',
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS cancelled_lessons (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      slot_no INTEGER NOT NULL DEFAULT 1,
+      target_prog TEXT NOT NULL DEFAULT 'tr',
+      reason TEXT NOT NULL DEFAULT '',
+      updated_at INTEGER NOT NULL
+    );
   `);
 
   const ensureConfigRow = (key: string, value: unknown) => {
@@ -364,6 +373,7 @@ async function buildServerDataJsonSnapshot() {
 
   let announcementsList: Array<Record<string, unknown>> = [];
   let materialsList: Array<Record<string, unknown>> = [];
+  let cancelledLessonsList: Array<Record<string, unknown>> = [];
   const customStudents: Record<string, Record<string, unknown>> = {};
   const studentDirectory: Record<string, Record<string, unknown>> = {};
   const studentPrefs: Record<string, Record<string, unknown>> = {};
@@ -513,6 +523,18 @@ async function buildServerDataJsonSnapshot() {
       const ck = String(row.cloud_key || '').trim().toLowerCase();
       if (HEX64_RE.test(ck)) studentPrefs[ck] = row;
     }
+
+    const cancelRows = sdb
+      .prepare('SELECT * FROM cancelled_lessons ORDER BY updated_at DESC')
+      .all() as Array<Record<string, unknown>>;
+    cancelledLessonsList = cancelRows.map((r) => ({
+      id: String(r.id),
+      date: String(r.date),
+      slotNo: Number(r.slot_no) || 1,
+      targetProg: r.target_prog === 'en' ? 'en' : 'tr',
+      reason: String(r.reason || ''),
+      updatedAtMs: Number(r.updated_at) || 0,
+    }));
   }
 
   const rawSec = isCloudSqlConfigured ? sec : getConfigJsonSqlite<AdminSecurityConfig>('security');
@@ -558,6 +580,7 @@ async function buildServerDataJsonSnapshot() {
         }
       : {}),
     announcements: announcementsList,
+    cancelledLessons: cancelledLessonsList,
     materials: materialsList,
     customStudents,
     studentDirectory,
@@ -635,6 +658,29 @@ function seedSqliteFromPublicDataJsonIfNeeded(): void {
           normGroup(r.targetGroup ?? r.target_group),
           normLang(r.targetProg ?? r.target_prog),
           Number(r.createdAtMs ?? r.created_at) || Date.now(),
+          Number(r.updatedAtMs ?? r.updated_at) || Date.now(),
+        );
+      }
+    }
+
+    const cancelCount = Number((sdb.prepare('SELECT COUNT(*) as c FROM cancelled_lessons').get() as { c?: number })?.c || 0);
+    if (cancelCount === 0 && Array.isArray(parsed.cancelledLessons)) {
+      const stmt = sdb.prepare(
+        'INSERT OR IGNORE INTO cancelled_lessons (id, date, slot_no, target_prog, reason, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      );
+      for (const c of parsed.cancelledLessons) {
+        if (!c || typeof c !== 'object') continue;
+        const r = c as Record<string, unknown>;
+        const cid = String(r.id || '').trim();
+        const cdate = String(r.date || '').trim();
+        const cslot = Math.max(1, Math.min(20, Math.floor(Number(r.slotNo ?? r.slot_no) || 0)));
+        if (!cid || !/^[a-zA-Z0-9_-]{1,128}$/.test(cid) || !/^\d{2}\.\d{2}\.\d{4}$/.test(cdate) || !cslot) continue;
+        stmt.run(
+          cid,
+          cdate,
+          cslot,
+          (r.targetProg ?? r.target_prog) === 'en' ? 'en' : 'tr',
+          String(r.reason || '').trim().slice(0, 200),
           Number(r.updatedAtMs ?? r.updated_at) || Date.now(),
         );
       }
@@ -1468,6 +1514,97 @@ async function startServer() {
     }
   });
 
+  // ==================== CANCELLED LESSONS ====================
+  app.get('/api/cancelled-lessons', async (_req: Request, res: Response) => {
+    try {
+      const sdb = getSqliteDb();
+      const rows = sdb
+        .prepare('SELECT * FROM cancelled_lessons ORDER BY updated_at DESC')
+        .all() as Array<Record<string, unknown>>;
+      const items = rows.map((r) => ({
+        id: String(r.id),
+        date: String(r.date),
+        slotNo: Number(r.slot_no) || 1,
+        targetProg: r.target_prog === 'en' ? 'en' : 'tr',
+        reason: String(r.reason || ''),
+        updatedAtMs: Number(r.updated_at) || 0,
+      }));
+      res.json({ ok: true, cancelledLessons: items });
+    } catch {
+      res.status(500).json({ ok: false, error: 'DATABASE_ERROR' });
+    }
+  });
+
+  app.post('/api/cancelled-lessons', jsonParser, async (req: Request, res: Response) => {
+    try {
+      if (!verifyAdminSecret(req.header('x-admin-secret'))) {
+        res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
+        return;
+      }
+      const body = (req.body || {}) as Record<string, unknown>;
+      const date = String(body.date || '').trim();
+      const slotNo = Math.floor(Number(body.slotNo) || 0);
+      const targetProg = body.targetProg === 'en' ? 'en' : body.targetProg === 'tr' ? 'tr' : '';
+      if (!/^\d{2}\.\d{2}\.\d{4}$/.test(date) || slotNo < 1 || slotNo > 20 || !targetProg) {
+        res.status(400).json({ ok: false, error: 'INVALID_CANCELLED_LESSON' });
+        return;
+      }
+      const reason = String(body.reason || '').trim().slice(0, 200);
+      const id = `${targetProg}_${date.replace(/\./g, '-')}_${slotNo}`;
+      const now = Date.now();
+
+      const sdb = getSqliteDb();
+      sdb
+        .prepare(
+          `
+          INSERT INTO cancelled_lessons (id, date, slot_no, target_prog, reason, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            date = excluded.date,
+            slot_no = excluded.slot_no,
+            target_prog = excluded.target_prog,
+            reason = excluded.reason,
+            updated_at = excluded.updated_at
+        `,
+        )
+        .run(id, date, slotNo, targetProg, reason, now);
+
+      const saved = {
+        id,
+        date,
+        slotNo,
+        targetProg,
+        reason,
+        updatedAtMs: now,
+      };
+      broadcastEvent('cancelled_lessons', { action: 'save', id });
+      void writePublicDataJsonSnapshot();
+      res.json({ ok: true, cancelledLesson: saved });
+    } catch {
+      res.status(500).json({ ok: false, error: 'DATABASE_ERROR' });
+    }
+  });
+
+  app.delete('/api/cancelled-lessons/:id', async (req: Request, res: Response) => {
+    try {
+      if (!verifyAdminSecret(req.header('x-admin-secret'))) {
+        res.status(403).json({ ok: false, error: 'ADMIN_AUTH_FAILED' });
+        return;
+      }
+      const id = String(req.params.id || '').trim();
+      if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id)) {
+        res.status(400).json({ ok: false, error: 'INVALID_ID' });
+        return;
+      }
+      getSqliteDb().prepare('DELETE FROM cancelled_lessons WHERE id = ?').run(id);
+      broadcastEvent('cancelled_lessons', { action: 'delete', id });
+      void writePublicDataJsonSnapshot();
+      res.json({ ok: true });
+    } catch {
+      res.status(500).json({ ok: false, error: 'DATABASE_ERROR' });
+    }
+  });
+
   // ==================== LESSON MATERIALS & PDFs ====================
   app.get('/api/materials', async (_req: Request, res: Response) => {
     try {
@@ -2036,7 +2173,7 @@ async function startServer() {
       const now = Date.now();
       const myMbuGroup = normGroup(body.myMbuGroup);
       const lang = body.lang === 'en' ? 'en' : 'tr';
-      const myLabGroup = lang === 'en' ? '' : normLab(body.myLabGroup);
+      const myLabGroup = normLab(body.myLabGroup);
       const otherGroupMode = normOtherMode(body.otherGroupMode);
       const last4 = String(body.last4 || '0000').slice(0, 4);
       const assignedGroup = myMbuGroup

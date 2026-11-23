@@ -1168,6 +1168,10 @@ export function initInonuApp() {
     saveStore('lang', lang);
     saveCurrentStudentPrefs(true);
     applyLanguageUI(true);
+    renderDailyAnnouncements();
+    if (!announcementsInitialFetchDone) {
+      void refreshDailyAnnouncements(false);
+    }
     if (state.activeTab === 'daily') renderDailyView();
     if (state.activeTab === 'weekly') renderWeeklyView();
     if (state.activeTab === 'food') renderFoodView();
@@ -1528,11 +1532,209 @@ export function initInonuApp() {
     return false;
   }
 
+  function splitInstructorNameSegments(rawName) {
+    const clean = String(rawName || '').trim();
+    if (!clean) return [];
+    const parts = clean.split(/(\s*[-,/]\s*)/);
+    if (parts.length >= 3) {
+      const nameParts = parts.filter((_, idx) => idx % 2 === 0).map((p) => p.trim());
+      const allLookLikeFullNames = nameParts.length >= 2 && nameParts.every((p) => p.includes(' ') && p.length >= 4);
+      if (allLookLikeFullNames) {
+        return parts
+          .filter((p) => p.length > 0)
+          .map((p, idx) => ({
+            text: p,
+            clickable: idx % 2 === 0 && Boolean(p.trim())
+          }));
+      }
+    }
+    return [{ text: clean, clickable: true }];
+  }
+
+  let activeInstructorModalName = '';
+  let activeDetailModalMode = 'instructor';
+  let activeDetailModalValue = '';
+
+  function closeInstructorModal() {
+    activeInstructorModalName = '';
+    activeDetailModalValue = '';
+    closeAnimatedModal(document.getElementById('instructorModal'), document.getElementById('instructorModalCard'));
+  }
+
+  function renderSlotDetailModalContent(mode, value) {
+    const cleanVal = String(value || '').trim();
+    if (!cleanVal) return;
+    const modalMode = mode === 'code' ? 'code' : 'instructor';
+    activeDetailModalMode = modalMode;
+    activeDetailModalValue = cleanVal;
+    activeInstructorModalName = cleanVal;
+
+    const isEn = state.lang === 'en';
+    const normTarget = cleanVal.toLocaleLowerCase('tr-TR');
+    const days = getScheduleDays();
+    const matches = [];
+
+    days.forEach((d) => {
+      (d.slots || []).forEach((s) => {
+        if (!s) return;
+        if (modalMode === 'code') {
+          const slotCodeNorm = String(s.code || '').trim().toLocaleLowerCase('tr-TR');
+          if (slotCodeNorm && slotCodeNorm === normTarget) {
+            matches.push({ day: d, slot: s });
+          }
+          return;
+        }
+        if (!s.instructor) return;
+        const segments = splitInstructorNameSegments(s.instructor);
+        const exactSegMatch = segments.some((seg) => seg.clickable && seg.text.trim().toLocaleLowerCase('tr-TR') === normTarget);
+        const rawLower = String(s.instructor).toLocaleLowerCase('tr-TR');
+        if (exactSegMatch || rawLower === normTarget || rawLower.includes(normTarget)) {
+          matches.push({ day: d, slot: s });
+        }
+      });
+    });
+
+    const badgeEl = document.getElementById('instructorModalBadge');
+    const titleEl = document.getElementById('instructorModalTitle');
+    const metaEl = document.getElementById('instructorModalMeta');
+    const nextBannerEl = document.getElementById('instructorNextBanner');
+    const searchBtnEl = document.getElementById('btnInstructorShowInSearch');
+    const listEl = document.getElementById('instructorLessonsList');
+
+    if (badgeEl) {
+      badgeEl.textContent = modalMode === 'code'
+        ? (isEn ? 'Course Code' : 'Ders Kodu')
+        : (isEn ? 'Instructor' : 'Öğretim Üyesi');
+    }
+    if (titleEl) titleEl.textContent = cleanVal;
+    if (metaEl) {
+      metaEl.textContent = isEn
+        ? `${matches.length} ${matches.length === 1 ? 'Lesson' : 'Lessons'} • EN`
+        : `${matches.length} Ders • TR`;
+    }
+    if (searchBtnEl) {
+      searchBtnEl.textContent = isEn ? 'Show in Search' : 'Aramada Göster';
+    }
+
+    const todayObj = getTodayDateObj();
+    todayObj.setHours(0, 0, 0, 0);
+    const nextUpcoming = matches.find((m) => {
+      const dt = parseDMY(m.slot.date);
+      if (!dt || dt < todayObj) return false;
+      return !getCancelledLessonInfo(m.slot);
+    });
+    if (nextBannerEl) {
+      if (nextUpcoming) {
+        nextBannerEl.textContent = isEn
+          ? `Next: ${nextUpcoming.slot.date} (${nextUpcoming.slot.time})`
+          : `Sonraki: ${nextUpcoming.slot.date} (${nextUpcoming.slot.time})`;
+        nextBannerEl.classList.remove('hidden');
+      } else {
+        nextBannerEl.classList.add('hidden');
+      }
+    }
+
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    if (matches.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'text-xs text-slate-500 dark:text-slate-400 text-center py-6';
+      empty.textContent = isEn ? 'No lessons found in this schedule.' : 'Bu programda ders bulunamadı.';
+      listEl.appendChild(empty);
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    matches.forEach(({ day, slot }) => {
+      const cancelInfo = getCancelledLessonInfo(slot);
+      const isCancelled = Boolean(cancelInfo);
+      const itemBtn = document.createElement('button');
+      itemBtn.type = 'button';
+      itemBtn.className = `ios-press w-full text-left ios-pill-control rounded-2xl px-3 py-2.5 transition hover:bg-slate-500/10 space-y-1 ${isCancelled ? 'slot-card-cancelled' : ''}`;
+
+      const topLine = document.createElement('div');
+      topLine.className = 'flex items-center justify-between gap-2 flex-wrap';
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'text-[11px] font-bold text-blue-600 dark:text-blue-400 tabular-nums';
+      dateSpan.textContent = `${slot.date} • ${day.dayName}`;
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums';
+      timeSpan.textContent = `${slot.time || ''} • ${I18N[state.lang].slotLabel(slot.slotNo)}`;
+      topLine.appendChild(dateSpan);
+      topLine.appendChild(timeSpan);
+
+      const lessonTitle = document.createElement('div');
+      lessonTitle.className = `text-xs sm:text-[13px] font-bold leading-snug ${isCancelled ? 'line-through opacity-70 text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-white'}`;
+      lessonTitle.textContent = slot.title;
+
+      itemBtn.appendChild(topLine);
+      itemBtn.appendChild(lessonTitle);
+
+      if (isCancelled) {
+        const cancelRow = document.createElement('div');
+        cancelRow.className = 'flex items-center gap-1.5 flex-wrap pt-0.5';
+        const cBadge = document.createElement('span');
+        cBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/25';
+        cBadge.textContent = isEn ? 'CANCELLED' : 'İPTAL EDİLDİ';
+        cancelRow.appendChild(cBadge);
+        if (cancelInfo.reason) {
+          const rSpan = document.createElement('span');
+          rSpan.className = 'text-[11px] font-medium text-rose-700 dark:text-rose-300 truncate';
+          rSpan.textContent = cancelInfo.reason;
+          cancelRow.appendChild(rSpan);
+        }
+        itemBtn.appendChild(cancelRow);
+      }
+
+      const subParts = [];
+      if (modalMode === 'code') {
+        if (slot.instructor) subParts.push(slot.instructor);
+      } else {
+        if (slot.code) subParts.push(slot.code);
+      }
+      if (slot.group) subParts.push(slot.group.toUpperCase());
+      if (subParts.length > 0) {
+        const subEl = document.createElement('div');
+        subEl.className = 'text-[10.5px] font-medium text-slate-500 dark:text-slate-400 truncate';
+        subEl.textContent = subParts.join(' • ');
+        itemBtn.appendChild(subEl);
+      }
+
+      itemBtn.addEventListener('click', () => {
+        closeInstructorModal();
+        state.selectedDate = slot.date;
+        switchTab('daily');
+      });
+      frag.appendChild(itemBtn);
+    });
+    listEl.appendChild(frag);
+  }
+
+  function renderInstructorModalContent(instructorName) {
+    renderSlotDetailModalContent('instructor', instructorName);
+  }
+
+  function openInstructorModal(instructorName) {
+    const cleanName = String(instructorName || '').trim();
+    if (!cleanName) return;
+    renderSlotDetailModalContent('instructor', cleanName);
+    openAnimatedModal(document.getElementById('instructorModal'), document.getElementById('instructorModalCard'));
+  }
+
+  function openCourseCodeModal(courseCode) {
+    const cleanCode = String(courseCode || '').trim();
+    if (!cleanCode) return;
+    renderSlotDetailModalContent('code', cleanCode);
+    openAnimatedModal(document.getElementById('instructorModal'), document.getElementById('instructorModalCard'));
+  }
+
   // ==================== CLEAN SLOT CARD ====================
   function createSlotCardElement(slot, options = {}) {
     const key = `${slot.date}_${slot.slotNo}`;
     const noteText = state.notes[key] || '';
-    const isLive = isSlotCurrentlyLive(slot);
+    const cancelInfo = getCancelledLessonInfo(slot);
+    const isCancelled = Boolean(cancelInfo);
+    const isLive = !isCancelled && isSlotCurrentlyLive(slot);
     const category = getSlotCategory(slot);
     const accent = getCalmAccent(slot, category);
     const isMbuOrLab = category === 'mbu' || category === 'lab';
@@ -1547,7 +1749,8 @@ export function initInonuApp() {
     card.setAttribute('data-slot-date', slot.date || '');
     card.setAttribute('data-slot-time', slot.time || '');
     card.setAttribute('data-slot-live', isLive ? '1' : '0');
-    card.className = `ios-glass slot-tilt-card rounded-[18px] px-3 py-2 ${isLive ? 'ring-2 ring-blue-500/50' : ''} ${groupStatus === 'other' ? 'slot-card-dimmed' : (isSecondaryCourse ? 'slot-card-secondary' : '')}`;
+    card.setAttribute('data-slot-cancelled', isCancelled ? '1' : '0');
+    card.className = `ios-glass slot-tilt-card rounded-[18px] px-3 py-2 ${isCancelled ? 'slot-card-cancelled' : (isLive ? 'ring-2 ring-blue-500/50' : '')} ${groupStatus === 'other' ? 'slot-card-dimmed' : (isSecondaryCourse ? 'slot-card-secondary' : '')}`;
 
     const row = document.createElement('div');
     row.className = 'slot-card-row flex items-stretch gap-2.5';
@@ -1564,7 +1767,7 @@ export function initInonuApp() {
     endEl.textContent = endTime;
 
     const slotNoEl = document.createElement('div');
-    slotNoEl.className = `text-[10px] font-bold leading-tight mt-0.5 ${accent.slotText}`;
+    slotNoEl.className = `text-[10px] font-bold leading-tight mt-0.5 ${isCancelled ? 'text-rose-600 dark:text-rose-400' : accent.slotText}`;
     slotNoEl.textContent = I18N[state.lang].slotLabel(slot.slotNo);
 
     leftCol.appendChild(startEl);
@@ -1572,15 +1775,34 @@ export function initInonuApp() {
     leftCol.appendChild(slotNoEl);
 
     const dividerBar = document.createElement('div');
-    dividerBar.className = `w-1 rounded-full shrink-0 ${accent.barBg} my-0.5`;
+    dividerBar.className = `w-1 rounded-full shrink-0 ${isCancelled ? 'bg-rose-500/80 dark:bg-rose-400/80' : accent.barBg} my-0.5`;
 
     const rightCol = document.createElement('div');
     rightCol.className = 'flex-1 min-w-0 flex flex-col justify-center';
 
     const titleEl = document.createElement('h3');
-    titleEl.className = 'slot-title-wrap text-[13.5px] sm:text-sm font-bold text-slate-900 dark:text-white leading-snug';
+    titleEl.className = isCancelled
+      ? 'slot-title-wrap text-[13.5px] sm:text-sm font-bold text-slate-600 dark:text-slate-300 line-through opacity-75 leading-snug'
+      : 'slot-title-wrap text-[13.5px] sm:text-sm font-bold text-slate-900 dark:text-white leading-snug';
     titleEl.textContent = slot.title;
     rightCol.appendChild(titleEl);
+
+    if (isCancelled) {
+      const cancelWrap = document.createElement('div');
+      cancelWrap.className = 'mt-1 flex items-center flex-wrap gap-1.5';
+      const cancelBadge = document.createElement('span');
+      cancelBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30';
+      const cancelLabelText = state.lang === 'en' ? 'CANCELLED' : 'İPTAL EDİLDİ';
+      cancelBadge.innerHTML = `<svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>${cancelLabelText}</span>`;
+      cancelWrap.appendChild(cancelBadge);
+      if (cancelInfo && cancelInfo.reason) {
+        const reasonSpan = document.createElement('span');
+        reasonSpan.className = 'text-[11px] font-semibold text-rose-700 dark:text-rose-300 leading-snug';
+        reasonSpan.textContent = cancelInfo.reason;
+        cancelWrap.appendChild(reasonSpan);
+      }
+      rightCol.appendChild(cancelWrap);
+    }
 
     if (isMbuOrLab && slot.group) {
       const groupWrap = document.createElement('div');
@@ -1632,17 +1854,49 @@ export function initInonuApp() {
       rightCol.appendChild(pdfWrap);
     }
 
-    const metaParts = [];
-    if (slot.code) metaParts.push(slot.code);
-    if (slot.instructor) metaParts.push(slot.instructor);
+    const hasCode = Boolean(slot.code);
+    const hasInstructor = Boolean(slot.instructor && String(slot.instructor).trim());
 
-    if (metaParts.length > 0 || isLive) {
+    if (hasCode || hasInstructor || isLive) {
       const metaRow = document.createElement('div');
       metaRow.className = 'slot-meta-row flex items-center gap-1.5 mt-0.5 min-w-0';
-      if (metaParts.length > 0) {
+      if (hasCode || hasInstructor) {
         const metaText = document.createElement('p');
         metaText.className = 'text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate min-w-0';
-        metaText.textContent = metaParts.join(' • ');
+        if (hasCode) {
+          const codeBtn = document.createElement('button');
+          codeBtn.type = 'button';
+          codeBtn.className = 'instructor-inline-btn font-semibold';
+          codeBtn.textContent = slot.code;
+          codeBtn.setAttribute('title', state.lang === 'en' ? `View all ${slot.code} lessons` : `${slot.code} derslerini gör`);
+          codeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openCourseCodeModal(slot.code);
+          });
+          metaText.appendChild(codeBtn);
+        }
+        if (hasCode && hasInstructor) {
+          metaText.appendChild(document.createTextNode(' • '));
+        }
+        if (hasInstructor) {
+          const segments = splitInstructorNameSegments(slot.instructor);
+          segments.forEach((seg) => {
+            if (seg.clickable) {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'instructor-inline-btn';
+              btn.textContent = seg.text;
+              btn.setAttribute('title', state.lang === 'en' ? `View all lessons by ${seg.text}` : `${seg.text} derslerini gör`);
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openInstructorModal(seg.text);
+              });
+              metaText.appendChild(btn);
+            } else {
+              metaText.appendChild(document.createTextNode(seg.text));
+            }
+          });
+        }
         metaRow.appendChild(metaText);
       }
       if (isLive) {
@@ -1822,7 +2076,9 @@ export function initInonuApp() {
       const note = state.notes[k] || '';
       const mats = getSlotMaterials(s);
       const matSig = mats.map((m) => `${m.id || ''}:${m.title || ''}:${m.fileSize || 0}:${isPdfCachedOnDevice(m.id) ? 1 : 0}`).join(',');
-      return `${s.slotNo}|${note}|${matSig}`;
+      const cInfo = getCancelledLessonInfo(s);
+      const cancelSig = cInfo ? `1:${cInfo.reason || ''}` : '0';
+      return `${s.slotNo}|${note}|${matSig}|${cancelSig}`;
     }).join(';');
     return `${dayObj.date}::${state.lang}::${state.myMbuGroup}::${state.myLabGroup}::${state.otherGroupMode}::${slotSig}`;
   }
@@ -4162,11 +4418,71 @@ export function initInonuApp() {
   // ==================== OPTIONAL STUDENT AUTH MODAL & ADMIN CONTROLLER ====================
   let activeAnnouncementsList = [];
   let announcementsInitialFetchDone = false;
+  let cancelledLessonsList = loadStore('cancelledLessonsCache', []);
+  let cancelledLessonsMap = {};
+  let cancelledLessonsUnsub = null;
   let lessonMaterialsMap = {};
   let lessonMaterialsInitialFetchDone = false;
   let lessonMaterialsInFlightPromise = null;
   let lessonMaterialsUnsub = null;
   let lessonMaterialsRetryTimer = null;
+
+  function buildCancelledMapKey(prog, dateStr, slotNo) {
+    const cleanProg = prog === 'en' ? 'en' : 'tr';
+    const cleanDate = String(dateStr || '').trim();
+    const cleanSlot = Number(slotNo) || 0;
+    return `${cleanProg}|${cleanDate}|${cleanSlot}`;
+  }
+
+  function rebuildCancelledLessonsMap(list) {
+    const nextMap = {};
+    (Array.isArray(list) ? list : []).forEach((item) => {
+      if (!item || !item.date || !item.slotNo) return;
+      const key = buildCancelledMapKey(item.targetProg, item.date, item.slotNo);
+      nextMap[key] = item;
+    });
+    cancelledLessonsMap = nextMap;
+  }
+  rebuildCancelledLessonsMap(cancelledLessonsList);
+
+  function getCancelledLessonInfo(slot, progOverride) {
+    if (!slot || !slot.date || !slot.slotNo) return null;
+    const prog = progOverride || (state.lang === 'en' ? 'en' : 'tr');
+    return cancelledLessonsMap[buildCancelledMapKey(prog, slot.date, slot.slotNo)] || null;
+  }
+
+  function applyLoadedCancelledLessonsList(list) {
+    cancelledLessonsList = Array.isArray(list) ? list : [];
+    rebuildCancelledLessonsMap(cancelledLessonsList);
+    saveStore('cancelledLessonsCache', cancelledLessonsList);
+    if (typeof adminState !== 'undefined' && adminState) {
+      adminState.cancelledLessons = [...cancelledLessonsList];
+    }
+    invalidateScheduleRenderCache();
+    runWithStaggerSuppressed(() => {
+      if (state.activeTab === 'daily') renderDailyView();
+      if (state.activeTab === 'weekly') renderWeeklyView();
+      if (state.activeTab === 'search') renderSearchView();
+    });
+    const adminModalEl = document.getElementById('adminModal');
+    if (adminModalEl && !adminModalEl.classList.contains('hidden')) {
+      renderAdminCancelDaySlots();
+      renderAdminCancelledList();
+    }
+    const instModalEl = document.getElementById('instructorModal');
+    if (instModalEl && !instModalEl.classList.contains('hidden') && activeDetailModalValue) {
+      renderSlotDetailModalContent(activeDetailModalMode, activeDetailModalValue);
+    }
+  }
+
+  async function refreshCancelledLessons() {
+    const api = window.__INONU_AUTH__;
+    if (!api || typeof api.loadCancelledLessons !== 'function') return;
+    try {
+      const list = await api.loadCancelledLessons();
+      applyLoadedCancelledLessonsList(list);
+    } catch {}
+  }
 
   function buildLessonMaterialsMap(list) {
     const nextMap = {};
@@ -4293,11 +4609,12 @@ export function initInonuApp() {
     container.innerHTML = '';
 
     const session = getActiveAuthSession();
-    const studentGroup = session ? session.group : state.myMbuGroup;
-    const studentProg = session ? session.prog : state.lang;
+    const studentGroup = state.myMbuGroup || (session ? session.group : '');
+    const activeProg = state.lang === 'en' ? 'en' : 'tr';
+    const isAdminAllPreview = Boolean(session && session.isAdmin && !state.myMbuGroup);
     const visibleAnns = (activeAnnouncementsList || []).filter((ann) => {
-      if (ann.targetGroup && ann.targetGroup !== studentGroup) return false;
-      if (ann.targetProg && ann.targetProg !== studentProg) return false;
+      if (ann.targetGroup && !isAdminAllPreview && ann.targetGroup !== studentGroup) return false;
+      if (ann.targetProg && ann.targetProg !== activeProg) return false;
       return true;
     });
 
@@ -5473,6 +5790,11 @@ export function initInonuApp() {
     annActive: true,
     annTargetGroup: '',
     annTargetProg: '',
+    annListFilter: '',
+    cancelProg: 'tr',
+    cancelDate: '',
+    cancelListFilterProg: '',
+    cancelledLessons: [],
     matProg: 'tr',
     matMode: 'file',
     matFileObj: null,
@@ -5713,21 +6035,45 @@ export function initInonuApp() {
 
     document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
       const key = btn.getAttribute('data-admin-tab');
-      if (key === 'announcements') btn.textContent = loc.adminTabAnn;
-      if (key === 'materials') btn.textContent = loc.adminTabMaterials;
-      if (key === 'add-student') btn.textContent = loc.adminTabAdd;
-      if (key === 'students') btn.textContent = loc.adminTabStudents;
+      const lbl = btn.querySelector('.admin-tab-label') || btn;
+      if (key === 'announcements') lbl.textContent = loc.adminTabAnn;
+      if (key === 'materials') lbl.textContent = loc.adminTabMaterials;
+      if (key === 'cancellations') lbl.textContent = state.lang === 'en' ? 'Cancel Class' : 'Ders İptali';
+      if (key === 'add-student') lbl.textContent = loc.adminTabAdd;
+      if (key === 'students') lbl.textContent = state.lang === 'en' ? 'Settings' : 'Ayarlar';
     });
 
     setTxt('btnAdminAnnCancelEdit', loc.adminAnnCancelBtn);
     setPh('adminAnnTitleInput', loc.adminAnnTitlePlaceholder);
     setPh('adminAnnMsgInput', loc.adminAnnMsgPlaceholder);
     setTxt('adminAnnListHeading', loc.adminAnnListHeading);
+    document.querySelectorAll('[data-ann-list-filter]').forEach((b) => {
+      const f = b.getAttribute('data-ann-list-filter') || '';
+      if (!f) b.textContent = loc.groupAllLabel;
+    });
     document.querySelectorAll('[data-ann-tone]').forEach((b) => {
       const tKey = b.getAttribute('data-ann-tone');
       if (tKey === 'info') b.textContent = loc.adminAnnToneInfo;
       if (tKey === 'warn') b.textContent = loc.adminAnnBadgeWarn;
       if (tKey === 'urgent') b.textContent = loc.adminAnnBadgeUrgent;
+    });
+
+    setTxt('adminCancelFormHeading', state.lang === 'en' ? 'Cancel / Restore Lesson' : 'Ders İptal Et / Geri Al');
+    setTxt('lblAdminCancelProg', state.lang === 'en' ? 'Program' : 'Program');
+    setTxt('lblAdminCancelDate', state.lang === 'en' ? 'Lesson Date' : 'Ders Tarihi');
+    setTxt('lblAdminCancelReason', state.lang === 'en' ? 'Reason (Optional)' : 'İptal Notu (Opsiyonel)');
+    setPh('adminCancelReasonInput', state.lang === 'en' ? 'e.g. Instructor excused, make-up TBA...' : 'Örn: Hoca mazeretli, telafi yapılacak...');
+    setPh('adminCancelDateSearch', loc.adminMatSearchDatePlaceholder);
+    setTxt('lblAdminCancelDaySlots', state.lang === 'en' ? 'Lessons on Selected Date' : 'Seçili Günün Dersleri');
+    setTxt('adminCancelledListHeading', state.lang === 'en' ? 'Cancelled Lessons' : 'İptal Edilen Dersler');
+    document.querySelectorAll('[data-cancel-list-filter]').forEach((b) => {
+      const f = b.getAttribute('data-cancel-list-filter') || '';
+      if (!f) b.textContent = loc.groupAllLabel;
+    });
+    document.querySelectorAll('[data-cancel-prog]').forEach((b) => {
+      const p = b.getAttribute('data-cancel-prog');
+      if (p === 'tr') b.textContent = state.lang === 'en' ? 'Turkish (TR)' : 'Türkçe (TR)';
+      if (p === 'en') b.textContent = state.lang === 'en' ? 'English (EN)' : 'İngilizce (EN)';
     });
 
     setTxt('lblAdminAddSid', loc.adminAddSidLabel);
@@ -5781,6 +6127,8 @@ export function initInonuApp() {
     if (modalEl && !modalEl.classList.contains('hidden')) {
       updateAdminTabIndicator(adminState.activeTab || 'announcements', false);
       renderAdminAnnouncementsList();
+      renderAdminCancelDaySlots();
+      renderAdminCancelledList();
       renderAdminStudentsList();
       syncAdminStudentEditorUI();
     }
@@ -5806,6 +6154,11 @@ export function initInonuApp() {
       pill.getBoundingClientRect();
       pill.style.transition = ADMIN_PILL_SPRING;
     }
+    if (bar.scrollWidth > bar.clientWidth && typeof btn.scrollIntoView === 'function') {
+      try {
+        btn.scrollIntoView({ behavior: animate ? 'smooth' : 'auto', block: 'nearest', inline: 'center' });
+      } catch {}
+    }
   }
 
   function replayAdminPaneEnter(paneEl) {
@@ -5820,11 +6173,12 @@ export function initInonuApp() {
     document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
       const isAct = btn.getAttribute('data-admin-tab') === tabKey;
       btn.className = isAct
-        ? 'admin-tab-btn py-1.5 px-1 sm:px-2 rounded-[10px] text-[10.5px] sm:text-xs font-bold leading-[1.15] text-slate-900 dark:text-white text-center flex items-center justify-center transition'
-        : 'admin-tab-btn py-1.5 px-1 sm:px-2 rounded-[10px] text-[10.5px] sm:text-xs font-semibold leading-[1.15] text-slate-600 dark:text-slate-300 text-center flex items-center justify-center transition';
+        ? 'admin-tab-btn min-h-[36px] py-1.5 px-3 sm:px-1.5 rounded-xl text-xs font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5 shrink-0 sm:shrink transition'
+        : 'admin-tab-btn min-h-[36px] py-1.5 px-3 sm:px-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center justify-center gap-1.5 shrink-0 sm:shrink transition';
     });
     const pAnn = document.getElementById('adminPaneAnnouncements');
     const pMat = document.getElementById('adminPaneMaterials');
+    const pCan = document.getElementById('adminPaneCancellations');
     const pAdd = document.getElementById('adminPaneAddStudent');
     const pStu = document.getElementById('adminPaneStudents');
     if (pAnn) {
@@ -5842,6 +6196,21 @@ export function initInonuApp() {
         replayAdminPaneEnter(pMat);
         if (adminCloudDirty.materials) {
           void refreshAdminCloudData('materials');
+        }
+      }
+    }
+    if (pCan) {
+      pCan.classList.toggle('hidden', tabKey !== 'cancellations');
+      if (tabKey === 'cancellations') {
+        if (adminState.cancelledLessons.length === 0 && Array.isArray(cancelledLessonsList) && cancelledLessonsList.length > 0) {
+          adminState.cancelledLessons = [...cancelledLessonsList];
+        }
+        syncAdminCancelFormDefaults();
+        renderAdminCancelDaySlots();
+        renderAdminCancelledList();
+        replayAdminPaneEnter(pCan);
+        if (adminCloudDirty.cancellations) {
+          void refreshAdminCloudData('cancellations');
         }
       }
     }
@@ -5880,8 +6249,8 @@ export function initInonuApp() {
     if (activeToggle) {
       activeToggle.textContent = adminState.annActive ? loc.adminAnnLive : loc.adminAnnDraft;
       activeToggle.className = adminState.annActive
-        ? 'ios-press min-h-[44px] px-3.5 py-2 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-        : 'ios-press min-h-[44px] px-3.5 py-2 rounded-full text-xs font-semibold ios-pill-control text-slate-500 dark:text-slate-400';
+        ? 'ios-press min-h-[34px] px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+        : 'ios-press min-h-[34px] px-3 py-1 rounded-xl text-xs font-semibold admin-field text-slate-500 dark:text-slate-400';
     }
     document.querySelectorAll('[data-ann-tone]').forEach((b) => {
       const tone = b.getAttribute('data-ann-tone');
@@ -5926,53 +6295,65 @@ export function initInonuApp() {
     const loc = I18N[state.lang];
     listEl.innerHTML = '';
 
-    if (!adminState.announcements || adminState.announcements.length === 0) {
-      listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400 admin-card-reveal">${escapeHtml(loc.adminAnnEmpty)}</div>`;
+    const activeFilter = adminState.annListFilter || '';
+    document.querySelectorAll('[data-ann-list-filter]').forEach((b) => {
+      b.classList.toggle('group-chip-active', (b.getAttribute('data-ann-list-filter') || '') === activeFilter);
+    });
+
+    const filteredAnns = (adminState.announcements || []).filter((ann) => {
+      if (!activeFilter) return true;
+      return !ann.targetProg || ann.targetProg === activeFilter;
+    });
+
+    if (!filteredAnns || filteredAnns.length === 0) {
+      listEl.innerHTML = `<div class="admin-row-item p-5 text-center text-xs text-slate-500 dark:text-slate-400 admin-card-reveal">${escapeHtml(loc.adminAnnEmpty)}</div>`;
       return;
     }
 
-    adminState.announcements.forEach((ann, idx) => {
+    filteredAnns.forEach((ann, idx) => {
       const row = document.createElement('div');
-      row.className = 'ios-pill-control rounded-2xl p-3 space-y-2 admin-stagger-item';
-      row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 28}ms`);
-      const toneBadge =
-        ann.tone === 'urgent'
-          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300">${escapeHtml(loc.adminAnnBadgeUrgent)}</span>`
-          : ann.tone === 'warn'
-            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">${escapeHtml(loc.adminAnnBadgeWarn)}</span>`
-            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-300">${escapeHtml(loc.adminAnnBadgeInfo)}</span>`;
-      const statusBadge = ann.active
-        ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">${escapeHtml(loc.adminAnnLive)}</span>`
-        : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/15 text-slate-500 dark:text-slate-400">${escapeHtml(loc.adminAnnDraft)}</span>`;
+      row.className = 'admin-row-item p-3.5 space-y-2 admin-stagger-item';
+      row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 24}ms`);
 
-      const targetBadges = [];
-      if (ann.targetGroup) {
-        targetBadges.push(`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">Grup ${escapeHtml(ann.targetGroup)}</span>`);
-      }
-      if (ann.targetProg) {
-        targetBadges.push(`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-600 dark:text-purple-300">${ann.targetProg.toUpperCase()}</span>`);
-      }
+      const toneColor =
+        ann.tone === 'urgent'
+          ? 'bg-rose-500'
+          : ann.tone === 'warn'
+            ? 'bg-amber-500'
+            : 'bg-blue-500';
+      const toneLabel =
+        ann.tone === 'urgent'
+          ? loc.adminAnnBadgeUrgent
+          : ann.tone === 'warn'
+            ? loc.adminAnnBadgeWarn
+            : loc.adminAnnBadgeInfo;
+      const statusLabel = ann.active ? loc.adminAnnLive : loc.adminAnnDraft;
+      const targetGroupLabel = ann.targetGroup ? `Grup ${ann.targetGroup}` : '';
+      const targetProgLabel = ann.targetProg ? ann.targetProg.toUpperCase() : 'TR+EN';
+      const metaParts = [toneLabel, statusLabel, targetProgLabel];
+      if (targetGroupLabel) metaParts.push(targetGroupLabel);
 
       const header = document.createElement('div');
-      header.className = 'flex items-center justify-between gap-2 flex-wrap';
+      header.className = 'flex items-start justify-between gap-2.5';
       header.innerHTML = `
-        <div class="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
-          ${toneBadge}
-          ${statusBadge}
-          ${targetBadges.join('')}
-          <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(ann.title)}</h5>
+        <div class="min-w-0 flex-1 space-y-0.5">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-2 h-2 rounded-full shrink-0 ${toneColor}"></span>
+            <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(ann.title)}</h5>
+          </div>
+          <p class="text-[11px] font-medium ${ann.active ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'} pl-4">${escapeHtml(metaParts.join(' · '))}</p>
         </div>
       `;
       const msg = document.createElement('p');
-      msg.className = 'text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line';
+      msg.className = 'text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line pl-4';
       msg.textContent = ann.message;
 
       const actions = document.createElement('div');
-      actions.className = 'flex items-center justify-end gap-1.5 flex-wrap pt-1';
+      actions.className = 'flex items-center justify-end gap-1.5 flex-wrap pt-1 pl-4';
 
       const toggleBtn = document.createElement('button');
       toggleBtn.type = 'button';
-      toggleBtn.className = 'ios-press min-h-[44px] px-3 py-1.5 rounded-full ios-pill-control text-xs font-semibold text-slate-700 dark:text-slate-200';
+      toggleBtn.className = 'ios-press min-h-[34px] px-3 py-1 rounded-xl admin-field text-xs font-semibold text-slate-700 dark:text-slate-200';
       toggleBtn.textContent = ann.active ? loc.adminAnnHideAction : loc.adminAnnShowAction;
       toggleBtn.addEventListener('click', async () => {
         const api = window.__INONU_AUTH__;
@@ -5992,7 +6373,7 @@ export function initInonuApp() {
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
-      editBtn.className = 'ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-xs font-semibold';
+      editBtn.className = 'ios-press min-h-[34px] px-3 py-1 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold transition';
       editBtn.textContent = loc.adminAnnEditAction;
       editBtn.addEventListener('click', () => {
         adminState.editingAnnId = ann.id;
@@ -6013,8 +6394,8 @@ export function initInonuApp() {
       delBtn.type = 'button';
       const isConfirming = adminState.deleteConfirmAnnId === ann.id;
       delBtn.className = isConfirming
-        ? 'ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-rose-600 text-white text-xs font-bold'
-        : 'ios-press min-h-[44px] px-3 py-1.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 text-xs font-semibold';
+        ? 'ios-press min-h-[34px] px-3 py-1 rounded-xl bg-rose-600 text-white text-xs font-bold'
+        : 'ios-press min-h-[34px] px-3 py-1 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-semibold transition';
       delBtn.textContent = isConfirming ? loc.adminAnnConfirmDeleteAction : loc.adminAnnDeleteAction;
       delBtn.addEventListener('click', async () => {
         const api = window.__INONU_AUTH__;
@@ -6055,7 +6436,7 @@ export function initInonuApp() {
     adminState.editingStudent = {
       ...item,
       myMbuGroup: item.myMbuGroup || '',
-      myLabGroup: effLang === 'en' ? '' : (item.myLabGroup || ''),
+      myLabGroup: item.myLabGroup || '',
       otherGroupMode: item.otherGroupMode === 'hide' ? 'hide' : 'dim',
       lang: effLang,
       active: item.active !== false
@@ -6079,7 +6460,6 @@ export function initInonuApp() {
       return;
     }
     const isEnglish = item.lang === 'en';
-    if (isEnglish) item.myLabGroup = '';
 
     card.classList.remove('hidden');
     if (animateOpen) {
@@ -6180,7 +6560,7 @@ export function initInonuApp() {
     listEl.innerHTML = '';
     if (filtered.length === 0) {
       const emptyWrap = document.createElement('div');
-      emptyWrap.className = 'ios-pill-control rounded-2xl p-4 text-center space-y-2.5 admin-card-reveal';
+      emptyWrap.className = 'admin-row-item p-5 text-center space-y-2.5 admin-card-reveal';
       const emptyMsg = document.createElement('p');
       emptyMsg.className = 'text-xs text-slate-500 dark:text-slate-400';
       emptyMsg.textContent = loc.adminStudentsEmpty;
@@ -6190,7 +6570,7 @@ export function initInonuApp() {
       if (/^01\d{9}$/.test(cleanNumeric) && typeof loc.adminStudentsLookupFallbackBtn === 'function') {
         const fallbackBtn = document.createElement('button');
         fallbackBtn.type = 'button';
-        fallbackBtn.className = 'ios-press min-h-[44px] px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition';
+        fallbackBtn.className = 'ios-press min-h-[40px] px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition';
         fallbackBtn.textContent = loc.adminStudentsLookupFallbackBtn(cleanNumeric);
         fallbackBtn.addEventListener('click', async () => {
           const api = window.__INONU_AUTH__;
@@ -6217,10 +6597,10 @@ export function initInonuApp() {
     filtered.forEach((st, idx) => {
       const card = document.createElement('div');
       card.className = idx < 18
-        ? 'ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item'
-        : 'ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-2.5 flex-wrap';
+        ? 'admin-row-item px-3.5 py-2.5 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item'
+        : 'admin-row-item px-3.5 py-2.5 flex items-center justify-between gap-2.5 flex-wrap';
       if (idx < 18) {
-        card.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 18}ms`);
+        card.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 16}ms`);
       }
       const effGroup = st.myMbuGroup || st.group || loc.groupAllLabel;
       const effLang = (st.lang || st.prog || 'tr').toUpperCase();
@@ -6233,34 +6613,37 @@ export function initInonuApp() {
       const allowBadgeText = state.lang === 'en' ? 'Term I' : 'Dönem I';
       const inactiveText = state.lang === 'en' ? 'Inactive' : 'Pasif';
 
-      const srcBadge = st.source === 'custom'
-        ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">${customBadgeText}</span>`
-        : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">${allowBadgeText}</span>`;
-      const inactiveBadge = st.active === false
-        ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300">${inactiveText}</span>`
-        : '';
-
+      const dotCls = st.active === false
+        ? 'bg-rose-500'
+        : st.source === 'custom'
+          ? 'bg-amber-500'
+          : 'bg-emerald-500';
+      const srcLabel = st.source === 'custom' ? customBadgeText : allowBadgeText;
       const sidDisplay = st.studentId ? st.studentId : `•••••••${st.last4}`;
       const metaParts = [
         `<span class="font-mono font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(sidDisplay)}</span>`,
+        escapeHtml(srcLabel),
         `${escapeHtml(groupWord)} ${escapeHtml(effGroup)}`,
       ];
       if (effLab) metaParts.push(escapeHtml(effLab));
       metaParts.push(escapeHtml(effLang), escapeHtml(effMode));
+      if (st.active === false) {
+        metaParts.push(`<span class="font-semibold text-rose-600 dark:text-rose-400">${escapeHtml(inactiveText)}</span>`);
+      }
 
       const left = document.createElement('div');
       left.className = 'min-w-0 flex-1 space-y-0.5';
       left.innerHTML = `
-        <div class="flex items-center gap-1.5 flex-wrap">
-          ${srcBadge}${inactiveBadge}
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-2 h-2 rounded-full shrink-0 ${dotCls}"></span>
           <p class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(st.fullName)}</p>
         </div>
-        <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">${metaParts.join(' • ')}</p>
+        <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums pl-4 truncate">${metaParts.join(' · ')}</p>
       `;
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
-      editBtn.className = 'ios-press min-h-[44px] px-3.5 py-2 rounded-full bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold shrink-0 transition';
+      editBtn.className = 'ios-press min-h-[36px] px-3 py-1.5 rounded-xl bg-blue-500/12 hover:bg-blue-500/22 text-blue-600 dark:text-blue-300 text-xs font-semibold shrink-0 transition';
       editBtn.textContent = loc.adminAnnEditAction;
       editBtn.addEventListener('click', () => openStudentEditorInAdmin(st));
 
@@ -6274,8 +6657,295 @@ export function initInonuApp() {
   const adminCloudDirty = {
     announcements: true,
     materials: true,
+    cancellations: true,
     students: true
   };
+
+  function getAdminCancelScheduleDays(progOverride) {
+    const p = progOverride || adminState.cancelProg || state.lang || 'tr';
+    return p === 'en' ? SCHEDULE_DAYS_EN : SCHEDULE_DAYS_TR;
+  }
+
+  function toggleAdminCancelDatePicker(forceOpen) {
+    const datePanel = document.getElementById('adminCancelDatePickerPanel');
+    const dateBtn = document.getElementById('btnAdminCancelDateTrigger');
+    if (!datePanel || !dateBtn) return;
+    const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : datePanel.classList.contains('hidden');
+    datePanel.classList.toggle('hidden', !nextOpen);
+    dateBtn.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+    const arrow = dateBtn.querySelector('svg');
+    if (arrow) arrow.style.transform = nextOpen ? 'rotate(180deg)' : '';
+    if (nextOpen) {
+      renderAdminCancelDateOptions(document.getElementById('adminCancelDateSearch')?.value || '', true);
+      const listEl = document.getElementById('adminCancelDateOptions');
+      if (listEl) listEl.scrollTop = 0;
+    }
+  }
+
+  function setAdminCancelSelectedDate(dateStr) {
+    const dateInp = document.getElementById('adminCancelDateSelect');
+    const dateLbl = document.getElementById('adminCancelDateLabel');
+    const days = getAdminCancelScheduleDays();
+    const match = days.find((d) => d.date === dateStr) || days[0];
+    const finalDate = match ? match.date : (dateStr || '');
+    adminState.cancelDate = finalDate;
+    if (dateInp) dateInp.value = finalDate;
+    if (dateLbl) {
+      dateLbl.textContent = match
+        ? `${match.date} • ${match.dayName}`
+        : (finalDate || (state.lang === 'en' ? 'Select date...' : 'Tarih seç...'));
+    }
+  }
+
+  function renderAdminCancelDateOptions(query = '', forceRender = false) {
+    const datePanel = document.getElementById('adminCancelDatePickerPanel');
+    if (!forceRender && datePanel && datePanel.classList.contains('hidden')) return;
+    const listEl = document.getElementById('adminCancelDateOptions');
+    if (!listEl) return;
+    const days = getAdminCancelScheduleDays();
+    const curVal = adminState.cancelDate || '';
+    const norm = String(query || '').trim().toLocaleLowerCase('tr-TR');
+    const todayStr = getBestDefaultDate();
+
+    let orderedDays = days;
+    if (!norm) {
+      const todayIdx = days.findIndex((d) => d.date === todayStr);
+      if (todayIdx > 0) {
+        orderedDays = [...days.slice(todayIdx), ...days.slice(0, todayIdx)];
+      }
+    }
+
+    const filtered = norm
+      ? orderedDays.filter((d) => {
+          const hay = `${d.date} ${d.dayName} K${d.kurulNo} H${d.haftaNo} W${d.haftaNo} ${formatDateLong(d.date)}`.toLocaleLowerCase('tr-TR');
+          return hay.includes(norm);
+        })
+      : orderedDays;
+
+    listEl.innerHTML = '';
+    if (filtered.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'text-[11px] text-slate-500 dark:text-slate-400 text-center py-3';
+      empty.textContent = I18N[state.lang].searchNoResults;
+      listEl.appendChild(empty);
+      return;
+    }
+
+    const todayTag = state.lang === 'en' ? 'Today' : 'Bugün';
+    const frag = document.createDocumentFragment();
+    filtered.forEach((d) => {
+      const isSel = d.date === curVal;
+      const isTodayDate = d.date === todayStr;
+      const cancelCount = (d.slots || []).reduce((acc, s) => acc + (getCancelledLessonInfo(s, adminState.cancelProg) ? 1 : 0), 0);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 transition ${
+        isSel
+          ? 'bg-rose-600 text-white shadow-xs'
+          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-500/12'
+      }`;
+      btn.innerHTML = `
+        <span class="truncate tabular-nums flex items-center gap-1.5 min-w-0">
+          <span class="truncate">${escapeHtml(d.date)} • ${escapeHtml(d.dayName)}</span>
+          ${isTodayDate ? `<span class="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold shrink-0 ${isSel ? 'bg-white/20 text-white' : 'bg-blue-500/15 text-blue-600 dark:text-blue-300'}">${todayTag}</span>` : ''}
+          ${cancelCount > 0 ? `<span class="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold shrink-0 ${isSel ? 'bg-white/25 text-white' : 'bg-rose-500/15 text-rose-600 dark:text-rose-300'}">${cancelCount} iptal</span>` : ''}
+        </span>
+        <span class="text-[10px] font-bold shrink-0 ${isSel ? 'text-white/85' : 'text-slate-400 dark:text-slate-500'}">K${d.kurulNo}•${adminState.cancelProg === 'en' ? 'W' : 'H'}${d.haftaNo}</span>
+      `;
+      btn.addEventListener('click', () => {
+        setAdminCancelSelectedDate(d.date);
+        toggleAdminCancelDatePicker(false);
+        renderAdminCancelDaySlots();
+      });
+      frag.appendChild(btn);
+    });
+    listEl.appendChild(frag);
+    if (!norm) listEl.scrollTop = 0;
+  }
+
+  function syncAdminCancelFormDefaults() {
+    document.querySelectorAll('[data-cancel-prog]').forEach((b) => {
+      b.classList.toggle('group-chip-active', b.getAttribute('data-cancel-prog') === adminState.cancelProg);
+    });
+    const days = getAdminCancelScheduleDays();
+    const preferred = (adminState.cancelDate && days.some((d) => d.date === adminState.cancelDate))
+      ? adminState.cancelDate
+      : ((state.selectedDate && days.some((d) => d.date === state.selectedDate))
+          ? state.selectedDate
+          : (days[0] ? days[0].date : ''));
+    setAdminCancelSelectedDate(preferred);
+  }
+
+  function renderAdminCancelDaySlots() {
+    const listEl = document.getElementById('adminCancelDaySlotsList');
+    if (!listEl) return;
+    const isEn = state.lang === 'en';
+    const prog = adminState.cancelProg === 'en' ? 'en' : 'tr';
+    const days = getAdminCancelScheduleDays(prog);
+    const dayObj = days.find((d) => d.date === adminState.cancelDate) || days[0];
+    listEl.innerHTML = '';
+
+    if (!dayObj || !Array.isArray(dayObj.slots) || dayObj.slots.length === 0) {
+      listEl.innerHTML = `<div class="admin-row-item p-4 text-center text-xs text-slate-500 dark:text-slate-400">${isEn ? 'No lessons on this date.' : 'Bu tarihte ders bulunamadı.'}</div>`;
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    dayObj.slots.forEach((slot) => {
+      const cancelInfo = getCancelledLessonInfo(slot, prog);
+      const isCancelled = Boolean(cancelInfo);
+      const row = document.createElement('div');
+      row.className = `admin-row-item px-3.5 py-2.5 flex items-center justify-between gap-2.5 ${isCancelled ? 'slot-card-cancelled' : ''}`;
+
+      const info = document.createElement('div');
+      info.className = 'min-w-0 flex-1 space-y-0.5';
+      const meta = document.createElement('div');
+      meta.className = 'text-[10.5px] font-bold text-slate-500 dark:text-slate-400 tabular-nums';
+      meta.textContent = `${slot.slotNo}. ${isEn ? 'Hour' : 'Ders'} (${slot.time || ''})${slot.group ? ` • ${slot.group.toUpperCase()}` : ''}`;
+      const title = document.createElement('div');
+      title.className = `text-xs font-bold leading-snug ${isCancelled ? 'line-through opacity-75 text-slate-600 dark:text-slate-300' : 'text-slate-900 dark:text-white'}`;
+      title.textContent = slot.title;
+      info.appendChild(meta);
+      info.appendChild(title);
+      if (slot.instructor) {
+        const inst = document.createElement('div');
+        inst.className = 'text-[11px] text-slate-500 dark:text-slate-400 truncate';
+        inst.textContent = slot.instructor;
+        info.appendChild(inst);
+      }
+      if (isCancelled && cancelInfo.reason) {
+        const rEl = document.createElement('div');
+        rEl.className = 'text-[11px] font-semibold text-rose-700 dark:text-rose-300';
+        rEl.textContent = cancelInfo.reason;
+        info.appendChild(rEl);
+      }
+
+      const actionBtn = document.createElement('button');
+      actionBtn.type = 'button';
+      actionBtn.className = isCancelled
+        ? 'ios-press min-h-[38px] px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold shrink-0 transition'
+        : 'ios-press min-h-[38px] px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-300 text-xs font-bold shrink-0 transition';
+      actionBtn.textContent = isCancelled
+        ? (isEn ? 'Restore' : 'İptali Kaldır')
+        : (isEn ? 'Cancel' : 'İptal Et');
+
+      actionBtn.addEventListener('click', async () => {
+        const api = window.__INONU_AUTH__;
+        const secret = ensureAdminSecretReady();
+        if (!api || !secret) return;
+        actionBtn.disabled = true;
+        try {
+          if (isCancelled && cancelInfo) {
+            await api.deleteCancelledLesson(cancelInfo.id, secret === 'active' ? undefined : secret);
+            const nextList = cancelledLessonsList.filter((x) => x.id !== cancelInfo.id);
+            applyLoadedCancelledLessonsList(nextList);
+            showToast(isEn ? 'Lesson restored.' : 'Ders iptali kaldırıldı.');
+          } else {
+            const reasonVal = (document.getElementById('adminCancelReasonInput')?.value || '').trim();
+            const saved = await api.saveCancelledLesson({
+              date: dayObj.date,
+              slotNo: slot.slotNo,
+              targetProg: prog,
+              reason: reasonVal
+            }, secret === 'active' ? undefined : secret);
+            const nextList = [...cancelledLessonsList.filter((x) => x.id !== saved.id), saved];
+            applyLoadedCancelledLessonsList(nextList);
+            showToast(isEn ? 'Lesson marked as cancelled.' : 'Ders iptal edildi.');
+          }
+          void queueAutoPushDataJsonToGitHub(false);
+        } catch (err) {
+          console.warn('Toggle cancel lesson error:', err);
+          showToast(I18N[state.lang].adminSaveErrorToast);
+        } finally {
+          actionBtn.disabled = false;
+        }
+      });
+
+      row.appendChild(info);
+      row.appendChild(actionBtn);
+      frag.appendChild(row);
+    });
+    listEl.appendChild(frag);
+  }
+
+  function renderAdminCancelledList() {
+    const listEl = document.getElementById('adminCancelledList');
+    if (!listEl) return;
+    const isEn = state.lang === 'en';
+    const filterProg = adminState.cancelListFilterProg || '';
+    document.querySelectorAll('[data-cancel-list-filter]').forEach((b) => {
+      b.classList.toggle('group-chip-active', (b.getAttribute('data-cancel-list-filter') || '') === filterProg);
+    });
+
+    const source = Array.isArray(adminState.cancelledLessons) && adminState.cancelledLessons.length > 0
+      ? adminState.cancelledLessons
+      : (cancelledLessonsList || []);
+    const filtered = source.filter((item) => !filterProg || item.targetProg === filterProg);
+
+    listEl.innerHTML = '';
+    if (filtered.length === 0) {
+      listEl.innerHTML = `<div class="admin-row-item p-5 text-center text-xs text-slate-500 dark:text-slate-400">${isEn ? 'No cancelled lessons.' : 'İptal edilmiş ders bulunmuyor.'}</div>`;
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    filtered.forEach((item) => {
+      const days = getAdminCancelScheduleDays(item.targetProg);
+      const dayObj = days.find((d) => d.date === item.date);
+      const slotObj = dayObj && Array.isArray(dayObj.slots) ? dayObj.slots.find((s) => Number(s.slotNo) === Number(item.slotNo)) : null;
+
+      const row = document.createElement('div');
+      row.className = 'admin-row-item slot-card-cancelled px-3.5 py-2.5 flex items-center justify-between gap-2.5';
+
+      const info = document.createElement('div');
+      info.className = 'min-w-0 flex-1 space-y-0.5';
+      const top = document.createElement('div');
+      top.className = 'flex items-center gap-2 min-w-0';
+      top.innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+        <span class="text-[11px] font-bold text-slate-700 dark:text-slate-200 tabular-nums truncate">${escapeHtml(item.targetProg.toUpperCase())} · ${escapeHtml(item.date)} · ${item.slotNo}. ${isEn ? 'Hour' : 'Ders'}${slotObj && slotObj.time ? ` (${escapeHtml(slotObj.time)})` : ''}</span>
+      `;
+      const title = document.createElement('div');
+      title.className = 'text-xs font-bold text-slate-900 dark:text-white truncate pl-4';
+      title.textContent = slotObj ? slotObj.title : `${item.slotNo}. ${isEn ? 'Lesson' : 'Ders'}`;
+      info.appendChild(top);
+      info.appendChild(title);
+      if (item.reason) {
+        const reasonEl = document.createElement('div');
+        reasonEl.className = 'text-[11px] font-medium text-rose-700 dark:text-rose-300';
+        reasonEl.textContent = item.reason;
+        info.appendChild(reasonEl);
+      }
+
+      const restoreBtn = document.createElement('button');
+      restoreBtn.type = 'button';
+      restoreBtn.className = 'ios-press min-h-[38px] px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold shrink-0 transition';
+      restoreBtn.textContent = isEn ? 'Restore' : 'Geri Al';
+      restoreBtn.addEventListener('click', async () => {
+        const api = window.__INONU_AUTH__;
+        const secret = ensureAdminSecretReady();
+        if (!api || !secret) return;
+        restoreBtn.disabled = true;
+        try {
+          await api.deleteCancelledLesson(item.id, secret === 'active' ? undefined : secret);
+          const nextList = cancelledLessonsList.filter((x) => x.id !== item.id);
+          applyLoadedCancelledLessonsList(nextList);
+          showToast(isEn ? 'Lesson restored.' : 'Ders iptali kaldırıldı.');
+          void queueAutoPushDataJsonToGitHub(false);
+        } catch (err) {
+          console.warn('Restore cancelled lesson error:', err);
+          showToast(I18N[state.lang].adminSaveErrorToast);
+        } finally {
+          restoreBtn.disabled = false;
+        }
+      });
+
+      row.appendChild(info);
+      row.appendChild(restoreBtn);
+      frag.appendChild(row);
+    });
+    listEl.appendChild(frag);
+  }
 
   function getAdminMatScheduleDays(progOverride) {
     const p = progOverride || adminState.matProg || state.lang || 'tr';
@@ -6551,7 +7221,7 @@ export function initInonuApp() {
       ? allMats.filter((m) => (m.targetProg || '') === filterProg)
       : allMats;
     if (mats.length === 0) {
-      listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400">Bu filtre için eklenmiş ders PDF'i yok.</div>`;
+      listEl.innerHTML = `<div class="admin-row-item p-5 text-center text-xs text-slate-500 dark:text-slate-400">Bu filtre için eklenmiş ders PDF'i yok.</div>`;
       return;
     }
     mats.forEach((mat, idx) => {
@@ -6561,34 +7231,28 @@ export function initInonuApp() {
       const lessonInfo = slotMatch ? slotMatch.title : '';
       const isFile = Boolean(mat.pdfData) || Number(mat.chunkCount) > 0 || mat.sourceType === 'chunks' || mat.sourceType === 'file' || mat.sourceType === 'server' || (typeof mat.pdfUrl === 'string' && mat.pdfUrl.startsWith('/api/lesson-pdf/'));
       const sizeLabel = typeof mat.fileSize === 'number' && mat.fileSize > 0 ? formatPdfBytesLabel(mat.fileSize) : '';
-      const progBadgeText = mat.targetProg === 'en' ? 'EN' : (mat.targetProg === 'tr' ? 'TR' : 'TR/EN');
-      const progBadgeCls = mat.targetProg === 'en'
-        ? 'bg-purple-500/15 text-purple-600 dark:text-purple-300'
-        : mat.targetProg === 'tr'
-          ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300'
-          : 'bg-slate-500/15 text-slate-600 dark:text-slate-300';
+      const progText = mat.targetProg === 'en' ? 'EN' : (mat.targetProg === 'tr' ? 'TR' : 'TR/EN');
       const subInfo = isFile
-        ? `Dosya: ${mat.pdfName || mat.title || 'ders.pdf'}${sizeLabel ? ` • ${sizeLabel}` : ''}`
+        ? `${mat.pdfName || mat.title || 'ders.pdf'}${sizeLabel ? ` · ${sizeLabel}` : ''}`
         : mat.pdfUrl;
 
       const row = document.createElement('div');
-      row.className = 'ios-pill-control rounded-2xl p-3 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item';
-      row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 28}ms`);
+      row.className = 'admin-row-item px-3.5 py-3 flex items-center justify-between gap-2.5 flex-wrap admin-stagger-item';
+      row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 24}ms`);
       row.innerHTML = `
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${progBadgeCls}">${progBadgeText}</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-300 tabular-nums">${escapeHtml(mat.date)} • ${mat.slotNo}. Ders</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isFile ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300' : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300'}">${isFile ? (sizeLabel || 'PDF Dosya') : 'URL'}</span>
+        <div class="min-w-0 flex-1 space-y-0.5">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-2 h-2 rounded-full shrink-0 ${isFile ? 'bg-rose-500' : 'bg-indigo-500'}"></span>
             <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(mat.title)}</h5>
           </div>
-          ${lessonInfo ? `<p class="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate mt-0.5">${escapeHtml(lessonInfo)}</p>` : ''}
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">${escapeHtml(subInfo)}</p>
+          <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums pl-4 truncate">${progText} · ${escapeHtml(mat.date)} · ${mat.slotNo}. Ders · ${isFile ? (sizeLabel || 'PDF') : 'URL'}</p>
+          ${lessonInfo ? `<p class="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate pl-4">${escapeHtml(lessonInfo)}</p>` : ''}
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 truncate pl-4">${escapeHtml(subInfo)}</p>
         </div>
-        <div class="flex items-center gap-1.5 shrink-0">
-          <button type="button" class="btn-view-mat ios-press min-h-[38px] px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">${isFile ? 'İndir' : 'Görüntüle'}</button>
-          <button type="button" class="btn-edit-mat ios-press min-h-[38px] px-3 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-xs font-semibold">Düzenle</button>
-          <button type="button" class="btn-del-mat ios-press min-h-[38px] px-3 py-1 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 text-xs font-semibold" data-mat-id="${escapeHtml(mat.id)}">${adminState.deleteConfirmMatId === mat.id ? 'Emin misin? Sil' : 'Sil'}</button>
+        <div class="flex items-center gap-1.5 shrink-0 pl-4 sm:pl-0">
+          <button type="button" class="btn-view-mat ios-press min-h-[34px] px-3 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition">${isFile ? 'İndir' : 'Görüntüle'}</button>
+          <button type="button" class="btn-edit-mat ios-press min-h-[34px] px-3 py-1 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold transition">Düzenle</button>
+          <button type="button" class="btn-del-mat ios-press min-h-[34px] px-3 py-1 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-semibold transition" data-mat-id="${escapeHtml(mat.id)}">${adminState.deleteConfirmMatId === mat.id ? 'Emin misin? Sil' : 'Sil'}</button>
         </div>
       `;
       row.querySelector('.btn-view-mat').addEventListener('click', () => {
@@ -6658,6 +7322,10 @@ export function initInonuApp() {
     if (!api || !session || !session.isAdmin) {
       if (scope === 'all' || scope === 'announcements') renderAdminAnnouncementsList();
       if (scope === 'all' || scope === 'materials') renderAdminMaterialsList();
+      if (scope === 'all' || scope === 'cancellations') {
+        renderAdminCancelDaySlots();
+        renderAdminCancelledList();
+      }
       if (scope === 'all' || scope === 'students') renderAdminStudentsList();
       return;
     }
@@ -6667,18 +7335,23 @@ export function initInonuApp() {
     if (options && options.markAllDirty) {
       adminCloudDirty.announcements = true;
       adminCloudDirty.materials = true;
+      adminCloudDirty.cancellations = true;
       adminCloudDirty.students = true;
     }
     const wantAnn = scope === 'all' || scope === 'announcements';
     const wantMat = scope === 'all' || scope === 'materials';
+    const wantCan = scope === 'all' || scope === 'cancellations';
     const wantStu = scope === 'all' || scope === 'students';
     const wantAccess = scope === 'all' || scope === 'students' || (options && options.includeAccess);
 
     if (icon) icon.classList.add('animate-spin-ios');
     try {
-      const [anns, mats, students, accessSettings] = await Promise.all([
+      const [anns, mats, cancels, students, accessSettings] = await Promise.all([
         wantAnn ? api.listAllAnnouncements().catch((err) => { console.warn('Admin announcements load failed:', err); return null; }) : Promise.resolve(null),
         wantMat ? api.loadAllLessonMaterials().catch((err) => { console.warn('Admin materials load failed:', err); return null; }) : Promise.resolve(null),
+        wantCan && typeof api.loadCancelledLessons === 'function'
+          ? api.loadCancelledLessons().catch((err) => { console.warn('Admin cancelled lessons load failed:', err); return null; })
+          : Promise.resolve(null),
         wantStu ? api.loadAllAdminStudents(session.adminSecret || undefined).catch((err) => { console.warn('Admin students load failed:', err); return null; }) : Promise.resolve(null),
         wantAccess && typeof api.loadSiteAccessSettings === 'function'
           ? api.loadSiteAccessSettings().catch(() => null)
@@ -6698,6 +7371,11 @@ export function initInonuApp() {
         applyLoadedLessonMaterialsList(mats);
         renderAdminMaterialsList();
       }
+      if (Array.isArray(cancels)) {
+        adminState.cancelledLessons = cancels;
+        adminCloudDirty.cancellations = false;
+        applyLoadedCancelledLessonsList(cancels);
+      }
       if (Array.isArray(students)) {
         adminState.students = students;
         adminCloudDirty.students = false;
@@ -6716,8 +7394,11 @@ export function initInonuApp() {
     }
     adminCloudDirty.announcements = true;
     adminCloudDirty.materials = true;
+    adminCloudDirty.cancellations = true;
     adminCloudDirty.students = true;
+    adminState.cancelProg = state.lang === 'en' ? 'en' : 'tr';
     toggleAdminMatPicker(null, false);
+    toggleAdminCancelDatePicker(false);
     const sFilterEl = document.getElementById('adminStudentFilterInput');
     const sClearBtn = document.getElementById('btnClearAdminStudentFilter');
     if (sClearBtn) sClearBtn.classList.toggle('hidden', !String(sFilterEl?.value || '').trim());
@@ -7777,6 +8458,74 @@ export function initInonuApp() {
       });
     }
 
+    document.querySelectorAll('[data-ann-list-filter]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        adminState.annListFilter = btn.getAttribute('data-ann-list-filter') || '';
+        renderAdminAnnouncementsList();
+      });
+    });
+
+    document.querySelectorAll('[data-cancel-prog]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        adminState.cancelProg = btn.getAttribute('data-cancel-prog') === 'en' ? 'en' : 'tr';
+        toggleAdminCancelDatePicker(false);
+        syncAdminCancelFormDefaults();
+        renderAdminCancelDaySlots();
+      });
+    });
+
+    const btnAdminCancelDateTrigger = document.getElementById('btnAdminCancelDateTrigger');
+    if (btnAdminCancelDateTrigger) {
+      btnAdminCancelDateTrigger.addEventListener('click', () => {
+        toggleAdminCancelDatePicker();
+      });
+    }
+
+    const adminCancelDateSearch = document.getElementById('adminCancelDateSearch');
+    if (adminCancelDateSearch) {
+      adminCancelDateSearch.addEventListener('input', () => {
+        renderAdminCancelDateOptions(adminCancelDateSearch.value || '', true);
+      });
+    }
+
+    document.querySelectorAll('[data-cancel-list-filter]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        adminState.cancelListFilterProg = btn.getAttribute('data-cancel-list-filter') || '';
+        renderAdminCancelledList();
+      });
+    });
+
+    const btnCloseInstructorModal = document.getElementById('btnCloseInstructorModal');
+    if (btnCloseInstructorModal) {
+      btnCloseInstructorModal.addEventListener('click', () => closeInstructorModal());
+    }
+    const instructorModalEl = document.getElementById('instructorModal');
+    if (instructorModalEl) {
+      instructorModalEl.addEventListener('click', (e) => {
+        if (e.target === instructorModalEl) closeInstructorModal();
+      });
+    }
+    const btnInstructorShowInSearch = document.getElementById('btnInstructorShowInSearch');
+    if (btnInstructorShowInSearch) {
+      btnInstructorShowInSearch.addEventListener('click', () => {
+        const q = activeDetailModalValue || activeInstructorModalName;
+        closeInstructorModal();
+        if (!q) return;
+        const searchInp = document.getElementById('inputSearchQuery');
+        if (searchInp) searchInp.value = q;
+        switchTab('search');
+        renderSearchView();
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const instModal = document.getElementById('instructorModal');
+        if (instModal && !instModal.classList.contains('hidden')) {
+          closeInstructorModal();
+        }
+      }
+    });
+
     document.querySelectorAll('[data-mat-prog]').forEach((btn) => {
       btn.addEventListener('click', () => {
         adminState.matProg = btn.getAttribute('data-mat-prog') === 'en' ? 'en' : 'tr';
@@ -8201,9 +8950,6 @@ export function initInonuApp() {
         if (!adminState.editingStudent) return;
         const nextLang = btn.getAttribute('data-edit-lang') === 'en' ? 'en' : 'tr';
         adminState.editingStudent.lang = nextLang;
-        if (nextLang === 'en') {
-          adminState.editingStudent.myLabGroup = '';
-        }
         syncAdminStudentEditorUI();
       });
     });
@@ -8231,7 +8977,7 @@ export function initInonuApp() {
         const target = { ...adminState.editingStudent };
         const editedName = document.getElementById('adminEditNameInput').value.trim();
         const effLang = target.lang === 'en' ? 'en' : 'tr';
-        const effLab = effLang === 'en' ? '' : target.myLabGroup;
+        const effLab = target.myLabGroup || '';
         const finalName = editedName || target.fullName;
         const prevStudents = Array.isArray(adminState.students) ? [...adminState.students] : [];
 
@@ -8697,12 +9443,27 @@ export function initInonuApp() {
       syncStudentPrefsCloudSubscription();
       syncActiveStudentCloudPrefs();
       refreshDailyAnnouncements(true);
+      void refreshCancelledLessons();
       void refreshLessonMaterials(true);
       if (typeof api.subscribeAnnouncements === 'function' && !announcementsUnsub) {
         announcementsUnsub = api.subscribeAnnouncements((list) => {
           activeAnnouncementsList = Array.isArray(list) ? list : [];
           announcementsInitialFetchDone = true;
           runWithStaggerSuppressed(() => renderDailyAnnouncements());
+          const adminModalEl = document.getElementById('adminModal');
+          if (adminModalEl && !adminModalEl.classList.contains('hidden')) {
+            void api.listAllAnnouncements().then((allAnns) => {
+              if (Array.isArray(allAnns)) {
+                adminState.announcements = allAnns;
+                renderAdminAnnouncementsList();
+              }
+            }).catch(() => {});
+          }
+        });
+      }
+      if (typeof api.subscribeCancelledLessons === 'function' && !cancelledLessonsUnsub) {
+        cancelledLessonsUnsub = api.subscribeCancelledLessons((list) => {
+          applyLoadedCancelledLessonsList(list);
         });
       }
       if (typeof api.subscribeLessonMaterials === 'function' && !lessonMaterialsUnsub) {

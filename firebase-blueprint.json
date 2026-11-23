@@ -114,6 +114,38 @@
         }
       },
       "required": ["g", "l", "m", "p", "t"]
+    },
+    "CancelledLesson": {
+      "title": "CancelledLesson",
+      "description": "Admin-cancelled lesson slot synchronized in real time across all student devices",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "date": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "slotNo": {
+          "type": "number"
+        },
+        "targetProg": {
+          "type": "string",
+          "enum": ["tr", "en"],
+          "maxLength": 2
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "updatedAtMs": {
+          "type": "number"
+        }
+      },
+      "required": ["id", "date", "slotNo", "targetProg", "reason", "updatedAtMs"]
     }
   },
   "firestore": {
@@ -140,6 +172,12 @@
         "$ref": "#/entities/StudentPrefs"
       },
       "description": "Per-student MBU/LAB group, other-group display mode, and language preferences synced across devices"
+    },
+    "/cancelledLessons/{lessonId}": {
+      "schema": {
+        "$ref": "#/entities/CancelledLesson"
+      },
+      "description": "Admin-cancelled lesson slots synced across all devices"
     }
   }
 }

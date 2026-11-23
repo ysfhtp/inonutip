@@ -1261,34 +1261,85 @@ body {
   animation: iosShake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Admin Modal Cohesive Animations & Gliding Pill */
+/* Admin Modal Cohesive Animations, Clean Surfaces & Gliding Pill */
 #adminTabsBar {
   position: relative;
   isolation: isolate;
+  background: rgba(15, 23, 42, 0.055);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+.dark #adminTabsBar {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 #adminTabIndicator {
   position: absolute;
   top: 0;
   left: 0;
-  border-radius: 0.625rem;
-  background: rgba(255, 255, 255, 0.95);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.05);
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
   will-change: transform, width, height;
   pointer-events: none;
   z-index: 0;
-  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1), height 0.38s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease;
+  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), width 0.36s cubic-bezier(0.22, 1, 0.36, 1), height 0.36s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease;
 }
 .dark #adminTabIndicator {
-  background: rgba(30, 41, 59, 0.94);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.42);
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.44);
 }
 .admin-tab-btn {
   position: relative;
   z-index: 1;
-  transition: color 0.22s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: color 0.2s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  white-space: nowrap;
 }
 .admin-tab-btn:active {
   transform: scale(0.97);
+}
+.admin-panel-card {
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1.125rem;
+}
+.dark .admin-panel-card {
+  background: rgba(15, 23, 42, 0.42);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.admin-field {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+.admin-field:hover {
+  border-color: rgba(15, 23, 42, 0.18);
+}
+.dark .admin-field {
+  background: rgba(2, 6, 23, 0.46);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.dark .admin-field:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.admin-row-item {
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(15, 23, 42, 0.075);
+  border-radius: 1rem;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+.admin-row-item:hover {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(15, 23, 42, 0.13);
+}
+.dark .admin-row-item {
+  background: rgba(15, 23, 42, 0.36);
+  border-color: rgba(255, 255, 255, 0.075);
+}
+.dark .admin-row-item:hover {
+  background: rgba(15, 23, 42, 0.54);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 @keyframes adminPaneIn {
   from {
@@ -1468,6 +1519,49 @@ html.dark .ptr-pill {
 .ptr-indicator.is-done .ptr-check {
   opacity: 1;
   animation: ptrCheckDraw 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Cancelled lesson card state */
+.slot-card-cancelled {
+  background: rgba(244, 63, 94, 0.065) !important;
+  border-color: rgba(244, 63, 94, 0.34) !important;
+}
+html.dark .slot-card-cancelled {
+  background: rgba(225, 29, 72, 0.14) !important;
+  border-color: rgba(251, 113, 133, 0.36) !important;
+}
+
+/* Inline clickable instructor name & course code (zero layout shift, no underline) */
+.instructor-inline-btn {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+.instructor-inline-btn:hover,
+.instructor-inline-btn:focus-visible {
+  color: #2563eb;
+  text-decoration: none;
+  outline: none;
+}
+.instructor-inline-btn:active {
+  opacity: 0.72;
+}
+html.dark .instructor-inline-btn:hover,
+html.dark .instructor-inline-btn:focus-visible {
+  color: #60a5fa;
+  text-decoration: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

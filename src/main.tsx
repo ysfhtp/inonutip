@@ -41,6 +41,11 @@ import {
   saveLessonMaterial,
   saveSiteAccessSettings,
   setAdminWriteSecret,
+  buildCancelledLessonId,
+  loadCancelledLessons,
+  subscribeCancelledLessons,
+  saveCancelledLesson,
+  deleteCancelledLesson,
   subscribeAnnouncements,
   subscribeCloudStudentPrefs,
   subscribeLessonMaterials,
@@ -110,6 +115,11 @@ declare global {
       listAllAnnouncements: typeof listAllAnnouncements;
       saveAnnouncement: typeof saveAnnouncement;
       deleteAnnouncement: typeof deleteAnnouncement;
+      buildCancelledLessonId: typeof buildCancelledLessonId;
+      loadCancelledLessons: typeof loadCancelledLessons;
+      subscribeCancelledLessons: typeof subscribeCancelledLessons;
+      saveCancelledLesson: typeof saveCancelledLesson;
+      deleteCancelledLesson: typeof deleteCancelledLesson;
       loadAllLessonMaterials: typeof loadAllLessonMaterials;
       subscribeLessonMaterials: typeof subscribeLessonMaterials;
       saveLessonMaterial: typeof saveLessonMaterial;
@@ -179,6 +189,11 @@ window.__INONU_AUTH__ = {
   listAllAnnouncements,
   saveAnnouncement,
   deleteAnnouncement,
+  buildCancelledLessonId,
+  loadCancelledLessons,
+  subscribeCancelledLessons,
+  saveCancelledLesson,
+  deleteCancelledLesson,
   loadAllLessonMaterials,
   subscribeLessonMaterials,
   saveLessonMaterial,

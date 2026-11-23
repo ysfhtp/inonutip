@@ -1,27 +1,18 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getFirestore,
+  initializeFirestore,
   doc,
   collection,
   onSnapshot,
   setDoc,
   deleteDoc,
   getDoc,
+  getDocs,
   getDocFromServer,
   Unsubscribe,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
-
-let dbInstance: any = null;
-try {
-  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  const rawDbId = (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId;
-  dbInstance = rawDbId ? getFirestore(app, rawDbId) : getFirestore(app);
-} catch (err) {
-  console.warn('Firebase Firestore initialization failed, falling back to static/server sync:', err);
-  setFirebaseQuotaExceeded(true);
-}
-export const db = dbInstance;
 
 export enum OperationType {
   CREATE = 'create',
@@ -61,6 +52,20 @@ export function isFirestoreQuotaError(error: unknown): boolean {
     msg.includes('quota') ||
     msg.includes('resource-exhausted') ||
     msg.includes('free daily read units')
+  );
+}
+
+export function isFirestoreUnavailableError(error: unknown): boolean {
+  if (!error) return false;
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  const code = ((error as { code?: string })?.code || '').toLowerCase();
+  return (
+    code === 'unavailable' ||
+    code === 'failed-precondition' ||
+    msg.includes('the client is offline') ||
+    msg.includes('client is offline') ||
+    msg.includes('could not reach cloud firestore') ||
+    msg.includes('code=unavailable')
   );
 }
 
@@ -111,6 +116,23 @@ export function onFirebaseQuotaChange(callback: (exceeded: boolean) => void): ()
   return () => quotaListeners.delete(callback);
 }
 
+let dbInstance: ReturnType<typeof getFirestore> | null = null;
+try {
+  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  const rawDbId = (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId;
+  try {
+    dbInstance = rawDbId
+      ? initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, rawDbId)
+      : initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  } catch {
+    dbInstance = rawDbId ? getFirestore(app, rawDbId) : getFirestore(app);
+  }
+} catch (err) {
+  console.warn('Firebase Firestore initialization failed, falling back to static/server sync:', err);
+  setFirebaseQuotaExceeded(true);
+}
+export const db = dbInstance;
+
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): FirestoreErrorInfo {
   const errMessage = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
@@ -126,6 +148,10 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path,
   };
+  if (isFirestoreUnavailableError(error)) {
+    console.warn(`Firestore offline/unavailable (${operationType} ${path || ''}); using cache/server fallback.`);
+    return errInfo;
+  }
   console.warn('Firestore Operation Error: ', JSON.stringify(errInfo));
   if (isFirestoreQuotaError(error)) {
     setFirebaseQuotaExceeded(true);
@@ -138,6 +164,9 @@ export async function testConnection(): Promise<boolean> {
     setFirebaseQuotaExceeded(true);
     return false;
   }
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return false;
+  }
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
     if (isFirebaseQuotaExceeded()) {
@@ -145,8 +174,7 @@ export async function testConnection(): Promise<boolean> {
     }
     return true;
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Please check your Firebase configuration.');
+    if (isFirestoreUnavailableError(error)) {
       return false;
     }
     if (isFirestoreQuotaError(error)) {
@@ -161,6 +189,11 @@ export async function testConnection(): Promise<boolean> {
 }
 
 void testConnection();
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    void testConnection();
+  });
+}
 
 // ==================== FIREBASE REALTIME LISTENERS & MUTATIONS ====================
 
@@ -254,6 +287,25 @@ export async function saveFirebaseAnnouncement(
   }
 }
 
+export async function fetchFirebaseAnnouncements(): Promise<Array<Record<string, unknown>> | null> {
+  if (!db || isFirebaseQuotaExceeded()) return null;
+  const path = 'announcements';
+  try {
+    const snap = await getDocs(collection(db, 'announcements'));
+    const list: Array<Record<string, unknown>> = [];
+    snap.forEach((d) => {
+      const item = d.data() as Record<string, unknown>;
+      if (item && !item.deleted && item.deleted !== 1) {
+        list.push({ ...item, id: d.id });
+      }
+    });
+    return list;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, path);
+    return null;
+  }
+}
+
 export async function deleteFirebaseAnnouncement(
   id: string,
 ): Promise<boolean> {
@@ -262,6 +314,118 @@ export async function deleteFirebaseAnnouncement(
   const path = `announcements/${cleanId}`;
   try {
     await deleteDoc(doc(db, 'announcements', cleanId));
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, path);
+    return false;
+  }
+}
+
+export interface FirebaseCancelledLessonDoc {
+  id: string;
+  date: string;
+  slotNo: number;
+  targetProg: 'tr' | 'en';
+  reason: string;
+  updatedAtMs: number;
+}
+
+export function subscribeFirebaseCancelledLessons(
+  onChange: (items: FirebaseCancelledLessonDoc[]) => void,
+): Unsubscribe {
+  if (!db || isFirebaseQuotaExceeded()) return () => {};
+  const path = 'cancelledLessons';
+  try {
+    return onSnapshot(
+      collection(db, 'cancelledLessons'),
+      (snap) => {
+        const list: FirebaseCancelledLessonDoc[] = [];
+        snap.forEach((d) => {
+          const item = d.data() as Record<string, unknown>;
+          if (!item) return;
+          const prog = item.targetProg === 'en' ? 'en' : item.targetProg === 'tr' ? 'tr' : null;
+          const date = typeof item.date === 'string' ? item.date.trim() : '';
+          const slotNo = Math.floor(Number(item.slotNo) || 0);
+          if (!prog || !date || slotNo < 1 || slotNo > 20) return;
+          list.push({
+            id: d.id,
+            date,
+            slotNo,
+            targetProg: prog,
+            reason: typeof item.reason === 'string' ? item.reason.trim().slice(0, 200) : '',
+            updatedAtMs: Number(item.updatedAtMs) || 0,
+          });
+        });
+        onChange(list);
+      },
+      (err) => {
+        handleFirestoreError(err, OperationType.LIST, path);
+      },
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, path);
+    return () => {};
+  }
+}
+
+export async function fetchFirebaseCancelledLessons(): Promise<FirebaseCancelledLessonDoc[] | null> {
+  if (!db || isFirebaseQuotaExceeded()) return null;
+  const path = 'cancelledLessons';
+  try {
+    const snap = await getDocs(collection(db, 'cancelledLessons'));
+    const list: FirebaseCancelledLessonDoc[] = [];
+    snap.forEach((d) => {
+      const item = d.data() as Record<string, unknown>;
+      if (!item) return;
+      const prog = item.targetProg === 'en' ? 'en' : item.targetProg === 'tr' ? 'tr' : null;
+      const date = typeof item.date === 'string' ? item.date.trim() : '';
+      const slotNo = Math.floor(Number(item.slotNo) || 0);
+      if (!prog || !date || slotNo < 1 || slotNo > 20) return;
+      list.push({
+        id: d.id,
+        date,
+        slotNo,
+        targetProg: prog,
+        reason: typeof item.reason === 'string' ? item.reason.trim().slice(0, 200) : '',
+        updatedAtMs: Number(item.updatedAtMs) || 0,
+      });
+    });
+    return list;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, path);
+    return null;
+  }
+}
+
+export async function saveFirebaseCancelledLesson(
+  item: FirebaseCancelledLessonDoc,
+): Promise<boolean> {
+  const cleanId = String(item.id || '').trim();
+  if (!db || isFirebaseQuotaExceeded() || !/^[a-zA-Z0-9_-]{1,128}$/.test(cleanId)) return false;
+  const path = `cancelledLessons/${cleanId}`;
+  const payload: FirebaseCancelledLessonDoc = {
+    id: cleanId,
+    date: String(item.date || '').trim().slice(0, 20),
+    slotNo: Math.max(1, Math.min(20, Math.floor(Number(item.slotNo) || 1))),
+    targetProg: item.targetProg === 'en' ? 'en' : 'tr',
+    reason: String(item.reason || '').trim().slice(0, 200),
+    updatedAtMs: Math.max(1, Math.floor(Number(item.updatedAtMs) || Date.now())),
+  };
+  try {
+    await setDoc(doc(db, 'cancelledLessons', cleanId), payload);
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, path);
+    return false;
+  }
+}
+
+export async function deleteFirebaseCancelledLesson(id: string): Promise<boolean> {
+  const cleanId = String(id || '').trim();
+  if (!db || isFirebaseQuotaExceeded() || !/^[a-zA-Z0-9_-]{1,128}$/.test(cleanId)) return false;
+  const path = `cancelledLessons/${cleanId}`;
+  try {
+    await deleteDoc(doc(db, 'cancelledLessons', cleanId));
     return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
@@ -466,13 +630,18 @@ export async function fetchFirebaseStudentPrefs(
   const req = (async (): Promise<FetchStudentPrefsResult> => {
     try {
       let snap;
-      try {
-        snap = await getDocFromServer(doc(db, 'studentPrefs', cleanKey));
-      } catch (serverErr) {
-        if (isFirestoreQuotaError(serverErr)) {
-          throw serverErr;
-        }
+      const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+      if (isOffline) {
         snap = await getDoc(doc(db, 'studentPrefs', cleanKey));
+      } else {
+        try {
+          snap = await getDocFromServer(doc(db, 'studentPrefs', cleanKey));
+        } catch (serverErr) {
+          if (isFirestoreQuotaError(serverErr)) {
+            throw serverErr;
+          }
+          snap = await getDoc(doc(db, 'studentPrefs', cleanKey));
+        }
       }
       if (isFirebaseQuotaExceeded()) {
         setFirebaseQuotaExceeded(false);
@@ -512,12 +681,10 @@ export async function saveFirebaseStudentPrefs(
     : '';
   const pVal: CompactStudentPrefsDoc['p'] =
     prefs.lang === 'en' ? 'en' : prefs.lang === 'tr' ? 'tr' : '';
-  const lVal: CompactStudentPrefsDoc['l'] =
-    pVal === 'en'
-      ? ''
-      : (VALID_LAB_GROUPS as readonly string[]).includes(prefs.myLabGroup)
-        ? (prefs.myLabGroup as CompactStudentPrefsDoc['l'])
-        : '';
+  // Preserve LAB group even while temporarily viewing EN schedule so returning to TR restores it
+  const lVal: CompactStudentPrefsDoc['l'] = (VALID_LAB_GROUPS as readonly string[]).includes(prefs.myLabGroup)
+    ? (prefs.myLabGroup as CompactStudentPrefsDoc['l'])
+    : '';
   const mVal: CompactStudentPrefsDoc['m'] = prefs.otherGroupMode === 'hide' ? 'h' : 'd';
   const tVal = Math.max(1, Math.floor(Number(prefs.updatedAtMs) || Date.now()));
 

@@ -32,8 +32,13 @@ import {
   subscribeFirebaseSiteAccess,
   saveFirebaseSiteAccess,
   subscribeFirebaseAnnouncements,
+  fetchFirebaseAnnouncements,
   saveFirebaseAnnouncement,
   deleteFirebaseAnnouncement,
+  subscribeFirebaseCancelledLessons,
+  fetchFirebaseCancelledLessons,
+  saveFirebaseCancelledLesson,
+  deleteFirebaseCancelledLesson,
   subscribeFirebaseStudentDirectory,
   saveFirebaseStudentDirectory,
   fetchFirebaseStudentDirectory,
@@ -269,6 +274,8 @@ function initCrossTabSync(): void {
         notifyLocalSubscribersOnly('materials', { source: 'storage' });
       } else if (subKey === 'announcements') {
         notifyLocalSubscribersOnly('announcements', { source: 'storage' });
+      } else if (subKey === 'cancelled_lessons') {
+        notifyLocalSubscribersOnly('cancelled_lessons', { source: 'storage' });
       } else if (subKey === 'custom_students' || subKey === 'admin_dir') {
         notifyLocalSubscribersOnly('student_status', { source: 'storage' });
       } else if (subKey === 'version') {
@@ -378,7 +385,7 @@ function ensureEventSource(): void {
       notifyLocalSubscribersOnly(topic, parsed);
     };
 
-    ['access', 'materials', 'announcements', 'student_status'].forEach((topic) => {
+    ['access', 'materials', 'announcements', 'cancelled_lessons', 'student_status'].forEach((topic) => {
       es.addEventListener(topic, (ev) => dispatchTopic(topic, ev as MessageEvent));
     });
 
@@ -517,6 +524,7 @@ export interface SiteDataJson {
   };
   security?: Partial<StaticAdminSecurityConfig> | null;
   announcements?: Array<Record<string, unknown>>;
+  cancelledLessons?: Array<Record<string, unknown>>;
   materials?: Array<Record<string, unknown>>;
   customStudents?: Record<string, Record<string, unknown>> | Array<Record<string, unknown>>;
   studentDirectory?: Record<string, Record<string, unknown>> | Array<Record<string, unknown>>;
@@ -844,7 +852,7 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
       remote.announcements.forEach((raw) => {
         if (!raw || typeof raw !== 'object') return;
         const mapped = mapServerAnnouncement(raw);
-        if (mapped.id && mapped.active && !raw.deleted) {
+        if (mapped.id && !raw.deleted && raw.deleted !== 1) {
           remoteMap[mapped.id] = { ...mapped, deleted: false };
         }
       });
@@ -853,6 +861,22 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
       if (prevSigs.announcements !== remoteSig || force) {
         writeStaticJson('announcements', remoteMap);
         emitLocalTopic('announcements', { source: 'data.json' });
+      }
+    }
+
+    // 3b. Cancelled Lessons
+    if (Array.isArray(remote.cancelledLessons)) {
+      const remoteMap: Record<string, CancelledLesson> = {};
+      remote.cancelledLessons.forEach((raw) => {
+        if (!raw || typeof raw !== 'object') return;
+        const mapped = mapServerCancelledLesson(raw);
+        if (mapped) remoteMap[mapped.id] = mapped;
+      });
+      const remoteSig = JSON.stringify(remote.cancelledLessons);
+      nextSigs.cancelledLessons = remoteSig;
+      if (prevSigs.cancelledLessons !== remoteSig || force) {
+        writeStaticJson('cancelled_lessons', remoteMap);
+        emitLocalTopic('cancelled_lessons', { source: 'data.json' });
       }
     }
 
@@ -1901,7 +1925,7 @@ function buildPrefsSignature(p: {
 }): string {
   const mbu = normalizeMbuGroupPref(p.myMbuGroup);
   const lang = normalizeLangPref(p.lang);
-  const lab = lang === 'en' ? '' : normalizeLabGroupPref(p.myLabGroup);
+  const lab = normalizeLabGroupPref(p.myLabGroup);
   const mode = normalizeOtherGroupModePref(p.otherGroupMode);
   return `${mbu}|${lab}|${mode}|${lang}`;
 }
@@ -2276,7 +2300,7 @@ export async function saveCloudStudentPrefs(
 
   const finalMbu = normalizeMbuGroupPref(prefs.myMbuGroup);
   const finalLang = normalizeLangPref(prefs.lang);
-  const finalLab = finalLang === 'en' ? '' : normalizeLabGroupPref(prefs.myLabGroup);
+  const finalLab = normalizeLabGroupPref(prefs.myLabGroup);
   const finalMode = normalizeOtherGroupModePref(prefs.otherGroupMode);
   const finalAuthHash = isValidAuthHash(authHash) ? authHash : '';
   const finalLast4 = typeof prefs.last4 === 'string' && /^[0-9]{4}$/.test(prefs.last4.trim()) ? prefs.last4.trim() : '';
@@ -2380,7 +2404,35 @@ function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement 
   };
 }
 
+function mergeAnnouncementsIntoMap(
+  baseMap: Record<string, Record<string, unknown>>,
+  incoming: Array<Record<string, unknown>>,
+): Record<string, Record<string, unknown>> {
+  const merged: Record<string, Record<string, unknown>> = { ...baseMap };
+  incoming.forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const mapped = mapServerAnnouncement(raw);
+    if (!mapped.id) return;
+    const isDeleted = raw.deleted === true || raw.deleted === 1;
+    const existing = merged[mapped.id];
+    const incomingTs = Number(mapped.updatedAtMs || mapped.createdAtMs) || 0;
+    const existingTs = Number(existing?.updatedAtMs ?? existing?.updated_at ?? existing?.createdAtMs ?? existing?.created_at) || 0;
+    if (isDeleted) {
+      if (!existing || incomingTs >= existingTs) {
+        delete merged[mapped.id];
+      }
+      return;
+    }
+    if (!existing || incomingTs >= existingTs) {
+      merged[mapped.id] = { ...mapped, active: Boolean(mapped.active), deleted: false };
+    }
+  });
+  return merged;
+}
+
 export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
+  let mergedMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
+
   if (await isApiBackendOnline()) {
     try {
       const resp = await fetch('/api/announcements', { cache: 'no-store' });
@@ -2394,11 +2446,7 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
               apiMap[mapped.id] = { ...mapped, active: Boolean(mapped.active), deleted: false };
             }
           });
-          writeStaticJson('announcements', apiMap);
-          return Object.values(apiMap)
-            .filter((r) => r && r.deleted !== true && r.deleted !== 1 && Boolean(r.active))
-            .map(mapServerAnnouncement)
-            .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
+          mergedMap = apiMap;
         }
       }
     } catch {
@@ -2406,10 +2454,22 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
     }
   } else {
     await syncStaticStoreFromDataJson();
+    mergedMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   }
 
-  const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
-  return Object.values(map)
+  if (!isFirebaseQuotaExceeded()) {
+    try {
+      const fbList = await fetchFirebaseAnnouncements();
+      if (Array.isArray(fbList)) {
+        mergedMap = mergeAnnouncementsIntoMap(mergedMap, fbList);
+      }
+    } catch {
+      // Keep API / static / cached announcements
+    }
+  }
+
+  writeStaticJson('announcements', mergedMap);
+  return Object.values(mergedMap)
     .filter((r) => r && r.deleted !== true && r.deleted !== 1 && Boolean(r.active))
     .map(mapServerAnnouncement)
     .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
@@ -2426,16 +2486,17 @@ export function subscribeAnnouncements(onUpdate: (announcements: CloudAnnounceme
 
   try {
     const fbUnsub = subscribeFirebaseAnnouncements((list) => {
-      const apiMap: Record<string, Record<string, unknown>> = {};
+      const allMap: Record<string, Record<string, unknown>> = {};
       list.forEach((raw) => {
         const mapped = mapServerAnnouncement(raw);
-        if (mapped.id && mapped.active && !raw.deleted && raw.deleted !== 1) {
-          apiMap[mapped.id] = { ...mapped, deleted: false };
+        if (mapped.id && !raw.deleted && raw.deleted !== 1) {
+          allMap[mapped.id] = { ...mapped, active: Boolean(mapped.active), deleted: false };
         }
       });
-      writeStaticJson('announcements', apiMap);
+      writeStaticJson('announcements', allMap);
       onUpdate(
-        Object.values(apiMap)
+        Object.values(allMap)
+          .filter((r) => r && r.deleted !== true && r.deleted !== 1 && Boolean(r.active))
           .map(mapServerAnnouncement)
           .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs)),
       );
@@ -2451,6 +2512,8 @@ export function subscribeAnnouncements(onUpdate: (announcements: CloudAnnounceme
 }
 
 export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
+  let mergedMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
+
   if (await isApiBackendOnline()) {
     try {
       const resp = await fetch('/api/announcements', { cache: 'no-store' });
@@ -2460,9 +2523,11 @@ export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
           const apiMap: Record<string, Record<string, unknown>> = {};
           json.announcements.forEach((a) => {
             const mapped = mapServerAnnouncement(a);
-            if (mapped.id) apiMap[mapped.id] = { ...mapped, deleted: false };
+            if (mapped.id && !a.deleted && a.deleted !== 1) {
+              apiMap[mapped.id] = { ...mapped, active: Boolean(mapped.active), deleted: false };
+            }
           });
-          writeStaticJson('announcements', apiMap);
+          mergedMap = apiMap;
         }
       }
     } catch {
@@ -2470,13 +2535,267 @@ export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
     }
   } else {
     await syncStaticStoreFromDataJson();
+    mergedMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   }
 
-  const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
-  return Object.values(map)
-    .filter((r) => r && r.deleted !== true)
+  if (!isFirebaseQuotaExceeded()) {
+    try {
+      const fbList = await fetchFirebaseAnnouncements();
+      if (Array.isArray(fbList)) {
+        mergedMap = mergeAnnouncementsIntoMap(mergedMap, fbList);
+      }
+    } catch {
+      // Keep API / static / cached announcements
+    }
+  }
+
+  writeStaticJson('announcements', mergedMap);
+  return Object.values(mergedMap)
+    .filter((r) => r && r.deleted !== true && r.deleted !== 1)
     .map(mapServerAnnouncement)
     .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
+}
+
+// ==================== CANCELLED LESSONS ====================
+export interface CancelledLesson {
+  id: string;
+  date: string;
+  slotNo: number;
+  targetProg: 'tr' | 'en';
+  reason: string;
+  updatedAtMs: number;
+}
+
+export function buildCancelledLessonId(
+  targetProg: 'tr' | 'en',
+  date: string,
+  slotNo: number,
+): string {
+  const cleanProg: 'tr' | 'en' = targetProg === 'en' ? 'en' : 'tr';
+  const cleanDate = String(date || '').trim().replace(/\./g, '-');
+  const cleanSlot = Math.max(1, Math.min(20, Math.floor(Number(slotNo) || 1)));
+  return `${cleanProg}_${cleanDate}_${cleanSlot}`;
+}
+
+function mapServerCancelledLesson(raw: Record<string, unknown>): CancelledLesson | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const date = String(raw.date || '').trim();
+  const slotNo = Math.floor(Number(raw.slotNo ?? raw.slot_no) || 0);
+  const rawProg = raw.targetProg ?? raw.target_prog;
+  const targetProg: 'tr' | 'en' = rawProg === 'en' ? 'en' : 'tr';
+  if (!/^\d{2}\.\d{2}\.\d{4}$/.test(date) || slotNo < 1 || slotNo > 20) return null;
+  const id =
+    typeof raw.id === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(raw.id.trim())
+      ? raw.id.trim()
+      : buildCancelledLessonId(targetProg, date, slotNo);
+  return {
+    id,
+    date,
+    slotNo,
+    targetProg,
+    reason: String(raw.reason || '').trim().slice(0, 200),
+    updatedAtMs: Number(raw.updatedAtMs ?? raw.updated_at) || 0,
+  };
+}
+
+function sortCancelledLessons(list: CancelledLesson[]): CancelledLesson[] {
+  return [...list].sort((a, b) => {
+    const [ad, am, ay] = a.date.split('.').map(Number);
+    const [bd, bm, by] = b.date.split('.').map(Number);
+    const aKey = (ay || 0) * 10000 + (am || 0) * 100 + (ad || 0);
+    const bKey = (by || 0) * 10000 + (bm || 0) * 100 + (bd || 0);
+    if (aKey !== bKey) return aKey - bKey;
+    if (a.slotNo !== b.slotNo) return a.slotNo - b.slotNo;
+    return a.targetProg.localeCompare(b.targetProg);
+  });
+}
+
+export async function loadCancelledLessons(): Promise<CancelledLesson[]> {
+  const mergedMap: Record<string, CancelledLesson> = {};
+  const localMap = readStaticJson<Record<string, Record<string, unknown>>>('cancelled_lessons', {});
+  Object.values(localMap).forEach((raw) => {
+    const mapped = mapServerCancelledLesson(raw);
+    if (mapped) mergedMap[mapped.id] = mapped;
+  });
+
+  if (await isApiBackendOnline()) {
+    try {
+      const resp = await fetch('/api/cancelled-lessons', { cache: 'no-store' });
+      if (resp.ok) {
+        const json = (await resp.json()) as { cancelledLessons?: Record<string, unknown>[] };
+        if (Array.isArray(json.cancelledLessons)) {
+          Object.keys(mergedMap).forEach((k) => delete mergedMap[k]);
+          json.cancelledLessons.forEach((raw) => {
+            const mapped = mapServerCancelledLesson(raw);
+            if (mapped) mergedMap[mapped.id] = mapped;
+          });
+        }
+      }
+    } catch {
+      // Fallback to local / Firestore cache
+    }
+  } else {
+    await syncStaticStoreFromDataJson();
+    const refreshed = readStaticJson<Record<string, Record<string, unknown>>>('cancelled_lessons', {});
+    Object.keys(mergedMap).forEach((k) => delete mergedMap[k]);
+    Object.values(refreshed).forEach((raw) => {
+      const mapped = mapServerCancelledLesson(raw);
+      if (mapped) mergedMap[mapped.id] = mapped;
+    });
+  }
+
+  if (!isFirebaseQuotaExceeded()) {
+    try {
+      const fbList = await fetchFirebaseCancelledLessons();
+      if (Array.isArray(fbList)) {
+        fbList.forEach((raw) => {
+          const mapped = mapServerCancelledLesson(raw as unknown as Record<string, unknown>);
+          if (!mapped) return;
+          const existing = mergedMap[mapped.id];
+          if (!existing || mapped.updatedAtMs >= existing.updatedAtMs) {
+            mergedMap[mapped.id] = mapped;
+          }
+        });
+      }
+    } catch {
+      // Keep API / static cache
+    }
+  }
+
+  writeStaticJson('cancelled_lessons', mergedMap);
+  return sortCancelledLessons(Object.values(mergedMap));
+}
+
+export function subscribeCancelledLessons(
+  onUpdate: (items: CancelledLesson[]) => void,
+): Unsubscribe {
+  void loadCancelledLessons().then(onUpdate);
+  const unsubs: Unsubscribe[] = [];
+  unsubs.push(
+    addSseListener('cancelled_lessons', () => {
+      void loadCancelledLessons().then(onUpdate);
+    }),
+  );
+
+  try {
+    const fbUnsub = subscribeFirebaseCancelledLessons((list) => {
+      const nextMap: Record<string, CancelledLesson> = {};
+      list.forEach((raw) => {
+        const mapped = mapServerCancelledLesson(raw as unknown as Record<string, unknown>);
+        if (mapped) nextMap[mapped.id] = mapped;
+      });
+      writeStaticJson('cancelled_lessons', nextMap);
+      onUpdate(sortCancelledLessons(Object.values(nextMap)));
+    });
+    unsubs.push(fbUnsub);
+  } catch {}
+
+  return () => {
+    unsubs.forEach((u) => {
+      try { u(); } catch {}
+    });
+  };
+}
+
+export async function saveCancelledLesson(
+  input: {
+    date: string;
+    slotNo: number;
+    targetProg: 'tr' | 'en';
+    reason?: string;
+  },
+  adminSecret?: string,
+): Promise<CancelledLesson> {
+  const secret = resolveAdminWriteSecret(adminSecret);
+  const cleanDate = String(input.date || '').trim();
+  const cleanSlot = Math.floor(Number(input.slotNo) || 0);
+  const cleanProg: 'tr' | 'en' = input.targetProg === 'en' ? 'en' : 'tr';
+  if (!/^\d{2}\.\d{2}\.\d{4}$/.test(cleanDate) || cleanSlot < 1 || cleanSlot > 20) {
+    throw new Error('INVALID_CANCELLED_LESSON');
+  }
+  const cleanReason = String(input.reason || '').trim().slice(0, 200);
+  const id = buildCancelledLessonId(cleanProg, cleanDate, cleanSlot);
+  const now = Date.now();
+  const saved: CancelledLesson = {
+    id,
+    date: cleanDate,
+    slotNo: cleanSlot,
+    targetProg: cleanProg,
+    reason: cleanReason,
+    updatedAtMs: now,
+  };
+
+  const map = readStaticJson<Record<string, CancelledLesson>>('cancelled_lessons', {});
+  map[id] = saved;
+  writeStaticJson('cancelled_lessons', map);
+  emitLocalTopic('cancelled_lessons', { action: 'save', id });
+  void saveFirebaseCancelledLesson(saved);
+
+  if (await isApiBackendOnline()) {
+    const resp = await fetch('/api/cancelled-lessons', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': secret,
+      },
+      body: JSON.stringify({
+        date: cleanDate,
+        slotNo: cleanSlot,
+        targetProg: cleanProg,
+        reason: cleanReason,
+      }),
+    });
+    if (!resp.ok) {
+      throw new Error('CANCELLED_LESSON_SAVE_FAILED');
+    }
+    const json = (await resp.json().catch(() => ({}))) as {
+      cancelledLesson?: Record<string, unknown>;
+    };
+    if (json.cancelledLesson) {
+      const mapped = mapServerCancelledLesson(json.cancelledLesson);
+      if (mapped) {
+        map[mapped.id] = mapped;
+        writeStaticJson('cancelled_lessons', map);
+        emitLocalTopic('cancelled_lessons', { action: 'save', id: mapped.id });
+        bumpAppVersion();
+        return mapped;
+      }
+    }
+  }
+
+  bumpAppVersion();
+  return saved;
+}
+
+export async function deleteCancelledLesson(
+  id: string,
+  adminSecret?: string,
+): Promise<void> {
+  const cleanId = String(id || '').trim();
+  if (!/^[a-zA-Z0-9_-]{1,128}$/.test(cleanId)) return;
+  const secret = resolveAdminWriteSecret(adminSecret);
+
+  const map = readStaticJson<Record<string, CancelledLesson>>('cancelled_lessons', {});
+  if (map[cleanId]) {
+    delete map[cleanId];
+    writeStaticJson('cancelled_lessons', map);
+  }
+  emitLocalTopic('cancelled_lessons', { action: 'delete', id: cleanId });
+  void deleteFirebaseCancelledLesson(cleanId);
+
+  if (await isApiBackendOnline()) {
+    const resp = await fetch(`/api/cancelled-lessons/${encodeURIComponent(cleanId)}`, {
+      method: 'DELETE',
+      headers: {
+        'X-Admin-Secret': secret,
+      },
+    });
+    if (!resp.ok) {
+      throw new Error('CANCELLED_LESSON_DELETE_FAILED');
+    }
+  }
+
+  bumpAppVersion();
 }
 
 export async function saveAnnouncement(
@@ -3256,8 +3575,7 @@ export async function deleteCustomStudent(
   );
   const effectiveProg: 'tr' | 'en' =
     studentHint?.prog === 'en' || rosterEntry?.prog === 'en' || allowMeta?.prog === 'en' ? 'en' : 'tr';
-  const effectiveLabGroup =
-    effectiveProg === 'en' ? '' : normalizeLabGroupPref(studentHint?.myLabGroup ?? '');
+  const effectiveLabGroup = normalizeLabGroupPref(studentHint?.myLabGroup ?? '');
   const effectiveSource: 'allowlist' | 'custom' =
     allowMeta || rosterEntry || studentHint?.source === 'allowlist' ? 'allowlist' : 'custom';
   const resolvedName =
@@ -3467,7 +3785,7 @@ export async function lookupStudentForAdmin(rawSid: string): Promise<AdminStuden
     group: baseGroup,
     prog: baseProg,
     myMbuGroup: prefsData ? normalizeMbuGroupPref(prefMbu) : baseGroup,
-    myLabGroup: baseProg === 'en' ? '' : (prefsData ? normalizeLabGroupPref(prefLab) : normalizeLabGroupPref(customLab)),
+    myLabGroup: prefsData ? normalizeLabGroupPref(prefLab) : normalizeLabGroupPref(customLab),
     otherGroupMode: prefsData ? normalizeOtherGroupModePref(prefMode) : 'dim',
     lang: prefsData ? (normalizeLangPref(prefsData.lang) || baseProg) : baseProg,
     source: allowMatch ? 'allowlist' : 'custom',
@@ -3621,15 +3939,12 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
         group: baseGroup,
         prog: baseProg,
         myMbuGroup: prefs ? normalizeMbuGroupPref(prefs.my_mbu_group) || baseGroup : baseGroup,
-        myLabGroup:
-          effectiveLang === 'en'
-            ? ''
-            : prefs
-              ? normalizeLabGroupPref(prefs.my_lab_group)
-              : normalizeLabGroupPref(
-                  (custom && custom.deleted !== 1 ? custom.lab_group : undefined) ??
-                    (dir && dir.deleted !== 1 ? dir.lab_group : undefined),
-                ),
+        myLabGroup: prefs
+          ? normalizeLabGroupPref(prefs.my_lab_group)
+          : normalizeLabGroupPref(
+              (custom && custom.deleted !== 1 ? custom.lab_group : undefined) ??
+                (dir && dir.deleted !== 1 ? dir.lab_group : undefined),
+            ),
         otherGroupMode: prefs ? normalizeOtherGroupModePref(prefs.other_group_mode) : 'dim',
         lang: effectiveLang,
         source: 'allowlist',
@@ -3707,12 +4022,9 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
       group: baseGroup,
       prog: baseProg,
       myMbuGroup: prefs ? normalizeMbuGroupPref(prefs.my_mbu_group) : baseGroup,
-      myLabGroup:
-        effectiveLang === 'en'
-          ? ''
-          : prefs
-            ? normalizeLabGroupPref(prefs.my_lab_group)
-            : normalizeLabGroupPref(custom?.lab_group ?? dir?.lab_group),
+      myLabGroup: prefs
+        ? normalizeLabGroupPref(prefs.my_lab_group)
+        : normalizeLabGroupPref(custom?.lab_group ?? dir?.lab_group),
       otherGroupMode: prefs ? normalizeOtherGroupModePref(prefs.other_group_mode) : 'dim',
       lang: effectiveLang,
       source: allowMeta ? 'allowlist' : 'custom',
@@ -3742,7 +4054,7 @@ export async function loadAllAdminStudents(adminSecret?: string): Promise<AdminS
       group: baseGroup,
       prog: baseProg,
       myMbuGroup: normalizeMbuGroupPref(prefs.my_mbu_group),
-      myLabGroup: baseProg === 'en' ? '' : normalizeLabGroupPref(prefs.my_lab_group),
+      myLabGroup: normalizeLabGroupPref(prefs.my_lab_group),
       otherGroupMode: normalizeOtherGroupModePref(prefs.other_group_mode),
       lang: normalizeLangPref(prefs.lang) || baseProg,
       source: allowMeta ? 'allowlist' : 'custom',
@@ -3779,7 +4091,7 @@ export async function adminSaveStudentSettings(
 
   const mbu = normalizeMbuGroupPref(input.myMbuGroup);
   const lang: 'tr' | 'en' = input.lang === 'en' ? 'en' : 'tr';
-  const lab = lang === 'en' ? '' : normalizeLabGroupPref(input.myLabGroup);
+  const lab = normalizeLabGroupPref(input.myLabGroup);
   const mode = normalizeOtherGroupModePref(input.otherGroupMode);
   const authHash = input.authHash && isValidAuthHash(input.authHash) ? input.authHash : '';
   const cleanSid = typeof input.studentId === 'string' && /^01\d{9}$/.test(input.studentId.trim()) ? input.studentId.trim() : '';
@@ -3962,6 +4274,7 @@ export async function exportSiteDataJsonObject(githubSourceOverride?: GithubSour
   });
   const savedSecurity = readStaticJson<Partial<StaticAdminSecurityConfig> | null>('security', null);
   const annMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
+  const cancelMap = readStaticJson<Record<string, Record<string, unknown>>>('cancelled_lessons', {});
   const matMap = readStaticJson<Record<string, Record<string, unknown>>>('materials', {});
   const customMap = readStaticJson<Record<string, Record<string, unknown>>>('custom_students', {});
   const dirMap = readStaticJson<Record<string, Record<string, unknown>>>('admin_dir', {});
@@ -3971,6 +4284,12 @@ export async function exportSiteDataJsonObject(githubSourceOverride?: GithubSour
     .filter((a) => a && a.deleted !== true)
     .map(mapServerAnnouncement)
     .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
+
+  const cancelledLessons = sortCancelledLessons(
+    Object.values(cancelMap)
+      .map(mapServerCancelledLesson)
+      .filter((x): x is CancelledLesson => Boolean(x)),
+  );
 
   const materials = Object.values(matMap)
     .filter((m) => m && m.deleted !== true && m.deleted !== 1)
@@ -4012,6 +4331,7 @@ export async function exportSiteDataJsonObject(githubSourceOverride?: GithubSour
         }
       : {}),
     announcements: announcements as unknown as Array<Record<string, unknown>>,
+    cancelledLessons: cancelledLessons as unknown as Array<Record<string, unknown>>,
     materials: materials as unknown as Array<Record<string, unknown>>,
     customStudents: customMap,
     studentDirectory: dirMap,

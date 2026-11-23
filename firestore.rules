@@ -57,11 +57,30 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    function isValidCancelledLesson(data) {
+      return data.keys().hasAll(['id', 'date', 'slotNo', 'targetProg', 'reason', 'updatedAtMs']) &&
+        data.keys().hasOnly(['id', 'date', 'slotNo', 'targetProg', 'reason', 'updatedAtMs']) &&
+        data.id is string && data.id.size() > 0 && data.id.size() <= 128 && data.id.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.date is string && data.date.size() >= 8 && data.date.size() <= 20 &&
+        (data.slotNo is int || data.slotNo is float) && data.slotNo >= 1 && data.slotNo <= 20 &&
+        data.targetProg is string && data.targetProg.size() == 2 && data.targetProg in ['tr', 'en'] &&
+        data.reason is string && data.reason.size() <= 200 &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
     // Cross-device student preferences (ultra-compact {g,l,m,p,t})
     match /studentPrefs/{cloudKey} {
       allow get: if isValidCloudKey(cloudKey);
       allow list: if false;
       allow create, update: if isValidCloudKey(cloudKey) && isValidStudentPrefs(request.resource.data);
+    }
+
+    // Cancelled lessons synced across all devices
+    match /cancelledLessons/{lessonId} {
+      allow get: if isValidId(lessonId);
+      allow list: if true;
+      allow create, update: if isValidId(lessonId) && isValidCancelledLesson(request.resource.data);
+      allow delete: if isValidId(lessonId);
     }
   }
 }
