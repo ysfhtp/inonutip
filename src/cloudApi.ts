@@ -39,6 +39,10 @@ import {
   fetchFirebaseCancelledLessons,
   saveFirebaseCancelledLesson,
   deleteFirebaseCancelledLesson,
+  subscribeFirebaseExamCountdowns,
+  fetchFirebaseExamCountdowns,
+  saveFirebaseExamCountdown,
+  deleteFirebaseExamCountdown,
   subscribeFirebaseStudentDirectory,
   saveFirebaseStudentDirectory,
   fetchFirebaseStudentDirectory,
@@ -81,6 +85,17 @@ export interface CloudAnnouncement {
   targetGroup: '' | 'I' | 'II' | 'III' | 'IV' | 'V';
   targetProg: '' | 'tr' | 'en';
   createdAtMs: number;
+  updatedAtMs: number;
+  expiresAtMs?: number;
+}
+
+export interface CloudExamCountdown {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  note: string;
+  targetProg: '' | 'tr' | 'en';
   updatedAtMs: number;
 }
 
@@ -276,6 +291,8 @@ function initCrossTabSync(): void {
         notifyLocalSubscribersOnly('announcements', { source: 'storage' });
       } else if (subKey === 'cancelled_lessons') {
         notifyLocalSubscribersOnly('cancelled_lessons', { source: 'storage' });
+      } else if (subKey === 'exam_countdowns') {
+        notifyLocalSubscribersOnly('exam_countdowns', { source: 'storage' });
       } else if (subKey === 'custom_students' || subKey === 'admin_dir') {
         notifyLocalSubscribersOnly('student_status', { source: 'storage' });
       } else if (subKey === 'version') {
@@ -2391,6 +2408,7 @@ export async function saveCloudStudentPrefs(
 
 // ==================== ANNOUNCEMENTS ====================
 function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement {
+  const rawExp = Number(raw.expiresAtMs ?? raw.expires_at ?? 0) || 0;
   return {
     id: String(raw.id || ''),
     title: String(raw.title || ''),
@@ -2401,6 +2419,7 @@ function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement 
     targetProg: normalizeLangPref(raw.targetProg ?? raw.target_prog),
     createdAtMs: Number(raw.createdAtMs ?? raw.created_at) || 0,
     updatedAtMs: Number(raw.updatedAtMs ?? raw.updated_at) || 0,
+    expiresAtMs: rawExp > 0 ? rawExp : 0,
   };
 }
 
@@ -2469,9 +2488,11 @@ export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
   }
 
   writeStaticJson('announcements', mergedMap);
+  const nowMs = Date.now();
   return Object.values(mergedMap)
     .filter((r) => r && r.deleted !== true && r.deleted !== 1 && Boolean(r.active))
     .map(mapServerAnnouncement)
+    .filter((a) => !a.expiresAtMs || a.expiresAtMs > nowMs)
     .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs));
 }
 
@@ -2494,10 +2515,12 @@ export function subscribeAnnouncements(onUpdate: (announcements: CloudAnnounceme
         }
       });
       writeStaticJson('announcements', allMap);
+      const nowMs = Date.now();
       onUpdate(
         Object.values(allMap)
           .filter((r) => r && r.deleted !== true && r.deleted !== 1 && Boolean(r.active))
           .map(mapServerAnnouncement)
+          .filter((a) => !a.expiresAtMs || a.expiresAtMs > nowMs)
           .sort((a, b) => (b.updatedAtMs || b.createdAtMs) - (a.updatedAtMs || a.createdAtMs)),
       );
     });
@@ -2807,6 +2830,7 @@ export async function saveAnnouncement(
     active: boolean;
     targetGroup?: unknown;
     targetProg?: unknown;
+    expiresAtMs?: unknown;
   },
   adminSecret?: string,
 ): Promise<CloudAnnouncement> {
@@ -2822,6 +2846,7 @@ export async function saveAnnouncement(
       ? input.id.trim()
       : `ann_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const now = Date.now();
+  const cleanExpires = Math.max(0, Math.floor(Number(input.expiresAtMs) || 0));
   const saved: CloudAnnouncement = {
     id,
     title: cleanTitle,
@@ -2832,6 +2857,7 @@ export async function saveAnnouncement(
     targetProg: normalizeLangPref(input.targetProg),
     createdAtMs: now,
     updatedAtMs: now,
+    expiresAtMs: cleanExpires,
   };
 
   const map = readStaticJson<Record<string, CloudAnnouncement & { deleted?: boolean }>>('announcements', {});
@@ -2850,6 +2876,7 @@ export async function saveAnnouncement(
     targetProg: saved.targetProg,
     createdAtMs: saved.createdAtMs,
     updatedAtMs: saved.updatedAtMs,
+    expiresAtMs: saved.expiresAtMs || 0,
     deleted: false,
   });
 
@@ -2868,6 +2895,7 @@ export async function saveAnnouncement(
         active: Boolean(input.active),
         targetGroup: normalizeMbuGroupPref(input.targetGroup),
         targetProg: normalizeLangPref(input.targetProg),
+        expiresAtMs: saved.expiresAtMs || 0,
       }),
     });
     if (!resp.ok) {
@@ -2878,6 +2906,7 @@ export async function saveAnnouncement(
     };
     if (json.announcement) {
       const s = mapServerAnnouncement(json.announcement);
+      if (!s.expiresAtMs && saved.expiresAtMs) s.expiresAtMs = saved.expiresAtMs;
       map[s.id] = { ...s, deleted: false };
       writeStaticJson('announcements', map);
       emitLocalTopic('announcements', { action: 'save', id: s.id });
@@ -2888,6 +2917,134 @@ export async function saveAnnouncement(
 
   bumpAppVersion();
   return saved;
+}
+
+// ==================== EXAM COUNTDOWNS ====================
+function normalizeExamCountdownRecord(raw: Record<string, unknown>): CloudExamCountdown | null {
+  const id = String(raw.id || '').trim();
+  const title = String(raw.title || '').trim().slice(0, 120);
+  const date = String(raw.date || '').trim().slice(0, 20);
+  if (!id || !/^[a-zA-Z0-9_-]{1,128}$/.test(id) || !title || date.length < 8) return null;
+  const p = String(raw.targetProg || '').trim().toLowerCase();
+  const targetProg: '' | 'tr' | 'en' = p === 'en' ? 'en' : p === 'tr' ? 'tr' : '';
+  return {
+    id,
+    title,
+    date,
+    time: String(raw.time || '').trim().slice(0, 32),
+    note: String(raw.note || '').trim().slice(0, 240),
+    targetProg,
+    updatedAtMs: Math.max(0, Number(raw.updatedAtMs) || 0),
+  };
+}
+
+export async function loadExamCountdowns(): Promise<CloudExamCountdown[]> {
+  let map = readStaticJson<Record<string, CloudExamCountdown>>('exam_countdowns', {});
+  if (!isFirebaseQuotaExceeded()) {
+    try {
+      const fbList = await fetchFirebaseExamCountdowns();
+      if (Array.isArray(fbList)) {
+        const nextMap: Record<string, CloudExamCountdown> = {};
+        fbList.forEach((item) => {
+          const rec = normalizeExamCountdownRecord(item as unknown as Record<string, unknown>);
+          if (rec) nextMap[rec.id] = rec;
+        });
+        map = nextMap;
+        writeStaticJson('exam_countdowns', map);
+      }
+    } catch {
+      // Keep local cache
+    }
+  }
+  return Object.values(map)
+    .map((r) => normalizeExamCountdownRecord(r as unknown as Record<string, unknown>))
+    .filter((r): r is CloudExamCountdown => Boolean(r))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+}
+
+export function subscribeExamCountdowns(
+  onUpdate: (items: CloudExamCountdown[]) => void,
+): () => void {
+  void loadExamCountdowns().then(onUpdate);
+  const unsubFb = subscribeFirebaseExamCountdowns((fbItems) => {
+    const nextMap: Record<string, CloudExamCountdown> = {};
+    fbItems.forEach((item) => {
+      const rec = normalizeExamCountdownRecord(item as unknown as Record<string, unknown>);
+      if (rec) nextMap[rec.id] = rec;
+    });
+    writeStaticJson('exam_countdowns', nextMap);
+    onUpdate(
+      Object.values(nextMap).sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)),
+    );
+  });
+  const onLocal = () => {
+    const map = readStaticJson<Record<string, CloudExamCountdown>>('exam_countdowns', {});
+    onUpdate(
+      Object.values(map)
+        .map((r) => normalizeExamCountdownRecord(r as unknown as Record<string, unknown>))
+        .filter((r): r is CloudExamCountdown => Boolean(r))
+        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)),
+    );
+  };
+  const unsubLocal = addSseListener('exam_countdowns', onLocal);
+  return () => {
+    unsubFb();
+    unsubLocal();
+  };
+}
+
+export async function saveExamCountdown(
+  input: {
+    id?: string;
+    title: string;
+    date: string;
+    time?: string;
+    note?: string;
+    targetProg?: unknown;
+  },
+  adminSecret?: string,
+): Promise<CloudExamCountdown> {
+  resolveAdminWriteSecret(adminSecret);
+  const cleanTitle = String(input.title || '').trim().slice(0, 120);
+  const cleanDate = String(input.date || '').trim().slice(0, 20);
+  if (!cleanTitle || cleanDate.length < 8) {
+    throw new Error('Exam title and date are required.');
+  }
+  const id =
+    typeof input.id === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(input.id.trim())
+      ? input.id.trim()
+      : `exam_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const p = String(input.targetProg || '').trim().toLowerCase();
+  const saved: CloudExamCountdown = {
+    id,
+    title: cleanTitle,
+    date: cleanDate,
+    time: String(input.time || '').trim().slice(0, 32),
+    note: String(input.note || '').trim().slice(0, 240),
+    targetProg: p === 'en' ? 'en' : p === 'tr' ? 'tr' : '',
+    updatedAtMs: Date.now(),
+  };
+  const map = readStaticJson<Record<string, CloudExamCountdown>>('exam_countdowns', {});
+  map[id] = saved;
+  writeStaticJson('exam_countdowns', map);
+  emitLocalTopic('exam_countdowns', { action: 'save', id });
+  await saveFirebaseExamCountdown(saved);
+  bumpAppVersion();
+  return saved;
+}
+
+export async function deleteExamCountdown(id: string, adminSecret?: string): Promise<void> {
+  resolveAdminWriteSecret(adminSecret);
+  const cleanId = String(id || '').trim();
+  if (!cleanId) return;
+  const map = readStaticJson<Record<string, CloudExamCountdown>>('exam_countdowns', {});
+  if (map[cleanId]) {
+    delete map[cleanId];
+    writeStaticJson('exam_countdowns', map);
+  }
+  emitLocalTopic('exam_countdowns', { action: 'delete', id: cleanId });
+  await deleteFirebaseExamCountdown(cleanId);
+  bumpAppVersion();
 }
 
 export async function deleteAnnouncement(id: string, adminSecret?: string): Promise<void> {

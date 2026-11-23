@@ -1939,7 +1939,62 @@ export function initInonuApp() {
     row.appendChild(leftCol);
     row.appendChild(dividerBar);
     row.appendChild(rightCol);
-    row.appendChild(noteBtn);
+
+    const activeAdminSession = getActiveAuthSession();
+    if (activeAdminSession && activeAdminSession.isAdmin) {
+      const actionCol = document.createElement('div');
+      actionCol.className = 'self-center shrink-0 flex items-center gap-0.5';
+
+      const adminQuickBtn = document.createElement('button');
+      adminQuickBtn.type = 'button';
+      adminQuickBtn.setAttribute('aria-label', state.lang === 'en' ? 'Admin quick actions' : 'Yönetici hızlı işlem');
+      adminQuickBtn.setAttribute('title', state.lang === 'en' ? 'Admin quick actions' : 'Yönetici hızlı işlem');
+      adminQuickBtn.className = `touch-target-44 w-8 h-8 rounded-xl flex items-center justify-center transition ${isCancelled ? 'text-rose-500 bg-rose-500/12 hover:bg-rose-500/20' : 'text-amber-600/80 dark:text-amber-400/85 hover:bg-amber-500/12'}`;
+      adminQuickBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>';
+      adminQuickBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openAdminSlotQuickModal(slot);
+      });
+
+      actionCol.appendChild(adminQuickBtn);
+      actionCol.appendChild(noteBtn);
+      row.appendChild(actionCol);
+
+      // Long-press on card for quick admin actions (touch)
+      let lpTimer = null;
+      let lpStartX = 0;
+      let lpStartY = 0;
+      card.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        const tgt = e.target;
+        if (tgt && typeof tgt.closest === 'function' && tgt.closest('button, a, input')) return;
+        lpStartX = e.touches[0].clientX;
+        lpStartY = e.touches[0].clientY;
+        lpTimer = setTimeout(() => {
+          lpTimer = null;
+          triggerHaptic('selection');
+          openAdminSlotQuickModal(slot);
+        }, 520);
+      }, { passive: true });
+      card.addEventListener('touchmove', (e) => {
+        if (!lpTimer || !e.touches || e.touches.length !== 1) return;
+        if (Math.abs(e.touches[0].clientX - lpStartX) > 10 || Math.abs(e.touches[0].clientY - lpStartY) > 10) {
+          clearTimeout(lpTimer);
+          lpTimer = null;
+        }
+      }, { passive: true });
+      const clearLp = () => {
+        if (lpTimer) {
+          clearTimeout(lpTimer);
+          lpTimer = null;
+        }
+      };
+      card.addEventListener('touchend', clearLp, { passive: true });
+      card.addEventListener('touchcancel', clearLp, { passive: true });
+    } else {
+      row.appendChild(noteBtn);
+    }
+
     card.appendChild(row);
 
     return card;
@@ -2850,6 +2905,7 @@ export function initInonuApp() {
     });
 
     const examsContainer = document.getElementById('examsListContainer');
+    const countdownBanner = document.getElementById('examCountdownBanner');
     examsContainer.innerHTML = '';
 
     const toMinutes = (t) => {
@@ -2857,6 +2913,8 @@ export function initInonuApp() {
       return m ? Number(m[1]) * 60 + Number(m[2]) : null;
     };
 
+    const activeProg = state.lang === 'en' ? 'en' : 'tr';
+    const isEn = state.lang === 'en';
     const mergedExams = [];
     for (const day of days) {
       for (const slot of day.slots) {
@@ -2868,13 +2926,13 @@ export function initInonuApp() {
           /SINAV|EXAM|QUIZ|DEĞERLENDİRME|EVALUATION/i.test(slot.title || '')
         ) {
           const titleText = String(slot.title || '').trim();
-          const titleKey = titleText.toLocaleUpperCase(state.lang === 'en' ? 'en-US' : 'tr-TR');
+          const titleKey = titleText.toLocaleUpperCase(isEn ? 'en-US' : 'tr-TR');
           const parts = String(slot.time || '').split('-').map((p) => p.trim());
           const startTime = parts[0] || '';
           const endTime = parts[1] || '';
 
           const existing = mergedExams.find(
-            (item) => item.day.date === day.date && item.titleKey === titleKey
+            (item) => item.date === day.date && item.titleKey === titleKey
           );
 
           if (existing) {
@@ -2890,15 +2948,107 @@ export function initInonuApp() {
             }
           } else {
             mergedExams.push({
-              day,
+              date: day.date,
+              hasScheduleDay: true,
               title: titleText,
               titleKey,
               startTime,
               endTime,
               rawTime: String(slot.time || '').trim(),
+              note: '',
+              managed: false,
             });
           }
         }
+      }
+    }
+
+    // Merge Admin-managed exam countdowns
+    const customExams = (Array.isArray(managedExamsList) ? managedExamsList : []).filter(
+      (ex) => ex && (!ex.targetProg || ex.targetProg === activeProg)
+    );
+    customExams.forEach((ex) => {
+      const parts = String(ex.time || '').split('-').map((p) => p.trim());
+      const tKey = String(ex.title || '').trim().toLocaleUpperCase(isEn ? 'en-US' : 'tr-TR');
+      const existing = mergedExams.find((m) => m.date === ex.date && m.titleKey === tKey);
+      if (existing) {
+        if (ex.time) {
+          existing.startTime = parts[0] || '';
+          existing.endTime = parts[1] || '';
+          existing.rawTime = ex.time;
+        }
+        if (ex.note) existing.note = ex.note;
+        existing.managed = true;
+      } else {
+        mergedExams.push({
+          date: ex.date,
+          hasScheduleDay: days.some((d) => d.date === ex.date),
+          title: ex.title,
+          titleKey: tKey,
+          startTime: parts[0] || '',
+          endTime: parts[1] || '',
+          rawTime: ex.time || '',
+          note: ex.note || '',
+          managed: true,
+        });
+      }
+    });
+
+    mergedExams.sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || ''));
+
+    const parseExamTargetMs = (item) => {
+      const mDate = String(item.date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!mDate) return null;
+      const tMatch = String(item.startTime || item.rawTime || '09:00').match(/(\d{1,2})[.:](\d{2})/);
+      const hh = tMatch ? Number(tMatch[1]) : 9;
+      const mm = tMatch ? Number(tMatch[2]) : 0;
+      return new Date(Number(mDate[1]), Number(mDate[2]) - 1, Number(mDate[3]), hh, mm, 0, 0).getTime();
+    };
+
+    const nowMs = Date.now();
+    const nextUpcoming = mergedExams
+      .map((item) => ({ item, targetMs: parseExamTargetMs(item) }))
+      .filter((x) => x.targetMs !== null && x.targetMs > nowMs - 2 * 60 * 60 * 1000)
+      .sort((a, b) => a.targetMs - b.targetMs)[0] || null;
+
+    if (countdownBanner) {
+      if (nextUpcoming) {
+        const diffMs = Math.max(0, nextUpcoming.targetMs - nowMs);
+        const totalMins = Math.floor(diffMs / 60000);
+        const dCount = Math.floor(totalMins / (60 * 24));
+        const hCount = Math.floor((totalMins % (60 * 24)) / 60);
+        const mCount = totalMins % 60;
+        const dispTime = nextUpcoming.item.startTime && nextUpcoming.item.endTime
+          ? `${nextUpcoming.item.startTime}-${nextUpcoming.item.endTime}`
+          : (nextUpcoming.item.rawTime || '');
+        countdownBanner.classList.remove('hidden');
+        countdownBanner.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">${isEn ? 'Next Exam Countdown' : 'Yaklaşan Sınav'}</span>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white mt-1 leading-snug">${escapeHtml(nextUpcoming.item.title)}</h3>
+              <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">${escapeHtml(formatDateLong(nextUpcoming.item.date))}${dispTime ? ` • ${escapeHtml(dispTime)}` : ''}</p>
+            </div>
+            <div class="flex items-center gap-1 shrink-0 tabular-nums">
+              <div class="ios-pill-control rounded-xl px-2 py-1 text-center min-w-[42px]">
+                <div class="text-sm font-extrabold text-indigo-600 dark:text-indigo-300 leading-none">${dCount}</div>
+                <div class="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">${isEn ? 'DAY' : 'GÜN'}</div>
+              </div>
+              <div class="ios-pill-control rounded-xl px-2 py-1 text-center min-w-[42px]">
+                <div class="text-sm font-extrabold text-slate-900 dark:text-white leading-none">${String(hCount).padStart(2, '0')}</div>
+                <div class="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">${isEn ? 'HR' : 'SA'}</div>
+              </div>
+              <div class="ios-pill-control rounded-xl px-2 py-1 text-center min-w-[42px]">
+                <div class="text-sm font-extrabold text-slate-900 dark:text-white leading-none">${String(mCount).padStart(2, '0')}</div>
+                <div class="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">${isEn ? 'MIN' : 'DK'}</div>
+              </div>
+            </div>
+          </div>
+          ${nextUpcoming.item.note ? `<p class="text-[11.5px] font-semibold text-rose-600 dark:text-rose-300 bg-rose-500/10 rounded-xl px-2.5 py-1.5 leading-snug">${escapeHtml(nextUpcoming.item.note)}</p>` : ''}
+        `;
+      } else {
+        countdownBanner.classList.add('hidden');
+        countdownBanner.innerHTML = '';
       }
     }
 
@@ -2906,26 +3056,40 @@ export function initInonuApp() {
     mergedExams.forEach((item, examIdx) => {
       const displayTime =
         item.startTime && item.endTime ? `${item.startTime}-${item.endTime}` : item.rawTime;
+      const targetMs = parseExamTargetMs(item);
+      let countdownTag = '';
+      if (targetMs !== null && targetMs > nowMs) {
+        const daysLeft = Math.ceil((targetMs - nowMs) / (24 * 60 * 60 * 1000));
+        countdownTag = daysLeft <= 1
+          ? (isEn ? 'Soon' : 'Yakın')
+          : (isEn ? `${daysLeft}d` : `${daysLeft} gün`);
+      }
       const row = document.createElement('div');
       row.className = `${suppressEntryStagger ? '' : 'ios-stagger-item '}ios-pill-control rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2`;
       if (!suppressEntryStagger) {
         row.style.setProperty('--stagger-delay', `${examBaseDelay + Math.min(examIdx, 8) * 28}ms`);
       }
       row.innerHTML = `
-        <div class="min-w-0">
-          <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400">${escapeHtml(formatDateLong(item.day.date))} • ${escapeHtml(displayTime)}</p>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 tabular-nums">${escapeHtml(formatDateLong(item.date))}${displayTime ? ` • ${escapeHtml(displayTime)}` : ''}</p>
+            ${countdownTag ? `<span class="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-indigo-500/12 text-indigo-600 dark:text-indigo-300 tabular-nums">${escapeHtml(countdownTag)}</span>` : ''}
+          </div>
           <p class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate">${escapeHtml(item.title)}</p>
+          ${item.note ? `<p class="text-[11px] font-medium text-amber-700 dark:text-amber-300 mt-0.5 leading-snug">${escapeHtml(item.note)}</p>` : ''}
         </div>
       `;
-      const goBtn = document.createElement('button');
-      goBtn.type = 'button';
-      goBtn.className = 'ios-press shrink-0 px-2.5 py-1 rounded-full bg-indigo-500/12 text-indigo-600 dark:text-indigo-300 text-xs font-semibold';
-      goBtn.textContent = loc.openBtn;
-      goBtn.addEventListener('click', () => {
-        state.selectedDate = item.day.date;
-        switchTab('daily');
-      });
-      row.appendChild(goBtn);
+      if (item.hasScheduleDay) {
+        const goBtn = document.createElement('button');
+        goBtn.type = 'button';
+        goBtn.className = 'ios-press shrink-0 px-2.5 py-1 rounded-full bg-indigo-500/12 text-indigo-600 dark:text-indigo-300 text-xs font-semibold';
+        goBtn.textContent = loc.openBtn;
+        goBtn.addEventListener('click', () => {
+          state.selectedDate = item.date;
+          switchTab('daily');
+        });
+        row.appendChild(goBtn);
+      }
       examsContainer.appendChild(row);
     });
   }
@@ -4612,7 +4776,9 @@ export function initInonuApp() {
     const studentGroup = state.myMbuGroup || (session ? session.group : '');
     const activeProg = state.lang === 'en' ? 'en' : 'tr';
     const isAdminAllPreview = Boolean(session && session.isAdmin && !state.myMbuGroup);
+    const nowMs = Date.now();
     const visibleAnns = (activeAnnouncementsList || []).filter((ann) => {
+      if (ann.expiresAtMs && Number(ann.expiresAtMs) > 0 && Number(ann.expiresAtMs) <= nowMs) return false;
       if (ann.targetGroup && !isAdminAllPreview && ann.targetGroup !== studentGroup) return false;
       if (ann.targetProg && ann.targetProg !== activeProg) return false;
       return true;
@@ -5783,9 +5949,23 @@ export function initInonuApp() {
     }
   }
 
+  let managedExamsList = [];
+  let examCountdownsUnsub = null;
+  let adminQuickSlotTarget = null;
+
+  function applyLoadedExamCountdownsList(list) {
+    managedExamsList = Array.isArray(list) ? list : [];
+    adminState.exams = [...managedExamsList];
+    if (typeof renderInfoView === 'function' && state.activeTab === 'info') {
+      runWithStaggerSuppressed(() => renderInfoView());
+    }
+    if (typeof renderAdminExamsList === 'function') renderAdminExamsList();
+    if (typeof syncAdminHubSummary === 'function') syncAdminHubSummary();
+  }
+
   // ==================== ADMIN SETTINGS MODAL CONTROLLER ====================
   const adminState = {
-    activeTab: 'announcements',
+    activeTab: 'hub',
     settingsSubTab: 'roster',
     annTargetOpen: false,
     ghConfigOpen: false,
@@ -5794,6 +5974,7 @@ export function initInonuApp() {
     annActive: true,
     annTargetGroup: '',
     annTargetProg: '',
+    annExpiresAtMs: 0,
     annListFilter: '',
     cancelProg: 'tr',
     cancelDate: '',
@@ -5801,6 +5982,10 @@ export function initInonuApp() {
     cancelledLessons: [],
     lastCancelAnimKey: '',
     lastCancelAnimType: '',
+    exams: [],
+    editingExamId: '',
+    examProg: '',
+    deleteConfirmExamId: '',
     matProg: 'tr',
     matMode: 'file',
     matFileObj: null,
@@ -5823,6 +6008,132 @@ export function initInonuApp() {
     deleteConfirmStudentHash: '',
     deleteConfirmMatId: ''
   };
+
+  // Feature 7: Recent Admin Actions + One-Tap Undo History
+  const ADMIN_HISTORY_KEY = 'adminRecentHistoryV1';
+  function loadAdminHistory() {
+    const arr = loadStore(ADMIN_HISTORY_KEY, []);
+    return Array.isArray(arr) ? arr.slice(0, 8) : [];
+  }
+  function saveAdminHistory(items) {
+    saveStore(ADMIN_HISTORY_KEY, Array.isArray(items) ? items.slice(0, 8) : []);
+  }
+  function pushAdminHistory(entry) {
+    if (!entry || !entry.label) return;
+    const list = loadAdminHistory();
+    const item = {
+      id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      ts: Date.now(),
+      label: String(entry.label),
+      sub: String(entry.sub || ''),
+      undoType: entry.undoType || '',
+      undoData: entry.undoData || null,
+    };
+    list.unshift(item);
+    saveAdminHistory(list);
+    renderAdminRecentActivity();
+  }
+  function formatRelativeShort(ts) {
+    const diffSec = Math.max(0, Math.floor((Date.now() - Number(ts || 0)) / 1000));
+    const isEn = state.lang === 'en';
+    if (diffSec < 60) return isEn ? 'just now' : 'az önce';
+    const m = Math.floor(diffSec / 60);
+    if (m < 60) return isEn ? `${m}m` : `${m} dk`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return isEn ? `${h}h` : `${h} sa`;
+    const d = Math.floor(h / 24);
+    return isEn ? `${d}d` : `${d} g`;
+  }
+  async function executeAdminHistoryUndo(item) {
+    const api = window.__INONU_AUTH__;
+    const secret = ensureAdminSecretReady();
+    if (!api || !secret || !item || !item.undoType) return;
+    const isEn = state.lang === 'en';
+    const secArg = secret === 'active' ? undefined : secret;
+    try {
+      if (item.undoType === 'cancel_slot' && item.undoData?.id) {
+        await api.deleteCancelledLesson(item.undoData.id, secArg);
+        applyLoadedCancelledLessonsList(cancelledLessonsList.filter((x) => x.id !== item.undoData.id));
+      } else if (item.undoType === 'restore_slot' && item.undoData) {
+        const saved = await api.saveCancelledLesson(item.undoData, secArg);
+        applyLoadedCancelledLessonsList([...cancelledLessonsList.filter((x) => x.id !== saved.id), saved]);
+      } else if (item.undoType === 'bulk_cancel_day' && Array.isArray(item.undoData?.ids)) {
+        await Promise.all(item.undoData.ids.map((id) => api.deleteCancelledLesson(id, secArg)));
+        const idSet = new Set(item.undoData.ids);
+        applyLoadedCancelledLessonsList(cancelledLessonsList.filter((x) => !idSet.has(x.id)));
+      } else if (item.undoType === 'bulk_restore_day' && Array.isArray(item.undoData?.items)) {
+        const restored = await Promise.all(item.undoData.items.map((x) => api.saveCancelledLesson(x, secArg)));
+        const nextIds = new Set(restored.map((x) => x.id));
+        applyLoadedCancelledLessonsList([...cancelledLessonsList.filter((x) => !nextIds.has(x.id)), ...restored]);
+      } else if (item.undoType === 'ann_create' && item.undoData?.id) {
+        await api.deleteAnnouncement(item.undoData.id, secArg);
+        await refreshAdminCloudData('announcements');
+        await refreshDailyAnnouncements(true);
+      } else if (item.undoType === 'ann_delete' && item.undoData) {
+        await api.saveAnnouncement(item.undoData, secArg);
+        await refreshAdminCloudData('announcements');
+        await refreshDailyAnnouncements(true);
+      } else if (item.undoType === 'exam_create' && item.undoData?.id) {
+        await api.deleteExamCountdown(item.undoData.id, secArg);
+        applyLoadedExamCountdownsList(managedExamsList.filter((x) => x.id !== item.undoData.id));
+      } else if (item.undoType === 'exam_delete' && item.undoData) {
+        const saved = await api.saveExamCountdown(item.undoData, secArg);
+        applyLoadedExamCountdownsList([...managedExamsList.filter((x) => x.id !== saved.id), saved]);
+      } else if (item.undoType === 'site_lock' && typeof item.undoData?.prevVal === 'boolean') {
+        if (typeof api.saveSiteAccessSettings === 'function') {
+          const saved = await api.saveSiteAccessSettings(item.undoData.prevVal, secArg);
+          if (saved && typeof saved === 'object') applySiteAccessSettings(saved);
+        }
+      }
+      const remaining = loadAdminHistory().filter((x) => x.id !== item.id);
+      saveAdminHistory(remaining);
+      renderAdminRecentActivity();
+      syncAdminHubSummary();
+      showToast(isEn ? 'Action undone.' : 'İşlem geri alındı.');
+    } catch (err) {
+      console.warn('Undo action failed:', err);
+      showToast(I18N[state.lang].adminSaveErrorToast);
+    }
+  }
+  function renderAdminRecentActivity() {
+    const wrap = document.getElementById('adminRecentActivityWrap');
+    const listEl = document.getElementById('adminRecentActivityList');
+    if (!wrap || !listEl) return;
+    const items = loadAdminHistory();
+    if (items.length === 0) {
+      wrap.classList.add('hidden');
+      listEl.innerHTML = '';
+      return;
+    }
+    const isEn = state.lang === 'en';
+    wrap.classList.remove('hidden');
+    listEl.innerHTML = '';
+    items.forEach((item) => {
+      const row = document.createElement('div');
+      row.className = 'admin-hub-row px-3.5 py-2.5 flex items-center justify-between gap-2.5';
+      row.innerHTML = `
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-bold text-slate-900 dark:text-white truncate">${escapeHtml(item.label)}</span>
+            <span class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 shrink-0 tabular-nums">${escapeHtml(formatRelativeShort(item.ts))}</span>
+          </div>
+          ${item.sub ? `<p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${escapeHtml(item.sub)}</p>` : ''}
+        </div>
+      `;
+      if (item.undoType) {
+        const undoBtn = document.createElement('button');
+        undoBtn.type = 'button';
+        undoBtn.className = 'ios-press min-h-[30px] px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 text-[11px] font-bold shrink-0 transition';
+        undoBtn.textContent = isEn ? 'Undo' : 'Geri Al';
+        undoBtn.addEventListener('click', async () => {
+          undoBtn.disabled = true;
+          await executeAdminHistoryUndo(item);
+        });
+        row.appendChild(undoBtn);
+      }
+      listEl.appendChild(row);
+    });
+  }
 
   function syncAdminUnlockBarUI() {
     const bar = document.getElementById('adminReunlockBar');
@@ -6027,7 +6338,7 @@ export function initInonuApp() {
     return 'active';
   }
 
-  const ADMIN_TAB_ORDER = ['announcements', 'materials', 'cancellations', 'add-student', 'students'];
+  const ADMIN_TAB_ORDER = ['announcements', 'materials', 'cancellations', 'exams', 'add-student', 'students'];
 
   function syncAdminSegmentedControl(barId, indicatorId, attrName, activeValue, animate = true, extraClass = '') {
     const bar = document.getElementById(barId);
@@ -6115,6 +6426,7 @@ export function initInonuApp() {
     syncAdminSegmentedControl('adminMatProgChips', 'adminMatProgIndicator', 'data-mat-prog', adminState.matProg === 'en' ? 'en' : 'tr', animate);
     syncAdminSegmentedControl('adminMatModeBar', 'adminMatModeIndicator', 'data-mat-mode', adminState.matMode === 'url' ? 'url' : 'file', animate);
     syncAdminSegmentedControl('adminMatListFilterChips', 'adminMatListFilterIndicator', 'data-mat-list-filter', adminState.matListFilterProg || '', animate);
+    syncAdminSegmentedControl('adminExamProgChips', 'adminExamProgIndicator', 'data-exam-prog', adminState.examProg || '', animate);
     syncAdminSegmentedControl('adminAddLangChips', 'adminAddLangIndicator', 'data-add-lang', adminState.addLang === 'en' ? 'en' : 'tr', animate);
     syncAdminSegmentedControl('adminSettingsSubBar', 'adminSettingsSubIndicator', 'data-admin-subtab', adminState.settingsSubTab || 'roster', animate, '!rounded-xl');
   }
@@ -6257,24 +6569,36 @@ export function initInonuApp() {
     setTxt('subHubCancellations', isEn ? 'Cancel or restore lessons' : 'İptal et veya geri al');
     setTxt('lblHubMaterials', isEn ? 'Lesson PDFs' : "Ders PDF'leri");
     setTxt('subHubMaterials', isEn ? 'Upload PDF files or links' : 'PDF dosyası veya bağlantı ekle');
+    setTxt('lblHubExams', isEn ? 'Exam Countdowns' : 'Sınav Geri Sayımı');
+    setTxt('subHubExams', isEn ? 'Exam dates, times & urgent notes' : 'Sınav tarih, saat ve acil notları');
     setTxt('lblHubAddStudent', isEn ? 'Add Student' : 'Öğrenci Ekle');
     setTxt('subHubAddStudent', isEn ? 'Register student ID & group' : 'Yeni öğrenci numarası ve grup kaydı');
     setTxt('lblHubStudents', isEn ? 'Students & Settings' : 'Öğrenciler & Ayarlar');
     setTxt('subHubStudents', isEn ? 'Roster, site lock & security' : 'Öğrenci listesi, site kilidi, şifre');
+    setTxt('lblAdminRecentActivity', isEn ? 'Recent Activity' : 'Son İşlemler');
+    setTxt('btnAdminClearHistory', isEn ? 'Clear' : 'Temizle');
+    setTxt('lblAdminAnnExpires', isEn ? 'Auto-Expire (Optional)' : 'Otomatik Bitiş (Opsiyonel)');
+    setTxt('lblAdminAnnPreview', isEn ? 'Student Preview' : 'Öğrenci Önizlemesi');
+    setTxt('lblAdminExamProg', isEn ? 'Target Program' : 'Hedef Program');
+    setTxt('adminExamsListHeading', isEn ? 'Managed Exams' : 'Yönetilen Sınavlar');
   }
 
   function syncAdminHubSummary() {
     const isEn = state.lang === 'en';
+    const nowMs = Date.now();
     const activeAnns = (adminState.announcements && adminState.announcements.length > 0
       ? adminState.announcements
       : (Array.isArray(activeAnnouncementsList) ? activeAnnouncementsList : [])
-    ).filter((a) => a && a.active !== false).length;
+    ).filter((a) => a && a.active !== false && (!a.expiresAtMs || Number(a.expiresAtMs) > nowMs)).length;
     const cancelCount = (adminState.cancelledLessons && adminState.cancelledLessons.length > 0
       ? adminState.cancelledLessons.length
       : (Array.isArray(cancelledLessonsList) ? cancelledLessonsList.length : 0));
     const matCount = (adminState.materials && adminState.materials.length > 0
       ? adminState.materials.length
       : (lessonMaterialsMap ? Object.values(lessonMaterialsMap).flat().length : 0));
+    const examCount = (adminState.exams && adminState.exams.length > 0
+      ? adminState.exams.length
+      : (Array.isArray(managedExamsList) ? managedExamsList.length : 0));
     const stuCount = (adminState.students && adminState.students.length > 0)
       ? adminState.students.length
       : (typeof STUDENT_ROSTER === 'object' && STUDENT_ROSTER ? Object.keys(STUDENT_ROSTER).length : 0);
@@ -6286,6 +6610,7 @@ export function initInonuApp() {
     setBadge('countHubAnnouncements', isEn ? `${activeAnns} active` : `${activeAnns} aktif`);
     setBadge('countHubCancellations', isEn ? `${cancelCount}` : `${cancelCount} iptal`);
     setBadge('countHubMaterials', isEn ? `${matCount}` : `${matCount} PDF`);
+    setBadge('countHubExams', `${examCount}`);
     setBadge('countHubStudents', `${stuCount}`);
 
     const lockedOnly = Boolean(siteRequireStudentLogin);
@@ -6308,6 +6633,7 @@ export function initInonuApp() {
         ? 'block text-[10.5px] font-semibold text-amber-600 dark:text-amber-300 truncate mt-0.5'
         : 'block text-[10.5px] font-semibold text-emerald-600 dark:text-emerald-400 truncate mt-0.5';
     }
+    renderAdminRecentActivity();
   }
 
   function updateAdminHeaderForTab(tabKey) {
@@ -6328,6 +6654,7 @@ export function initInonuApp() {
         announcements: isEn ? 'Announcements' : 'Duyurular',
         cancellations: isEn ? 'Cancellations' : 'Ders İptali',
         materials: isEn ? 'Lesson PDFs' : "Ders PDF'leri",
+        exams: isEn ? 'Exam Countdowns' : 'Sınav Geri Sayımı',
         'add-student': isEn ? 'Add Student' : 'Öğrenci Ekle',
         students: isEn ? 'Students & Settings' : 'Öğrenciler & Ayarlar'
       };
@@ -6372,6 +6699,7 @@ export function initInonuApp() {
     const pAnn = document.getElementById('adminPaneAnnouncements');
     const pMat = document.getElementById('adminPaneMaterials');
     const pCan = document.getElementById('adminPaneCancellations');
+    const pExm = document.getElementById('adminPaneExams');
     const pAdd = document.getElementById('adminPaneAddStudent');
     const pStu = document.getElementById('adminPaneStudents');
 
@@ -6384,7 +6712,10 @@ export function initInonuApp() {
     }
     if (pAnn) {
       pAnn.classList.toggle('hidden', nextTab !== 'announcements');
-      if (nextTab === 'announcements') replayAdminPaneEnter(pAnn, dir);
+      if (nextTab === 'announcements') {
+        renderAdminAnnLivePreview();
+        replayAdminPaneEnter(pAnn, dir);
+      }
     }
     if (pMat) {
       pMat.classList.toggle('hidden', nextTab !== 'materials');
@@ -6409,10 +6740,19 @@ export function initInonuApp() {
         syncAdminCancelFormDefaults(false);
         renderAdminCancelDaySlots('none');
         renderAdminCancelledList(false);
+        renderAdminCancelLivePreview();
         replayAdminPaneEnter(pCan, dir);
         if (adminCloudDirty.cancellations) {
           void refreshAdminCloudData('cancellations');
         }
+      }
+    }
+    if (pExm) {
+      pExm.classList.toggle('hidden', nextTab !== 'exams');
+      if (nextTab === 'exams') {
+        syncAdminExamFormUI(false);
+        renderAdminExamsList();
+        replayAdminPaneEnter(pExm, dir);
       }
     }
     if (pAdd) {
@@ -6442,6 +6782,209 @@ export function initInonuApp() {
     requestAnimationFrame(() => {
       syncAllAdminSegmentedIndicators(false);
     });
+  }
+
+  // Feature 5: Student Live Previews (Announcements + Cancellations)
+  function formatDateTimeLocalInput(ms) {
+    if (!ms || ms <= 0) return '';
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function formatShortDateTime(ms) {
+    if (!ms || ms <= 0) return '';
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function renderAdminAnnLivePreview() {
+    const wrap = document.getElementById('adminAnnLivePreviewWrap');
+    const card = document.getElementById('adminAnnLivePreview');
+    if (!wrap || !card) return;
+    const titleVal = (document.getElementById('adminAnnTitleInput')?.value || '').trim();
+    const msgVal = (document.getElementById('adminAnnMsgInput')?.value || '').trim();
+    if (!titleVal && !msgVal) {
+      wrap.classList.add('hidden');
+      return;
+    }
+    const loc = I18N[state.lang];
+    const tone = adminState.annTone === 'urgent' ? 'urgent' : adminState.annTone === 'warn' ? 'warn' : 'info';
+    const badgeCls =
+      tone === 'urgent'
+        ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300'
+        : tone === 'warn'
+          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+          : 'bg-blue-500/15 text-blue-600 dark:text-blue-300';
+    const badgeLabel =
+      tone === 'urgent' ? loc.adminAnnBadgeUrgent : tone === 'warn' ? loc.adminAnnBadgeWarn : loc.adminAnnBadgeInfo;
+    const expStr = document.getElementById('adminAnnExpiresInput')?.value || '';
+    const expMs = expStr ? new Date(expStr).getTime() : 0;
+    const expNote = expMs > 0 && !Number.isNaN(expMs)
+      ? `<span class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tabular-nums ml-auto shrink-0">⏱ ${escapeHtml(formatShortDateTime(expMs))}</span>`
+      : '';
+    wrap.classList.remove('hidden');
+    card.innerHTML = `
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${badgeCls}">${escapeHtml(badgeLabel)}</span>
+        <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">${escapeHtml(titleVal || (state.lang === 'en' ? 'Untitled announcement' : 'Başlıksız duyuru'))}</h5>
+        ${expNote}
+      </div>
+      ${msgVal ? `<p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">${escapeHtml(msgVal)}</p>` : ''}
+    `;
+  }
+  function renderAdminCancelLivePreview() {
+    const wrap = document.getElementById('adminCancelLivePreview');
+    const txt = document.getElementById('adminCancelLivePreviewText');
+    const inp = document.getElementById('adminCancelReasonInput');
+    if (!wrap || !txt || !inp) return;
+    const val = inp.value.trim();
+    if (!val) {
+      wrap.classList.add('hidden');
+      return;
+    }
+    wrap.classList.remove('hidden');
+    txt.textContent = val;
+  }
+
+  // Feature 2: Admin Exam Countdown Manager UI
+  function syncAdminExamFormUI(animateSeg = true) {
+    const isEn = state.lang === 'en';
+    const titleEl = document.getElementById('adminExamFormTitle');
+    const cancelBtn = document.getElementById('btnAdminExamCancelEdit');
+    const submitBtn = document.getElementById('btnAdminExamSubmit');
+    if (titleEl) {
+      titleEl.textContent = adminState.editingExamId
+        ? (isEn ? 'Edit Exam Countdown' : 'Sınavı Düzenle')
+        : (isEn ? 'Add Exam / Committee Countdown' : 'Sınav / Kurul Geri Sayımı Ekle');
+    }
+    if (cancelBtn) cancelBtn.classList.toggle('hidden', !adminState.editingExamId);
+    if (submitBtn) {
+      submitBtn.textContent = adminState.editingExamId
+        ? (isEn ? 'Update Exam' : 'Sınavı Güncelle')
+        : (isEn ? 'Save Exam' : 'Sınavı Kaydet');
+    }
+    syncAdminSegmentedControl('adminExamProgChips', 'adminExamProgIndicator', 'data-exam-prog', adminState.examProg || '', animateSeg);
+  }
+  function renderAdminExamsList() {
+    const listEl = document.getElementById('adminExamsList');
+    if (!listEl) return;
+    const isEn = state.lang === 'en';
+    const items = Array.isArray(adminState.exams) && adminState.exams.length > 0
+      ? adminState.exams
+      : (managedExamsList || []);
+    listEl.innerHTML = '';
+    if (items.length === 0) {
+      listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-5 text-center text-xs text-slate-500 dark:text-slate-400 admin-card-reveal">${isEn ? 'No managed exam countdowns yet.' : 'Henüz özel sınav geri sayımı eklenmedi.'}</div>`;
+      return;
+    }
+    items.forEach((ex, idx) => {
+      const row = document.createElement('div');
+      row.className = 'ios-pill-control rounded-2xl p-3.5 flex items-start justify-between gap-2.5 flex-wrap admin-stagger-item';
+      row.style.setProperty('--admin-delay', `${Math.min(idx, 10) * 28}ms`);
+      const progLbl = ex.targetProg ? ex.targetProg.toUpperCase() : 'TR+EN';
+      row.innerHTML = `
+        <div class="min-w-0 flex-1 space-y-0.5">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">${progLbl}</span>
+            <span class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 tabular-nums">${escapeHtml(ex.date)}${ex.time ? ` · ${escapeHtml(ex.time)}` : ''}</span>
+          </div>
+          <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">${escapeHtml(ex.title)}</h5>
+          ${ex.note ? `<p class="text-[11px] font-medium text-amber-700 dark:text-amber-300 leading-snug">${escapeHtml(ex.note)}</p>` : ''}
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" class="btn-edit-exam ios-press min-h-[32px] px-3 py-1 rounded-full bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-semibold transition">${isEn ? 'Edit' : 'Düzenle'}</button>
+          <button type="button" class="btn-del-exam ios-press min-h-[32px] px-3 py-1 rounded-full bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-semibold transition">${adminState.deleteConfirmExamId === ex.id ? (isEn ? 'Sure?' : 'Emin misin?') : (isEn ? 'Delete' : 'Sil')}</button>
+        </div>
+      `;
+      row.querySelector('.btn-edit-exam').addEventListener('click', () => {
+        adminState.editingExamId = ex.id;
+        adminState.examProg = ex.targetProg || '';
+        const t = document.getElementById('adminExamTitleInput');
+        const d = document.getElementById('adminExamDateInput');
+        const tm = document.getElementById('adminExamTimeInput');
+        const n = document.getElementById('adminExamNoteInput');
+        if (t) t.value = ex.title || '';
+        if (d) d.value = ex.date || '';
+        if (tm) tm.value = ex.time || '';
+        if (n) n.value = ex.note || '';
+        syncAdminExamFormUI();
+      });
+      row.querySelector('.btn-del-exam').addEventListener('click', async () => {
+        const api = window.__INONU_AUTH__;
+        const secret = ensureAdminSecretReady();
+        if (!api || !secret) return;
+        if (adminState.deleteConfirmExamId !== ex.id) {
+          adminState.deleteConfirmExamId = ex.id;
+          renderAdminExamsList();
+          return;
+        }
+        adminState.deleteConfirmExamId = '';
+        row.classList.add('admin-row-exit');
+        try {
+          await api.deleteExamCountdown(ex.id, secret === 'active' ? undefined : secret);
+          applyLoadedExamCountdownsList(managedExamsList.filter((x) => x.id !== ex.id));
+          pushAdminHistory({
+            label: isEn ? 'Exam deleted' : 'Sınav silindi',
+            sub: `${ex.title} (${ex.date})`,
+            undoType: 'exam_delete',
+            undoData: { ...ex }
+          });
+          showToast(isEn ? 'Exam removed.' : 'Sınav silindi.');
+        } catch (err) {
+          row.classList.remove('admin-row-exit');
+          console.warn('Delete exam error:', err);
+          showToast(I18N[state.lang].adminSaveErrorToast);
+        }
+      });
+      listEl.appendChild(row);
+    });
+  }
+
+  // Feature 6: Lesson Card Quick Admin Action Sheet
+  function openAdminSlotQuickModal(slot) {
+    const session = getActiveAuthSession();
+    if (!session || !session.isAdmin || !slot) return;
+    adminQuickSlotTarget = slot;
+    const isEn = state.lang === 'en';
+    const prog = state.lang === 'en' ? 'en' : 'tr';
+    const cancelInfo = getCancelledLessonInfo(slot, prog);
+    const isCancelled = Boolean(cancelInfo);
+    const metaEl = document.getElementById('adminSlotQuickMeta');
+    const titleEl = document.getElementById('adminSlotQuickTitle');
+    const reasonInp = document.getElementById('adminSlotQuickReasonInput');
+    const cancelLbl = document.getElementById('lblAdminSlotQuickCancel');
+    const cancelIconWrap = document.getElementById('iconWrapSlotQuickCancel');
+    const pdfLbl = document.getElementById('lblAdminSlotQuickPdf');
+    const annLbl = document.getElementById('lblAdminSlotQuickAnn');
+
+    if (metaEl) metaEl.textContent = `${slot.date} • ${slot.slotNo}. ${isEn ? 'Hour' : 'Ders'}${slot.time ? ` • ${slot.time}` : ''}`;
+    if (titleEl) titleEl.textContent = slot.title || '';
+    if (reasonInp) {
+      reasonInp.value = cancelInfo?.reason || '';
+      reasonInp.classList.toggle('hidden', isCancelled);
+    }
+    if (cancelLbl) {
+      cancelLbl.textContent = isCancelled
+        ? (isEn ? 'Restore This Lesson' : 'Bu Dersin İptalini Geri Al')
+        : (isEn ? 'Cancel This Lesson' : 'Bu Dersi İptal Et');
+      cancelLbl.className = isCancelled
+        ? 'text-sm font-bold text-emerald-700 dark:text-emerald-300 flex-1'
+        : 'text-sm font-bold text-rose-600 dark:text-rose-300 flex-1';
+    }
+    if (cancelIconWrap) {
+      cancelIconWrap.className = isCancelled
+        ? 'w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0'
+        : 'w-8 h-8 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0';
+    }
+    if (pdfLbl) pdfLbl.textContent = isEn ? 'Add PDF to This Lesson' : 'Bu Derse PDF Ekle';
+    if (annLbl) annLbl.textContent = isEn ? 'Post Announcement for Lesson' : 'Bu Ders İçin Duyuru Geç';
+
+    openAnimatedModal(document.getElementById('adminSlotQuickModal'), document.getElementById('adminSlotQuickCard'));
+  }
+  function closeAdminSlotQuickModal() {
+    closeAnimatedModal(document.getElementById('adminSlotQuickModal'), document.getElementById('adminSlotQuickCard'));
   }
 
   function syncAdminAnnFormUI(animateSeg = true) {
@@ -6476,6 +7019,7 @@ export function initInonuApp() {
         ? `${isEn ? 'Target' : 'Hedef'}: ${parts.join(' · ')}`
         : (isEn ? 'Target: All' : 'Hedef: Tümü');
     }
+    renderAdminAnnLivePreview();
   }
 
   function syncAdminAddStudentChips(animateSeg = true) {
@@ -6540,6 +7084,14 @@ export function initInonuApp() {
       const targetGroupLabel = ann.targetGroup ? `Grup ${ann.targetGroup}` : '';
       const metaParts = [statusLabel, targetProgLabel];
       if (targetGroupLabel) metaParts.push(targetGroupLabel);
+      if (ann.expiresAtMs && Number(ann.expiresAtMs) > 0) {
+        const isExpired = Number(ann.expiresAtMs) <= Date.now();
+        metaParts.push(
+          isExpired
+            ? (state.lang === 'en' ? 'Expired' : 'Süresi Doldu')
+            : `⏱ ${formatShortDateTime(Number(ann.expiresAtMs))}`
+        );
+      }
 
       const header = document.createElement('div');
       header.className = 'flex items-start justify-between gap-2';
@@ -6589,9 +7141,12 @@ export function initInonuApp() {
         adminState.annActive = ann.active;
         adminState.annTargetGroup = ann.targetGroup || '';
         adminState.annTargetProg = ann.targetProg || '';
+        adminState.annExpiresAtMs = Number(ann.expiresAtMs) || 0;
         document.getElementById('adminAnnTitleInput').value = ann.title;
         document.getElementById('adminAnnMsgInput').value = ann.message;
-        if (ann.targetGroup || ann.targetProg) {
+        const expInp = document.getElementById('adminAnnExpiresInput');
+        if (expInp) expInp.value = formatDateTimeLocalInput(adminState.annExpiresAtMs);
+        if (ann.targetGroup || ann.targetProg || adminState.annExpiresAtMs > 0) {
           setAdminAnnTargetOpen(true);
         }
         syncAdminAnnFormUI();
@@ -6621,6 +7176,12 @@ export function initInonuApp() {
         row.classList.add('admin-row-exit');
         try {
           await api.deleteAnnouncement(ann.id, secret === 'active' ? undefined : secret);
+          pushAdminHistory({
+            label: state.lang === 'en' ? 'Announcement deleted' : 'Duyuru silindi',
+            sub: ann.title,
+            undoType: 'ann_delete',
+            undoData: { ...ann }
+          });
           await refreshAdminCloudData('announcements');
           await refreshDailyAnnouncements(true);
           showToast(loc.adminAnnDeletedToast);
@@ -7039,6 +7600,17 @@ export function initInonuApp() {
         ? (isEn ? `${dayObj.slots.length} lessons · ${cancelledInDay} cancelled` : `${dayObj.slots.length} ders · ${cancelledInDay} iptal`)
         : (isEn ? `${dayObj.slots.length} lessons` : `${dayObj.slots.length} ders`);
     }
+    const allDayBtn = document.getElementById('btnAdminCancelAllDay');
+    if (allDayBtn) {
+      const allCancelled = cancelledInDay >= dayObj.slots.length && dayObj.slots.length > 0;
+      allDayBtn.classList.remove('hidden');
+      allDayBtn.textContent = allCancelled
+        ? (isEn ? 'Restore Full Day' : 'Tümünü Geri Al')
+        : (isEn ? 'Cancel Full Day' : 'Tüm Günü İptal Et');
+      allDayBtn.className = allCancelled
+        ? 'ios-press min-h-[30px] px-3 py-1 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold transition'
+        : 'ios-press min-h-[30px] px-3 py-1 rounded-full bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-300 text-[11px] font-bold transition';
+    }
 
     const animKey = adminState.lastCancelAnimKey || '';
     const animType = adminState.lastCancelAnimType || '';
@@ -7106,6 +7678,12 @@ export function initInonuApp() {
             await api.deleteCancelledLesson(cancelInfo.id, secret === 'active' ? undefined : secret);
             const nextList = cancelledLessonsList.filter((x) => x.id !== cancelInfo.id);
             applyLoadedCancelledLessonsList(nextList);
+            pushAdminHistory({
+              label: isEn ? 'Lesson restored' : 'Ders geri alındı',
+              sub: `${slot.title} (${dayObj.date} · ${slot.slotNo}.)`,
+              undoType: 'restore_slot',
+              undoData: { date: dayObj.date, slotNo: slot.slotNo, targetProg: prog, reason: cancelInfo.reason || '' }
+            });
             showToast(isEn ? 'Lesson restored.' : 'Ders iptali kaldırıldı.');
           } else {
             adminState.lastCancelAnimKey = slotAnimKey;
@@ -7119,6 +7697,12 @@ export function initInonuApp() {
             }, secret === 'active' ? undefined : secret);
             const nextList = [...cancelledLessonsList.filter((x) => x.id !== saved.id), saved];
             applyLoadedCancelledLessonsList(nextList);
+            pushAdminHistory({
+              label: isEn ? 'Lesson cancelled' : 'Ders iptal edildi',
+              sub: `${slot.title} (${dayObj.date} · ${slot.slotNo}.)`,
+              undoType: 'cancel_slot',
+              undoData: { id: saved.id }
+            });
             showToast(isEn ? 'Lesson marked as cancelled.' : 'Ders iptal edildi.');
           }
           setTimeout(() => {
@@ -7668,11 +8252,14 @@ export function initInonuApp() {
 
     if (icon) icon.classList.add('animate-spin-ios');
     try {
-      const [anns, mats, cancels, students, accessSettings] = await Promise.all([
+      const [anns, mats, cancels, exams, students, accessSettings] = await Promise.all([
         wantAnn ? api.listAllAnnouncements().catch((err) => { console.warn('Admin announcements load failed:', err); return null; }) : Promise.resolve(null),
         wantMat ? api.loadAllLessonMaterials().catch((err) => { console.warn('Admin materials load failed:', err); return null; }) : Promise.resolve(null),
         wantCan && typeof api.loadCancelledLessons === 'function'
           ? api.loadCancelledLessons().catch((err) => { console.warn('Admin cancelled lessons load failed:', err); return null; })
+          : Promise.resolve(null),
+        (scope === 'all' || scope === 'exams') && typeof api.loadExamCountdowns === 'function'
+          ? api.loadExamCountdowns().catch(() => null)
           : Promise.resolve(null),
         wantStu ? api.loadAllAdminStudents(session.adminSecret || undefined).catch((err) => { console.warn('Admin students load failed:', err); return null; }) : Promise.resolve(null),
         wantAccess && typeof api.loadSiteAccessSettings === 'function'
@@ -7697,6 +8284,9 @@ export function initInonuApp() {
         adminState.cancelledLessons = cancels;
         adminCloudDirty.cancellations = false;
         applyLoadedCancelledLessonsList(cancels);
+      }
+      if (Array.isArray(exams)) {
+        applyLoadedExamCountdownsList(exams);
       }
       if (Array.isArray(students)) {
         adminState.students = students;
@@ -8854,9 +9444,351 @@ export function initInonuApp() {
         adminState.annActive = true;
         adminState.annTargetGroup = '';
         adminState.annTargetProg = '';
+        adminState.annExpiresAtMs = 0;
         document.getElementById('adminAnnTitleInput').value = '';
         document.getElementById('adminAnnMsgInput').value = '';
+        const expInp = document.getElementById('adminAnnExpiresInput');
+        if (expInp) expInp.value = '';
         syncAdminAnnFormUI();
+      });
+    }
+
+    // Feature 4 & 5: Expiry Presets & Live Preview Listeners
+    document.querySelectorAll('[data-ann-exp-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const hrs = Number(btn.getAttribute('data-ann-exp-preset') || '0');
+        const expInp = document.getElementById('adminAnnExpiresInput');
+        if (hrs <= 0) {
+          adminState.annExpiresAtMs = 0;
+          if (expInp) expInp.value = '';
+        } else {
+          const targetMs = Date.now() + hrs * 60 * 60 * 1000;
+          adminState.annExpiresAtMs = targetMs;
+          if (expInp) expInp.value = formatDateTimeLocalInput(targetMs);
+        }
+        renderAdminAnnLivePreview();
+      });
+    });
+    ['adminAnnTitleInput', 'adminAnnMsgInput', 'adminAnnExpiresInput'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', renderAdminAnnLivePreview);
+    });
+    const adminCancelReasonInp = document.getElementById('adminCancelReasonInput');
+    if (adminCancelReasonInp) {
+      adminCancelReasonInp.addEventListener('input', renderAdminCancelLivePreview);
+    }
+
+    // Feature 1 (iOS Edge Swipe Back): Left edge swipe right pops back to Hub
+    (() => {
+      const scrollBody = document.getElementById('adminModalScrollBody');
+      if (!scrollBody) return;
+      let edgeTracking = false;
+      let sx = 0;
+      let sy = 0;
+      let curDx = 0;
+
+      const getActiveSubPane = () => {
+        const map = {
+          announcements: 'adminPaneAnnouncements',
+          cancellations: 'adminPaneCancellations',
+          materials: 'adminPaneMaterials',
+          exams: 'adminPaneExams',
+          'add-student': 'adminPaneAddStudent',
+          students: 'adminPaneStudents'
+        };
+        const id = map[adminState.activeTab];
+        return id ? document.getElementById(id) : null;
+      };
+
+      scrollBody.addEventListener('touchstart', (e) => {
+        if (adminState.activeTab === 'hub' || !e.touches || e.touches.length !== 1) return;
+        const rect = scrollBody.getBoundingClientRect();
+        const relX = e.touches[0].clientX - rect.left;
+        if (relX > 40) return;
+        edgeTracking = true;
+        sx = e.touches[0].clientX;
+        sy = e.touches[0].clientY;
+        curDx = 0;
+      }, { passive: true });
+
+      scrollBody.addEventListener('touchmove', (e) => {
+        if (!edgeTracking || !e.touches || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - sx;
+        const dy = e.touches[0].clientY - sy;
+        if (Math.abs(dy) > Math.abs(dx) * 1.1 && curDx < 12) {
+          edgeTracking = false;
+          return;
+        }
+        if (dx > 6) {
+          curDx = dx;
+          const pane = getActiveSubPane();
+          if (pane) {
+            pane.style.transition = 'none';
+            pane.style.transform = `translate3d(${Math.min(dx * 0.48, 120)}px, 0, 0)`;
+            pane.style.opacity = String(Math.max(0.55, 1 - dx / 420));
+          }
+          if (e.cancelable) e.preventDefault();
+        }
+      }, { passive: false });
+
+      const finishEdge = () => {
+        if (!edgeTracking) return;
+        edgeTracking = false;
+        const pane = getActiveSubPane();
+        if (pane) {
+          pane.style.transition = '';
+          pane.style.transform = '';
+          pane.style.opacity = '';
+        }
+        if (curDx > 64) {
+          triggerHaptic('selection');
+          switchAdminTab('hub', true);
+        }
+      };
+      scrollBody.addEventListener('touchend', finishEdge, { passive: true });
+      scrollBody.addEventListener('touchcancel', finishEdge, { passive: true });
+    })();
+
+    // Feature 3: Bulk Full-Day Cancel / Restore Button
+    const btnAdminCancelAllDay = document.getElementById('btnAdminCancelAllDay');
+    if (btnAdminCancelAllDay) {
+      btnAdminCancelAllDay.addEventListener('click', async () => {
+        const api = window.__INONU_AUTH__;
+        const secret = ensureAdminSecretReady();
+        if (!api || !secret) return;
+        const isEn = state.lang === 'en';
+        const prog = adminState.cancelProg === 'en' ? 'en' : 'tr';
+        const days = getAdminCancelScheduleDays(prog);
+        const dayObj = days.find((d) => d.date === adminState.cancelDate) || days[0];
+        if (!dayObj || !Array.isArray(dayObj.slots) || dayObj.slots.length === 0) return;
+
+        const secArg = secret === 'active' ? undefined : secret;
+        const activeSlots = dayObj.slots.filter((s) => !getCancelledLessonInfo(s, prog));
+        const cancelledInfos = dayObj.slots.map((s) => getCancelledLessonInfo(s, prog)).filter(Boolean);
+        btnAdminCancelAllDay.disabled = true;
+        try {
+          if (activeSlots.length > 0) {
+            const reasonVal = (document.getElementById('adminCancelReasonInput')?.value || '').trim();
+            const savedArr = await Promise.all(
+              activeSlots.map((s) => api.saveCancelledLesson({
+                date: dayObj.date,
+                slotNo: s.slotNo,
+                targetProg: prog,
+                reason: reasonVal
+              }, secArg))
+            );
+            const savedIds = new Set(savedArr.map((x) => x.id));
+            applyLoadedCancelledLessonsList([...cancelledLessonsList.filter((x) => !savedIds.has(x.id)), ...savedArr]);
+            pushAdminHistory({
+              label: isEn ? `Full day cancelled (${savedArr.length})` : `Tüm gün iptal edildi (${savedArr.length} ders)`,
+              sub: `${dayObj.date} · ${prog.toUpperCase()}`,
+              undoType: 'bulk_cancel_day',
+              undoData: { ids: savedArr.map((x) => x.id) }
+            });
+            showToast(isEn ? 'All lessons on this day cancelled.' : 'Günün tüm dersleri iptal edildi.');
+          } else if (cancelledInfos.length > 0) {
+            await Promise.all(cancelledInfos.map((info) => api.deleteCancelledLesson(info.id, secArg)));
+            const delIds = new Set(cancelledInfos.map((x) => x.id));
+            applyLoadedCancelledLessonsList(cancelledLessonsList.filter((x) => !delIds.has(x.id)));
+            pushAdminHistory({
+              label: isEn ? `Full day restored (${cancelledInfos.length})` : `Tüm gün geri alındı (${cancelledInfos.length} ders)`,
+              sub: `${dayObj.date} · ${prog.toUpperCase()}`,
+              undoType: 'bulk_restore_day',
+              undoData: { items: cancelledInfos.map((x) => ({ date: x.date, slotNo: x.slotNo, targetProg: x.targetProg, reason: x.reason || '' })) }
+            });
+            showToast(isEn ? 'All lessons on this day restored.' : 'Günün tüm iptalleri geri alındı.');
+          }
+          renderAdminCancelDaySlots('next');
+          renderAdminCancelledList(false);
+          syncAdminHubSummary();
+        } catch (err) {
+          console.warn('Bulk day cancel error:', err);
+          showToast(I18N[state.lang].adminSaveErrorToast);
+        } finally {
+          btnAdminCancelAllDay.disabled = false;
+        }
+      });
+    }
+
+    // Feature 2: Admin Exam Countdown Form Handlers
+    document.querySelectorAll('[data-exam-prog]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        adminState.examProg = btn.getAttribute('data-exam-prog') || '';
+        syncAdminExamFormUI();
+      });
+    });
+    const btnAdminExamCancelEdit = document.getElementById('btnAdminExamCancelEdit');
+    if (btnAdminExamCancelEdit) {
+      btnAdminExamCancelEdit.addEventListener('click', () => {
+        adminState.editingExamId = '';
+        adminState.examProg = '';
+        ['adminExamTitleInput', 'adminExamDateInput', 'adminExamTimeInput', 'adminExamNoteInput'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+        syncAdminExamFormUI();
+      });
+    }
+    const adminExamForm = document.getElementById('adminExamForm');
+    if (adminExamForm) {
+      adminExamForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const api = window.__INONU_AUTH__;
+        const secret = ensureAdminSecretReady();
+        if (!api || !secret) return;
+        const isEn = state.lang === 'en';
+        const title = (document.getElementById('adminExamTitleInput')?.value || '').trim();
+        const date = (document.getElementById('adminExamDateInput')?.value || '').trim();
+        const time = (document.getElementById('adminExamTimeInput')?.value || '').trim();
+        const note = (document.getElementById('adminExamNoteInput')?.value || '').trim();
+        if (!title || !date) {
+          showToast(isEn ? 'Exam title and date are required.' : 'Sınav adı ve tarihi zorunludur.');
+          return;
+        }
+        const btn = document.getElementById('btnAdminExamSubmit');
+        if (btn) btn.disabled = true;
+        try {
+          const wasNew = !adminState.editingExamId;
+          const saved = await api.saveExamCountdown({
+            id: adminState.editingExamId || undefined,
+            title,
+            date,
+            time,
+            note,
+            targetProg: adminState.examProg || ''
+          }, secret === 'active' ? undefined : secret);
+          applyLoadedExamCountdownsList([...managedExamsList.filter((x) => x.id !== saved.id), saved]);
+          if (wasNew) {
+            pushAdminHistory({
+              label: isEn ? 'Exam added' : 'Sınav eklendi',
+              sub: `${saved.title} (${saved.date})`,
+              undoType: 'exam_create',
+              undoData: { id: saved.id }
+            });
+          }
+          adminState.editingExamId = '';
+          adminState.examProg = '';
+          ['adminExamTitleInput', 'adminExamDateInput', 'adminExamTimeInput', 'adminExamNoteInput'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+          });
+          syncAdminExamFormUI();
+          showToast(isEn ? 'Exam countdown saved.' : 'Sınav geri sayımı kaydedildi.');
+        } catch (err) {
+          console.warn('Exam save error:', err);
+          showToast(I18N[state.lang].adminSaveErrorToast);
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      });
+    }
+
+    // Feature 6: Lesson Card Quick Admin Action Sheet Handlers
+    const btnCloseAdminSlotQuick = document.getElementById('btnCloseAdminSlotQuick');
+    if (btnCloseAdminSlotQuick) btnCloseAdminSlotQuick.addEventListener('click', closeAdminSlotQuickModal);
+    const adminSlotQuickModal = document.getElementById('adminSlotQuickModal');
+    if (adminSlotQuickModal) {
+      adminSlotQuickModal.addEventListener('click', (e) => {
+        if (e.target.id === 'adminSlotQuickModal') closeAdminSlotQuickModal();
+      });
+    }
+    const btnAdminSlotQuickToggleCancel = document.getElementById('btnAdminSlotQuickToggleCancel');
+    if (btnAdminSlotQuickToggleCancel) {
+      btnAdminSlotQuickToggleCancel.addEventListener('click', async () => {
+        const slot = adminQuickSlotTarget;
+        const api = window.__INONU_AUTH__;
+        const secret = ensureAdminSecretReady();
+        if (!slot || !api || !secret) return;
+        const isEn = state.lang === 'en';
+        const prog = state.lang === 'en' ? 'en' : 'tr';
+        const existing = getCancelledLessonInfo(slot, prog);
+        const secArg = secret === 'active' ? undefined : secret;
+        btnAdminSlotQuickToggleCancel.disabled = true;
+        try {
+          if (existing) {
+            await api.deleteCancelledLesson(existing.id, secArg);
+            applyLoadedCancelledLessonsList(cancelledLessonsList.filter((x) => x.id !== existing.id));
+            pushAdminHistory({
+              label: isEn ? 'Lesson restored' : 'Ders geri alındı',
+              sub: `${slot.title} (${slot.date} · ${slot.slotNo}.)`,
+              undoType: 'restore_slot',
+              undoData: { date: slot.date, slotNo: slot.slotNo, targetProg: prog, reason: existing.reason || '' }
+            });
+            showToast(isEn ? 'Lesson restored.' : 'Ders iptali kaldırıldı.');
+          } else {
+            const reasonVal = (document.getElementById('adminSlotQuickReasonInput')?.value || '').trim();
+            const saved = await api.saveCancelledLesson({
+              date: slot.date,
+              slotNo: slot.slotNo,
+              targetProg: prog,
+              reason: reasonVal
+            }, secArg);
+            applyLoadedCancelledLessonsList([...cancelledLessonsList.filter((x) => x.id !== saved.id), saved]);
+            pushAdminHistory({
+              label: isEn ? 'Lesson cancelled' : 'Ders iptal edildi',
+              sub: `${slot.title} (${slot.date} · ${slot.slotNo}.)`,
+              undoType: 'cancel_slot',
+              undoData: { id: saved.id }
+            });
+            showToast(isEn ? 'Lesson marked as cancelled.' : 'Ders iptal edildi.');
+          }
+          closeAdminSlotQuickModal();
+        } catch (err) {
+          console.warn('Quick slot cancel error:', err);
+          showToast(I18N[state.lang].adminSaveErrorToast);
+        } finally {
+          btnAdminSlotQuickToggleCancel.disabled = false;
+        }
+      });
+    }
+    const btnAdminSlotQuickAddPdf = document.getElementById('btnAdminSlotQuickAddPdf');
+    if (btnAdminSlotQuickAddPdf) {
+      btnAdminSlotQuickAddPdf.addEventListener('click', () => {
+        const slot = adminQuickSlotTarget;
+        closeAdminSlotQuickModal();
+        if (!slot) return;
+        adminState.editingMatId = '';
+        adminState.matProg = state.lang === 'en' ? 'en' : 'tr';
+        openAdminModal();
+        switchAdminTab('materials', false);
+        setAdminMatSelectedDate(slot.date);
+        populateAdminMatSlotSelect(slot.date, slot.slotNo);
+        const titleEl = document.getElementById('adminMatTitleInput');
+        if (titleEl && !titleEl.value) titleEl.value = slot.title || '';
+      });
+    }
+    const btnAdminSlotQuickAnnounce = document.getElementById('btnAdminSlotQuickAnnounce');
+    if (btnAdminSlotQuickAnnounce) {
+      btnAdminSlotQuickAnnounce.addEventListener('click', () => {
+        const slot = adminQuickSlotTarget;
+        closeAdminSlotQuickModal();
+        if (!slot) return;
+        adminState.editingAnnId = '';
+        adminState.annTone = 'warn';
+        adminState.annActive = true;
+        adminState.annTargetGroup = '';
+        adminState.annTargetProg = state.lang === 'en' ? 'en' : 'tr';
+        openAdminModal();
+        switchAdminTab('announcements', false);
+        const tInp = document.getElementById('adminAnnTitleInput');
+        const mInp = document.getElementById('adminAnnMsgInput');
+        if (tInp) tInp.value = `${slot.title}`;
+        if (mInp) {
+          mInp.value = state.lang === 'en'
+            ? `${slot.date} (${slot.time || ''}) - `
+            : `${slot.date} (${slot.time || ''}) dersi hakkında: `;
+        }
+        syncAdminAnnFormUI(false);
+        setTimeout(() => { if (mInp) mInp.focus(); }, 200);
+      });
+    }
+
+    // Feature 7: Clear History Button
+    const btnAdminClearHistory = document.getElementById('btnAdminClearHistory');
+    if (btnAdminClearHistory) {
+      btnAdminClearHistory.addEventListener('click', () => {
+        saveAdminHistory([]);
+        renderAdminRecentActivity();
       });
     }
 
@@ -8874,9 +9806,13 @@ export function initInonuApp() {
           showToast(loc.adminTitleMsgRequired);
           return;
         }
+        const expRaw = document.getElementById('adminAnnExpiresInput')?.value || '';
+        const parsedExp = expRaw ? new Date(expRaw).getTime() : 0;
+        const expiresAtMs = parsedExp > 0 && !Number.isNaN(parsedExp) ? parsedExp : 0;
         const btn = document.getElementById('btnAdminAnnSubmit');
         if (btn) btn.disabled = true;
         try {
+          const wasNew = !adminState.editingAnnId;
           const savedAnn = await api.saveAnnouncement({
             id: adminState.editingAnnId || undefined,
             title: titleVal,
@@ -8884,7 +9820,8 @@ export function initInonuApp() {
             tone: adminState.annTone,
             active: adminState.annActive,
             targetGroup: adminState.annTargetGroup || '',
-            targetProg: adminState.annTargetProg || ''
+            targetProg: adminState.annTargetProg || '',
+            expiresAtMs
           }, secret === 'active' ? undefined : secret);
           if (savedAnn && savedAnn.id) {
             const existingIdx = adminState.announcements.findIndex((a) => a.id === savedAnn.id);
@@ -8892,6 +9829,14 @@ export function initInonuApp() {
               adminState.announcements[existingIdx] = savedAnn;
             } else {
               adminState.announcements.unshift(savedAnn);
+            }
+            if (wasNew) {
+              pushAdminHistory({
+                label: state.lang === 'en' ? 'Announcement published' : 'Duyuru yayınlandı',
+                sub: savedAnn.title,
+                undoType: 'ann_create',
+                undoData: { id: savedAnn.id }
+              });
             }
             activeAnnouncementsList = adminState.announcements.filter((a) => a && a.active);
             renderAdminAnnouncementsList();
@@ -8902,8 +9847,11 @@ export function initInonuApp() {
           adminState.annActive = true;
           adminState.annTargetGroup = '';
           adminState.annTargetProg = '';
+          adminState.annExpiresAtMs = 0;
           document.getElementById('adminAnnTitleInput').value = '';
           document.getElementById('adminAnnMsgInput').value = '';
+          const expInp = document.getElementById('adminAnnExpiresInput');
+          if (expInp) expInp.value = '';
           syncAdminAnnFormUI();
           showToast(loc.adminAnnSavedToast);
           void refreshAdminCloudData('announcements');
@@ -9670,6 +10618,13 @@ export function initInonuApp() {
         if (saved && typeof saved === 'object') {
           applySiteAccessSettings(saved);
         }
+        pushAdminHistory({
+          label: siteRequireStudentLogin
+            ? (state.lang === 'en' ? 'Site locked (login required)' : 'Site kilidi açıldı (giriş zorunlu)')
+            : (state.lang === 'en' ? 'Site unlocked (public access)' : 'Site kilidi kapatıldı (herkese açık)'),
+          undoType: 'site_lock',
+          undoData: { prevVal }
+        });
         void queueAutoPushDataJsonToGitHub(true);
       } catch (err) {
         siteRequireStudentLogin = prevVal;
@@ -9964,6 +10919,11 @@ export function initInonuApp() {
       if (typeof api.subscribeCancelledLessons === 'function' && !cancelledLessonsUnsub) {
         cancelledLessonsUnsub = api.subscribeCancelledLessons((list) => {
           applyLoadedCancelledLessonsList(list);
+        });
+      }
+      if (typeof api.subscribeExamCountdowns === 'function' && !examCountdownsUnsub) {
+        examCountdownsUnsub = api.subscribeExamCountdowns((list) => {
+          applyLoadedExamCountdownsList(list);
         });
       }
       if (typeof api.subscribeLessonMaterials === 'function' && !lessonMaterialsUnsub) {

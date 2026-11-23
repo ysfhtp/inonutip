@@ -46,6 +46,10 @@ import {
   subscribeCancelledLessons,
   saveCancelledLesson,
   deleteCancelledLesson,
+  loadExamCountdowns,
+  subscribeExamCountdowns,
+  saveExamCountdown,
+  deleteExamCountdown,
   subscribeAnnouncements,
   subscribeCloudStudentPrefs,
   subscribeLessonMaterials,
@@ -120,6 +124,10 @@ declare global {
       subscribeCancelledLessons: typeof subscribeCancelledLessons;
       saveCancelledLesson: typeof saveCancelledLesson;
       deleteCancelledLesson: typeof deleteCancelledLesson;
+      loadExamCountdowns: typeof loadExamCountdowns;
+      subscribeExamCountdowns: typeof subscribeExamCountdowns;
+      saveExamCountdown: typeof saveExamCountdown;
+      deleteExamCountdown: typeof deleteExamCountdown;
       loadAllLessonMaterials: typeof loadAllLessonMaterials;
       subscribeLessonMaterials: typeof subscribeLessonMaterials;
       saveLessonMaterial: typeof saveLessonMaterial;
@@ -194,6 +202,10 @@ window.__INONU_AUTH__ = {
   subscribeCancelledLessons,
   saveCancelledLesson,
   deleteCancelledLesson,
+  loadExamCountdowns,
+  subscribeExamCountdowns,
+  saveExamCountdown,
+  deleteExamCountdown,
   loadAllLessonMaterials,
   subscribeLessonMaterials,
   saveLessonMaterial,

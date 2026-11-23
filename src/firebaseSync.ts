@@ -735,3 +735,119 @@ export function subscribeFirebaseStudentPrefs(
     return () => {};
   }
 }
+
+// ==================== EXAM COUNTDOWNS (CROSS-DEVICE) ====================
+
+export interface FirebaseExamCountdownRecord {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  note: string;
+  targetProg: '' | 'tr' | 'en';
+  updatedAtMs: number;
+}
+
+function normalizeFirebaseExamCountdown(
+  docId: string,
+  raw: Record<string, unknown>,
+): FirebaseExamCountdownRecord | null {
+  const id = String(raw.id || docId || '').trim();
+  const title = String(raw.title || '').trim().slice(0, 120);
+  const date = String(raw.date || '').trim().slice(0, 20);
+  if (!id || !/^[a-zA-Z0-9_-]{1,128}$/.test(id) || !title || date.length < 8) {
+    return null;
+  }
+  const progRaw = String(raw.targetProg || '').trim().toLowerCase();
+  const targetProg: '' | 'tr' | 'en' = progRaw === 'en' ? 'en' : progRaw === 'tr' ? 'tr' : '';
+  return {
+    id,
+    title,
+    date,
+    time: String(raw.time || '').trim().slice(0, 32),
+    note: String(raw.note || '').trim().slice(0, 240),
+    targetProg,
+    updatedAtMs: Math.max(0, Number(raw.updatedAtMs) || 0),
+  };
+}
+
+export async function fetchFirebaseExamCountdowns(): Promise<FirebaseExamCountdownRecord[] | null> {
+  if (!db || isFirebaseQuotaExceeded()) return null;
+  const path = 'examCountdowns';
+  try {
+    const snap = await getDocs(collection(db, 'examCountdowns'));
+    const list: FirebaseExamCountdownRecord[] = [];
+    snap.forEach((d) => {
+      const rec = normalizeFirebaseExamCountdown(d.id, (d.data() || {}) as Record<string, unknown>);
+      if (rec) list.push(rec);
+    });
+    return list;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, path);
+    return null;
+  }
+}
+
+export function subscribeFirebaseExamCountdowns(
+  onChange: (items: FirebaseExamCountdownRecord[]) => void,
+): Unsubscribe {
+  if (!db || isFirebaseQuotaExceeded()) return () => {};
+  const path = 'examCountdowns';
+  try {
+    return onSnapshot(
+      collection(db, 'examCountdowns'),
+      (snap) => {
+        const list: FirebaseExamCountdownRecord[] = [];
+        snap.forEach((d) => {
+          const rec = normalizeFirebaseExamCountdown(d.id, (d.data() || {}) as Record<string, unknown>);
+          if (rec) list.push(rec);
+        });
+        onChange(list);
+      },
+      (err) => {
+        handleFirestoreError(err, OperationType.LIST, path);
+      },
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, path);
+    return () => {};
+  }
+}
+
+export async function saveFirebaseExamCountdown(
+  item: FirebaseExamCountdownRecord,
+): Promise<boolean> {
+  if (!db || isFirebaseQuotaExceeded()) return false;
+  const rec = normalizeFirebaseExamCountdown(item.id, item as unknown as Record<string, unknown>);
+  if (!rec) return false;
+  const path = `examCountdowns/${rec.id}`;
+  try {
+    await setDoc(doc(db, 'examCountdowns', rec.id), {
+      id: rec.id,
+      title: rec.title,
+      date: rec.date,
+      time: rec.time,
+      note: rec.note,
+      targetProg: rec.targetProg,
+      updatedAtMs: Math.max(1, Math.floor(rec.updatedAtMs || Date.now())),
+    });
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, path);
+    return false;
+  }
+}
+
+export async function deleteFirebaseExamCountdown(id: string): Promise<boolean> {
+  if (!db || isFirebaseQuotaExceeded() || !id) return false;
+  const cleanId = String(id).trim();
+  if (!/^[a-zA-Z0-9_-]{1,128}$/.test(cleanId)) return false;
+  const path = `examCountdowns/${cleanId}`;
+  try {
+    await deleteDoc(doc(db, 'examCountdowns', cleanId));
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, path);
+    return false;
+  }
+}

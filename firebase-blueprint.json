@@ -54,6 +54,10 @@
         "updatedAtMs": {
           "type": "number"
         },
+        "expiresAtMs": {
+          "type": "number",
+          "description": "Optional auto-expiry timestamp in milliseconds (0 or omitted means no expiry)"
+        },
         "deleted": {
           "type": "boolean"
         }
@@ -146,6 +150,43 @@
         }
       },
       "required": ["id", "date", "slotNo", "targetProg", "reason", "updatedAtMs"]
+    },
+    "ExamCountdown": {
+      "title": "ExamCountdown",
+      "description": "Admin-managed exam / committee countdown item synchronized across all student devices",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "date": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "time": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "targetProg": {
+          "type": "string",
+          "enum": ["", "tr", "en"],
+          "maxLength": 2
+        },
+        "updatedAtMs": {
+          "type": "number"
+        }
+      },
+      "required": ["id", "title", "date", "time", "note", "targetProg", "updatedAtMs"]
     }
   },
   "firestore": {
@@ -178,6 +219,12 @@
         "$ref": "#/entities/CancelledLesson"
       },
       "description": "Admin-cancelled lesson slots synced across all devices"
+    },
+    "/examCountdowns/{examId}": {
+      "schema": {
+        "$ref": "#/entities/ExamCountdown"
+      },
+      "description": "Admin-managed exam countdown items synced across all devices"
     }
   }
 }

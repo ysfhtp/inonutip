@@ -75,12 +75,32 @@ service cloud.firestore {
       allow create, update: if isValidCloudKey(cloudKey) && isValidStudentPrefs(request.resource.data);
     }
 
+    function isValidExamCountdown(data) {
+      return data.keys().hasAll(['id', 'title', 'date', 'time', 'note', 'targetProg', 'updatedAtMs']) &&
+        data.keys().hasOnly(['id', 'title', 'date', 'time', 'note', 'targetProg', 'updatedAtMs']) &&
+        data.id is string && data.id.size() > 0 && data.id.size() <= 128 && data.id.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 120 &&
+        data.date is string && data.date.size() >= 8 && data.date.size() <= 20 &&
+        data.time is string && data.time.size() <= 32 &&
+        data.note is string && data.note.size() <= 240 &&
+        data.targetProg is string && data.targetProg.size() <= 2 && data.targetProg in ['', 'tr', 'en'] &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
     // Cancelled lessons synced across all devices
     match /cancelledLessons/{lessonId} {
       allow get: if isValidId(lessonId);
       allow list: if true;
       allow create, update: if isValidId(lessonId) && isValidCancelledLesson(request.resource.data);
       allow delete: if isValidId(lessonId);
+    }
+
+    // Admin-managed exam countdowns synced across all devices
+    match /examCountdowns/{examId} {
+      allow get: if isValidId(examId);
+      allow list: if true;
+      allow create, update: if isValidId(examId) && isValidExamCountdown(request.resource.data);
+      allow delete: if isValidId(examId);
     }
   }
 }
