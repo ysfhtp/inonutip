@@ -461,7 +461,7 @@ export function initInonuApp() {
   }
 
   function syncModalScrollLock() {
-    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden)'));
+    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #quickBottomSheetOverlay:not(.hidden)'));
     document.documentElement.classList.toggle('modal-open', hasOpenModal);
   }
 
@@ -3019,6 +3019,8 @@ export function initInonuApp() {
         }
         if (ex.note) existing.note = ex.note;
         existing.managed = true;
+        existing.examId = ex.id || '';
+        existing.targetProg = ex.targetProg || '';
       } else {
         mergedExams.push({
           date: ex.date,
@@ -3030,6 +3032,8 @@ export function initInonuApp() {
           rawTime: ex.time || '',
           note: ex.note || '',
           managed: true,
+          examId: ex.id || '',
+          targetProg: ex.targetProg || '',
         });
       }
     });
@@ -3062,7 +3066,10 @@ export function initInonuApp() {
           ? `${nextUpcoming.item.startTime}-${nextUpcoming.item.endTime}`
           : (nextUpcoming.item.rawTime || '');
         countdownBanner.classList.remove('hidden');
-        countdownBanner.innerHTML = `
+        countdownBanner.innerHTML = '';
+        const bannerInner = document.createElement('div');
+        bannerInner.className = 'space-y-2';
+        bannerInner.innerHTML = `
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">${isEn ? 'Next Exam Countdown' : 'Yaklaşan Sınav'}</span>
@@ -3086,6 +3093,10 @@ export function initInonuApp() {
           </div>
           ${nextUpcoming.item.note ? `<p class="text-[11.5px] font-semibold text-rose-600 dark:text-rose-300 bg-rose-500/10 rounded-xl px-2.5 py-1.5 leading-snug">${escapeHtml(nextUpcoming.item.note)}</p>` : ''}
         `;
+        if (getActiveAuthSession()?.isAdmin) {
+          bindAdminLongPress(bannerInner, () => openAdminExamQuickModal(nextUpcoming.item));
+        }
+        countdownBanner.appendChild(bannerInner);
       } else {
         countdownBanner.classList.add('hidden');
         countdownBanner.innerHTML = '';
@@ -3129,6 +3140,9 @@ export function initInonuApp() {
           switchTab('daily');
         });
         row.appendChild(goBtn);
+      }
+      if (getActiveAuthSession()?.isAdmin) {
+        bindAdminLongPress(row, () => openAdminExamQuickModal(item));
       }
       examsContainer.appendChild(row);
     });
@@ -5996,6 +6010,7 @@ export function initInonuApp() {
   let examCountdownsUnsub = null;
   let adminQuickSlotTarget = null;
   let adminQuickAnnTarget = null;
+  let adminQuickExamTarget = null;
 
   function applyLoadedExamCountdownsList(list) {
     managedExamsList = Array.isArray(list) ? list : [];
@@ -7211,6 +7226,7 @@ export function initInonuApp() {
     if (!session || !session.isAdmin || !slot) return;
     adminQuickSlotTarget = slot;
     adminQuickAnnTarget = null;
+    adminQuickExamTarget = null;
     const isEn = state.lang === 'en';
     const prog = state.lang === 'en' ? 'en' : 'tr';
     const cancelInfo = getCancelledLessonInfo(slot, prog);
@@ -7223,6 +7239,7 @@ export function initInonuApp() {
     const reasonInp = document.getElementById('adminSlotQuickReasonInput');
     const slotActions = document.getElementById('adminSlotQuickActionsSlot');
     const annActions = document.getElementById('adminSlotQuickActionsAnn');
+    const examActions = document.getElementById('adminSlotQuickActionsExam');
     const cancelLbl = document.getElementById('lblAdminSlotQuickCancel');
     const cancelIconWrap = document.getElementById('iconWrapSlotQuickCancel');
     const pdfLbl = document.getElementById('lblAdminSlotQuickPdf');
@@ -7236,6 +7253,10 @@ export function initInonuApp() {
     if (annActions) {
       annActions.classList.add('hidden');
       annActions.classList.remove('flex');
+    }
+    if (examActions) {
+      examActions.classList.add('hidden');
+      examActions.classList.remove('flex');
     }
 
     if (metaEl) {
@@ -7296,6 +7317,7 @@ export function initInonuApp() {
     const reasonWrap = document.getElementById('adminSlotQuickReasonWrap');
     const slotActions = document.getElementById('adminSlotQuickActionsSlot');
     const annActions = document.getElementById('adminSlotQuickActionsAnn');
+    const examActions = document.getElementById('adminSlotQuickActionsExam');
     const editLbl = document.getElementById('lblAdminAnnQuickEdit');
     const hideLbl = document.getElementById('lblAdminAnnQuickHide');
     const delLbl = document.getElementById('lblAdminAnnQuickDelete');
@@ -7304,6 +7326,10 @@ export function initInonuApp() {
     if (slotActions) {
       slotActions.classList.add('hidden');
       slotActions.classList.remove('flex');
+    }
+    if (examActions) {
+      examActions.classList.add('hidden');
+      examActions.classList.remove('flex');
     }
     if (annActions) {
       annActions.classList.remove('hidden');
@@ -7331,6 +7357,65 @@ export function initInonuApp() {
     if (editLbl) editLbl.textContent = isEn ? 'Edit Announcement' : 'Duyuruyu Düzenle';
     if (hideLbl) hideLbl.textContent = isEn ? 'Move to Draft (Hide)' : 'Taslağa Al (Gizle)';
     if (delLbl) delLbl.textContent = isEn ? 'Delete Announcement' : 'Duyuruyu Sil';
+    if (closeLbl) closeLbl.textContent = isEn ? 'Cancel' : 'Vazgeç';
+
+    showAdminQuickContextModal();
+  }
+  function openAdminExamQuickModal(exam) {
+    const session = getActiveAuthSession();
+    if (!session || !session.isAdmin || !exam) return;
+    adminQuickExamTarget = exam;
+    adminQuickSlotTarget = null;
+    adminQuickAnnTarget = null;
+    const isEn = state.lang === 'en';
+    const dispTime = exam.startTime && exam.endTime ? `${exam.startTime}-${exam.endTime}` : (exam.rawTime || '');
+
+    const metaEl = document.getElementById('adminSlotQuickMeta');
+    const titleEl = document.getElementById('adminSlotQuickTitle');
+    const subEl = document.getElementById('adminSlotQuickSub');
+    const previewEl = document.getElementById('adminSlotQuickPreview');
+    const reasonWrap = document.getElementById('adminSlotQuickReasonWrap');
+    const slotActions = document.getElementById('adminSlotQuickActionsSlot');
+    const annActions = document.getElementById('adminSlotQuickActionsAnn');
+    const examActions = document.getElementById('adminSlotQuickActionsExam');
+    const editLbl = document.getElementById('lblAdminExamQuickEdit');
+    const annLbl = document.getElementById('lblAdminExamQuickAnn');
+    const delBtn = document.getElementById('btnAdminExamQuickDelete');
+    const delLbl = document.getElementById('lblAdminExamQuickDelete');
+    const closeLbl = document.getElementById('lblAdminSlotQuickClose');
+
+    if (slotActions) {
+      slotActions.classList.add('hidden');
+      slotActions.classList.remove('flex');
+    }
+    if (annActions) {
+      annActions.classList.add('hidden');
+      annActions.classList.remove('flex');
+    }
+    if (examActions) {
+      examActions.classList.remove('hidden');
+      examActions.classList.add('flex');
+    }
+    if (reasonWrap) reasonWrap.classList.add('hidden');
+    if (previewEl) previewEl.classList.remove('slot-card-cancelled');
+
+    if (metaEl) {
+      metaEl.textContent = `${formatDateLong(exam.date)}${dispTime ? ` • ${dispTime}` : ''}`;
+      metaEl.className = 'block text-[10.5px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 tabular-nums';
+    }
+    if (titleEl) titleEl.textContent = exam.title || '';
+    if (subEl) {
+      subEl.textContent = exam.note || (exam.managed ? (isEn ? 'Managed exam countdown' : 'Özel sınav geri sayımı') : (isEn ? 'From class schedule' : 'Ders programından'));
+      subEl.classList.remove('hidden');
+    }
+    if (editLbl) {
+      editLbl.textContent = exam.managed
+        ? (isEn ? 'Edit Exam / Note' : 'Sınavı Düzenle / Not Ekle')
+        : (isEn ? 'Add Note / Override Exam' : 'Sınava Not Ekle / Özelleştir');
+    }
+    if (annLbl) annLbl.textContent = isEn ? 'Post Exam Announcement' : 'Sınav İçin Duyuru Geç';
+    if (delBtn) delBtn.classList.toggle('hidden', !(exam.managed && exam.examId));
+    if (delLbl) delLbl.textContent = isEn ? 'Delete Exam' : 'Sınavı Sil';
     if (closeLbl) closeLbl.textContent = isEn ? 'Cancel' : 'Vazgeç';
 
     showAdminQuickContextModal();
@@ -10381,6 +10466,85 @@ export function initInonuApp() {
       });
     }
 
+    // Exam Card Long-Press Context Menu Handlers (Feature #2)
+    const normalizeExamIsoDate = (rawDate) => {
+      const s = String(rawDate || '').trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const dmy = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+      return getTodayIso();
+    };
+    const btnAdminExamQuickEdit = document.getElementById('btnAdminExamQuickEdit');
+    if (btnAdminExamQuickEdit) {
+      btnAdminExamQuickEdit.addEventListener('click', () => {
+        const exam = adminQuickExamTarget;
+        closeAdminSlotQuickModal();
+        if (!exam) return;
+        adminState.editingExamId = exam.managed && exam.examId ? exam.examId : '';
+        adminState.examProg = exam.targetProg || (state.lang === 'en' ? 'en' : 'tr');
+        openAdminModal();
+        switchAdminTab('exams', false);
+        const t = document.getElementById('adminExamTitleInput');
+        const d = document.getElementById('adminExamDateInput');
+        const tm = document.getElementById('adminExamTimeInput');
+        const n = document.getElementById('adminExamNoteInput');
+        const dispTime = exam.startTime && exam.endTime ? `${exam.startTime}-${exam.endTime}` : (exam.rawTime || '');
+        if (t) t.value = exam.title || '';
+        if (d) d.value = normalizeExamIsoDate(exam.date);
+        if (tm) tm.value = dispTime;
+        if (n) n.value = exam.note || '';
+        syncAdminExamFormUI(false);
+        setTimeout(() => { if (n) n.focus(); }, 220);
+      });
+    }
+    const btnAdminExamQuickAnnounce = document.getElementById('btnAdminExamQuickAnnounce');
+    if (btnAdminExamQuickAnnounce) {
+      btnAdminExamQuickAnnounce.addEventListener('click', () => {
+        const exam = adminQuickExamTarget;
+        closeAdminSlotQuickModal();
+        if (!exam) return;
+        const isEn = state.lang === 'en';
+        const dispTime = exam.startTime && exam.endTime ? `${exam.startTime}-${exam.endTime}` : (exam.rawTime || '');
+        adminState.editingAnnId = '';
+        adminState.annTone = 'warn';
+        adminState.annActive = true;
+        adminState.annTargetGroup = '';
+        adminState.annTargetProg = exam.targetProg || (isEn ? 'en' : 'tr');
+        adminState.annExpiresAtMs = 0;
+        openAdminModal();
+        switchAdminTab('announcements', false);
+        const tInp = document.getElementById('adminAnnTitleInput');
+        const mInp = document.getElementById('adminAnnMsgInput');
+        if (tInp) tInp.value = exam.title || '';
+        if (mInp) {
+          mInp.value = `${formatDateLong(exam.date)}${dispTime ? ` • ${dispTime}` : ''}${exam.note ? `\n${exam.note}` : ''}`;
+        }
+        syncAdminAnnFormUI(false);
+        setTimeout(() => { if (mInp) mInp.focus(); }, 220);
+      });
+    }
+    const btnAdminExamQuickDelete = document.getElementById('btnAdminExamQuickDelete');
+    if (btnAdminExamQuickDelete) {
+      btnAdminExamQuickDelete.addEventListener('click', async () => {
+        const exam = adminQuickExamTarget;
+        const api = window.__INONU_AUTH__;
+        const secret = ensureAdminSecretReady();
+        if (!exam || !exam.examId || !api || !secret) return;
+        btnAdminExamQuickDelete.disabled = true;
+        try {
+          await api.deleteExamCountdown(exam.examId, secret === 'active' ? undefined : secret);
+          applyLoadedExamCountdownsList(managedExamsList.filter((x) => x.id !== exam.examId));
+          closeAdminSlotQuickModal();
+          showToast(state.lang === 'en' ? 'Exam deleted.' : 'Sınav silindi.');
+        } catch (err) {
+          console.warn('Quick delete exam error:', err);
+          showToast(I18N[state.lang].adminSaveErrorToast);
+        } finally {
+          btnAdminExamQuickDelete.disabled = false;
+        }
+      });
+    }
+
     const adminAnnForm = document.getElementById('adminAnnForm');
     if (adminAnnForm) {
       adminAnnForm.addEventListener('submit', async (e) => {
@@ -11683,5 +11847,93 @@ export function initInonuApp() {
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => updateTabIndicator(state.activeTab, false));
     }
+
+    (window as any).__INONU_BRIDGE__ = {
+      getState: () => ({
+        lang: state.lang === 'en' ? 'en' : 'tr',
+        activeTab: state.activeTab,
+        darkMode: !!state.darkMode,
+        selectedDate: state.selectedDate,
+        myMbuGroup: state.myMbuGroup || '',
+        myLabGroup: state.myLabGroup || '',
+      }),
+      isAdmin: () => Boolean(getActiveAuthSession()?.isAdmin),
+      isSiteLocked: () => isSiteLoginLocked(),
+      switchTab: (tabName: string) => switchTab(tabName, true),
+      jumpToToday: () => {
+        state.selectedDate = getBestDefaultDate();
+        switchTab('daily', true);
+      },
+      openDailyDateModal: () => openDailyDateModal(),
+      openGroupModal: () => openGroupModal(),
+      openSettingsMenu: () => openSettingsMenu(),
+      openAdminModal: (tabKey?: string) => {
+        if (!getActiveAuthSession()?.isAdmin) return false;
+        openAdminModal();
+        if (tabKey) switchAdminTab(tabKey, false);
+        return true;
+      },
+      triggerAdminQuickAction: (action: 'urgent-ann' | 'cancel-today') => {
+        if (!getActiveAuthSession()?.isAdmin) return false;
+        openAdminModal();
+        const id = action === 'urgent-ann' ? 'btnAdminQuickUrgentAnn' : 'btnAdminQuickCancelToday';
+        document.getElementById(id)?.click();
+        return true;
+      },
+      toggleDarkMode: () => {
+        state.darkMode = !state.darkMode;
+        saveStore('darkMode', state.darkMode);
+        applyTheme(true);
+        syncSettingsMenuUI(true);
+        saveCurrentStudentPrefs(true);
+        window.dispatchEvent(new CustomEvent('inonu-ui-sync'));
+      },
+      triggerHaptic: (kind: string = 'light') => triggerHaptic(kind),
+      showToast: (msg: string) => showToast(msg),
+      syncModalScrollLock: () => syncModalScrollLock(),
+      getLiveSummary: () => {
+        const todayStr = formatDMY(getTodayDateObj());
+        const days = getScheduleDays();
+        const todayObj = days.find((d) => d.date === todayStr) || null;
+        const nowTime = getCurrentActiveTimeString();
+        let liveSlot: any = null;
+        let nextSlot: any = null;
+        if (todayObj && Array.isArray(todayObj.slots)) {
+          const filtered = filterSlotsForGroupPreference(todayObj.slots);
+          const visibleSlots = Array.isArray(filtered?.visibleSlots) ? filtered.visibleSlots : todayObj.slots;
+          for (const slot of visibleSlots) {
+            if (getCancelledLessonInfo(slot)) continue;
+            if (isSlotCurrentlyLive(slot)) {
+              liveSlot = slot;
+              break;
+            }
+            if (!nextSlot && slot.start && slot.start > nowTime) {
+              nextSlot = slot;
+            }
+          }
+        }
+        const todayIso = getTodayIso();
+        const prog = state.lang === 'en' ? 'en' : 'tr';
+        const upcomingExams = (Array.isArray(managedExamsList) ? managedExamsList : [])
+          .filter((ex: any) => ex && ex.date && ex.date >= todayIso && (!ex.program || ex.program === prog))
+          .sort((a: any, b: any) => String(a.date).localeCompare(String(b.date)));
+        const nextExam = upcomingExams[0] || null;
+        let nextExamDays: number | null = null;
+        if (nextExam && nextExam.date) {
+          const t0 = new Date(todayIso + 'T00:00:00').getTime();
+          const t1 = new Date(nextExam.date + 'T00:00:00').getTime();
+          if (Number.isFinite(t0) && Number.isFinite(t1)) {
+            nextExamDays = Math.max(0, Math.round((t1 - t0) / 86400000));
+          }
+        }
+        return {
+          todayStr,
+          liveSlot: liveSlot ? { title: liveSlot.title, start: liveSlot.start, end: liveSlot.end, location: liveSlot.location || '', instructor: liveSlot.instructor || '' } : null,
+          nextSlot: nextSlot ? { title: nextSlot.title, start: nextSlot.start, end: nextSlot.end, location: nextSlot.location || '', instructor: nextSlot.instructor || '' } : null,
+          nextExam: nextExam ? { title: nextExam.title, date: nextExam.date, time: nextExam.time || '', daysLeft: nextExamDays } : null,
+        };
+      },
+    };
+    window.dispatchEvent(new CustomEvent('inonu-bridge-ready'));
   });
 }

@@ -1,0 +1,349 @@
+/* ==================== MODULAR MENUS CSS (Glassmorphism Bottom Sheet #7) ==================== */
+
+.bs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 52;
+  background: rgba(2, 6, 23, 0);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  transition: background-color 0.28s ease, backdrop-filter 0.28s ease;
+}
+
+.bs-overlay.hidden {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.bs-overlay.is-open {
+  background: rgba(2, 6, 23, 0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.bs-sheet {
+  width: 100%;
+  max-width: 540px;
+  max-height: 82dvh;
+  border-radius: 30px 30px 0 0;
+  padding: 10px 16px max(18px, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transform: translate3d(0, 102%, 0);
+  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+  overflow: hidden;
+}
+
+.bs-overlay.is-open .bs-sheet {
+  transform: translate3d(0, 0, 0);
+}
+
+.bs-sheet.is-dragging {
+  transition: none !important;
+}
+
+.bs-drag-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.bs-grabber {
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.52);
+  margin: 2px auto 0;
+}
+
+.bs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.bs-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 4px;
+}
+
+.bs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bs-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.56);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: transform 0.16s ease, background-color 0.2s ease;
+}
+
+.dark .bs-tile {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.bs-tile-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bs-tone-blue { background: rgba(59, 130, 246, 0.15); color: #2563eb; }
+.dark .bs-tone-blue { color: #60a5fa; }
+.bs-tone-sky { background: rgba(14, 165, 233, 0.15); color: #0284c7; }
+.dark .bs-tone-sky { color: #38bdf8; }
+.bs-tone-indigo { background: rgba(99, 102, 241, 0.15); color: #4f46e5; }
+.dark .bs-tone-indigo { color: #818cf8; }
+.bs-tone-amber { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+.dark .bs-tone-amber { color: #fbbf24; }
+.bs-tone-emerald { background: rgba(16, 185, 129, 0.15); color: #059669; }
+.dark .bs-tone-emerald { color: #34d399; }
+.bs-tone-violet { background: rgba(139, 92, 246, 0.15); color: #7c3aed; }
+.dark .bs-tone-violet { color: #a78bfa; }
+
+.bs-admin-wrap {
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bs-admin-wrap.hidden {
+  display: none !important;
+}
+
+.bs-section-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  padding: 0 2px;
+}
+
+.dark .bs-section-label {
+  color: #94a3b8;
+}
+
+.bs-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bs-admin-chip {
+  padding: 10px 8px;
+  border-radius: 16px;
+  border: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* ==================== COMMITTEE SCORE HISTORY (K1-K5, Feature #7) ==================== */
+.cs-wrap {
+  padding-top: 10px;
+  border-top: 1px solid rgba(99, 102, 241, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cs-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.dark .cs-title {
+  color: #cbd5e1;
+}
+
+.cs-avg-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.dark .cs-avg-badge {
+  color: #94a3b8;
+}
+
+.cs-avg-badge.has-avg {
+  background: rgba(99, 102, 241, 0.15);
+  color: #4f46e5;
+}
+
+.dark .cs-avg-badge.has-avg {
+  background: rgba(129, 140, 248, 0.18);
+  color: #a5b4fc;
+}
+
+.cs-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cs-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 7px 4px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.15s ease;
+}
+
+.dark .cs-slot {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cs-slot.is-filled {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.28);
+}
+
+.dark .cs-slot.is-filled {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: rgba(129, 140, 248, 0.32);
+}
+
+.cs-slot.is-selected {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+.cs-slot-lbl {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.dark .cs-slot-lbl {
+  color: #94a3b8;
+}
+
+.cs-slot.is-selected .cs-slot-lbl,
+.cs-slot.is-filled .cs-slot-lbl {
+  color: #4f46e5;
+}
+
+.dark .cs-slot.is-selected .cs-slot-lbl,
+.dark .cs-slot.is-filled .cs-slot-lbl {
+  color: #a5b4fc;
+}
+
+.cs-slot-val {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.dark .cs-slot-val {
+  color: #f8fafc;
+}
+
+.cs-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cs-btn-save {
+  flex: 1;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  border: 0;
+  background: rgba(99, 102, 241, 0.16);
+  color: #4338ca;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.dark .cs-btn-save {
+  background: rgba(99, 102, 241, 0.24);
+  color: #c7d2fe;
+}
+
+.cs-btn-save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cs-btn-clear {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  border: 0;
+  background: rgba(244, 63, 94, 0.14);
+  color: #e11d48;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dark .cs-btn-clear {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fda4af;
+}
+
+.cs-btn-clear.hidden {
+  display: none !important;
+}
+

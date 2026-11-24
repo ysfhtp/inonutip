@@ -3,6 +3,7 @@ import {registerSW} from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
 import './styles/app.css';
+import './styles/menus.css';
 import {
   addOrUpdateCustomStudent,
   adminSaveStudentSettings,
@@ -70,6 +71,7 @@ import {
   initFirebaseDirectorySync,
 } from './cloudApi.ts';
 import { initInonuApp } from './legacyApp.ts';
+import { initModularMenus } from './modules/index.ts';
 import {
   deriveAdminWriteSecret,
   deriveCloudDocId,
@@ -239,6 +241,7 @@ window.__INONU_AUTH__ = {
 };
 window.dispatchEvent(new Event('inonu-auth-ready'));
 initInonuApp();
+initModularMenus();
 
 if (import.meta.env.DEV) {
   const hasStaleDom = Boolean(document.getElementById('adminCloudAuthBar'));
