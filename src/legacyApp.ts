@@ -535,35 +535,7 @@ export function initInonuApp() {
       .replace(/'/g, '&#39;');
   }
 
-  let islandNotifySeq = 1;
-  function emitIslandNotify(message, tone = 'info') {
-    if (!message) return;
-    try {
-      window.dispatchEvent(new CustomEvent('inonu-island-notify', {
-        detail: {
-          id: islandNotifySeq++,
-          message: String(message),
-          tone,
-          timestamp: Date.now(),
-        },
-      }));
-    } catch {}
-  }
-
-  let uiBridgeEmitRaf = 0;
-  function emitUiBridgeUpdate() {
-    if (uiBridgeEmitRaf) return;
-    uiBridgeEmitRaf = requestAnimationFrame(() => {
-      uiBridgeEmitRaf = 0;
-      try {
-        window.dispatchEvent(new Event('inonu-ui-state'));
-      } catch {}
-    });
-  }
-
-  function showToast(msg, tone = 'info') {
-    emitIslandNotify(msg, tone);
-    if (window.__INONU_ISLAND_ACTIVE__) return;
+  function showToast(msg) {
     const toast = document.getElementById('toastBanner');
     if (!toast) return;
     clearTimeout(toast._t);
@@ -731,7 +703,6 @@ export function initInonuApp() {
     saveStore('darkMode', state.darkMode);
     syncPaletteModalUI();
     syncSettingsMenuUI(animate);
-    emitUiBridgeUpdate();
   }
 
   function applyPalette(paletteKey, animate = false) {
@@ -742,7 +713,6 @@ export function initInonuApp() {
     saveStore('palette', key);
     syncSystemBarsThemeColor();
     syncPaletteModalUI();
-    emitUiBridgeUpdate();
   }
 
   function syncPaletteModalUI() {
@@ -1213,7 +1183,6 @@ export function initInonuApp() {
     if (state.activeTab === 'info') renderInfoView();
     animateActiveViewLanguageSwitch();
     requestAnimationFrame(() => updateTabIndicator(state.activeTab, false));
-    emitUiBridgeUpdate();
   }
 
   // ==================== iOS 18 LIQUID GLASS DOCK INDICATOR ====================
@@ -1535,7 +1504,6 @@ export function initInonuApp() {
   function switchTab(tabName, animate = true, preserveScroll = false) {
     updateTabIndicator(tabName, animate);
     activateTabView(tabName, preserveScroll);
-    emitUiBridgeUpdate();
   }
 
   function isSecondaryCourseSlot(slot) {
@@ -9400,7 +9368,6 @@ export function initInonuApp() {
       if (state.activeTab === 'daily') renderDailyView();
       if (state.activeTab === 'weekly') renderWeeklyView();
       if (state.activeTab === 'search') renderSearchView();
-      emitUiBridgeUpdate();
     };
 
     document.getElementById('btnOpenGroupModal').addEventListener('click', openGroupModal);
@@ -11701,291 +11668,6 @@ export function initInonuApp() {
         if (!refreshing) resetIndicator();
       }, { passive: true });
     }
-
-    function buildUiBridgeSnapshot() {
-      const days = getScheduleDays();
-      const todayObj = getTodayDateObj();
-      const todayStr = formatDMY(todayObj);
-      const nowStr = getCurrentActiveTimeString();
-
-      const todayDay = days.find((d) => d.date === todayStr);
-      const selectedDay = days.find((d) => d.date === state.selectedDate) || todayDay || days[0];
-      const todaySlots = todayDay ? filterSlotsForGroupPreference(todayDay.slots).visibleSlots : [];
-      const selectedSlots = selectedDay ? filterSlotsForGroupPreference(selectedDay.slots).visibleSlots : [];
-
-      let liveSlot = null;
-      let nextSlot = null;
-
-      for (const s of todaySlots) {
-        if (isSlotCurrentlyLive(s)) {
-          liveSlot = {
-            date: s.date,
-            time: s.time || '',
-            code: s.code || '',
-            title: s.title || '',
-            instructor: s.instructor || '',
-            group: s.group || '',
-            isLive: true,
-            isToday: true,
-          };
-          break;
-        }
-      }
-
-      if (!liveSlot) {
-        const upcomingToday = todaySlots.find((s) => {
-          const start = String(s.time || '').split('-')[0] || '';
-          return start > nowStr;
-        });
-        if (upcomingToday) {
-          nextSlot = {
-            date: upcomingToday.date,
-            time: upcomingToday.time || '',
-            code: upcomingToday.code || '',
-            title: upcomingToday.title || '',
-            instructor: upcomingToday.instructor || '',
-            group: upcomingToday.group || '',
-            isLive: false,
-            isToday: true,
-          };
-        } else {
-          const firstVisible = selectedSlots[0];
-          if (firstVisible) {
-            nextSlot = {
-              date: firstVisible.date,
-              time: firstVisible.time || '',
-              code: firstVisible.code || '',
-              title: firstVisible.title || '',
-              instructor: firstVisible.instructor || '',
-              group: firstVisible.group || '',
-              isLive: false,
-              isToday: firstVisible.date === todayStr,
-            };
-          }
-        }
-      } else {
-        const afterLive = todaySlots.find((s) => {
-          const start = String(s.time || '').split('-')[0] || '';
-          return start > (String(liveSlot.time || '').split('-')[0] || '');
-        });
-        if (afterLive) {
-          nextSlot = {
-            date: afterLive.date,
-            time: afterLive.time || '',
-            code: afterLive.code || '',
-            title: afterLive.title || '',
-            instructor: afterLive.instructor || '',
-            group: afterLive.group || '',
-            isLive: false,
-            isToday: true,
-          };
-        }
-      }
-
-      const activeAnns = (Array.isArray(activeAnnouncementsList) ? activeAnnouncementsList : [])
-        .filter((a) => a && a.active !== false)
-        .map((a) => ({
-          id: String(a.id || ''),
-          title: String(a.title || ''),
-          body: String(a.body || ''),
-          tone: String(a.tone || 'info'),
-        }));
-
-      // Nearest upcoming exam from schedule or managed exams
-      let nextExam = null;
-      const examCandidates = [];
-      for (const day of days) {
-        const dt = parseDMY(day.date);
-        const diffDays = Math.round((dt - todayObj) / (1000 * 60 * 60 * 24));
-        if (diffDays < 0) continue;
-        for (const s of day.slots || []) {
-          if (getSlotCategory(s) === 'exam') {
-            examCandidates.push({
-              title: s.title || s.code || (state.lang === 'en' ? 'Exam' : 'Sınav'),
-              date: day.date,
-              daysLeft: diffDays,
-            });
-            break;
-          }
-        }
-      }
-      if (Array.isArray(managedExamsList)) {
-        for (const ex of managedExamsList) {
-          if (!ex || !ex.date) continue;
-          const clean = String(ex.date).trim();
-          const dt = clean.includes('-') ? new Date(`${clean}T00:00:00`) : parseDMY(clean);
-          if (Number.isNaN(dt.getTime())) continue;
-          const diffDays = Math.round((dt - todayObj) / (1000 * 60 * 60 * 24));
-          if (diffDays >= 0) {
-            examCandidates.push({
-              title: state.lang === 'en' ? (ex.titleEn || ex.titleTr || ex.title || 'Exam') : (ex.titleTr || ex.titleEn || ex.title || 'Sınav'),
-              date: formatDMY(dt),
-              daysLeft: diffDays,
-            });
-          }
-        }
-      }
-      examCandidates.sort((a, b) => a.daysLeft - b.daysLeft);
-      if (examCandidates.length > 0) {
-        nextExam = examCandidates[0];
-      }
-
-      const notesCount = state.notes && typeof state.notes === 'object'
-        ? Object.values(state.notes).filter((v) => String(v || '').trim().length > 0).length
-        : 0;
-
-      const isLoggedIn = Boolean(loadStore('authSession', null));
-      const isSiteLocked = document.documentElement.classList.contains('site-locked-locked');
-
-      return {
-        lang: state.lang === 'en' ? 'en' : 'tr',
-        darkMode: Boolean(state.darkMode),
-        palette: normalizePaletteKey(state.palette),
-        hapticsEnabled: state.hapticsEnabled !== false,
-        activeTab: state.activeTab || 'daily',
-        selectedDate: state.selectedDate || todayStr,
-        selectedDateLabel: selectedDay ? formatDateDayMonthYear(selectedDay.date) : '',
-        myMbuGroup: state.myMbuGroup || '',
-        myLabGroup: state.myLabGroup || '',
-        otherGroupMode: state.otherGroupMode === 'hide' ? 'hide' : 'dim',
-        liveSlot,
-        nextSlot,
-        todayVisibleCount: selectedSlots.length,
-        announcements: activeAnns,
-        nextExam,
-        notesCount,
-        cachedPdfCount: cachedPdfStats ? Number(cachedPdfStats.count) || 0 : 0,
-        isLoggedIn,
-        isSiteLocked,
-      };
-    }
-
-    window.__INONU_UI_BRIDGE__ = {
-      getSnapshot: buildUiBridgeSnapshot,
-      setTheme: (dark) => {
-        state.darkMode = Boolean(dark);
-        applyTheme(true);
-        triggerHaptic('tick');
-      },
-      setPalette: (paletteKey) => {
-        applyPalette(paletteKey, true);
-        triggerHaptic('tick');
-      },
-      setLanguage: (lang) => {
-        setLanguage(lang);
-        triggerHaptic('tick');
-      },
-      setHaptics: (enabled) => {
-        state.hapticsEnabled = Boolean(enabled);
-        saveStore('hapticsEnabled', state.hapticsEnabled);
-        syncSettingsMenuUI(false);
-        if (state.hapticsEnabled) triggerHaptic('light', true);
-        emitUiBridgeUpdate();
-      },
-      setMbuGroup: (group) => {
-        state.myMbuGroup = String(group || '');
-        saveStore('myMbuGroup', state.myMbuGroup);
-        saveCurrentStudentPrefs(true);
-        invalidateScheduleRenderCache();
-        refreshActiveScheduleViews();
-        triggerHaptic('tick');
-      },
-      setLabGroup: (group) => {
-        state.myLabGroup = String(group || '');
-        saveStore('myLabGroup', state.myLabGroup);
-        saveCurrentStudentPrefs(true);
-        invalidateScheduleRenderCache();
-        refreshActiveScheduleViews();
-        triggerHaptic('tick');
-      },
-      setOtherGroupMode: (mode) => {
-        state.otherGroupMode = mode === 'hide' ? 'hide' : 'dim';
-        saveStore('otherGroupMode', state.otherGroupMode);
-        saveCurrentStudentPrefs(true);
-        invalidateScheduleRenderCache();
-        refreshActiveScheduleViews();
-        triggerHaptic('tick');
-      },
-      resetGroups: () => {
-        state.myMbuGroup = '';
-        state.myLabGroup = '';
-        state.otherGroupMode = 'dim';
-        saveStore('myMbuGroup', '');
-        saveStore('myLabGroup', '');
-        saveStore('otherGroupMode', 'dim');
-        saveCurrentStudentPrefs(true);
-        invalidateScheduleRenderCache();
-        refreshActiveScheduleViews();
-        triggerHaptic('light');
-      },
-      switchTab: (tab) => {
-        switchTab(tab, true);
-        triggerHaptic('tick');
-      },
-      jumpToToday: () => {
-        state.selectedDate = getBestDefaultDate();
-        switchTab('daily', true);
-        renderDailyView();
-        triggerHaptic('light');
-        emitUiBridgeUpdate();
-      },
-      jumpToTomorrow: () => {
-        state.selectedDate = getTomorrowTargetDate();
-        switchTab('daily', true);
-        renderDailyView();
-        triggerHaptic('light');
-        emitUiBridgeUpdate();
-      },
-      openDatePicker: () => {
-        openDailyDateModal();
-        triggerHaptic('tick');
-      },
-      openSearch: () => {
-        switchTab('search', true);
-        setTimeout(() => {
-          const inp = document.getElementById('inputSearchQuery');
-          if (inp) inp.focus();
-        }, 180);
-        triggerHaptic('tick');
-      },
-      openSettingsModal: () => {
-        openSettingsMenu();
-        triggerHaptic('tick');
-      },
-      openAuthModal: () => {
-        openAuthModal(false);
-        triggerHaptic('tick');
-      },
-      exportDayIcs: () => {
-        const dayObj = getScheduleDays().find((d) => d.date === state.selectedDate);
-        if (dayObj) {
-          const { visibleSlots } = filterSlotsForGroupPreference(dayObj.slots);
-          exportSlotsToIcs(visibleSlots, `inonu-tip-${dayObj.date}-${state.lang}.ics`);
-          triggerHaptic('success');
-        }
-      },
-      refreshData: async () => {
-        triggerHaptic('light');
-        try {
-          await Promise.all([
-            refreshDailyAnnouncements(true),
-            refreshLessonMaterials(true),
-          ]);
-          if (state.activeTab === 'food') {
-            await renderFoodView(true);
-          }
-          emitUiBridgeUpdate();
-        } catch {}
-      },
-      triggerHaptic: (kind = 'light') => {
-        triggerHaptic(kind);
-      },
-      notify: (message, tone = 'info') => {
-        emitIslandNotify(message, tone);
-      },
-    };
-    emitUiBridgeUpdate();
-    setInterval(emitUiBridgeUpdate, 30000);
 
     updateOfflineBannerUI();
     setupPullToRefresh();
