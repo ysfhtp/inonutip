@@ -87,6 +87,7 @@ export interface CloudAnnouncement {
   createdAtMs: number;
   updatedAtMs: number;
   expiresAtMs?: number;
+  publishAtMs?: number;
 }
 
 export interface CloudExamCountdown {
@@ -2409,6 +2410,7 @@ export async function saveCloudStudentPrefs(
 // ==================== ANNOUNCEMENTS ====================
 function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement {
   const rawExp = Number(raw.expiresAtMs ?? raw.expires_at ?? 0) || 0;
+  const rawPub = Number(raw.publishAtMs ?? raw.publish_at ?? 0) || 0;
   return {
     id: String(raw.id || ''),
     title: String(raw.title || ''),
@@ -2420,6 +2422,7 @@ function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement 
     createdAtMs: Number(raw.createdAtMs ?? raw.created_at) || 0,
     updatedAtMs: Number(raw.updatedAtMs ?? raw.updated_at) || 0,
     expiresAtMs: rawExp > 0 ? rawExp : 0,
+    publishAtMs: rawPub > 0 ? rawPub : 0,
   };
 }
 
@@ -2831,6 +2834,7 @@ export async function saveAnnouncement(
     targetGroup?: unknown;
     targetProg?: unknown;
     expiresAtMs?: unknown;
+    publishAtMs?: unknown;
   },
   adminSecret?: string,
 ): Promise<CloudAnnouncement> {
@@ -2847,6 +2851,7 @@ export async function saveAnnouncement(
       : `ann_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const now = Date.now();
   const cleanExpires = Math.max(0, Math.floor(Number(input.expiresAtMs) || 0));
+  const cleanPublish = Math.max(0, Math.floor(Number(input.publishAtMs) || 0));
   const saved: CloudAnnouncement = {
     id,
     title: cleanTitle,
@@ -2858,6 +2863,7 @@ export async function saveAnnouncement(
     createdAtMs: now,
     updatedAtMs: now,
     expiresAtMs: cleanExpires,
+    publishAtMs: cleanPublish,
   };
 
   const map = readStaticJson<Record<string, CloudAnnouncement & { deleted?: boolean }>>('announcements', {});
@@ -2877,6 +2883,7 @@ export async function saveAnnouncement(
     createdAtMs: saved.createdAtMs,
     updatedAtMs: saved.updatedAtMs,
     expiresAtMs: saved.expiresAtMs || 0,
+    publishAtMs: saved.publishAtMs || 0,
     deleted: false,
   });
 
@@ -2896,6 +2903,7 @@ export async function saveAnnouncement(
         targetGroup: normalizeMbuGroupPref(input.targetGroup),
         targetProg: normalizeLangPref(input.targetProg),
         expiresAtMs: saved.expiresAtMs || 0,
+        publishAtMs: saved.publishAtMs || 0,
       }),
     });
     if (!resp.ok) {
@@ -2907,6 +2915,7 @@ export async function saveAnnouncement(
     if (json.announcement) {
       const s = mapServerAnnouncement(json.announcement);
       if (!s.expiresAtMs && saved.expiresAtMs) s.expiresAtMs = saved.expiresAtMs;
+      if (!s.publishAtMs && saved.publishAtMs) s.publishAtMs = saved.publishAtMs;
       map[s.id] = { ...s, deleted: false };
       writeStaticJson('announcements', map);
       emitLocalTopic('announcements', { action: 'save', id: s.id });

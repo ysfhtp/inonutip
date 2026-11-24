@@ -461,7 +461,7 @@ export function initInonuApp() {
   }
 
   function syncModalScrollLock() {
-    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #quickBottomSheetOverlay:not(.hidden)'));
+    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #maintenanceGateOverlay:not(.hidden)'));
     document.documentElement.classList.toggle('modal-open', hasOpenModal);
   }
 
@@ -1771,8 +1771,10 @@ export function initInonuApp() {
     endEl.textContent = endTime;
 
     const slotNoEl = document.createElement('div');
-    slotNoEl.className = `text-[10px] font-bold leading-tight mt-0.5 ${isCancelled ? 'text-rose-600 dark:text-rose-400' : accent.slotText}`;
-    slotNoEl.textContent = I18N[state.lang].slotLabel(slot.slotNo);
+    slotNoEl.className = `text-[10px] font-bold leading-tight mt-0.5 ${isCancelled ? 'text-rose-600 dark:text-rose-400' : (slot._isExtraLesson ? 'text-emerald-600 dark:text-emerald-400' : accent.slotText)}`;
+    slotNoEl.textContent = slot._isExtraLesson
+      ? (state.lang === 'en' ? 'EXTRA' : 'EK DERS')
+      : I18N[state.lang].slotLabel(slot.slotNo);
 
     leftCol.appendChild(startEl);
     leftCol.appendChild(endEl);
@@ -1806,6 +1808,43 @@ export function initInonuApp() {
         cancelWrap.appendChild(reasonSpan);
       }
       rightCol.appendChild(cancelWrap);
+    }
+
+    if (!isCancelled && slot._overridden) {
+      const ovWrap = document.createElement('div');
+      ovWrap.className = 'mt-1 flex items-center flex-wrap gap-1.5';
+      const ovBadge = document.createElement('span');
+      ovBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30';
+      const ovLbl = slot._overrideLocationChanged
+        ? (state.lang === 'en' ? 'ROOM CHANGED' : 'YER DEĞİŞTİ')
+        : (state.lang === 'en' ? 'UPDATED' : 'DEĞİŞTİRİLDİ');
+      ovBadge.textContent = ovLbl;
+      ovWrap.appendChild(ovBadge);
+      const ovDetail = [slot.location, slot._overrideNote].filter(Boolean).join(' · ');
+      if (ovDetail) {
+        const detSpan = document.createElement('span');
+        detSpan.className = 'text-[11px] font-semibold text-amber-700 dark:text-amber-300 leading-snug';
+        detSpan.textContent = ovDetail;
+        ovWrap.appendChild(detSpan);
+      }
+      rightCol.appendChild(ovWrap);
+    }
+
+    if (slot._isExtraLesson) {
+      const exWrap = document.createElement('div');
+      exWrap.className = 'mt-1 flex items-center flex-wrap gap-1.5';
+      const exBadge = document.createElement('span');
+      exBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30';
+      exBadge.textContent = state.lang === 'en' ? 'EXTRA LESSON' : 'EK DERS';
+      exWrap.appendChild(exBadge);
+      const exDetail = [slot.location, slot._extraNote].filter(Boolean).join(' · ');
+      if (exDetail) {
+        const detSpan = document.createElement('span');
+        detSpan.className = 'text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 leading-snug';
+        detSpan.textContent = exDetail;
+        exWrap.appendChild(detSpan);
+      }
+      rightCol.appendChild(exWrap);
     }
 
     if (isMbuOrLab && slot.group) {
@@ -2175,7 +2214,10 @@ export function initInonuApp() {
       const cancelSig = cInfo ? `1:${cInfo.reason || ''}` : '0';
       return `${s.slotNo}|${note}|${matSig}|${cancelSig}`;
     }).join(';');
-    return `${dayObj.date}::${state.lang}::${state.myMbuGroup}::${state.myLabGroup}::${state.otherGroupMode}::${slotSig}`;
+    const extrasSig = (window as any).__INONU_LIVE_EXTRAS__?.getScheduleExtrasSignature
+      ? (window as any).__INONU_LIVE_EXTRAS__.getScheduleExtrasSignature(dayObj.date, state.lang === 'en' ? 'en' : 'tr')
+      : '';
+    return `${dayObj.date}::${state.lang}::${state.myMbuGroup}::${state.myLabGroup}::${state.otherGroupMode}::${extrasSig}::${slotSig}`;
   }
 
   function renderDailyView() {
@@ -2261,14 +2303,44 @@ export function initInonuApp() {
       }, { once: true });
     }
 
-    const { visibleSlots, hiddenCount } = filterSlotsForGroupPreference(dayObj.slots);
+    const liveExtras = (window as any).__INONU_LIVE_EXTRAS__;
+    const activeProg = state.lang === 'en' ? 'en' : 'tr';
+    const rawWithOverrides = dayObj.slots.map((s) => {
+      const ov = liveExtras?.getLessonOverrideForSlot ? liveExtras.getLessonOverrideForSlot(dayObj.date, s.slotNo, activeProg) : null;
+      if (!ov) return s;
+      return {
+        ...s,
+        time: ov.newTime || s.time,
+        location: ov.newLocation || s.location || '',
+        instructor: ov.newInstructor || s.instructor,
+        _overridden: true,
+        _overrideLocationChanged: Boolean(ov.newLocation),
+        _overrideNote: ov.note || '',
+      };
+    });
+    const extraForDay = liveExtras?.getExtraLessonsForDate ? liveExtras.getExtraLessonsForDate(dayObj.date, activeProg) : [];
+    const mappedExtras = extraForDay.map((ex, eIdx) => ({
+      date: dayObj.date,
+      slotNo: 90 + eIdx,
+      time: ex.time || '',
+      title: ex.title || '',
+      instructor: ex.instructor || '',
+      location: ex.location || '',
+      code: '',
+      group: '',
+      _isExtraLesson: true,
+      _extraNote: ex.note || '',
+    }));
+
+    const { visibleSlots, hiddenCount } = filterSlotsForGroupPreference(rawWithOverrides);
+    const combinedSlots = [...visibleSlots, ...mappedExtras];
     const hasMorning = visibleSlots.some((s) => s.slotNo <= 4);
     let lunchInserted = false;
 
     const baseDelay = isTabSwitchRender ? 45 : 0;
     const frag = document.createDocumentFragment();
-    visibleSlots.forEach((slot, idx) => {
-      if (!lunchInserted && hasMorning && slot.slotNo >= 5) {
+    combinedSlots.forEach((slot, idx) => {
+      if (!lunchInserted && hasMorning && slot.slotNo >= 5 && !slot._isExtraLesson) {
         lunchInserted = true;
         const prevSlot = dayObj.slots.find((s) => s.slotNo === 4);
         const slot5 = dayObj.slots.find((s) => s.slotNo === 5) || slot;
@@ -4832,6 +4904,7 @@ export function initInonuApp() {
     const isAdminAllPreview = Boolean(session && session.isAdmin && !state.myMbuGroup);
     const nowMs = Date.now();
     const visibleAnns = (activeAnnouncementsList || []).filter((ann) => {
+      if (ann.publishAtMs && Number(ann.publishAtMs) > nowMs) return false;
       if (ann.expiresAtMs && Number(ann.expiresAtMs) > 0 && Number(ann.expiresAtMs) <= nowMs) return false;
       if (ann.targetGroup && !isAdminAllPreview && ann.targetGroup !== studentGroup) return false;
       if (ann.targetProg && ann.targetProg !== activeProg) return false;
@@ -4855,6 +4928,7 @@ export function initInonuApp() {
         tone === 'urgent' ? loc.adminAnnBadgeUrgent : tone === 'warn' ? loc.adminAnnBadgeWarn : loc.adminAnnBadgeInfo;
 
       const card = document.createElement('div');
+      card.dataset.annId = String(ann.id || '');
       card.className = `ios-glass ${suppressEntryStagger ? '' : 'ios-stagger-item '}rounded-2xl px-3.5 py-3 space-y-1`;
       if (!suppressEntryStagger) {
         card.style.setProperty('--stagger-delay', `${Math.min(idx, 4) * 35}ms`);
@@ -5439,6 +5513,7 @@ export function initInonuApp() {
       if (state.activeTab === 'info') renderInfoView();
     });
     requestAnimationFrame(() => updateTabIndicator(state.activeTab || 'daily', false));
+    window.dispatchEvent(new CustomEvent('inonu-ui-sync'));
   }
 
   let studentAccountStatusUnsub = null;
@@ -6706,8 +6781,14 @@ export function initInonuApp() {
     const titleEl = document.getElementById('adminModalTitle');
 
     if (backBtn) {
+      const wasHidden = backBtn.classList.contains('hidden');
       backBtn.classList.toggle('hidden', isHub);
       backBtn.classList.toggle('inline-flex', !isHub);
+      if (!isHub && wasHidden) {
+        backBtn.classList.remove('admin-back-pop');
+        void backBtn.offsetWidth;
+        backBtn.classList.add('admin-back-pop');
+      }
     }
     if (brandIcon) {
       brandIcon.classList.toggle('hidden', !isHub);
@@ -6722,9 +6803,21 @@ export function initInonuApp() {
         materials: isEn ? 'Lesson PDFs' : "Ders PDF'leri",
         exams: isEn ? 'Exam Countdowns' : 'Sınav Geri Sayımı',
         'add-student': isEn ? 'Add Student' : 'Öğrenci Ekle',
-        students: isEn ? 'Students & Settings' : 'Öğrenciler & Ayarlar'
+        students: isEn ? 'Students & Settings' : 'Öğrenciler & Ayarlar',
+        'extras-feedback': isEn ? 'Anonymous Feedback' : 'Temsilciye İlet',
+        'extras-polls': isEn ? 'Live Polls' : 'Canlı Anketler',
+        'extras-overrides': isEn ? 'Lesson Overrides' : 'Saat / Amfi Değişikliği',
+        'extras-extra-lessons': isEn ? 'Extra Lessons' : 'Ek / Telafi Ders',
+        'extras-banner': isEn ? 'Emergency Banner' : 'Acil / Bakım Bannerı',
+        'extras-maintenance': isEn ? 'Maintenance Mode' : 'Bakım Modu & İzinliler'
       };
-      titleEl.textContent = titles[tabKey] || loc.adminModalTitle;
+      const nextTitle = titles[tabKey] || loc.adminModalTitle;
+      if (titleEl.textContent !== nextTitle) {
+        titleEl.textContent = nextTitle;
+        titleEl.classList.remove('admin-title-swap');
+        void titleEl.offsetWidth;
+        titleEl.classList.add('admin-title-swap');
+      }
     }
   }
 
@@ -6782,16 +6875,25 @@ export function initInonuApp() {
       if (nextTab === 'hub') {
         syncAdminHubSummary();
         replayAdminPaneEnter(pHub, dir);
+        pHub.querySelectorAll('.admin-quick-tile, .admin-hub-row').forEach((el, idx) => {
+          const hEl = el as HTMLElement;
+          hEl.style.setProperty('--admin-delay', `${Math.min(idx * 24, 240)}ms`);
+          hEl.classList.remove('admin-stagger-item');
+          void hEl.offsetWidth;
+          hEl.classList.add('admin-stagger-item');
+        });
       }
     }
     if (pAnn) {
       pAnn.classList.toggle('hidden', nextTab !== 'announcements');
       if (nextTab === 'announcements') {
         syncAdminAnnExpiresDisplay();
+        syncAdminAnnPublishAtDisplay();
         renderAdminAnnLivePreview();
         replayAdminPaneEnter(pAnn, dir);
       }
     }
+    window.dispatchEvent(new CustomEvent('inonu-admin-tab-changed', { detail: { tabKey: nextTab, dir } }));
     if (pMat) {
       pMat.classList.toggle('hidden', nextTab !== 'materials');
       if (nextTab === 'materials') {
@@ -6900,6 +7002,28 @@ export function initInonuApp() {
         : ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
       disp.textContent = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
       disp.className = 'truncate tabular-nums text-slate-900 dark:text-white font-bold';
+    }
+  }
+  function syncAdminAnnPublishAtDisplay() {
+    const pubInp = document.getElementById('adminAnnPublishAtInput');
+    const disp = document.getElementById('adminAnnPublishAtDisplay');
+    if (!disp) return;
+    const isEn = state.lang === 'en';
+    const raw = (pubInp?.value || '').trim();
+    if (!raw) {
+      disp.textContent = isEn ? 'Publish immediately' : 'Hemen yayınla';
+      disp.className = 'truncate tabular-nums text-slate-500 dark:text-slate-400';
+      return;
+    }
+    const ms = new Date(raw).getTime();
+    if (!Number.isNaN(ms) && ms > 0) {
+      const d = new Date(ms);
+      const pad = (n) => String(n).padStart(2, '0');
+      const months = isEn
+        ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        : ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+      disp.textContent = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      disp.className = 'truncate tabular-nums text-indigo-600 dark:text-indigo-300 font-bold';
     }
   }
   function syncAdminExamDateDisplay() {
@@ -7532,6 +7656,9 @@ export function initInonuApp() {
       const targetGroupLabel = ann.targetGroup ? `Grup ${ann.targetGroup}` : '';
       const metaParts = [statusLabel, targetProgLabel];
       if (targetGroupLabel) metaParts.push(targetGroupLabel);
+      if (ann.publishAtMs && Number(ann.publishAtMs) > Date.now()) {
+        metaParts.push(`🗓 ${formatShortDateTime(Number(ann.publishAtMs))}`);
+      }
       if (ann.expiresAtMs && Number(ann.expiresAtMs) > 0) {
         const isExpired = Number(ann.expiresAtMs) <= Date.now();
         metaParts.push(
@@ -7590,11 +7717,15 @@ export function initInonuApp() {
         adminState.annTargetGroup = ann.targetGroup || '';
         adminState.annTargetProg = ann.targetProg || '';
         adminState.annExpiresAtMs = Number(ann.expiresAtMs) || 0;
+        adminState.annPublishAtMs = Number(ann.publishAtMs) || 0;
         document.getElementById('adminAnnTitleInput').value = ann.title;
         document.getElementById('adminAnnMsgInput').value = ann.message;
         const expInp = document.getElementById('adminAnnExpiresInput');
         if (expInp) expInp.value = formatDateTimeLocalInput(adminState.annExpiresAtMs);
-        if (ann.targetGroup || ann.targetProg || adminState.annExpiresAtMs > 0) {
+        const pubInp = document.getElementById('adminAnnPublishAtInput');
+        if (pubInp) pubInp.value = formatDateTimeLocalInput(adminState.annPublishAtMs);
+        syncAdminAnnPublishAtDisplay();
+        if (ann.targetGroup || ann.targetProg || adminState.annExpiresAtMs > 0 || adminState.annPublishAtMs > 0) {
           setAdminAnnTargetOpen(true);
         }
         syncAdminAnnFormUI();
@@ -8774,7 +8905,7 @@ export function initInonuApp() {
     }
     const overlayEl = document.getElementById('adminModal');
     if (overlayEl) overlayEl.style.backgroundColor = '';
-    switchAdminTab('hub', false);
+    switchAdminTab('hub', true);
     openAnimatedModal(overlayEl, cardEl, () => {
       syncAllAdminSegmentedIndicators(false);
     });
@@ -9944,6 +10075,40 @@ export function initInonuApp() {
       });
     }
 
+    document.querySelectorAll('[data-ann-pub-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const hrs = Number(btn.getAttribute('data-ann-pub-preset')) || 0;
+        const pubInp = document.getElementById('adminAnnPublishAtInput');
+        if (hrs <= 0) {
+          adminState.annPublishAtMs = 0;
+          if (pubInp) pubInp.value = '';
+        } else {
+          const targetMs = Date.now() + hrs * 60 * 60 * 1000;
+          adminState.annPublishAtMs = targetMs;
+          if (pubInp) pubInp.value = formatDateTimeLocalInput(targetMs);
+        }
+        syncAdminAnnPublishAtDisplay();
+      });
+    });
+
+    const btnAdminAnnPublishAtTrigger = document.getElementById('btnAdminAnnPublishAtTrigger');
+    if (btnAdminAnnPublishAtTrigger) {
+      btnAdminAnnPublishAtTrigger.addEventListener('click', () => {
+        const pubInp = document.getElementById('adminAnnPublishAtInput');
+        openAdminDateTimeModal({
+          mode: 'datetime',
+          title: state.lang === 'en' ? 'Schedule Publish Date & Time' : 'Yayın Başlangıç Tarihi & Saati',
+          initialValue: pubInp?.value || '',
+          onApply: (val) => {
+            if (pubInp) pubInp.value = val || '';
+            const ms = val ? new Date(val).getTime() : 0;
+            adminState.annPublishAtMs = ms > 0 && !Number.isNaN(ms) ? ms : 0;
+            syncAdminAnnPublishAtDisplay();
+          }
+        });
+      });
+    }
+
     const btnAdminExamDateTrigger = document.getElementById('btnAdminExamDateTrigger');
     if (btnAdminExamDateTrigger) {
       btnAdminExamDateTrigger.addEventListener('click', () => {
@@ -9978,6 +10143,10 @@ export function initInonuApp() {
           adminDtPickerState.viewYear -= 1;
         }
         renderAdminDateTimeModal();
+        const gridEl = document.getElementById('adminDtDaysGrid');
+        const lblEl = document.getElementById('adminDtMonthLabel');
+        if (gridEl) { gridEl.classList.remove('admin-slide-prev', 'admin-slide-next'); void gridEl.offsetWidth; gridEl.classList.add('admin-slide-prev'); }
+        if (lblEl) { lblEl.classList.remove('food-cal-label-prev', 'food-cal-label-next'); void lblEl.offsetWidth; lblEl.classList.add('food-cal-label-prev'); }
       });
     }
     const btnAdminDtNextMonth = document.getElementById('btnAdminDtNextMonth');
@@ -9989,6 +10158,10 @@ export function initInonuApp() {
           adminDtPickerState.viewYear += 1;
         }
         renderAdminDateTimeModal();
+        const gridEl = document.getElementById('adminDtDaysGrid');
+        const lblEl = document.getElementById('adminDtMonthLabel');
+        if (gridEl) { gridEl.classList.remove('admin-slide-prev', 'admin-slide-next'); void gridEl.offsetWidth; gridEl.classList.add('admin-slide-next'); }
+        if (lblEl) { lblEl.classList.remove('food-cal-label-prev', 'food-cal-label-next'); void lblEl.offsetWidth; lblEl.classList.add('food-cal-label-next'); }
       });
     }
     const btnAdminDtHourDec = document.getElementById('btnAdminDtHourDec');
@@ -10337,6 +10510,15 @@ export function initInonuApp() {
         }
       });
     }
+    const btnAdminSlotQuickOverride = document.getElementById('btnAdminSlotQuickOverride');
+    if (btnAdminSlotQuickOverride) {
+      btnAdminSlotQuickOverride.addEventListener('click', () => {
+        const slot = adminQuickSlotTarget;
+        closeAdminSlotQuickModal();
+        if (!slot) return;
+        (window as any).__INONU_LIVE_EXTRAS__?.openOverrideEditor?.(slot);
+      });
+    }
     const btnAdminSlotQuickAddPdf = document.getElementById('btnAdminSlotQuickAddPdf');
     if (btnAdminSlotQuickAddPdf) {
       btnAdminSlotQuickAddPdf.addEventListener('click', () => {
@@ -10392,15 +10574,19 @@ export function initInonuApp() {
         adminState.annTargetGroup = ann.targetGroup || '';
         adminState.annTargetProg = ann.targetProg || '';
         adminState.annExpiresAtMs = Number(ann.expiresAtMs) || 0;
+        adminState.annPublishAtMs = Number(ann.publishAtMs) || 0;
         openAdminModal();
         switchAdminTab('announcements', false);
         const tInp = document.getElementById('adminAnnTitleInput');
         const mInp = document.getElementById('adminAnnMsgInput');
         const expInp = document.getElementById('adminAnnExpiresInput');
+        const pubInp = document.getElementById('adminAnnPublishAtInput');
         if (tInp) tInp.value = ann.title || '';
         if (mInp) mInp.value = ann.message || '';
         if (expInp) expInp.value = formatDateTimeLocalInput(adminState.annExpiresAtMs);
-        if (ann.targetGroup || ann.targetProg || adminState.annExpiresAtMs > 0) {
+        if (pubInp) pubInp.value = formatDateTimeLocalInput(adminState.annPublishAtMs);
+        syncAdminAnnPublishAtDisplay();
+        if (ann.targetGroup || ann.targetProg || adminState.annExpiresAtMs > 0 || adminState.annPublishAtMs > 0) {
           setAdminAnnTargetOpen(true);
         }
         syncAdminAnnFormUI(false);
@@ -10562,6 +10748,9 @@ export function initInonuApp() {
         const expRaw = document.getElementById('adminAnnExpiresInput')?.value || '';
         const parsedExp = expRaw ? new Date(expRaw).getTime() : 0;
         const expiresAtMs = parsedExp > 0 && !Number.isNaN(parsedExp) ? parsedExp : 0;
+        const pubRaw = document.getElementById('adminAnnPublishAtInput')?.value || '';
+        const parsedPub = pubRaw ? new Date(pubRaw).getTime() : 0;
+        const publishAtMs = parsedPub > 0 && !Number.isNaN(parsedPub) ? parsedPub : 0;
         const btn = document.getElementById('btnAdminAnnSubmit');
         if (btn) btn.disabled = true;
         try {
@@ -10574,7 +10763,8 @@ export function initInonuApp() {
             active: adminState.annActive,
             targetGroup: adminState.annTargetGroup || '',
             targetProg: adminState.annTargetProg || '',
-            expiresAtMs
+            expiresAtMs,
+            publishAtMs
           }, secret === 'active' ? undefined : secret);
           if (savedAnn && savedAnn.id) {
             const existingIdx = adminState.announcements.findIndex((a) => a.id === savedAnn.id);
@@ -10601,10 +10791,14 @@ export function initInonuApp() {
           adminState.annTargetGroup = '';
           adminState.annTargetProg = '';
           adminState.annExpiresAtMs = 0;
+          adminState.annPublishAtMs = 0;
           document.getElementById('adminAnnTitleInput').value = '';
           document.getElementById('adminAnnMsgInput').value = '';
           const expInp = document.getElementById('adminAnnExpiresInput');
           if (expInp) expInp.value = '';
+          const pubInp = document.getElementById('adminAnnPublishAtInput');
+          if (pubInp) pubInp.value = '';
+          syncAdminAnnPublishAtDisplay();
           syncAdminAnnFormUI();
           showToast(loc.adminAnnSavedToast);
           void refreshAdminCloudData('announcements');
@@ -11856,7 +12050,82 @@ export function initInonuApp() {
         selectedDate: state.selectedDate,
         myMbuGroup: state.myMbuGroup || '',
         myLabGroup: state.myLabGroup || '',
+        foodDateISO: state.foodDateISO || '',
+        foodViewMode: state.foodViewMode || 'daily',
       }),
+      getSession: () => {
+        const s = getActiveAuthSession();
+        if (!s) return null;
+        return {
+          hash: s.hash,
+          last4: s.last4,
+          name: s.name,
+          group: s.group,
+          prog: s.prog,
+          isAdmin: Boolean(s.isAdmin),
+        };
+      },
+      openAuthModal: () => openAuthModal(false),
+      loginWithStudentId: async (studentId: string, adminPassword?: string) => {
+        const api = window.__INONU_AUTH__;
+        if (!api) return { ok: false, error: 'Auth hazır değil.' };
+        const cleaned = api.normalizeStudentId(studentId || '');
+        if (!cleaned) return { ok: false, error: 'Geçerli bir öğrenci numarası girin.' };
+        const isAdminAttempt = typeof api.isAdminStudentId === 'function' && api.isAdminStudentId(cleaned);
+        let verifiedAdminSecret = '';
+        if (isAdminAttempt) {
+          if (!adminPassword) {
+            return { ok: false, needAdminPassword: true };
+          }
+          if (typeof api.verifyAndUnlockAdmin === 'function') {
+            const res = await api.verifyAndUnlockAdmin(adminPassword);
+            if (!res || !res.ok) return { ok: false, error: 'Yönetici şifresi hatalı.' };
+            verifiedAdminSecret = res.writeSecret || '';
+          } else if (typeof api.verifyAdminPassword === 'function') {
+            const ok = await api.verifyAdminPassword(adminPassword);
+            if (!ok) return { ok: false, error: 'Yönetici şifresi hatalı.' };
+          }
+        }
+        let match: any = null;
+        if (typeof api.checkStudentLoginStatus === 'function') {
+          const stRes = await api.checkStudentLoginStatus(cleaned);
+          if (stRes && stRes.ok) match = stRes.match;
+        } else if (typeof api.lookupStudentWithCloud === 'function') {
+          match = await api.lookupStudentWithCloud(cleaned);
+        } else if (typeof api.verifyStudentId === 'function') {
+          match = api.verifyStudentId(cleaned);
+        }
+        if (!match) return { ok: false, error: 'Öğrenci numarası sistemde bulunamadı.' };
+        const cloudKey = typeof api.deriveCloudDocId === 'function'
+          ? await api.deriveCloudDocId(cleaned).catch(() => '')
+          : '';
+        if (match.prog === 'tr' || match.prog === 'en') {
+          state.lang = match.prog;
+          saveStore('lang', state.lang);
+        }
+        state.myMbuGroup = match.group || state.myMbuGroup || '';
+        saveStore('myMbuGroup', state.myMbuGroup);
+        saveStore('authSession', {
+          hash: match.hash,
+          cloudKey,
+          last4: match.last4,
+          group: match.group,
+          prog: match.prog,
+          name: match.name,
+          source: match.source === 'custom' ? 'custom' : 'allowlist',
+          isAdmin: Boolean(isAdminAttempt || match.isAdmin),
+          adminSecret: (isAdminAttempt && verifiedAdminSecret) ? verifiedAdminSecret : '',
+          at: Date.now()
+        });
+        cloudStartupSyncDoneForHash = match.hash;
+        syncSiteAccessGateUI();
+        syncActiveStudentAccountWatch();
+        syncStudentPrefsCloudSubscription();
+        refreshAllVisibleTabsAfterAuthChange();
+        void refreshDailyAnnouncements(true);
+        void refreshLessonMaterials(true);
+        return { ok: true };
+      },
       isAdmin: () => Boolean(getActiveAuthSession()?.isAdmin),
       isSiteLocked: () => isSiteLoginLocked(),
       switchTab: (tabName: string) => switchTab(tabName, true),
@@ -11873,6 +12142,7 @@ export function initInonuApp() {
         if (tabKey) switchAdminTab(tabKey, false);
         return true;
       },
+      switchAdminTab: (tabKey: string, animate: boolean = true) => switchAdminTab(tabKey, animate),
       triggerAdminQuickAction: (action: 'urgent-ann' | 'cancel-today') => {
         if (!getActiveAuthSession()?.isAdmin) return false;
         openAdminModal();
@@ -11891,6 +12161,46 @@ export function initInonuApp() {
       triggerHaptic: (kind: string = 'light') => triggerHaptic(kind),
       showToast: (msg: string) => showToast(msg),
       syncModalScrollLock: () => syncModalScrollLock(),
+      refreshDailyView: () => {
+        lastDailyRenderSig = '';
+        if (state.activeTab === 'daily') renderDailyView();
+      },
+      getScheduleDays: (prog?: 'tr' | 'en') => {
+        if (prog === 'en') return SCHEDULE_DAYS_EN;
+        if (prog === 'tr') return SCHEDULE_DAYS_TR;
+        return getScheduleDays();
+      },
+      getAllMaterials: () => {
+        const flat: any[] = lessonMaterialsMap ? Object.values(lessonMaterialsMap).flat() : [];
+        const seen = new Set<string>();
+        const daysTr = SCHEDULE_DAYS_TR || [];
+        const daysEn = SCHEDULE_DAYS_EN || [];
+        const lookupSlot = (date: string, slotNo: number, prog: string) => {
+          const src = prog === 'en' ? daysEn : daysTr;
+          const d = src.find((x: any) => x.date === date);
+          return d ? d.slots.find((s: any) => Number(s.slotNo) === Number(slotNo)) : null;
+        };
+        const out: any[] = [];
+        for (const m of flat) {
+          if (!m || !m.id || seen.has(m.id)) continue;
+          seen.add(m.id);
+          const prog = m.targetProg === 'en' ? 'en' : 'tr';
+          const slot = lookupSlot(m.date, m.slotNo, prog);
+          out.push({
+            ...m,
+            targetProg: prog,
+            cached: isPdfCachedOnDevice(m.id),
+            lessonTitle: slot?.title || '',
+            lessonCode: slot?.code || '',
+            instructor: slot?.instructor || '',
+          });
+        }
+        return out;
+      },
+      openMaterial: (mat: any) => {
+        if (mat) openOrDownloadLessonMaterial(mat);
+      },
+      openDateTimePicker: (opts: any) => openAdminDateTimeModal(opts),
       getLiveSummary: () => {
         const todayStr = formatDMY(getTodayDateObj());
         const days = getScheduleDays();
@@ -11934,6 +12244,15 @@ export function initInonuApp() {
         };
       },
     };
+    window.addEventListener('inonu-schedule-extras-changed', () => {
+      lastDailyRenderSig = '';
+      if (state.activeTab === 'daily') renderDailyView();
+    });
+    setInterval(() => {
+      if ((activeAnnouncementsList || []).some((a) => a && a.publishAtMs && Number(a.publishAtMs) > 0)) {
+        runWithStaggerSuppressed(() => renderDailyAnnouncements());
+      }
+    }, 30000);
     window.dispatchEvent(new CustomEvent('inonu-bridge-ready'));
   });
 }

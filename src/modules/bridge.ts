@@ -13,6 +13,39 @@ export interface NextExamSummary {
   daysLeft: number | null;
 }
 
+export interface BridgeMaterialItem {
+  id: string;
+  date: string;
+  slotNo: number;
+  targetProg: 'tr' | 'en';
+  title: string;
+  pdfName?: string;
+  fileSize?: number;
+  url?: string;
+  cached?: boolean;
+  lessonTitle?: string;
+  lessonCode?: string;
+  instructor?: string;
+}
+
+export interface BridgeScheduleSlot {
+  date: string;
+  slotNo: number;
+  time: string;
+  title: string;
+  instructor?: string;
+  location?: string;
+  code?: string;
+  group?: string;
+}
+
+export interface BridgeScheduleDay {
+  date: string;
+  kurulNo: number;
+  haftaNo: number;
+  slots: BridgeScheduleSlot[];
+}
+
 export interface InonuBridge {
   getState: () => {
     lang: 'tr' | 'en';
@@ -21,7 +54,19 @@ export interface InonuBridge {
     selectedDate: string;
     myMbuGroup: string;
     myLabGroup: string;
+    foodDateISO?: string;
+    foodViewMode?: string;
   };
+  getSession: () => {
+    hash: string;
+    last4: string;
+    name: string;
+    group: string;
+    prog: string;
+    isAdmin: boolean;
+  } | null;
+  openAuthModal: () => void;
+  loginWithStudentId: (studentId: string, adminPassword?: string) => Promise<{ ok: boolean; needAdminPassword?: boolean; error?: string }>;
   isAdmin: () => boolean;
   isSiteLocked: () => boolean;
   switchTab: (tabName: string) => void;
@@ -30,11 +75,22 @@ export interface InonuBridge {
   openGroupModal: () => void;
   openSettingsMenu: () => void;
   openAdminModal: (tabKey?: string) => boolean;
+  switchAdminTab: (tabKey: string, animate?: boolean) => void;
   triggerAdminQuickAction: (action: 'urgent-ann' | 'cancel-today') => boolean;
   toggleDarkMode: () => void;
   triggerHaptic: (kind?: string) => void;
   showToast: (msg: string) => void;
   syncModalScrollLock: () => void;
+  refreshDailyView: () => void;
+  getScheduleDays: (prog?: 'tr' | 'en') => BridgeScheduleDay[];
+  getAllMaterials: () => BridgeMaterialItem[];
+  openMaterial: (mat: BridgeMaterialItem) => void;
+  openDateTimePicker: (opts: {
+    mode: 'date' | 'datetime';
+    title: string;
+    initialValue?: string;
+    onApply: (val: string) => void;
+  }) => void;
   getLiveSummary: () => {
     todayStr: string;
     liveSlot: LiveSlotSummary | null;
@@ -50,6 +106,25 @@ declare global {
       open: () => void;
       close: () => void;
       toggle: () => void;
+    };
+    __INONU_PDF_ARCHIVE__?: {
+      open: () => void;
+      close: () => void;
+    };
+    __INONU_FEEDBACK__?: {
+      open: () => void;
+      close: () => void;
+    };
+    __INONU_ADMIN_EXTRAS__?: {
+      openPane: (paneKey: string) => void;
+      openOverrideForSlot: (slot: {
+        date: string;
+        slotNo: number;
+        time?: string;
+        location?: string;
+        instructor?: string;
+        title?: string;
+      }) => void;
     };
   }
 }

@@ -58,6 +58,10 @@
           "type": "number",
           "description": "Optional auto-expiry timestamp in milliseconds (0 or omitted means no expiry)"
         },
+        "publishAtMs": {
+          "type": "number",
+          "description": "Optional scheduled publish start timestamp in milliseconds (0 or omitted means immediate)"
+        },
         "deleted": {
           "type": "boolean"
         }
@@ -187,6 +191,126 @@
         }
       },
       "required": ["id", "title", "date", "time", "note", "targetProg", "updatedAtMs"]
+    },
+    "EmergencyBanner": {
+      "title": "EmergencyBanner",
+      "description": "Site-wide top emergency or maintenance banner",
+      "type": "object",
+      "properties": {
+        "active": { "type": "boolean" },
+        "text": { "type": "string", "maxLength": 280 },
+        "tone": { "type": "string", "enum": ["urgent", "warn", "info"], "maxLength": 12 },
+        "updatedAtMs": { "type": "number" }
+      },
+      "required": ["active", "text", "tone", "updatedAtMs"]
+    },
+    "LivePoll": {
+      "title": "LivePoll",
+      "description": "Live class poll / voting card",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "question": { "type": "string", "maxLength": 200 },
+        "options": { "type": "array" },
+        "counts": { "type": "array" },
+        "targetProg": { "type": "string", "enum": ["", "tr", "en"], "maxLength": 2 },
+        "active": { "type": "boolean" },
+        "createdAtMs": { "type": "number" },
+        "updatedAtMs": { "type": "number" }
+      },
+      "required": ["id", "question", "options", "counts", "targetProg", "active", "createdAtMs", "updatedAtMs"]
+    },
+    "LessonOverride": {
+      "title": "LessonOverride",
+      "description": "Time, location, or instructor override for a scheduled lesson slot",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "date": { "type": "string", "maxLength": 20 },
+        "slotNo": { "type": "number" },
+        "targetProg": { "type": "string", "enum": ["tr", "en"], "maxLength": 2 },
+        "newTime": { "type": "string", "maxLength": 32 },
+        "newLocation": { "type": "string", "maxLength": 120 },
+        "newInstructor": { "type": "string", "maxLength": 140 },
+        "note": { "type": "string", "maxLength": 200 },
+        "updatedAtMs": { "type": "number" }
+      },
+      "required": ["id", "date", "slotNo", "targetProg", "newTime", "newLocation", "newInstructor", "note", "updatedAtMs"]
+    },
+    "ExtraLesson": {
+      "title": "ExtraLesson",
+      "description": "Extra or makeup lesson added by admin to a specific date",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "date": { "type": "string", "maxLength": 20 },
+        "targetProg": { "type": "string", "enum": ["tr", "en"], "maxLength": 2 },
+        "title": { "type": "string", "maxLength": 160 },
+        "time": { "type": "string", "maxLength": 32 },
+        "location": { "type": "string", "maxLength": 120 },
+        "instructor": { "type": "string", "maxLength": 140 },
+        "note": { "type": "string", "maxLength": 200 },
+        "updatedAtMs": { "type": "number" }
+      },
+      "required": ["id", "date", "targetProg", "title", "time", "location", "instructor", "note", "updatedAtMs"]
+    },
+    "QuickLink": {
+      "title": "QuickLink",
+      "description": "Pinned class quick link or resource item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "maxLength": 80 },
+        "url": { "type": "string", "maxLength": 500 },
+        "category": { "type": "string", "maxLength": 32 },
+        "targetProg": { "type": "string", "enum": ["", "tr", "en"], "maxLength": 2 },
+        "order": { "type": "number" },
+        "updatedAtMs": { "type": "number" }
+      },
+      "required": ["id", "title", "url", "category", "targetProg", "order", "updatedAtMs"]
+    },
+    "StudentFeedback": {
+      "title": "StudentFeedback",
+      "description": "Anonymous student request, suggestion, or issue sent to class representative / admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "category": { "type": "string", "maxLength": 40 },
+        "message": { "type": "string", "maxLength": 600 },
+        "status": { "type": "string", "enum": ["pending", "resolved"], "maxLength": 16 },
+        "adminNote": { "type": "string", "maxLength": 240 },
+        "senderKey": { "type": "string", "maxLength": 80, "pattern": "^[a-zA-Z0-9_\\-]*$" },
+        "createdAtMs": { "type": "number" },
+        "updatedAtMs": { "type": "number" }
+      },
+      "required": ["id", "category", "message", "status", "adminNote", "createdAtMs", "updatedAtMs"]
+    },
+    "MaintenanceConfig": {
+      "title": "MaintenanceConfig",
+      "description": "Global maintenance mode lock with hashed student ID allowlist for selective access",
+      "type": "object",
+      "properties": {
+        "active": { "type": "boolean" },
+        "title": { "type": "string", "maxLength": 120 },
+        "message": { "type": "string", "maxLength": 400 },
+        "allowedHashes": { "type": "array" },
+        "allowedLabels": { "type": "array" },
+        "updatedAtMs": { "type": "number" }
+      },
+      "required": ["active", "title", "message", "allowedHashes", "allowedLabels", "updatedAtMs"]
+    },
+    "FoodRating": {
+      "title": "FoodRating",
+      "description": "Daily cafeteria meal aggregate star rating and quick tag counts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 20, "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "ratingCount": { "type": "number" },
+        "ratingSum": { "type": "number" },
+        "tagCounts": { "type": "array" },
+        "updatedAtMs": { "type": "number" }
+      },
+      "required": ["id", "ratingCount", "ratingSum", "tagCounts", "updatedAtMs"]
     }
   },
   "firestore": {
@@ -195,6 +319,18 @@
         "$ref": "#/entities/SiteAccess"
       },
       "description": "Global site access lock state"
+    },
+    "/config/emergencyBanner": {
+      "schema": {
+        "$ref": "#/entities/EmergencyBanner"
+      },
+      "description": "Global site-wide emergency or maintenance top banner"
+    },
+    "/config/maintenance": {
+      "schema": {
+        "$ref": "#/entities/MaintenanceConfig"
+      },
+      "description": "Global maintenance mode state and hashed allowlist of permitted student IDs"
     },
     "/announcements/{announcementId}": {
       "schema": {
@@ -225,6 +361,42 @@
         "$ref": "#/entities/ExamCountdown"
       },
       "description": "Admin-managed exam countdown items synced across all devices"
+    },
+    "/livePolls/{pollId}": {
+      "schema": {
+        "$ref": "#/entities/LivePoll"
+      },
+      "description": "Live class polls synced across all student devices"
+    },
+    "/lessonOverrides/{overrideId}": {
+      "schema": {
+        "$ref": "#/entities/LessonOverride"
+      },
+      "description": "Time, room, or instructor overrides for scheduled lessons"
+    },
+    "/extraLessons/{lessonId}": {
+      "schema": {
+        "$ref": "#/entities/ExtraLesson"
+      },
+      "description": "Admin-added extra or makeup lessons"
+    },
+    "/quickLinks/{linkId}": {
+      "schema": {
+        "$ref": "#/entities/QuickLink"
+      },
+      "description": "Pinned class quick links and resource hub items"
+    },
+    "/studentFeedback/{feedbackId}": {
+      "schema": {
+        "$ref": "#/entities/StudentFeedback"
+      },
+      "description": "Anonymous student requests and suggestions for the class representative"
+    },
+    "/foodRatings/{dateId}": {
+      "schema": {
+        "$ref": "#/entities/FoodRating"
+      },
+      "description": "Daily cafeteria star ratings and quick tag counts"
     }
   }
 }

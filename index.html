@@ -1098,6 +1098,25 @@
                       <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </button>
                   </div>
+                  <!-- Feature #7: Scheduled Announcement Publish Start -->
+                  <div class="sm:col-span-2 pt-2 border-t border-slate-200/50 dark:border-slate-800/70 space-y-1.5">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                      <label id="lblAdminAnnPublishAt" for="btnAdminAnnPublishAtTrigger" class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Yayın Başlangıcı (Zamanla)</label>
+                      <div class="flex items-center gap-1 flex-wrap">
+                        <button type="button" data-ann-pub-preset="2" class="ios-press px-2 py-0.5 rounded-full ios-pill-control text-[10.5px] font-semibold text-slate-600 dark:text-slate-300">+2 sa</button>
+                        <button type="button" data-ann-pub-preset="12" class="ios-press px-2 py-0.5 rounded-full ios-pill-control text-[10.5px] font-semibold text-slate-600 dark:text-slate-300">+12 sa</button>
+                        <button type="button" data-ann-pub-preset="0" class="ios-press px-2 py-0.5 rounded-full ios-pill-control text-[10.5px] font-semibold text-emerald-600 dark:text-emerald-400">Hemen</button>
+                      </div>
+                    </div>
+                    <input id="adminAnnPublishAtInput" type="hidden" value="">
+                    <button id="btnAdminAnnPublishAtTrigger" type="button" class="ios-press w-full ios-pill-control hover:bg-slate-500/15 rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition">
+                      <span class="flex items-center gap-2 min-w-0">
+                        <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span id="adminAnnPublishAtDisplay" class="truncate tabular-nums">Hemen yayınla</span>
+                      </span>
+                      <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1592,6 +1611,12 @@
             <span id="lblAdminSlotQuickCancel" class="text-[14px] font-semibold text-rose-600 dark:text-rose-400">Bu Dersi İptal Et</span>
             <span id="iconWrapSlotQuickCancel" class="text-rose-600 dark:text-rose-400 shrink-0">
               <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            </span>
+          </button>
+          <button id="btnAdminSlotQuickOverride" type="button" class="wa-ctx-row w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left">
+            <span id="lblAdminSlotQuickOverride" class="text-[14px] font-semibold text-amber-600 dark:text-amber-400">Saat / Amfi Değiştir</span>
+            <span class="text-amber-600 dark:text-amber-400 shrink-0">
+              <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
             </span>
           </button>
           <button id="btnAdminSlotQuickAddPdf" type="button" class="wa-ctx-row w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left">

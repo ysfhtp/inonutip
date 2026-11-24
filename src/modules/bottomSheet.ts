@@ -25,6 +25,10 @@ function getStrings(lang: 'tr' | 'en') {
       adminHub: 'Admin Panel',
       adminUrgent: 'Urgent Ann.',
       adminCancel: 'Cancel Today',
+      pdfs: 'PDF Archive',
+      pdfsSub: 'All lesson notes',
+      feedback: 'Message Rep',
+      feedbackSub: 'Anonymous request',
     };
   }
   return {
@@ -47,6 +51,10 @@ function getStrings(lang: 'tr' | 'en') {
     adminHub: 'Admin Paneli',
     adminUrgent: 'Acil Duyuru',
     adminCancel: 'Bugünü İptal',
+    pdfs: 'PDF Arşivi',
+    pdfsSub: 'Tüm ders notları',
+    feedback: 'Temsilciye İlet',
+    feedbackSub: 'Anonim istek & öneri',
   };
 }
 
@@ -138,6 +146,20 @@ export function initBottomSheet(): void {
         sub: st.myMbuGroup ? `MBU ${st.myMbuGroup}${st.myLabGroup ? ` • LAB ${st.myLabGroup}` : ''}` : loc.groupsSub,
         tone: 'emerald',
         icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>`,
+      },
+      {
+        action: 'pdfs',
+        title: loc.pdfs,
+        sub: loc.pdfsSub,
+        tone: 'rose',
+        icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>`,
+      },
+      {
+        action: 'feedback',
+        title: loc.feedback,
+        sub: loc.feedbackSub,
+        tone: 'teal',
+        icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>`,
       },
       {
         action: 'theme',
@@ -318,6 +340,8 @@ export function initBottomSheet(): void {
     else if (action === 'exams') bridge.switchTab('info');
     else if (action === 'food') bridge.switchTab('food');
     else if (action === 'groups') bridge.openGroupModal();
+    else if (action === 'pdfs') window.__INONU_PDF_ARCHIVE__?.open();
+    else if (action === 'feedback') window.__INONU_FEEDBACK__?.open();
     else if (action === 'admin-hub') bridge.openAdminModal('hub');
     else if (action === 'admin-urgent') bridge.triggerAdminQuickAction('urgent-ann');
     else if (action === 'admin-cancel') bridge.triggerAdminQuickAction('cancel-today');

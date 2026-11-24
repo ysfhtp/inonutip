@@ -102,5 +102,163 @@ service cloud.firestore {
       allow create, update: if isValidId(examId) && isValidExamCountdown(request.resource.data);
       allow delete: if isValidId(examId);
     }
+
+    function isValidEmergencyBanner(data) {
+      return data.keys().hasAll(['active', 'text', 'tone', 'updatedAtMs']) &&
+        data.keys().hasOnly(['active', 'text', 'tone', 'updatedAtMs']) &&
+        data.active is bool &&
+        data.text is string && data.text.size() <= 280 &&
+        data.tone is string && data.tone.size() <= 12 && data.tone in ['urgent', 'warn', 'info'] &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
+    match /config/emergencyBanner {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isValidEmergencyBanner(request.resource.data);
+      allow delete: if false;
+    }
+
+    function isValidMaintenanceConfig(data) {
+      return data.keys().hasAll(['active', 'title', 'message', 'allowedHashes', 'allowedLabels', 'updatedAtMs']) &&
+        data.keys().hasOnly(['active', 'title', 'message', 'allowedHashes', 'allowedLabels', 'updatedAtMs']) &&
+        data.active is bool &&
+        data.title is string && data.title.size() <= 120 &&
+        data.message is string && data.message.size() <= 400 &&
+        data.allowedHashes is list && data.allowedHashes.size() <= 50 &&
+        (data.allowedHashes.size() == 0 || (data.allowedHashes[0] is string && data.allowedHashes[0].size() == 32 && data.allowedHashes[0].matches('^[a-f0-9]{32}$'))) &&
+        data.allowedLabels is list && data.allowedLabels.size() == data.allowedHashes.size() &&
+        (data.allowedLabels.size() == 0 || (data.allowedLabels[0] is string && data.allowedLabels[0].size() <= 80)) &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
+    match /config/maintenance {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isValidMaintenanceConfig(request.resource.data);
+      allow delete: if false;
+    }
+
+    function isValidLivePoll(data) {
+      return data.keys().hasAll(['id', 'question', 'options', 'counts', 'targetProg', 'active', 'createdAtMs', 'updatedAtMs']) &&
+        data.keys().hasOnly(['id', 'question', 'options', 'counts', 'targetProg', 'active', 'createdAtMs', 'updatedAtMs']) &&
+        isValidId(data.id) &&
+        data.question is string && data.question.size() > 0 && data.question.size() <= 200 &&
+        data.options is list && data.options.size() >= 2 && data.options.size() <= 6 &&
+        data.options[0] is string && data.options[0].size() > 0 && data.options[0].size() <= 80 &&
+        data.counts is list && data.counts.size() == data.options.size() &&
+        (data.counts[0] is int || data.counts[0] is float) && data.counts[0] >= 0 &&
+        data.targetProg is string && data.targetProg.size() <= 2 && data.targetProg in ['', 'tr', 'en'] &&
+        data.active is bool &&
+        (data.createdAtMs is int || data.createdAtMs is float) && data.createdAtMs >= 0 &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
+    match /livePolls/{pollId} {
+      allow get: if isValidId(pollId);
+      allow list: if true;
+      allow create, update: if isValidId(pollId) && isValidLivePoll(request.resource.data);
+      allow delete: if isValidId(pollId);
+    }
+
+    function isValidLessonOverride(data) {
+      return data.keys().hasAll(['id', 'date', 'slotNo', 'targetProg', 'newTime', 'newLocation', 'newInstructor', 'note', 'updatedAtMs']) &&
+        data.keys().hasOnly(['id', 'date', 'slotNo', 'targetProg', 'newTime', 'newLocation', 'newInstructor', 'note', 'updatedAtMs']) &&
+        isValidId(data.id) &&
+        data.date is string && data.date.size() >= 8 && data.date.size() <= 20 &&
+        (data.slotNo is int || data.slotNo is float) && data.slotNo >= 1 && data.slotNo <= 20 &&
+        data.targetProg is string && data.targetProg.size() == 2 && data.targetProg in ['tr', 'en'] &&
+        data.newTime is string && data.newTime.size() <= 32 &&
+        data.newLocation is string && data.newLocation.size() <= 120 &&
+        data.newInstructor is string && data.newInstructor.size() <= 140 &&
+        data.note is string && data.note.size() <= 200 &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
+    match /lessonOverrides/{overrideId} {
+      allow get: if isValidId(overrideId);
+      allow list: if true;
+      allow create, update: if isValidId(overrideId) && isValidLessonOverride(request.resource.data);
+      allow delete: if isValidId(overrideId);
+    }
+
+    function isValidExtraLesson(data) {
+      return data.keys().hasAll(['id', 'date', 'targetProg', 'title', 'time', 'location', 'instructor', 'note', 'updatedAtMs']) &&
+        data.keys().hasOnly(['id', 'date', 'targetProg', 'title', 'time', 'location', 'instructor', 'note', 'updatedAtMs']) &&
+        isValidId(data.id) &&
+        data.date is string && data.date.size() >= 8 && data.date.size() <= 20 &&
+        data.targetProg is string && data.targetProg.size() == 2 && data.targetProg in ['tr', 'en'] &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 160 &&
+        data.time is string && data.time.size() > 0 && data.time.size() <= 32 &&
+        data.location is string && data.location.size() <= 120 &&
+        data.instructor is string && data.instructor.size() <= 140 &&
+        data.note is string && data.note.size() <= 200 &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
+    match /extraLessons/{lessonId} {
+      allow get: if isValidId(lessonId);
+      allow list: if true;
+      allow create, update: if isValidId(lessonId) && isValidExtraLesson(request.resource.data);
+      allow delete: if isValidId(lessonId);
+    }
+
+    function isValidQuickLink(data) {
+      return data.keys().hasAll(['id', 'title', 'url', 'category', 'targetProg', 'order', 'updatedAtMs']) &&
+        data.keys().hasOnly(['id', 'title', 'url', 'category', 'targetProg', 'order', 'updatedAtMs']) &&
+        isValidId(data.id) &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 80 &&
+        data.url is string && data.url.size() > 0 && data.url.size() <= 500 &&
+        data.url.matches('^https?://.*') &&
+        data.category is string && data.category.size() <= 32 &&
+        data.targetProg is string && data.targetProg.size() <= 2 && data.targetProg in ['', 'tr', 'en'] &&
+        (data.order is int || data.order is float) && data.order >= 0 && data.order <= 9999 &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
+    match /quickLinks/{linkId} {
+      allow get: if isValidId(linkId);
+      allow list: if true;
+      allow create, update: if isValidId(linkId) && isValidQuickLink(request.resource.data);
+      allow delete: if isValidId(linkId);
+    }
+
+    function isValidStudentFeedback(data) {
+      return data.keys().hasAll(['id', 'category', 'message', 'status', 'adminNote', 'createdAtMs', 'updatedAtMs']) &&
+        data.keys().hasOnly(['id', 'category', 'message', 'status', 'adminNote', 'senderKey', 'createdAtMs', 'updatedAtMs']) &&
+        isValidId(data.id) &&
+        data.category is string && data.category.size() > 0 && data.category.size() <= 40 &&
+        data.message is string && data.message.size() > 0 && data.message.size() <= 600 &&
+        data.status is string && data.status.size() <= 16 && data.status in ['pending', 'resolved'] &&
+        data.adminNote is string && data.adminNote.size() <= 240 &&
+        (!('senderKey' in data) || (data.senderKey is string && data.senderKey.size() <= 80 && data.senderKey.matches('^[a-zA-Z0-9_\\-]*$'))) &&
+        (data.createdAtMs is int || data.createdAtMs is float) && data.createdAtMs >= 0 &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
+    match /studentFeedback/{feedbackId} {
+      allow get: if isValidId(feedbackId);
+      allow list: if true;
+      allow create, update: if isValidId(feedbackId) && isValidStudentFeedback(request.resource.data);
+      allow delete: if isValidId(feedbackId);
+    }
+
+    function isValidFoodRating(data) {
+      return data.keys().hasAll(['id', 'ratingCount', 'ratingSum', 'tagCounts', 'updatedAtMs']) &&
+        data.keys().hasOnly(['id', 'ratingCount', 'ratingSum', 'tagCounts', 'updatedAtMs']) &&
+        data.id is string && data.id.size() == 10 && data.id.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        (data.ratingCount is int || data.ratingCount is float) && data.ratingCount >= 0 &&
+        (data.ratingSum is int || data.ratingSum is float) && data.ratingSum >= 0 &&
+        data.tagCounts is list && data.tagCounts.size() == 6 &&
+        (data.tagCounts[0] is int || data.tagCounts[0] is float) && data.tagCounts[0] >= 0 &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
+    match /foodRatings/{dateId} {
+      allow get: if dateId is string && dateId.size() == 10 && dateId.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+      allow list: if true;
+      allow create, update: if dateId is string && dateId.size() == 10 && dateId.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') && isValidFoodRating(request.resource.data);
+      allow delete: if false;
+    }
   }
 }
