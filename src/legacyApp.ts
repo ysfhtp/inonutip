@@ -139,6 +139,10 @@ export function initInonuApp() {
     return new Date(n.getFullYear(), n.getMonth(), n.getDate());
   }
 
+  function getTodayIso() {
+    return formatISODate(getTodayDateObj());
+  }
+
   function getBestDefaultDate() {
     const days = getScheduleDays();
     const today = getTodayDateObj();
@@ -457,7 +461,7 @@ export function initInonuApp() {
   }
 
   function syncModalScrollLock() {
-    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden)'));
+    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden)'));
     document.documentElement.classList.toggle('modal-open', hasOpenModal);
   }
 
@@ -1940,64 +1944,100 @@ export function initInonuApp() {
     row.appendChild(dividerBar);
     row.appendChild(rightCol);
 
+    row.appendChild(noteBtn);
+
     const activeAdminSession = getActiveAuthSession();
     if (activeAdminSession && activeAdminSession.isAdmin) {
-      const actionCol = document.createElement('div');
-      actionCol.className = 'self-center shrink-0 flex items-center gap-0.5';
-
-      const adminQuickBtn = document.createElement('button');
-      adminQuickBtn.type = 'button';
-      adminQuickBtn.setAttribute('aria-label', state.lang === 'en' ? 'Admin quick actions' : 'Yönetici hızlı işlem');
-      adminQuickBtn.setAttribute('title', state.lang === 'en' ? 'Admin quick actions' : 'Yönetici hızlı işlem');
-      adminQuickBtn.className = `touch-target-44 w-8 h-8 rounded-xl flex items-center justify-center transition ${isCancelled ? 'text-rose-500 bg-rose-500/12 hover:bg-rose-500/20' : 'text-amber-600/80 dark:text-amber-400/85 hover:bg-amber-500/12'}`;
-      adminQuickBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>';
-      adminQuickBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openAdminSlotQuickModal(slot);
-      });
-
-      actionCol.appendChild(adminQuickBtn);
-      actionCol.appendChild(noteBtn);
-      row.appendChild(actionCol);
-
-      // Long-press on card for quick admin actions (touch)
-      let lpTimer = null;
-      let lpStartX = 0;
-      let lpStartY = 0;
-      card.addEventListener('touchstart', (e) => {
-        if (!e.touches || e.touches.length !== 1) return;
-        const tgt = e.target;
-        if (tgt && typeof tgt.closest === 'function' && tgt.closest('button, a, input')) return;
-        lpStartX = e.touches[0].clientX;
-        lpStartY = e.touches[0].clientY;
-        lpTimer = setTimeout(() => {
-          lpTimer = null;
-          triggerHaptic('selection');
-          openAdminSlotQuickModal(slot);
-        }, 520);
-      }, { passive: true });
-      card.addEventListener('touchmove', (e) => {
-        if (!lpTimer || !e.touches || e.touches.length !== 1) return;
-        if (Math.abs(e.touches[0].clientX - lpStartX) > 10 || Math.abs(e.touches[0].clientY - lpStartY) > 10) {
-          clearTimeout(lpTimer);
-          lpTimer = null;
-        }
-      }, { passive: true });
-      const clearLp = () => {
-        if (lpTimer) {
-          clearTimeout(lpTimer);
-          lpTimer = null;
-        }
-      };
-      card.addEventListener('touchend', clearLp, { passive: true });
-      card.addEventListener('touchcancel', clearLp, { passive: true });
-    } else {
-      row.appendChild(noteBtn);
+      bindAdminLongPress(card, () => openAdminSlotQuickModal(slot));
     }
 
     card.appendChild(row);
 
     return card;
+  }
+
+  function bindAdminLongPress(card, onTrigger) {
+    if (!card || typeof onTrigger !== 'function') return;
+    card.classList.add('admin-lp-target');
+    let lpTimer = null;
+    let lpStartX = 0;
+    let lpStartY = 0;
+    let suppressClickUntil = 0;
+
+    const clearTextSelection = () => {
+      try {
+        const sel = window.getSelection && window.getSelection();
+        if (sel && typeof sel.removeAllRanges === 'function') sel.removeAllRanges();
+      } catch {}
+    };
+
+    const cancelArming = () => {
+      if (lpTimer) {
+        clearTimeout(lpTimer);
+        lpTimer = null;
+      }
+      card.classList.remove('slot-card-arming');
+    };
+
+    const startArming = (clientX, clientY, targetEl) => {
+      if (targetEl && typeof targetEl.closest === 'function' && targetEl.closest('button, a, input, textarea')) return;
+      cancelArming();
+      clearTextSelection();
+      lpStartX = clientX;
+      lpStartY = clientY;
+      card.classList.add('slot-card-arming');
+      lpTimer = setTimeout(() => {
+        lpTimer = null;
+        card.classList.remove('slot-card-arming');
+        clearTextSelection();
+        suppressClickUntil = Date.now() + 450;
+        triggerHaptic('selection');
+        onTrigger();
+      }, 420);
+    };
+
+    card.addEventListener('selectstart', (e) => e.preventDefault());
+    card.addEventListener('dragstart', (e) => e.preventDefault());
+    card.addEventListener('touchstart', (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      startArming(e.touches[0].clientX, e.touches[0].clientY, e.target);
+    }, { passive: true });
+    card.addEventListener('touchmove', (e) => {
+      if (!lpTimer || !e.touches || e.touches.length !== 1) return;
+      if (Math.abs(e.touches[0].clientX - lpStartX) > 10 || Math.abs(e.touches[0].clientY - lpStartY) > 10) {
+        cancelArming();
+      }
+    }, { passive: true });
+    card.addEventListener('touchend', cancelArming, { passive: true });
+    card.addEventListener('touchcancel', cancelArming, { passive: true });
+
+    card.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      startArming(e.clientX, e.clientY, e.target);
+    });
+    card.addEventListener('mousemove', (e) => {
+      if (!lpTimer) return;
+      if (Math.abs(e.clientX - lpStartX) > 10 || Math.abs(e.clientY - lpStartY) > 10) {
+        cancelArming();
+      }
+    });
+    card.addEventListener('mouseup', cancelArming);
+    card.addEventListener('mouseleave', cancelArming);
+    card.addEventListener('contextmenu', (e) => {
+      const tgt = e.target;
+      if (tgt && typeof tgt.closest === 'function' && tgt.closest('button, a, input, textarea')) return;
+      e.preventDefault();
+      cancelArming();
+      clearTextSelection();
+      triggerHaptic('selection');
+      onTrigger();
+    });
+    card.addEventListener('click', (e) => {
+      if (Date.now() < suppressClickUntil) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
   }
 
   // ==================== WEEK CAROUSEL (5-DAY SLIDES, LOCKED PERFECTLY) ====================
@@ -4814,6 +4854,9 @@ export function initInonuApp() {
         </div>
         <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">${escapeHtml(ann.message)}</p>
       `;
+      if (session && session.isAdmin) {
+        bindAdminLongPress(card, () => openAdminAnnQuickModal(ann));
+      }
       container.appendChild(card);
     });
   }
@@ -5952,6 +5995,7 @@ export function initInonuApp() {
   let managedExamsList = [];
   let examCountdownsUnsub = null;
   let adminQuickSlotTarget = null;
+  let adminQuickAnnTarget = null;
 
   function applyLoadedExamCountdownsList(list) {
     managedExamsList = Array.isArray(list) ? list : [];
@@ -6531,6 +6575,7 @@ export function initInonuApp() {
 
     syncAdminUnlockBarUI();
     syncAdminAnnFormUI(false);
+    syncAdminExamDateDisplay();
     syncAdminSiteAccessUI();
     syncAdminHubLanguageUI();
     syncAdminHubSummary();
@@ -6645,8 +6690,14 @@ export function initInonuApp() {
     const badgeEl = document.getElementById('adminModalBadge');
     const titleEl = document.getElementById('adminModalTitle');
 
-    if (backBtn) backBtn.classList.toggle('hidden', isHub);
-    if (brandIcon) brandIcon.classList.toggle('hidden', !isHub);
+    if (backBtn) {
+      backBtn.classList.toggle('hidden', isHub);
+      backBtn.classList.toggle('inline-flex', !isHub);
+    }
+    if (brandIcon) {
+      brandIcon.classList.toggle('hidden', !isHub);
+      brandIcon.classList.toggle('flex', isHub);
+    }
     if (badgeEl) badgeEl.classList.toggle('hidden', !isHub);
     if (titleEl) {
       const titles = {
@@ -6703,6 +6754,14 @@ export function initInonuApp() {
     const pAdd = document.getElementById('adminPaneAddStudent');
     const pStu = document.getElementById('adminPaneStudents');
 
+    const allPanes = [pHub, pAnn, pMat, pCan, pExm, pAdd, pStu];
+    allPanes.forEach((p) => {
+      if (!p) return;
+      p.style.transition = '';
+      p.style.transform = '';
+      p.style.opacity = '';
+    });
+
     if (pHub) {
       pHub.classList.toggle('hidden', nextTab !== 'hub');
       if (nextTab === 'hub') {
@@ -6713,6 +6772,7 @@ export function initInonuApp() {
     if (pAnn) {
       pAnn.classList.toggle('hidden', nextTab !== 'announcements');
       if (nextTab === 'announcements') {
+        syncAdminAnnExpiresDisplay();
         renderAdminAnnLivePreview();
         replayAdminPaneEnter(pAnn, dir);
       }
@@ -6782,6 +6842,12 @@ export function initInonuApp() {
     requestAnimationFrame(() => {
       syncAllAdminSegmentedIndicators(false);
     });
+    setTimeout(() => {
+      const mEl = document.getElementById('adminModal');
+      if (mEl && !mEl.classList.contains('hidden')) {
+        syncAllAdminSegmentedIndicators(false);
+      }
+    }, 340);
   }
 
   // Feature 5: Student Live Previews (Announcements + Cancellations)
@@ -6798,6 +6864,189 @@ export function initInonuApp() {
     if (Number.isNaN(d.getTime())) return '';
     const pad = (n) => String(n).padStart(2, '0');
     return `${pad(d.getDate())}.${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function syncAdminAnnExpiresDisplay() {
+    const expInp = document.getElementById('adminAnnExpiresInput');
+    const disp = document.getElementById('adminAnnExpiresDisplay');
+    if (!disp) return;
+    const isEn = state.lang === 'en';
+    const raw = (expInp?.value || '').trim();
+    if (!raw) {
+      disp.textContent = isEn ? 'Pick date & time (Never expires)' : 'Tarih ve saat seç (Süresiz)';
+      disp.className = 'truncate tabular-nums text-slate-500 dark:text-slate-400';
+      return;
+    }
+    const ms = new Date(raw).getTime();
+    if (!Number.isNaN(ms) && ms > 0) {
+      const d = new Date(ms);
+      const pad = (n) => String(n).padStart(2, '0');
+      const months = isEn
+        ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        : ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+      disp.textContent = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      disp.className = 'truncate tabular-nums text-slate-900 dark:text-white font-bold';
+    }
+  }
+  function syncAdminExamDateDisplay() {
+    const dateInp = document.getElementById('adminExamDateInput');
+    const disp = document.getElementById('adminExamDateDisplay');
+    if (!disp) return;
+    const isEn = state.lang === 'en';
+    const raw = (dateInp?.value || '').trim();
+    if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      disp.textContent = isEn ? 'Pick exam date...' : 'Sınav tarihi seç...';
+      disp.className = 'truncate tabular-nums text-slate-500 dark:text-slate-400';
+      return;
+    }
+    const [y, m, d] = raw.split('-').map(Number);
+    const months = isEn
+      ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      : ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    disp.textContent = `${d} ${months[Math.max(0, m - 1)]} ${y}`;
+    disp.className = 'truncate tabular-nums text-slate-900 dark:text-white font-bold';
+  }
+
+  // Themed In-Site Liquid Glass Date & Time Picker Modal Controller
+  const adminDtPickerState = {
+    mode: 'date',
+    viewYear: new Date().getFullYear(),
+    viewMonth: new Date().getMonth(),
+    selectedDate: '',
+    hour: 23,
+    minute: 59,
+    onApply: null
+  };
+
+  function renderAdminDateTimeModal() {
+    const isEn = state.lang === 'en';
+    const monthLabel = document.getElementById('adminDtMonthLabel');
+    const weekdaysEl = document.getElementById('adminDtWeekdays');
+    const gridEl = document.getElementById('adminDtDaysGrid');
+    const timeSec = document.getElementById('adminDtTimeSection');
+    const hourEl = document.getElementById('adminDtHourVal');
+    const minEl = document.getElementById('adminDtMinVal');
+    const btnToday = document.getElementById('btnAdminDtToday');
+    const btnClear = document.getElementById('btnAdminDtClear');
+    const btnConfirm = document.getElementById('btnAdminDtConfirm');
+    const lblTime = document.getElementById('lblAdminDtTime');
+
+    const monthNames = isEn
+      ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+      : ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    const wkDays = isEn
+      ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      : ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
+    if (monthLabel) monthLabel.textContent = `${monthNames[adminDtPickerState.viewMonth]} ${adminDtPickerState.viewYear}`;
+    if (weekdaysEl) weekdaysEl.innerHTML = wkDays.map((w) => `<div>${w}</div>`).join('');
+    if (timeSec) timeSec.classList.toggle('hidden', adminDtPickerState.mode !== 'datetime');
+    if (btnConfirm) {
+      btnConfirm.classList.toggle('hidden', adminDtPickerState.mode !== 'datetime');
+      btnConfirm.textContent = isEn ? 'Apply' : 'Uygula';
+    }
+    if (btnToday) btnToday.textContent = isEn ? 'Today' : 'Bugün';
+    if (btnClear) btnClear.textContent = isEn ? 'Clear' : 'Temizle';
+    if (lblTime) lblTime.textContent = isEn ? 'Time' : 'Saat';
+    if (hourEl) hourEl.textContent = String(adminDtPickerState.hour).padStart(2, '0');
+    if (minEl) minEl.textContent = String(adminDtPickerState.minute).padStart(2, '0');
+
+    if (!gridEl) return;
+    gridEl.innerHTML = '';
+    const firstDay = new Date(adminDtPickerState.viewYear, adminDtPickerState.viewMonth, 1);
+    const startOffset = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(adminDtPickerState.viewYear, adminDtPickerState.viewMonth + 1, 0).getDate();
+    const todayIso = getTodayIso();
+    const pad = (n) => String(n).padStart(2, '0');
+
+    for (let i = 0; i < startOffset; i += 1) {
+      const empty = document.createElement('div');
+      empty.className = 'h-[38px]';
+      gridEl.appendChild(empty);
+    }
+    for (let d = 1; d <= daysInMonth; d += 1) {
+      const iso = `${adminDtPickerState.viewYear}-${pad(adminDtPickerState.viewMonth + 1)}-${pad(d)}`;
+      const isSelected = adminDtPickerState.selectedDate === iso;
+      const isToday = iso === todayIso;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `food-cal-day ${
+        isSelected
+          ? 'admin-dt-day-selected font-bold'
+          : isToday
+            ? 'admin-dt-day-today bg-blue-500/10'
+            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-500/12'
+      }`;
+      btn.textContent = String(d);
+      btn.addEventListener('click', () => {
+        adminDtPickerState.selectedDate = iso;
+        if (adminDtPickerState.mode === 'date') {
+          if (typeof adminDtPickerState.onApply === 'function') {
+            adminDtPickerState.onApply(iso);
+          }
+          closeAdminDateTimeModal();
+        } else {
+          renderAdminDateTimeModal();
+        }
+      });
+      gridEl.appendChild(btn);
+    }
+  }
+
+  function openAdminDateTimeModal(opts) {
+    const isEn = state.lang === 'en';
+    const mode = opts?.mode === 'datetime' ? 'datetime' : 'date';
+    adminDtPickerState.mode = mode;
+    adminDtPickerState.onApply = typeof opts?.onApply === 'function' ? opts.onApply : null;
+
+    const titleEl = document.getElementById('adminDateTimeModalTitle');
+    if (titleEl) {
+      titleEl.textContent = opts?.title || (mode === 'datetime'
+        ? (isEn ? 'Select Expiry Date & Time' : 'Bitiş Tarihi ve Saati')
+        : (isEn ? 'Select Date' : 'Tarih Seç'));
+    }
+
+    const now = new Date();
+    let parsedDate = '';
+    let hr = 23;
+    let mn = 59;
+    const initVal = String(opts?.initialValue || '').trim();
+    if (mode === 'datetime' && initVal) {
+      const dt = new Date(initVal);
+      if (!Number.isNaN(dt.getTime())) {
+        const pad = (n) => String(n).padStart(2, '0');
+        parsedDate = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+        hr = dt.getHours();
+        mn = dt.getMinutes();
+      }
+    } else if (mode === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(initVal)) {
+      parsedDate = initVal;
+    }
+
+    if (parsedDate) {
+      const [y, m] = parsedDate.split('-').map(Number);
+      adminDtPickerState.viewYear = y;
+      adminDtPickerState.viewMonth = Math.max(0, m - 1);
+      adminDtPickerState.selectedDate = parsedDate;
+    } else {
+      adminDtPickerState.viewYear = now.getFullYear();
+      adminDtPickerState.viewMonth = now.getMonth();
+      adminDtPickerState.selectedDate = getTodayIso();
+    }
+    adminDtPickerState.hour = hr;
+    adminDtPickerState.minute = mn;
+
+    renderAdminDateTimeModal();
+    openAnimatedModal(
+      document.getElementById('adminDateTimeModal'),
+      document.getElementById('adminDateTimeModalCard')
+    );
+  }
+
+  function closeAdminDateTimeModal() {
+    closeAnimatedModal(
+      document.getElementById('adminDateTimeModal'),
+      document.getElementById('adminDateTimeModalCard')
+    );
   }
   function renderAdminAnnLivePreview() {
     const wrap = document.getElementById('adminAnnLivePreviewWrap');
@@ -6865,6 +7114,7 @@ export function initInonuApp() {
         ? (isEn ? 'Update Exam' : 'Sınavı Güncelle')
         : (isEn ? 'Save Exam' : 'Sınavı Kaydet');
     }
+    syncAdminExamDateDisplay();
     syncAdminSegmentedControl('adminExamProgChips', 'adminExamProgIndicator', 'data-exam-prog', adminState.examProg || '', animateSeg);
   }
   function renderAdminExamsList() {
@@ -6942,49 +7192,161 @@ export function initInonuApp() {
     });
   }
 
-  // Feature 6: Lesson Card Quick Admin Action Sheet
+  // Feature 6: iPhone WhatsApp-Style Long-Press Context Menu for Lesson & Announcement Cards
+  let adminSlotQuickCloseTimer = null;
+  function showAdminQuickContextModal() {
+    const modal = document.getElementById('adminSlotQuickModal');
+    if (!modal) return;
+    if (adminSlotQuickCloseTimer) {
+      clearTimeout(adminSlotQuickCloseTimer);
+      adminSlotQuickCloseTimer = null;
+    }
+    modal.classList.remove('hidden', 'is-leaving', 'is-entering');
+    syncModalScrollLock();
+    void modal.offsetWidth;
+    modal.classList.add('is-entering');
+  }
   function openAdminSlotQuickModal(slot) {
     const session = getActiveAuthSession();
     if (!session || !session.isAdmin || !slot) return;
     adminQuickSlotTarget = slot;
+    adminQuickAnnTarget = null;
     const isEn = state.lang === 'en';
     const prog = state.lang === 'en' ? 'en' : 'tr';
     const cancelInfo = getCancelledLessonInfo(slot, prog);
     const isCancelled = Boolean(cancelInfo);
     const metaEl = document.getElementById('adminSlotQuickMeta');
     const titleEl = document.getElementById('adminSlotQuickTitle');
+    const subEl = document.getElementById('adminSlotQuickSub');
+    const previewEl = document.getElementById('adminSlotQuickPreview');
+    const reasonWrap = document.getElementById('adminSlotQuickReasonWrap');
     const reasonInp = document.getElementById('adminSlotQuickReasonInput');
+    const slotActions = document.getElementById('adminSlotQuickActionsSlot');
+    const annActions = document.getElementById('adminSlotQuickActionsAnn');
     const cancelLbl = document.getElementById('lblAdminSlotQuickCancel');
     const cancelIconWrap = document.getElementById('iconWrapSlotQuickCancel');
     const pdfLbl = document.getElementById('lblAdminSlotQuickPdf');
     const annLbl = document.getElementById('lblAdminSlotQuickAnn');
+    const closeLbl = document.getElementById('lblAdminSlotQuickClose');
 
-    if (metaEl) metaEl.textContent = `${slot.date} • ${slot.slotNo}. ${isEn ? 'Hour' : 'Ders'}${slot.time ? ` • ${slot.time}` : ''}`;
+    if (slotActions) {
+      slotActions.classList.remove('hidden');
+      slotActions.classList.add('flex');
+    }
+    if (annActions) {
+      annActions.classList.add('hidden');
+      annActions.classList.remove('flex');
+    }
+
+    if (metaEl) {
+      metaEl.textContent = `${slot.date} • ${slot.slotNo}. ${isEn ? 'Hour' : 'Ders'}${slot.time ? ` • ${slot.time}` : ''}${isCancelled ? ` • ${isEn ? 'CANCELLED' : 'İPTAL'}` : ''}`;
+      metaEl.className = isCancelled
+        ? 'block text-[10.5px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 tabular-nums'
+        : 'block text-[10.5px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 tabular-nums';
+    }
     if (titleEl) titleEl.textContent = slot.title || '';
+    if (subEl) {
+      const subParts = [slot.instructor, slot.group ? `${isEn ? 'Group' : 'Grup'} ${slot.group}` : ''].filter(Boolean);
+      subEl.textContent = subParts.join(' · ');
+      subEl.classList.toggle('hidden', subParts.length === 0);
+    }
+    if (previewEl) {
+      previewEl.classList.toggle('slot-card-cancelled', isCancelled);
+    }
+    if (reasonWrap) {
+      reasonWrap.classList.toggle('hidden', isCancelled);
+    }
     if (reasonInp) {
       reasonInp.value = cancelInfo?.reason || '';
-      reasonInp.classList.toggle('hidden', isCancelled);
+      reasonInp.placeholder = isEn ? 'Cancellation note (optional)...' : 'İptal notu (opsiyonel)...';
     }
     if (cancelLbl) {
       cancelLbl.textContent = isCancelled
         ? (isEn ? 'Restore This Lesson' : 'Bu Dersin İptalini Geri Al')
         : (isEn ? 'Cancel This Lesson' : 'Bu Dersi İptal Et');
       cancelLbl.className = isCancelled
-        ? 'text-sm font-bold text-emerald-700 dark:text-emerald-300 flex-1'
-        : 'text-sm font-bold text-rose-600 dark:text-rose-300 flex-1';
+        ? 'text-[14px] font-semibold text-emerald-600 dark:text-emerald-400'
+        : 'text-[14px] font-semibold text-rose-600 dark:text-rose-400';
     }
     if (cancelIconWrap) {
       cancelIconWrap.className = isCancelled
-        ? 'w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0'
-        : 'w-8 h-8 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0';
+        ? 'text-emerald-600 dark:text-emerald-400 shrink-0'
+        : 'text-rose-600 dark:text-rose-400 shrink-0';
     }
     if (pdfLbl) pdfLbl.textContent = isEn ? 'Add PDF to This Lesson' : 'Bu Derse PDF Ekle';
     if (annLbl) annLbl.textContent = isEn ? 'Post Announcement for Lesson' : 'Bu Ders İçin Duyuru Geç';
+    if (closeLbl) closeLbl.textContent = isEn ? 'Cancel' : 'Vazgeç';
 
-    openAnimatedModal(document.getElementById('adminSlotQuickModal'), document.getElementById('adminSlotQuickCard'));
+    showAdminQuickContextModal();
+  }
+  function openAdminAnnQuickModal(ann) {
+    const session = getActiveAuthSession();
+    if (!session || !session.isAdmin || !ann) return;
+    adminQuickAnnTarget = ann;
+    adminQuickSlotTarget = null;
+    const isEn = state.lang === 'en';
+    const loc = I18N[state.lang];
+    const tone = ann.tone === 'urgent' ? 'urgent' : ann.tone === 'warn' ? 'warn' : 'info';
+    const badgeLabel = tone === 'urgent' ? loc.adminAnnBadgeUrgent : tone === 'warn' ? loc.adminAnnBadgeWarn : loc.adminAnnBadgeInfo;
+
+    const metaEl = document.getElementById('adminSlotQuickMeta');
+    const titleEl = document.getElementById('adminSlotQuickTitle');
+    const subEl = document.getElementById('adminSlotQuickSub');
+    const previewEl = document.getElementById('adminSlotQuickPreview');
+    const reasonWrap = document.getElementById('adminSlotQuickReasonWrap');
+    const slotActions = document.getElementById('adminSlotQuickActionsSlot');
+    const annActions = document.getElementById('adminSlotQuickActionsAnn');
+    const editLbl = document.getElementById('lblAdminAnnQuickEdit');
+    const hideLbl = document.getElementById('lblAdminAnnQuickHide');
+    const delLbl = document.getElementById('lblAdminAnnQuickDelete');
+    const closeLbl = document.getElementById('lblAdminSlotQuickClose');
+
+    if (slotActions) {
+      slotActions.classList.add('hidden');
+      slotActions.classList.remove('flex');
+    }
+    if (annActions) {
+      annActions.classList.remove('hidden');
+      annActions.classList.add('flex');
+    }
+    if (reasonWrap) reasonWrap.classList.add('hidden');
+    if (previewEl) previewEl.classList.remove('slot-card-cancelled');
+
+    if (metaEl) {
+      const targetParts = [badgeLabel];
+      if (ann.targetProg) targetParts.push(ann.targetProg.toUpperCase());
+      if (ann.targetGroup) targetParts.push(`${isEn ? 'Group' : 'Grup'} ${ann.targetGroup}`);
+      metaEl.textContent = targetParts.join(' • ');
+      metaEl.className = tone === 'urgent'
+        ? 'block text-[10.5px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400'
+        : tone === 'warn'
+          ? 'block text-[10.5px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400'
+          : 'block text-[10.5px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400';
+    }
+    if (titleEl) titleEl.textContent = ann.title || '';
+    if (subEl) {
+      subEl.textContent = ann.message || '';
+      subEl.classList.toggle('hidden', !ann.message);
+    }
+    if (editLbl) editLbl.textContent = isEn ? 'Edit Announcement' : 'Duyuruyu Düzenle';
+    if (hideLbl) hideLbl.textContent = isEn ? 'Move to Draft (Hide)' : 'Taslağa Al (Gizle)';
+    if (delLbl) delLbl.textContent = isEn ? 'Delete Announcement' : 'Duyuruyu Sil';
+    if (closeLbl) closeLbl.textContent = isEn ? 'Cancel' : 'Vazgeç';
+
+    showAdminQuickContextModal();
   }
   function closeAdminSlotQuickModal() {
-    closeAnimatedModal(document.getElementById('adminSlotQuickModal'), document.getElementById('adminSlotQuickCard'));
+    const modal = document.getElementById('adminSlotQuickModal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    if (adminSlotQuickCloseTimer) clearTimeout(adminSlotQuickCloseTimer);
+    modal.classList.remove('is-entering');
+    modal.classList.add('is-leaving');
+    adminSlotQuickCloseTimer = setTimeout(() => {
+      adminSlotQuickCloseTimer = null;
+      modal.classList.add('hidden');
+      modal.classList.remove('is-leaving');
+      syncModalScrollLock();
+    }, 195);
   }
 
   function syncAdminAnnFormUI(animateSeg = true) {
@@ -7019,6 +7381,7 @@ export function initInonuApp() {
         ? `${isEn ? 'Target' : 'Hedef'}: ${parts.join(' · ')}`
         : (isEn ? 'Target: All' : 'Hedef: Tümü');
     }
+    syncAdminAnnExpiresDisplay();
     renderAdminAnnLivePreview();
   }
 
@@ -7590,6 +7953,8 @@ export function initInonuApp() {
 
     if (!dayObj || !Array.isArray(dayObj.slots) || dayObj.slots.length === 0) {
       if (countEl) countEl.textContent = '';
+      const allDayBtnEmpty = document.getElementById('btnAdminCancelAllDay');
+      if (allDayBtnEmpty) allDayBtnEmpty.classList.add('hidden');
       listEl.innerHTML = `<div class="ios-pill-control rounded-2xl p-4 text-center text-xs text-slate-500 dark:text-slate-400 admin-card-reveal">${isEn ? 'No lessons on this date.' : 'Bu tarihte ders bulunamadı.'}</div>`;
       return;
     }
@@ -9259,9 +9624,10 @@ export function initInonuApp() {
         adminState.cancelProg = state.lang === 'en' ? 'en' : 'tr';
         adminState.cancelDate = '';
         switchAdminTab('cancellations', true);
-        const days = getAdminCancelDays();
-        const todayIso = getTodayIso();
-        const preferred = (days.find((d) => d.date === todayIso) || days.find((d) => d.date >= todayIso) || days[0]);
+        const days = getAdminCancelScheduleDays(adminState.cancelProg);
+        const todayObj = getTodayDateObj();
+        const todayDmy = formatDMY(todayObj);
+        const preferred = (days.find((d) => d.date === todayDmy) || days.find((d) => parseDMY(d.date) >= todayObj) || days[0]);
         if (preferred) {
           setAdminCancelSelectedDate(preferred.date, 'none');
           renderAdminCancelDaySlots('next');
@@ -9277,10 +9643,13 @@ export function initInonuApp() {
         adminState.annActive = true;
         adminState.annTargetGroup = '';
         adminState.annTargetProg = '';
+        adminState.annExpiresAtMs = 0;
         const tInp = document.getElementById('adminAnnTitleInput');
         const mInp = document.getElementById('adminAnnMsgInput');
+        const expInp = document.getElementById('adminAnnExpiresInput');
         if (tInp) tInp.value = '';
         if (mInp) mInp.value = '';
+        if (expInp) expInp.value = '';
         switchAdminTab('announcements', true);
         syncAdminAnnFormUI(false);
         setTimeout(() => {
@@ -9453,7 +9822,7 @@ export function initInonuApp() {
       });
     }
 
-    // Feature 4 & 5: Expiry Presets & Live Preview Listeners
+    // Feature 4 & 5: Expiry Presets, Themed Date/Time Pickers & Live Preview Listeners
     document.querySelectorAll('[data-ann-exp-preset]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const hrs = Number(btn.getAttribute('data-ann-exp-preset') || '0');
@@ -9466,9 +9835,149 @@ export function initInonuApp() {
           adminState.annExpiresAtMs = targetMs;
           if (expInp) expInp.value = formatDateTimeLocalInput(targetMs);
         }
+        syncAdminAnnExpiresDisplay();
         renderAdminAnnLivePreview();
       });
     });
+
+    const btnAdminAnnExpiresTrigger = document.getElementById('btnAdminAnnExpiresTrigger');
+    if (btnAdminAnnExpiresTrigger) {
+      btnAdminAnnExpiresTrigger.addEventListener('click', () => {
+        const expInp = document.getElementById('adminAnnExpiresInput');
+        openAdminDateTimeModal({
+          mode: 'datetime',
+          title: state.lang === 'en' ? 'Auto-Expire Date & Time' : 'Otomatik Bitiş Tarihi & Saati',
+          initialValue: expInp?.value || '',
+          onApply: (val) => {
+            if (expInp) expInp.value = val || '';
+            const ms = val ? new Date(val).getTime() : 0;
+            adminState.annExpiresAtMs = ms > 0 && !Number.isNaN(ms) ? ms : 0;
+            syncAdminAnnExpiresDisplay();
+            renderAdminAnnLivePreview();
+          }
+        });
+      });
+    }
+
+    const btnAdminExamDateTrigger = document.getElementById('btnAdminExamDateTrigger');
+    if (btnAdminExamDateTrigger) {
+      btnAdminExamDateTrigger.addEventListener('click', () => {
+        const dateInp = document.getElementById('adminExamDateInput');
+        openAdminDateTimeModal({
+          mode: 'date',
+          title: state.lang === 'en' ? 'Select Exam Date' : 'Sınav Tarihini Seç',
+          initialValue: dateInp?.value || '',
+          onApply: (val) => {
+            if (dateInp) dateInp.value = val || '';
+            syncAdminExamDateDisplay();
+          }
+        });
+      });
+    }
+
+    // Themed Admin Date & Time Modal Bindings
+    const adminDateTimeModal = document.getElementById('adminDateTimeModal');
+    if (adminDateTimeModal) {
+      adminDateTimeModal.addEventListener('click', (e) => {
+        if (e.target.id === 'adminDateTimeModal') closeAdminDateTimeModal();
+      });
+    }
+    const btnCloseAdminDateTimeModal = document.getElementById('btnCloseAdminDateTimeModal');
+    if (btnCloseAdminDateTimeModal) btnCloseAdminDateTimeModal.addEventListener('click', closeAdminDateTimeModal);
+    const btnAdminDtPrevMonth = document.getElementById('btnAdminDtPrevMonth');
+    if (btnAdminDtPrevMonth) {
+      btnAdminDtPrevMonth.addEventListener('click', () => {
+        adminDtPickerState.viewMonth -= 1;
+        if (adminDtPickerState.viewMonth < 0) {
+          adminDtPickerState.viewMonth = 11;
+          adminDtPickerState.viewYear -= 1;
+        }
+        renderAdminDateTimeModal();
+      });
+    }
+    const btnAdminDtNextMonth = document.getElementById('btnAdminDtNextMonth');
+    if (btnAdminDtNextMonth) {
+      btnAdminDtNextMonth.addEventListener('click', () => {
+        adminDtPickerState.viewMonth += 1;
+        if (adminDtPickerState.viewMonth > 11) {
+          adminDtPickerState.viewMonth = 0;
+          adminDtPickerState.viewYear += 1;
+        }
+        renderAdminDateTimeModal();
+      });
+    }
+    const btnAdminDtHourDec = document.getElementById('btnAdminDtHourDec');
+    if (btnAdminDtHourDec) {
+      btnAdminDtHourDec.addEventListener('click', () => {
+        adminDtPickerState.hour = (adminDtPickerState.hour + 23) % 24;
+        renderAdminDateTimeModal();
+      });
+    }
+    const btnAdminDtHourInc = document.getElementById('btnAdminDtHourInc');
+    if (btnAdminDtHourInc) {
+      btnAdminDtHourInc.addEventListener('click', () => {
+        adminDtPickerState.hour = (adminDtPickerState.hour + 1) % 24;
+        renderAdminDateTimeModal();
+      });
+    }
+    const btnAdminDtMinDec = document.getElementById('btnAdminDtMinDec');
+    if (btnAdminDtMinDec) {
+      btnAdminDtMinDec.addEventListener('click', () => {
+        adminDtPickerState.minute = (adminDtPickerState.minute + 55) % 60;
+        renderAdminDateTimeModal();
+      });
+    }
+    const btnAdminDtMinInc = document.getElementById('btnAdminDtMinInc');
+    if (btnAdminDtMinInc) {
+      btnAdminDtMinInc.addEventListener('click', () => {
+        adminDtPickerState.minute = (adminDtPickerState.minute + 5) % 60;
+        renderAdminDateTimeModal();
+      });
+    }
+    document.querySelectorAll('[data-dt-quick-time]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const parts = (btn.getAttribute('data-dt-quick-time') || '23:59').split(':').map(Number);
+        adminDtPickerState.hour = Number.isFinite(parts[0]) ? parts[0] : 23;
+        adminDtPickerState.minute = Number.isFinite(parts[1]) ? parts[1] : 59;
+        renderAdminDateTimeModal();
+      });
+    });
+    const btnAdminDtToday = document.getElementById('btnAdminDtToday');
+    if (btnAdminDtToday) {
+      btnAdminDtToday.addEventListener('click', () => {
+        const today = getTodayIso();
+        const [y, m] = today.split('-').map(Number);
+        adminDtPickerState.viewYear = y;
+        adminDtPickerState.viewMonth = Math.max(0, m - 1);
+        adminDtPickerState.selectedDate = today;
+        if (adminDtPickerState.mode === 'date') {
+          if (typeof adminDtPickerState.onApply === 'function') adminDtPickerState.onApply(today);
+          closeAdminDateTimeModal();
+        } else {
+          renderAdminDateTimeModal();
+        }
+      });
+    }
+    const btnAdminDtClear = document.getElementById('btnAdminDtClear');
+    if (btnAdminDtClear) {
+      btnAdminDtClear.addEventListener('click', () => {
+        if (typeof adminDtPickerState.onApply === 'function') adminDtPickerState.onApply('');
+        closeAdminDateTimeModal();
+      });
+    }
+    const btnAdminDtConfirm = document.getElementById('btnAdminDtConfirm');
+    if (btnAdminDtConfirm) {
+      btnAdminDtConfirm.addEventListener('click', () => {
+        const baseDate = adminDtPickerState.selectedDate || getTodayIso();
+        const pad = (n) => String(n).padStart(2, '0');
+        const val = adminDtPickerState.mode === 'datetime'
+          ? `${baseDate}T${pad(adminDtPickerState.hour)}:${pad(adminDtPickerState.minute)}`
+          : baseDate;
+        if (typeof adminDtPickerState.onApply === 'function') adminDtPickerState.onApply(val);
+        closeAdminDateTimeModal();
+      });
+    }
+
     ['adminAnnTitleInput', 'adminAnnMsgInput', 'adminAnnExpiresInput'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('input', renderAdminAnnLivePreview);
@@ -9689,7 +10198,9 @@ export function initInonuApp() {
     const adminSlotQuickModal = document.getElementById('adminSlotQuickModal');
     if (adminSlotQuickModal) {
       adminSlotQuickModal.addEventListener('click', (e) => {
-        if (e.target.id === 'adminSlotQuickModal') closeAdminSlotQuickModal();
+        if (e.target.id === 'adminSlotQuickModal' || e.target.id === 'adminSlotQuickStage') {
+          closeAdminSlotQuickModal();
+        }
       });
     }
     const btnAdminSlotQuickToggleCancel = document.getElementById('btnAdminSlotQuickToggleCancel');
@@ -9783,12 +10294,90 @@ export function initInonuApp() {
       });
     }
 
-    // Feature 7: Clear History Button
-    const btnAdminClearHistory = document.getElementById('btnAdminClearHistory');
-    if (btnAdminClearHistory) {
-      btnAdminClearHistory.addEventListener('click', () => {
-        saveAdminHistory([]);
-        renderAdminRecentActivity();
+    // Home Announcement Long-Press Context Menu Handlers
+    const btnAdminAnnQuickEdit = document.getElementById('btnAdminAnnQuickEdit');
+    if (btnAdminAnnQuickEdit) {
+      btnAdminAnnQuickEdit.addEventListener('click', () => {
+        const ann = adminQuickAnnTarget;
+        closeAdminSlotQuickModal();
+        if (!ann) return;
+        adminState.editingAnnId = ann.id;
+        adminState.annTone = ann.tone || 'info';
+        adminState.annActive = ann.active !== false;
+        adminState.annTargetGroup = ann.targetGroup || '';
+        adminState.annTargetProg = ann.targetProg || '';
+        adminState.annExpiresAtMs = Number(ann.expiresAtMs) || 0;
+        openAdminModal();
+        switchAdminTab('announcements', false);
+        const tInp = document.getElementById('adminAnnTitleInput');
+        const mInp = document.getElementById('adminAnnMsgInput');
+        const expInp = document.getElementById('adminAnnExpiresInput');
+        if (tInp) tInp.value = ann.title || '';
+        if (mInp) mInp.value = ann.message || '';
+        if (expInp) expInp.value = formatDateTimeLocalInput(adminState.annExpiresAtMs);
+        if (ann.targetGroup || ann.targetProg || adminState.annExpiresAtMs > 0) {
+          setAdminAnnTargetOpen(true);
+        }
+        syncAdminAnnFormUI(false);
+        setTimeout(() => { if (tInp) tInp.focus(); }, 220);
+      });
+    }
+    const btnAdminAnnQuickHide = document.getElementById('btnAdminAnnQuickHide');
+    if (btnAdminAnnQuickHide) {
+      btnAdminAnnQuickHide.addEventListener('click', async () => {
+        const ann = adminQuickAnnTarget;
+        const api = window.__INONU_AUTH__;
+        const secret = ensureAdminSecretReady();
+        if (!ann || !api || !secret) return;
+        btnAdminAnnQuickHide.disabled = true;
+        try {
+          await api.saveAnnouncement({
+            id: ann.id,
+            title: ann.title,
+            message: ann.message,
+            tone: ann.tone || 'info',
+            active: false,
+            targetGroup: ann.targetGroup || '',
+            targetProg: ann.targetProg || '',
+            expiresAtMs: Number(ann.expiresAtMs) || 0
+          }, secret === 'active' ? undefined : secret);
+          activeAnnouncementsList = (activeAnnouncementsList || []).filter((a) => a.id !== ann.id);
+          renderDailyAnnouncements();
+          closeAdminSlotQuickModal();
+          showToast(state.lang === 'en' ? 'Announcement moved to draft.' : 'Duyuru gizlendi (taslağa alındı).');
+          void refreshAdminCloudData('announcements');
+          void refreshDailyAnnouncements(true);
+        } catch (err) {
+          console.warn('Quick hide announcement error:', err);
+          showToast(I18N[state.lang].adminSaveErrorToast);
+        } finally {
+          btnAdminAnnQuickHide.disabled = false;
+        }
+      });
+    }
+    const btnAdminAnnQuickDelete = document.getElementById('btnAdminAnnQuickDelete');
+    if (btnAdminAnnQuickDelete) {
+      btnAdminAnnQuickDelete.addEventListener('click', async () => {
+        const ann = adminQuickAnnTarget;
+        const api = window.__INONU_AUTH__;
+        const secret = ensureAdminSecretReady();
+        if (!ann || !api || !secret) return;
+        btnAdminAnnQuickDelete.disabled = true;
+        try {
+          await api.deleteAnnouncement(ann.id, secret === 'active' ? undefined : secret);
+          activeAnnouncementsList = (activeAnnouncementsList || []).filter((a) => a.id !== ann.id);
+          adminState.announcements = (adminState.announcements || []).filter((a) => a.id !== ann.id);
+          renderDailyAnnouncements();
+          closeAdminSlotQuickModal();
+          showToast(state.lang === 'en' ? 'Announcement deleted.' : 'Duyuru silindi.');
+          void refreshAdminCloudData('announcements');
+          void refreshDailyAnnouncements(true);
+        } catch (err) {
+          console.warn('Quick delete announcement error:', err);
+          showToast(I18N[state.lang].adminSaveErrorToast);
+        } finally {
+          btnAdminAnnQuickDelete.disabled = false;
+        }
       });
     }
 
@@ -10711,7 +11300,18 @@ export function initInonuApp() {
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        const dtModal = document.getElementById('adminDateTimeModal');
+        if (dtModal && !dtModal.classList.contains('hidden')) {
+          closeAdminDateTimeModal();
+          return;
+        }
+        const quickModal = document.getElementById('adminSlotQuickModal');
+        if (quickModal && !quickModal.classList.contains('hidden')) {
+          closeAdminSlotQuickModal();
+          return;
+        }
         toggleAdminMatPicker(null, false);
+        toggleAdminCancelDatePicker(false);
         closeSettingsMenu();
         closePaletteModal();
         closeAdminModal();

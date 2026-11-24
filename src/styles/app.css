@@ -1685,6 +1685,184 @@ html.dark .instructor-inline-btn:focus-visible {
   text-decoration: none;
 }
 
+/* iPhone WhatsApp-style Long-Press Arming & Context Menu Animations */
+.admin-lp-target,
+.admin-lp-target * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none;
+}
+.slot-card-arming {
+  transform: scale(0.962) !important;
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease !important;
+  box-shadow: 0 12px 32px -6px rgba(15, 23, 42, 0.16) !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+.dark .slot-card-arming {
+  box-shadow: 0 14px 36px -6px rgba(0, 0, 0, 0.58) !important;
+}
+
+@keyframes waBackdropIn {
+  from {
+    opacity: 0;
+    -webkit-backdrop-filter: blur(0px) saturate(100%);
+    backdrop-filter: blur(0px) saturate(100%);
+  }
+  to {
+    opacity: 1;
+    -webkit-backdrop-filter: blur(18px) saturate(165%);
+    backdrop-filter: blur(18px) saturate(165%);
+  }
+}
+@keyframes waBackdropOut {
+  from {
+    opacity: 1;
+    -webkit-backdrop-filter: blur(18px) saturate(165%);
+    backdrop-filter: blur(18px) saturate(165%);
+  }
+  to {
+    opacity: 0;
+    -webkit-backdrop-filter: blur(0px) saturate(100%);
+    backdrop-filter: blur(0px) saturate(100%);
+  }
+}
+@keyframes waPreviewPopIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.93);
+  }
+  60% {
+    opacity: 1;
+    transform: translate3d(0, -2px, 0) scale(1.022);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+@keyframes waPreviewPopOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+@keyframes waMenuPopIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0) scale(0.84);
+  }
+  65% {
+    opacity: 1;
+    transform: translate3d(0, 2px, 0) scale(1.018);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+@keyframes waMenuPopOut {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0) scale(0.88);
+  }
+}
+.wa-ctx-overlay {
+  background: rgba(15, 23, 42, 0.34);
+  -webkit-backdrop-filter: blur(18px) saturate(165%);
+  backdrop-filter: blur(18px) saturate(165%);
+}
+.dark .wa-ctx-overlay {
+  background: rgba(0, 0, 0, 0.54);
+}
+.wa-ctx-overlay.is-entering {
+  animation: waBackdropIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.wa-ctx-overlay.is-leaving {
+  animation: waBackdropOut 0.2s ease-in forwards;
+}
+.wa-ctx-preview {
+  transform-origin: center center;
+  box-shadow: 0 22px 54px -10px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+.dark .wa-ctx-preview {
+  box-shadow: 0 24px 60px -10px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.wa-ctx-overlay.is-entering .wa-ctx-preview {
+  animation: waPreviewPopIn 0.38s cubic-bezier(0.22, 1.28, 0.36, 1) both;
+}
+.wa-ctx-overlay.is-leaving .wa-ctx-preview {
+  animation: waPreviewPopOut 0.18s ease-in forwards;
+}
+.wa-ctx-menu {
+  transform-origin: top left;
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+.dark .wa-ctx-menu {
+  box-shadow: 0 26px 66px -12px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.wa-ctx-overlay.is-entering .wa-ctx-menu {
+  animation: waMenuPopIn 0.36s cubic-bezier(0.22, 1.24, 0.36, 1) 0.04s both;
+}
+.wa-ctx-overlay.is-leaving .wa-ctx-menu {
+  animation: waMenuPopOut 0.17s ease-in forwards;
+}
+.wa-ctx-row {
+  position: relative;
+  transition: background-color 0.15s ease, transform 0.16s cubic-bezier(0.34, 1.45, 0.64, 1);
+  touch-action: manipulation;
+}
+.wa-ctx-row:hover {
+  background: rgba(15, 23, 42, 0.055);
+}
+.dark .wa-ctx-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.wa-ctx-row:active {
+  background: rgba(15, 23, 42, 0.09);
+  transform: scale(0.985);
+}
+.dark .wa-ctx-row:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+.wa-ctx-row + .wa-ctx-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0.5px;
+  background: rgba(148, 163, 184, 0.28);
+}
+.dark .wa-ctx-row + .wa-ctx-row::before {
+  background: rgba(148, 163, 184, 0.18);
+}
+
+/* Themed Admin Date & Time Picker Calendar Cells */
+.admin-dt-day-selected {
+  background: var(--palette-accent, #2563eb) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px var(--palette-accent-shadow, rgba(37, 99, 235, 0.35));
+}
+.admin-dt-day-today {
+  border: 1.5px solid var(--palette-accent, #2563eb);
+  color: var(--palette-accent, #2563eb);
+}
+.dark .admin-dt-day-today {
+  color: var(--palette-accent-active-dark, #38bdf8);
+  border-color: var(--palette-accent-active-dark, #38bdf8);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
