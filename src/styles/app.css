@@ -1863,6 +1863,32 @@ html.dark .instructor-inline-btn:focus-visible {
   border-color: var(--palette-accent-active-dark, #38bdf8);
 }
 
+/* ==================== DYNAMIC ISLAND ==================== */
+html.site-locked-locked .inonu-floating-ui {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  #appHeader {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 42px);
+  }
+}
+
+.dynamic-island-surface {
+  background: linear-gradient(
+    180deg,
+    rgba(22, 26, 38, 0.94) 0%,
+    rgba(10, 13, 21, 0.92) 100%
+  );
+  -webkit-backdrop-filter: saturate(200%) blur(28px);
+  backdrop-filter: saturate(200%) blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 14px 36px -8px rgba(0, 0, 0, 0.56),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  will-change: transform, border-radius;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -1871,3 +1897,4 @@ html.dark .instructor-inline-btn:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+
