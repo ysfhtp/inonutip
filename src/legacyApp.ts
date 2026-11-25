@@ -17,7 +17,6 @@ import {
   deleteAnnouncementReadStat,
   LAST_SYNC_LS_KEY,
 } from './modules/liveStore.ts';
-import { matchLessonToAnatomy } from './modules/anatomy3d/modelsData.ts';
 
 let inonuAppInitialized = false;
 
@@ -467,7 +466,7 @@ export function initInonuApp() {
   }
 
   function syncModalScrollLock() {
-    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #maintenanceGateOverlay:not(.hidden), #anatomy3dModal:not(.hidden)'));
+    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #maintenanceGateOverlay:not(.hidden)'));
     document.documentElement.classList.toggle('modal-open', hasOpenModal);
   }
 
@@ -1985,30 +1984,6 @@ export function initInonuApp() {
         pdfWrap.appendChild(moreBtn);
       }
       rightCol.appendChild(pdfWrap);
-    }
-
-    const anatMatch = !isCancelled ? matchLessonToAnatomy(slot) : null;
-    if (anatMatch) {
-      let actionWrap = rightCol.querySelector('.slot-pdf-wrap') as HTMLDivElement | null;
-      if (!actionWrap) {
-        actionWrap = document.createElement('div');
-        actionWrap.className = 'slot-pdf-wrap mt-1.5 flex items-center gap-1.5 min-w-0 flex-wrap';
-        rightCol.appendChild(actionWrap);
-      }
-      const anatBtn = document.createElement('button');
-      anatBtn.type = 'button';
-      anatBtn.className = 'ios-press touch-target-44 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-700 dark:text-sky-300 text-xs font-semibold transition shrink-0 whitespace-nowrap shadow-2xs';
-      const lbl = state.lang === 'en' ? anatMatch.labelEn : anatMatch.labelTr;
-      anatBtn.innerHTML = `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg><span>${escapeHtml(lbl)}</span>`;
-      anatBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        window.__INONU_ANATOMY_3D__?.open({
-          modelId: anatMatch.modelId,
-          partId: anatMatch.partId,
-          lessonTitle: slot.title,
-        });
-      });
-      actionWrap.appendChild(anatBtn);
     }
 
     const hasCode = Boolean(slot.code);
