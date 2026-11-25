@@ -68,7 +68,6 @@ const EXTRA_PANE_IDS: Record<string, string> = {
   'extras-overrides': 'adminPaneExtrasOverrides',
   'extras-extra-lessons': 'adminPaneExtrasExtraLessons',
   'extras-banner': 'adminPaneExtrasBanner',
-  'extras-maintenance': 'adminPaneExtrasMaintenance',
 };
 
 function replayExtraPaneEnter(el: HTMLElement | null, dir: string): void {
@@ -153,18 +152,6 @@ export function initAdminExtras(): void {
             <span class="block text-[11.5px] text-slate-500 dark:text-slate-400 truncate mt-0.5">Kaldırılamaz sabit acil şerit</span>
           </div>
           <span id="statusHubBanner" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/12 text-slate-500 dark:text-slate-300 shrink-0">Kapalı</span>
-          <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-        </button>
-
-        <button type="button" data-admin-hub-open="extras-maintenance" class="admin-hub-row w-full px-3.5 py-3 flex items-center gap-3 text-left">
-          <span class="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-          </span>
-          <div class="min-w-0 flex-1">
-            <span class="block text-sm font-bold text-slate-900 dark:text-white leading-tight">Bakım Modu &amp; İzinliler</span>
-            <span class="block text-[11.5px] text-slate-500 dark:text-slate-400 truncate mt-0.5">Siteyi kilitle, sadece seçili numaralar girsin</span>
-          </div>
-          <span id="statusHubMaintenance" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/12 text-slate-500 dark:text-slate-300 shrink-0">Kapalı</span>
           <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
@@ -320,46 +307,6 @@ export function initAdminExtras(): void {
           <button type="submit" class="ios-press px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm">Bannerı Güncelle</button>
         </div>
       </form>
-    </div>
-
-    <!-- PANE: BAKIM MODU & İZİNLİ NUMARALAR -->
-    <div id="adminPaneExtrasMaintenance" class="hidden space-y-4">
-      <form id="adminMaintForm" class="admin-glass-section p-3.5 sm:p-4 space-y-3" novalidate>
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Site Bakım Modu</h4>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400">Açıkken yalnızca yöneticiler ve aşağıdaki izinli numaralar siteye erişebilir.</p>
-          </div>
-          <button id="btnAdminMaintToggle" type="button" role="switch" aria-checked="false" class="ios-toggle-switch shrink-0">
-            <span class="ios-toggle-knob"></span>
-          </button>
-        </div>
-        <input id="adminMaintTitleInput" type="text" maxlength="120" placeholder="Bakım başlığı (örn. Sistem Bakımda)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40" />
-        <textarea id="adminMaintMsgInput" rows="3" maxlength="400" placeholder="Bakım açıklaması (öğrencilerin göreceği mesaj)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40"></textarea>
-        <div class="ios-pill-control rounded-2xl p-2.5 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
-          <strong>Gizli Giriş:</strong> Bakım ekranındaki ayar ikonuna <strong>5 kez üst üste</strong> dokununca (veya bilgisayarda <strong>Ctrl+Shift+M</strong>) öğrenci numarası giriş ekranı açılır.
-        </div>
-        <div class="flex justify-end">
-          <button type="submit" class="ios-press px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm">Bakım Ayarlarını Kaydet</button>
-        </div>
-      </form>
-
-      <div class="admin-glass-section p-3.5 sm:p-4 space-y-3">
-        <div>
-          <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Bakımda İzinli Numaralar</h4>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Eklenen numaralar şifreli (hash) olarak saklanır, dışarıdan okunamaz.</p>
-        </div>
-        <form id="adminMaintAllowForm" class="space-y-2" novalidate>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input id="adminMaintAllowIdInput" type="text" inputmode="numeric" maxlength="20" placeholder="Öğrenci Numarası" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none" />
-            <input id="adminMaintAllowLabelInput" type="text" maxlength="40" placeholder="Kısa Etiket / İsim (opsiyonel)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none" />
-          </div>
-          <div class="flex justify-end">
-            <button type="submit" class="ios-press px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm">+ İzinli Numara Ekle</button>
-          </div>
-        </form>
-        <div id="adminMaintAllowedList" class="space-y-2"></div>
-      </div>
     </div>
   `;
   while (panesWrapper.firstElementChild) {
@@ -1074,7 +1021,7 @@ export function initAdminExtras(): void {
       syncExDateDefault();
     } else if (activeTab === 'extras-banner') {
       syncBannerFormFromStore();
-    } else if (activeTab === 'extras-maintenance') {
+    } else if (activeTab === 'site-settings') {
       syncMaintenanceFormFromStore();
       renderAdminLists();
     } else if (activeTab === 'extras-feedback') {

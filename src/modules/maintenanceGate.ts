@@ -269,7 +269,7 @@ export function initMaintenanceGate(): void {
         `;
         adminMaintBar.querySelector('[data-maint-manage]')?.addEventListener('click', () => {
           bridge?.triggerHaptic('selection');
-          window.__INONU_ADMIN_EXTRAS__?.openPane('extras-maintenance');
+          window.__INONU_ADMIN_EXTRAS__?.openPane('site-settings');
         });
       } else {
         adminMaintBar.classList.add('hidden');

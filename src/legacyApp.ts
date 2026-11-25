@@ -1482,6 +1482,17 @@ export function initInonuApp() {
         if (typeof b.blur === 'function') b.blur();
       });
 
+      const upwardDy = startY - e.clientY;
+      const horizontalDx = Math.abs(e.clientX - startX);
+      const isAdminUpwardSwipe = Boolean(getActiveAuthSession()?.isAdmin) && upwardDy > 40 && upwardDy > horizontalDx * 1.4;
+
+      if (isAdminUpwardSwipe) {
+        setDockActiveVisual(state.activeTab);
+        updateTabIndicator(state.activeTab, true);
+        metrics = null;
+        return;
+      }
+
       if (didMove) {
         triggerHaptic('tick');
         switchTab(currentTargetTab, true);
@@ -6100,7 +6111,7 @@ export function initInonuApp() {
   // ==================== ADMIN SETTINGS MODAL CONTROLLER ====================
   const adminState = {
     activeTab: 'hub',
-    settingsSubTab: 'roster',
+    studentsSubTab: 'roster',
     annTargetOpen: false,
     ghConfigOpen: false,
     editingAnnId: '',
@@ -6472,7 +6483,7 @@ export function initInonuApp() {
     return 'active';
   }
 
-  const ADMIN_TAB_ORDER = ['announcements', 'materials', 'cancellations', 'exams', 'add-student', 'students'];
+  const ADMIN_TAB_ORDER = ['announcements', 'materials', 'cancellations', 'exams', 'students', 'site-settings'];
 
   function syncAdminSegmentedControl(barId, indicatorId, attrName, activeValue, animate = true, extraClass = '') {
     const bar = document.getElementById(barId);
@@ -6530,24 +6541,30 @@ export function initInonuApp() {
     }
   }
 
-  function switchAdminSettingsSubTab(subKey, animate = true) {
-    const nextKey = subKey === 'system' ? 'system' : 'roster';
-    const prevKey = adminState.settingsSubTab || 'roster';
-    adminState.settingsSubTab = nextKey;
+  function switchAdminStudentsSubTab(subKey, animate = true) {
+    const nextKey = subKey === 'add' ? 'add' : 'roster';
+    const prevKey = adminState.studentsSubTab || 'roster';
+    adminState.studentsSubTab = nextKey;
 
     const pRoster = document.getElementById('adminSubPaneRoster');
-    const pSystem = document.getElementById('adminSubPaneSystem');
-    const dir = nextKey === prevKey ? 'none' : (nextKey === 'system' ? 'right' : 'left');
+    const pAdd = document.getElementById('adminSubPaneAdd');
+    const dir = nextKey === prevKey ? 'none' : (nextKey === 'add' ? 'right' : 'left');
 
     if (pRoster) {
       pRoster.classList.toggle('hidden', nextKey !== 'roster');
       if (nextKey === 'roster' && animate && dir !== 'none') replayAdminPaneEnter(pRoster, dir);
     }
-    if (pSystem) {
-      pSystem.classList.toggle('hidden', nextKey !== 'system');
-      if (nextKey === 'system' && animate && dir !== 'none') replayAdminPaneEnter(pSystem, dir);
+    if (pAdd) {
+      pAdd.classList.toggle('hidden', nextKey !== 'add');
+      if (nextKey === 'add') {
+        syncAdminAddStudentChips(false);
+        requestAnimationFrame(() => {
+          syncAdminSegmentedControl('adminAddLangChips', 'adminAddLangIndicator', 'data-add-lang', adminState.addLang === 'en' ? 'en' : 'tr', false);
+        });
+        if (animate && dir !== 'none') replayAdminPaneEnter(pAdd, dir);
+      }
     }
-    syncAdminSegmentedControl('adminSettingsSubBar', 'adminSettingsSubIndicator', 'data-admin-subtab', nextKey, animate, '!rounded-xl');
+    syncAdminSegmentedControl('adminStudentsSubBar', 'adminStudentsSubIndicator', 'data-admin-students-subtab', nextKey, animate, '!rounded-xl');
   }
 
   function syncAllAdminSegmentedIndicators(animate = false) {
@@ -6562,7 +6579,7 @@ export function initInonuApp() {
     syncAdminSegmentedControl('adminMatListFilterChips', 'adminMatListFilterIndicator', 'data-mat-list-filter', adminState.matListFilterProg || '', animate);
     syncAdminSegmentedControl('adminExamProgChips', 'adminExamProgIndicator', 'data-exam-prog', adminState.examProg || '', animate);
     syncAdminSegmentedControl('adminAddLangChips', 'adminAddLangIndicator', 'data-add-lang', adminState.addLang === 'en' ? 'en' : 'tr', animate);
-    syncAdminSegmentedControl('adminSettingsSubBar', 'adminSettingsSubIndicator', 'data-admin-subtab', adminState.settingsSubTab || 'roster', animate, '!rounded-xl');
+    syncAdminSegmentedControl('adminStudentsSubBar', 'adminStudentsSubIndicator', 'data-admin-students-subtab', adminState.studentsSubTab || 'roster', animate, '!rounded-xl');
   }
 
   function syncAdminModalLanguageUI() {
@@ -6587,10 +6604,10 @@ export function initInonuApp() {
       if (key === 'students') lbl.textContent = isEn ? 'Settings' : 'Ayarlar';
     });
 
-    document.querySelectorAll('[data-admin-subtab]').forEach((btn) => {
-      const key = btn.getAttribute('data-admin-subtab');
-      if (key === 'roster') btn.textContent = isEn ? 'Students' : 'Öğrenciler';
-      if (key === 'system') btn.textContent = isEn ? 'Site & Security' : 'Site & Güvenlik';
+    document.querySelectorAll('[data-admin-students-subtab]').forEach((btn) => {
+      const key = btn.getAttribute('data-admin-students-subtab');
+      if (key === 'roster') btn.textContent = isEn ? 'Student Settings' : 'Öğrenci Ayarları';
+      if (key === 'add') btn.textContent = isEn ? 'Add Student' : 'Öğrenci Ekle';
     });
 
     setTxt('btnAdminAnnCancelEdit', loc.adminAnnCancelBtn);
@@ -6706,10 +6723,10 @@ export function initInonuApp() {
     setTxt('subHubMaterials', isEn ? 'Upload PDF files or links' : 'PDF dosyası veya bağlantı ekle');
     setTxt('lblHubExams', isEn ? 'Exam Countdowns' : 'Sınav Geri Sayımı');
     setTxt('subHubExams', isEn ? 'Exam dates, times & urgent notes' : 'Sınav tarih, saat ve acil notları');
-    setTxt('lblHubAddStudent', isEn ? 'Add Student' : 'Öğrenci Ekle');
-    setTxt('subHubAddStudent', isEn ? 'Register student ID & group' : 'Yeni öğrenci numarası ve grup kaydı');
-    setTxt('lblHubStudents', isEn ? 'Students & Settings' : 'Öğrenciler & Ayarlar');
-    setTxt('subHubStudents', isEn ? 'Roster, site lock & security' : 'Öğrenci listesi, site kilidi, şifre');
+    setTxt('lblHubStudents', isEn ? 'Student Settings & Add' : 'Öğrenci Ayarları & Ekleme');
+    setTxt('subHubStudents', isEn ? 'Manage students & add new student' : 'Öğrenci listesi, ayarları ve yeni öğrenci ekle');
+    setTxt('lblHubSiteSettings', isEn ? 'Site Settings' : 'Site Ayarları');
+    setTxt('subHubSiteSettings', isEn ? 'Maintenance mode, site lock, password & sync' : 'Bakım modu, site kilidi, şifre ve yayın');
     setTxt('lblAdminRecentActivity', isEn ? 'Recent Activity' : 'Son İşlemler');
     setTxt('btnAdminClearHistory', isEn ? 'Clear' : 'Temizle');
     setTxt('lblAdminAnnExpires', isEn ? 'Auto-Expire (Optional)' : 'Otomatik Bitiş (Opsiyonel)');
@@ -6802,14 +6819,13 @@ export function initInonuApp() {
         cancellations: isEn ? 'Cancellations' : 'Ders İptali',
         materials: isEn ? 'Lesson PDFs' : "Ders PDF'leri",
         exams: isEn ? 'Exam Countdowns' : 'Sınav Geri Sayımı',
-        'add-student': isEn ? 'Add Student' : 'Öğrenci Ekle',
-        students: isEn ? 'Students & Settings' : 'Öğrenciler & Ayarlar',
+        students: isEn ? 'Student Settings & Add' : 'Öğrenci Ayarları & Ekleme',
+        'site-settings': isEn ? 'Site Settings' : 'Site Ayarları',
         'extras-feedback': isEn ? 'Anonymous Feedback' : 'Temsilciye İlet',
         'extras-polls': isEn ? 'Live Polls' : 'Canlı Anketler',
         'extras-overrides': isEn ? 'Lesson Overrides' : 'Saat / Amfi Değişikliği',
         'extras-extra-lessons': isEn ? 'Extra Lessons' : 'Ek / Telafi Ders',
         'extras-banner': isEn ? 'Emergency Banner' : 'Acil / Bakım Bannerı',
-        'extras-maintenance': isEn ? 'Maintenance Mode' : 'Bakım Modu & İzinliler'
       };
       const nextTitle = titles[tabKey] || loc.adminModalTitle;
       if (titleEl.textContent !== nextTitle) {
@@ -6859,10 +6875,10 @@ export function initInonuApp() {
     const pMat = document.getElementById('adminPaneMaterials');
     const pCan = document.getElementById('adminPaneCancellations');
     const pExm = document.getElementById('adminPaneExams');
-    const pAdd = document.getElementById('adminPaneAddStudent');
     const pStu = document.getElementById('adminPaneStudents');
+    const pSet = document.getElementById('adminPaneSiteSettings');
 
-    const allPanes = [pHub, pAnn, pMat, pCan, pExm, pAdd, pStu];
+    const allPanes = [pHub, pAnn, pMat, pCan, pExm, pStu, pSet];
     allPanes.forEach((p) => {
       if (!p) return;
       p.style.transition = '';
@@ -6932,23 +6948,22 @@ export function initInonuApp() {
         replayAdminPaneEnter(pExm, dir);
       }
     }
-    if (pAdd) {
-      pAdd.classList.toggle('hidden', nextTab !== 'add-student');
-      if (nextTab === 'add-student') {
-        syncAdminAddStudentChips(false);
-        replayAdminPaneEnter(pAdd, dir);
-      }
-    }
     if (pStu) {
       pStu.classList.toggle('hidden', nextTab !== 'students');
       if (nextTab === 'students') {
-        switchAdminSettingsSubTab(adminState.settingsSubTab || 'roster', false);
+        switchAdminStudentsSubTab(adminState.studentsSubTab || 'roster', false);
         replayAdminPaneEnter(pStu, dir);
         if (adminCloudDirty.students) {
           void refreshAdminCloudData('students');
         } else {
           renderAdminStudentsList();
         }
+      }
+    }
+    if (pSet) {
+      pSet.classList.toggle('hidden', nextTab !== 'site-settings');
+      if (nextTab === 'site-settings') {
+        replayAdminPaneEnter(pSet, dir);
       }
     }
     if (nextTab === 'announcements' && adminCloudDirty.announcements) {
@@ -10260,8 +10275,13 @@ export function initInonuApp() {
           cancellations: 'adminPaneCancellations',
           materials: 'adminPaneMaterials',
           exams: 'adminPaneExams',
-          'add-student': 'adminPaneAddStudent',
-          students: 'adminPaneStudents'
+          students: 'adminPaneStudents',
+          'site-settings': 'adminPaneSiteSettings',
+          'extras-feedback': 'adminPaneExtrasFeedback',
+          'extras-polls': 'adminPaneExtrasPolls',
+          'extras-overrides': 'adminPaneExtrasOverrides',
+          'extras-extra-lessons': 'adminPaneExtrasExtraLessons',
+          'extras-banner': 'adminPaneExtrasBanner'
         };
         const id = map[adminState.activeTab];
         return id ? document.getElementById(id) : null;
@@ -10820,10 +10840,10 @@ export function initInonuApp() {
       });
     }
 
-    document.querySelectorAll('[data-admin-subtab]').forEach((btn) => {
+    document.querySelectorAll('[data-admin-students-subtab]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const subKey = btn.getAttribute('data-admin-subtab') || 'roster';
-        switchAdminSettingsSubTab(subKey, true);
+        const subKey = btn.getAttribute('data-admin-students-subtab') || 'roster';
+        switchAdminStudentsSubTab(subKey, true);
       });
     });
 
