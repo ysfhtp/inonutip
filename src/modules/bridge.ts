@@ -115,6 +115,20 @@ declare global {
       open: () => void;
       close: () => void;
     };
+    __INONU_ANATOMY_3D__?: {
+      open: (opts?: {
+        modelId?: 'cell' | 'heart' | 'brain' | 'skull' | 'femur' | 'thorax';
+        partId?: string;
+        lessonTitle?: string;
+      }) => void;
+      close: () => void;
+      matchLesson: (slot: { title?: string; code?: string }) => {
+        modelId: 'cell' | 'heart' | 'brain' | 'skull' | 'femur' | 'thorax';
+        partId?: string;
+        labelTr: string;
+        labelEn: string;
+      } | null;
+    };
     __INONU_ADMIN_EXTRAS__?: {
       openPane: (paneKey: string) => void;
       openOverrideForSlot: (slot: {

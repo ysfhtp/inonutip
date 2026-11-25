@@ -11,6 +11,7 @@ import { initFoodRatings } from './foodRatings.ts';
 import { initMaintenanceGate } from './maintenanceGate.ts';
 import { initBottomSheet } from './bottomSheet.ts';
 import { initOfflineSupport } from './offlineSupport.ts';
+import { initAnatomy3D } from './anatomy3d/index.ts';
 
 export function initModularMenus(): void {
   initLiveStore();
@@ -25,6 +26,7 @@ export function initModularMenus(): void {
     initPdfArchive();
     initStudentFeedback();
     initFoodRatings();
+    initAnatomy3D();
     initAdminExtras();
   });
 }
