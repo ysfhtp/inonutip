@@ -864,15 +864,18 @@ export async function syncStaticStoreFromDataJson(force = false): Promise<boolea
       }
     }
 
-    // 3. Announcements
-    if (Array.isArray(remote.announcements)) {
+    // 3. Announcements (only import from data.json when Firebase is unavailable/quota-exceeded so stale data.json never resurrects deleted Firestore announcements)
+    if (Array.isArray(remote.announcements) && isFirebaseQuotaExceeded()) {
+      const tombstones = readAnnouncementTombstones();
       const remoteMap: Record<string, Record<string, unknown>> = {};
       remote.announcements.forEach((raw) => {
         if (!raw || typeof raw !== 'object') return;
         const mapped = mapServerAnnouncement(raw);
-        if (mapped.id && !raw.deleted && raw.deleted !== 1) {
-          remoteMap[mapped.id] = { ...mapped, deleted: false };
-        }
+        if (!mapped.id || raw.deleted === true || raw.deleted === 1) return;
+        const tombTs = tombstones[mapped.id] || 0;
+        const recTs = Number(mapped.updatedAtMs || mapped.createdAtMs) || 0;
+        if (tombTs > 0 && tombTs >= recTs) return;
+        remoteMap[mapped.id] = { ...mapped, deleted: false };
       });
       const remoteSig = JSON.stringify(remote.announcements);
       nextSigs.announcements = remoteSig;
@@ -2426,10 +2429,61 @@ function mapServerAnnouncement(raw: Record<string, unknown>): CloudAnnouncement 
   };
 }
 
+const ANN_TOMBSTONE_TTL_MS = 10 * 60 * 1000;
+
+function readAnnouncementTombstones(): Record<string, number> {
+  const raw = readStaticJson<Record<string, number>>('announcements_deleted', {});
+  const now = Date.now();
+  const clean: Record<string, number> = {};
+  let changed = false;
+  Object.entries(raw || {}).forEach(([id, ts]) => {
+    const n = Number(ts) || 0;
+    if (n > 0 && now - n < ANN_TOMBSTONE_TTL_MS) {
+      clean[id] = n;
+    } else {
+      changed = true;
+    }
+  });
+  if (changed) writeStaticJson('announcements_deleted', clean);
+  return clean;
+}
+
+function markAnnouncementDeletedLocally(id: string): void {
+  const tombs = readAnnouncementTombstones();
+  tombs[id] = Date.now();
+  writeStaticJson('announcements_deleted', tombs);
+}
+
+function clearAnnouncementDeletedLocally(id: string): void {
+  const tombs = readAnnouncementTombstones();
+  if (tombs[id]) {
+    delete tombs[id];
+    writeStaticJson('announcements_deleted', tombs);
+  }
+}
+
+function buildAuthoritativeAnnouncementsMap(
+  list: Array<Record<string, unknown>>,
+): Record<string, Record<string, unknown>> {
+  const tombstones = readAnnouncementTombstones();
+  const nextMap: Record<string, Record<string, unknown>> = {};
+  list.forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const mapped = mapServerAnnouncement(raw);
+    if (!mapped.id || raw.deleted === true || raw.deleted === 1) return;
+    const tombTs = tombstones[mapped.id] || 0;
+    const recTs = Number(mapped.updatedAtMs || mapped.createdAtMs) || 0;
+    if (tombTs > 0 && tombTs >= recTs) return;
+    nextMap[mapped.id] = { ...mapped, active: Boolean(mapped.active), deleted: false };
+  });
+  return nextMap;
+}
+
 function mergeAnnouncementsIntoMap(
   baseMap: Record<string, Record<string, unknown>>,
   incoming: Array<Record<string, unknown>>,
 ): Record<string, Record<string, unknown>> {
+  const tombstones = readAnnouncementTombstones();
   const merged: Record<string, Record<string, unknown>> = { ...baseMap };
   incoming.forEach((raw) => {
     if (!raw || typeof raw !== 'object') return;
@@ -2439,8 +2493,9 @@ function mergeAnnouncementsIntoMap(
     const existing = merged[mapped.id];
     const incomingTs = Number(mapped.updatedAtMs || mapped.createdAtMs) || 0;
     const existingTs = Number(existing?.updatedAtMs ?? existing?.updated_at ?? existing?.createdAtMs ?? existing?.created_at) || 0;
-    if (isDeleted) {
-      if (!existing || incomingTs >= existingTs) {
+    const tombTs = tombstones[mapped.id] || 0;
+    if (isDeleted || (tombTs > 0 && tombTs >= incomingTs)) {
+      if (!existing || incomingTs >= existingTs || tombTs >= existingTs) {
         delete merged[mapped.id];
       }
       return;
@@ -2449,48 +2504,59 @@ function mergeAnnouncementsIntoMap(
       merged[mapped.id] = { ...mapped, active: Boolean(mapped.active), deleted: false };
     }
   });
+  Object.keys(tombstones).forEach((deadId) => {
+    const existing = merged[deadId];
+    if (!existing) return;
+    const existingTs = Number(existing.updatedAtMs ?? existing.updated_at ?? existing.createdAtMs ?? existing.created_at) || 0;
+    if (tombstones[deadId] >= existingTs) {
+      delete merged[deadId];
+    }
+  });
   return merged;
 }
 
-export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
-  let mergedMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
+async function fetchAuthoritativeAnnouncementsMap(): Promise<Record<string, Record<string, unknown>>> {
+  // 1) When Firebase Firestore is healthy, treat Firestore as the authoritative source of truth
+  // so deleted announcements are NEVER resurrected by stale SQLite or stale data.json / Gist caches.
+  if (!isFirebaseQuotaExceeded()) {
+    try {
+      const fbList = await fetchFirebaseAnnouncements();
+      if (Array.isArray(fbList)) {
+        const fbMap = buildAuthoritativeAnnouncementsMap(fbList);
+        writeStaticJson('announcements', fbMap);
+        return fbMap;
+      }
+    } catch {
+      // Fall through to backend/static fallback
+    }
+  }
 
+  // 2) Fallback when Firestore is offline or quota-exceeded
+  let mergedMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   if (await isApiBackendOnline()) {
     try {
       const resp = await fetch('/api/announcements', { cache: 'no-store' });
       if (resp.ok) {
         const json = (await resp.json()) as { announcements?: Record<string, unknown>[] };
         if (Array.isArray(json.announcements)) {
-          const apiMap: Record<string, Record<string, unknown>> = {};
-          json.announcements.forEach((a) => {
-            const mapped = mapServerAnnouncement(a);
-            if (mapped.id && !a.deleted && a.deleted !== 1) {
-              apiMap[mapped.id] = { ...mapped, active: Boolean(mapped.active), deleted: false };
-            }
-          });
-          mergedMap = apiMap;
+          mergedMap = buildAuthoritativeAnnouncementsMap(json.announcements);
         }
       }
     } catch {
-      // Fallback to local cache
+      // Keep local cache
     }
   } else {
     await syncStaticStoreFromDataJson();
     mergedMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   }
 
-  if (!isFirebaseQuotaExceeded()) {
-    try {
-      const fbList = await fetchFirebaseAnnouncements();
-      if (Array.isArray(fbList)) {
-        mergedMap = mergeAnnouncementsIntoMap(mergedMap, fbList);
-      }
-    } catch {
-      // Keep API / static / cached announcements
-    }
-  }
-
+  mergedMap = mergeAnnouncementsIntoMap(mergedMap, []);
   writeStaticJson('announcements', mergedMap);
+  return mergedMap;
+}
+
+export async function loadActiveAnnouncements(): Promise<CloudAnnouncement[]> {
+  const mergedMap = await fetchAuthoritativeAnnouncementsMap();
   const nowMs = Date.now();
   return Object.values(mergedMap)
     .filter((r) => r && r.deleted !== true && r.deleted !== 1 && Boolean(r.active))
@@ -2510,13 +2576,7 @@ export function subscribeAnnouncements(onUpdate: (announcements: CloudAnnounceme
 
   try {
     const fbUnsub = subscribeFirebaseAnnouncements((list) => {
-      const allMap: Record<string, Record<string, unknown>> = {};
-      list.forEach((raw) => {
-        const mapped = mapServerAnnouncement(raw);
-        if (mapped.id && !raw.deleted && raw.deleted !== 1) {
-          allMap[mapped.id] = { ...mapped, active: Boolean(mapped.active), deleted: false };
-        }
-      });
+      const allMap = buildAuthoritativeAnnouncementsMap(list);
       writeStaticJson('announcements', allMap);
       const nowMs = Date.now();
       onUpdate(
@@ -2538,44 +2598,7 @@ export function subscribeAnnouncements(onUpdate: (announcements: CloudAnnounceme
 }
 
 export async function listAllAnnouncements(): Promise<CloudAnnouncement[]> {
-  let mergedMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
-
-  if (await isApiBackendOnline()) {
-    try {
-      const resp = await fetch('/api/announcements', { cache: 'no-store' });
-      if (resp.ok) {
-        const json = (await resp.json()) as { announcements?: Record<string, unknown>[] };
-        if (Array.isArray(json.announcements)) {
-          const apiMap: Record<string, Record<string, unknown>> = {};
-          json.announcements.forEach((a) => {
-            const mapped = mapServerAnnouncement(a);
-            if (mapped.id && !a.deleted && a.deleted !== 1) {
-              apiMap[mapped.id] = { ...mapped, active: Boolean(mapped.active), deleted: false };
-            }
-          });
-          mergedMap = apiMap;
-        }
-      }
-    } catch {
-      // Fallback to local cache
-    }
-  } else {
-    await syncStaticStoreFromDataJson();
-    mergedMap = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
-  }
-
-  if (!isFirebaseQuotaExceeded()) {
-    try {
-      const fbList = await fetchFirebaseAnnouncements();
-      if (Array.isArray(fbList)) {
-        mergedMap = mergeAnnouncementsIntoMap(mergedMap, fbList);
-      }
-    } catch {
-      // Keep API / static / cached announcements
-    }
-  }
-
-  writeStaticJson('announcements', mergedMap);
+  const mergedMap = await fetchAuthoritativeAnnouncementsMap();
   return Object.values(mergedMap)
     .filter((r) => r && r.deleted !== true && r.deleted !== 1)
     .map(mapServerAnnouncement)
@@ -2866,13 +2889,14 @@ export async function saveAnnouncement(
     publishAtMs: cleanPublish,
   };
 
+  clearAnnouncementDeletedLocally(id);
   const map = readStaticJson<Record<string, CloudAnnouncement & { deleted?: boolean }>>('announcements', {});
   const prev = map[id];
   if (prev?.createdAtMs) saved.createdAtMs = prev.createdAtMs;
   map[id] = { ...saved, deleted: false };
   writeStaticJson('announcements', map);
-  emitLocalTopic('announcements', { action: 'save', id });
-  void saveFirebaseAnnouncement({
+
+  const fbSavePromise = saveFirebaseAnnouncement({
     id: saved.id,
     title: cleanTitle,
     message: cleanMessage,
@@ -2888,41 +2912,47 @@ export async function saveAnnouncement(
   });
 
   if (await isApiBackendOnline()) {
-    const resp = await fetch('/api/announcements', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret,
-      },
-      body: JSON.stringify({
-        id: saved.id,
-        title: cleanTitle,
-        message: cleanMessage,
-        tone: normalizeAnnouncementTone(input.tone),
-        active: Boolean(input.active),
-        targetGroup: normalizeMbuGroupPref(input.targetGroup),
-        targetProg: normalizeLangPref(input.targetProg),
-        expiresAtMs: saved.expiresAtMs || 0,
-        publishAtMs: saved.publishAtMs || 0,
-      }),
-    });
-    if (!resp.ok) {
-      throw new Error('ANNOUNCEMENT_SAVE_FAILED');
+    const [, apiResp] = await Promise.all([
+      fbSavePromise,
+      fetch('/api/announcements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': secret,
+        },
+        body: JSON.stringify({
+          id: saved.id,
+          title: cleanTitle,
+          message: cleanMessage,
+          tone: normalizeAnnouncementTone(input.tone),
+          active: Boolean(input.active),
+          targetGroup: normalizeMbuGroupPref(input.targetGroup),
+          targetProg: normalizeLangPref(input.targetProg),
+          expiresAtMs: saved.expiresAtMs || 0,
+          publishAtMs: saved.publishAtMs || 0,
+        }),
+      }).catch(() => null),
+    ]);
+    if (apiResp && apiResp.ok) {
+      const json = (await apiResp.json().catch(() => ({}))) as {
+        announcement?: Record<string, unknown>;
+      };
+      if (json.announcement) {
+        const s = mapServerAnnouncement(json.announcement);
+        if (!s.expiresAtMs && saved.expiresAtMs) s.expiresAtMs = saved.expiresAtMs;
+        if (!s.publishAtMs && saved.publishAtMs) s.publishAtMs = saved.publishAtMs;
+        map[s.id] = { ...s, deleted: false };
+        writeStaticJson('announcements', map);
+        emitLocalTopic('announcements', { action: 'save', id: s.id });
+        bumpAppVersion();
+        return s;
+      }
     }
-    const json = (await resp.json().catch(() => ({}))) as {
-      announcement?: Record<string, unknown>;
-    };
-    if (json.announcement) {
-      const s = mapServerAnnouncement(json.announcement);
-      if (!s.expiresAtMs && saved.expiresAtMs) s.expiresAtMs = saved.expiresAtMs;
-      if (!s.publishAtMs && saved.publishAtMs) s.publishAtMs = saved.publishAtMs;
-      map[s.id] = { ...s, deleted: false };
-      writeStaticJson('announcements', map);
-      emitLocalTopic('announcements', { action: 'save', id: s.id });
-      bumpAppVersion();
-      return s;
-    }
+  } else {
+    await fbSavePromise;
   }
+
+  emitLocalTopic('announcements', { action: 'save', id });
 
   bumpAppVersion();
   return saved;
@@ -3058,28 +3088,41 @@ export async function deleteExamCountdown(id: string, adminSecret?: string): Pro
 
 export async function deleteAnnouncement(id: string, adminSecret?: string): Promise<void> {
   const cleanId = String(id || '').trim();
-  if (!/^[a-zA-Z0-9_-]{1,128}$/.test(cleanId)) return;
+  if (!cleanId || cleanId.includes('/') || cleanId.length > 128) return;
   const secret = resolveAdminWriteSecret(adminSecret);
 
+  // 1) Immediately mark deleted in local cache + tombstone so no stale snapshot/cache resurrects it
+  markAnnouncementDeletedLocally(cleanId);
   const map = readStaticJson<Record<string, Record<string, unknown>>>('announcements', {});
   if (map[cleanId]) {
     delete map[cleanId];
     writeStaticJson('announcements', map);
   }
-  emitLocalTopic('announcements', { action: 'delete', id: cleanId });
-  void deleteFirebaseAnnouncement(cleanId);
 
-  if (await isApiBackendOnline()) {
+  // 2) Await BOTH Firestore delete and backend API delete so deletion is complete before any refresh runs
+  const fbDeletePromise = deleteFirebaseAnnouncement(cleanId).then(async (ok) => {
+    if (!ok && !isFirebaseQuotaExceeded()) {
+      return deleteFirebaseAnnouncement(cleanId);
+    }
+    return ok;
+  });
+
+  const apiDeletePromise = (async () => {
+    if (!(await isApiBackendOnline())) return false;
     try {
-      await fetch(`/api/announcements/${encodeURIComponent(cleanId)}`, {
+      const resp = await fetch(`/api/announcements/${encodeURIComponent(cleanId)}`, {
         method: 'DELETE',
         headers: { 'X-Admin-Secret': secret },
       });
+      return resp.ok;
     } catch {
-      // Best-effort delete
+      return false;
     }
-  }
+  })();
 
+  await Promise.allSettled([fbDeletePromise, apiDeletePromise]);
+
+  emitLocalTopic('announcements', { action: 'delete', id: cleanId });
   bumpAppVersion();
 }
 

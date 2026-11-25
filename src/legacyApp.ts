@@ -7852,10 +7852,15 @@ export function initInonuApp() {
           return;
         }
         adminState.deleteConfirmAnnId = '';
+        delBtn.disabled = true;
         row.classList.add('admin-row-exit');
         try {
           await api.deleteAnnouncement(ann.id, secret === 'active' ? undefined : secret);
           void deleteAnnouncementReadStat(ann.id);
+          adminState.announcements = (adminState.announcements || []).filter((a) => a.id !== ann.id);
+          activeAnnouncementsList = (activeAnnouncementsList || []).filter((a) => a.id !== ann.id);
+          renderAdminAnnouncementsList(false);
+          runWithStaggerSuppressed(() => renderDailyAnnouncements());
           pushAdminHistory({
             label: state.lang === 'en' ? 'Announcement deleted' : 'Duyuru silindi',
             sub: ann.title,
@@ -7867,6 +7872,7 @@ export function initInonuApp() {
           showToast(loc.adminAnnDeletedToast);
           void queueAutoPushDataJsonToGitHub(false);
         } catch (err) {
+          delBtn.disabled = false;
           row.classList.remove('admin-row-exit');
           console.warn('Announcement delete error:', err);
           showToast(loc.adminSaveErrorToast);
@@ -10742,13 +10748,16 @@ export function initInonuApp() {
         btnAdminAnnQuickDelete.disabled = true;
         try {
           await api.deleteAnnouncement(ann.id, secret === 'active' ? undefined : secret);
+          void deleteAnnouncementReadStat(ann.id);
           activeAnnouncementsList = (activeAnnouncementsList || []).filter((a) => a.id !== ann.id);
           adminState.announcements = (adminState.announcements || []).filter((a) => a.id !== ann.id);
-          renderDailyAnnouncements();
+          runWithStaggerSuppressed(() => renderDailyAnnouncements());
+          renderAdminAnnouncementsList(false);
           closeAdminSlotQuickModal();
           showToast(state.lang === 'en' ? 'Announcement deleted.' : 'Duyuru silindi.');
           void refreshAdminCloudData('announcements');
           void refreshDailyAnnouncements(true);
+          void queueAutoPushDataJsonToGitHub(false);
         } catch (err) {
           console.warn('Quick delete announcement error:', err);
           showToast(I18N[state.lang].adminSaveErrorToast);
