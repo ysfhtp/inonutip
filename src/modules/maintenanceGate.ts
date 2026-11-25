@@ -1,8 +1,9 @@
 import { getBridge } from './bridge.ts';
-import { getLiveStore, subscribeLiveStore } from './liveStore.ts';
+import { getLiveStore, getMaintenanceStatus, isMaintenanceCurrentlyActive, subscribeLiveStore } from './liveStore.ts';
 import { hashStudentId, isAdminStudentId, normalizeStudentId } from '../studentAllowlist.ts';
 
 let initialized = false;
+let scheduleTimerId: number | null = null;
 let secretPanelVisible = false;
 let needAdminPasswordStep = false;
 let pendingAdminStudentId = '';
@@ -53,6 +54,13 @@ export function initMaintenanceGate(): void {
       <h2 id="maintGateTitle" class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-2">Sistem Bakımda</h2>
       <p id="maintGateMessage" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mt-2 max-w-sm mx-auto">Kısa süreli bakım ve güncelleme çalışması yapılıyor. Lütfen daha sonra tekrar deneyin.</p>
 
+      <!-- Live Auto-Open Countdown Box (shown when endAtMs is scheduled) -->
+      <div id="maintCountdownWrap" class="hidden mt-3.5 px-3.5 py-2.5 rounded-2xl ios-pill-control text-center space-y-1 max-w-xs mx-auto">
+        <span id="maintCountdownLabel" class="block text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">Tahmini Açılış Kalan Süre</span>
+        <div id="maintCountdownValue" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tabular-nums tracking-tight">00:00:00</div>
+        <span id="maintCountdownTarget" class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums"></span>
+      </div>
+
       <!-- Hidden Secret Access Form (revealed only via 5 taps on maintenance icon or Ctrl+Shift+M) -->
       <form id="maintSecretAccessForm" class="maint-secret-box hidden" novalidate>
         <div class="flex items-center justify-between gap-2 mb-2.5">
@@ -95,6 +103,10 @@ export function initMaintenanceGate(): void {
   const titleEl = document.getElementById('maintGateTitle')!;
   const msgEl = document.getElementById('maintGateMessage')!;
   const statusTxtEl = document.getElementById('maintStatusText')!;
+  const countdownWrap = document.getElementById('maintCountdownWrap')!;
+  const countdownLabelEl = document.getElementById('maintCountdownLabel')!;
+  const countdownValEl = document.getElementById('maintCountdownValue')!;
+  const countdownTargetEl = document.getElementById('maintCountdownTarget')!;
   const secretForm = document.getElementById('maintSecretAccessForm') as HTMLFormElement;
   const secretCloseBtn = document.getElementById('btnMaintSecretClose')!;
   const idStepEl = document.getElementById('maintSecretIdStep')!;
@@ -183,9 +195,27 @@ export function initMaintenanceGate(): void {
     idInput.focus();
   });
 
+  const formatRemainingClock = (remainMs: number): string => {
+    const totalSec = Math.max(0, Math.floor(remainMs / 1000));
+    const days = Math.floor(totalSec / 86400);
+    const hrs = Math.floor((totalSec % 86400) / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    if (days > 0) return `${days}g ${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+    return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+  };
+
+  const formatShortDate = (ms: number): string => {
+    if (!ms) return '';
+    const d = new Date(ms);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   const isCurrentVisitorAllowed = (): boolean => {
     const { maintenance } = getLiveStore();
-    if (!maintenance.active) return true;
+    if (!isMaintenanceCurrentlyActive(maintenance)) return true;
     const session = getBridge()?.getSession();
     if (session?.isAdmin) return true;
     if (session?.hash && maintenance.allowedHashes.includes(session.hash)) return true;
@@ -194,17 +224,37 @@ export function initMaintenanceGate(): void {
     return false;
   };
 
+  const ensureScheduleTicker = (shouldTick: boolean) => {
+    if (shouldTick && scheduleTimerId === null) {
+      scheduleTimerId = window.setInterval(() => {
+        syncMaintenanceUI();
+      }, 1000);
+    } else if (!shouldTick && scheduleTimerId !== null) {
+      window.clearInterval(scheduleTimerId);
+      scheduleTimerId = null;
+    }
+  };
+
   const syncMaintenanceUI = () => {
     const bridge = getBridge();
     const isEn = bridge?.getState().lang === 'en';
     const { maintenance } = getLiveStore();
+    const now = Date.now();
+    const status = getMaintenanceStatus(maintenance, now);
+    const isActiveNow = status === 'active';
     const allowed = isCurrentVisitorAllowed();
-    const blocked = maintenance.active && !allowed;
+    const blocked = isActiveNow && !allowed;
 
-    // Clear stale bypass hash if maintenance is off or user was removed from whitelist
+    // Keep 1-second timer running whenever maintenance is scheduled for future OR active with auto-end time
+    const needsTick =
+      (status === 'scheduled' && maintenance.startAtMs > now) ||
+      (status === 'active' && maintenance.endAtMs > now);
+    ensureScheduleTicker(needsTick);
+
+    // Clear stale bypass hash if maintenance is active and user was removed from whitelist
     const storedBypass = getStoredBypassHash();
-    if (storedBypass && (!maintenance.active || !maintenance.allowedHashes.includes(storedBypass))) {
-      if (maintenance.active) setStoredBypassHash('');
+    if (storedBypass && isActiveNow && !maintenance.allowedHashes.includes(storedBypass)) {
+      setStoredBypassHash('');
     }
 
     titleEl.textContent = maintenance.title || (isEn ? 'Under Maintenance' : 'Sistem Bakımda');
@@ -214,6 +264,17 @@ export function initMaintenanceGate(): void {
         ? 'Maintenance is currently in progress. Please check back soon.'
         : 'Kısa süreli bakım ve güncelleme çalışması yapılıyor. Lütfen daha sonra tekrar deneyin.');
     statusTxtEl.textContent = isEn ? 'Maintenance Mode' : 'Bakım Çalışması';
+
+    if (isActiveNow && maintenance.endAtMs > now) {
+      countdownWrap.classList.remove('hidden');
+      countdownLabelEl.textContent = isEn ? 'Estimated Reopening' : 'Tahmini Açılış Kalan Süre';
+      countdownValEl.textContent = formatRemainingClock(maintenance.endAtMs - now);
+      countdownTargetEl.textContent = isEn
+        ? `Reopens at ${formatShortDate(maintenance.endAtMs)}`
+        : `Otomatik açılış: ${formatShortDate(maintenance.endAtMs)}`;
+    } else {
+      countdownWrap.classList.add('hidden');
+    }
 
     document.documentElement.classList.toggle('site-maintenance-locked', blocked);
     const appShellIds = ['appHeader', 'headerSpacer', 'appMain', 'appNav'];
@@ -239,25 +300,35 @@ export function initMaintenanceGate(): void {
       }
     }
 
-    // Show subtle top notice for Admin / whitelisted user while Maintenance Mode is active
+    // Show subtle top notice for Admin / whitelisted user while Maintenance Mode is active or scheduled
     if (adminMaintBar) {
       const isAdmin = Boolean(bridge?.isAdmin());
-      if (maintenance.active && !blocked) {
+      const showNotice = (isActiveNow && !blocked) || (isAdmin && status === 'scheduled');
+      if (showNotice) {
+        let noticeText = '';
+        if (status === 'scheduled') {
+          const remain = formatRemainingClock(maintenance.startAtMs - now);
+          noticeText = isEn
+            ? `Scheduled Maintenance in ${remain}`
+            : `Planlı Bakım · ${remain} sonra başlayacak`;
+        } else if (isAdmin) {
+          const endSuffix = maintenance.endAtMs > now ? ` · ${formatRemainingClock(maintenance.endAtMs - now)}` : '';
+          noticeText = isEn
+            ? `Maintenance ON (${maintenance.allowedHashes.length} allowed)${endSuffix}`
+            : `Bakım Modu Açık (${maintenance.allowedHashes.length} izinli)${endSuffix}`;
+        } else {
+          noticeText = isEn
+            ? 'Authorized Maintenance Access'
+            : 'Bakım Modu · Özel Erişimle Giriş Yapıldı';
+        }
+
         adminMaintBar.classList.remove('hidden');
         adminMaintBar.innerHTML = `
           <div class="maint-active-chip ios-glass">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0 animate-pulse"></span>
-              <span class="text-[11.5px] font-bold text-amber-800 dark:text-amber-200 truncate">
-                ${
-                  isAdmin
-                    ? isEn
-                      ? `Maintenance ON (${maintenance.allowedHashes.length} allowed)`
-                      : `Bakım Modu Açık (${maintenance.allowedHashes.length} izinli numara)`
-                    : isEn
-                      ? 'Authorized Maintenance Access'
-                      : 'Bakım Modu · Özel Erişimle Giriş Yapıldı'
-                }
+              <span class="w-2 h-2 rounded-full ${status === 'scheduled' ? 'bg-blue-500' : 'bg-amber-500'} shrink-0 animate-pulse"></span>
+              <span class="text-[11.5px] font-bold text-amber-800 dark:text-amber-200 truncate tabular-nums">
+                ${noticeText}
               </span>
             </div>
             ${

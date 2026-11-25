@@ -12,6 +12,11 @@ import {
   getTimeBasedGreeting,
   I18N,
 } from './data/i18n.ts';
+import {
+  getAnnouncementReadCount,
+  deleteAnnouncementReadStat,
+  LAST_SYNC_LS_KEY,
+} from './modules/liveStore.ts';
 
 let inonuAppInitialized = false;
 
@@ -821,7 +826,19 @@ export function initInonuApp() {
     const txt = document.getElementById('offlineStatusBannerText');
     if (!banner) return;
     const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
-    if (txt) txt.textContent = I18N[state.lang].offlineBannerText;
+    if (txt) {
+      let baseText = I18N[state.lang].offlineBannerText;
+      try {
+        const lastMs = Number(localStorage.getItem(LAST_SYNC_LS_KEY) || 0);
+        if (lastMs > 0) {
+          const d = new Date(lastMs);
+          const hh = String(d.getHours()).padStart(2, '0');
+          const mm = String(d.getMinutes()).padStart(2, '0');
+          baseText += state.lang === 'en' ? ` · Synced ${hh}:${mm}` : ` · Son eşitleme ${hh}:${mm}`;
+        }
+      } catch (e) {}
+      txt.textContent = baseText;
+    }
     banner.classList.toggle('hidden', !isOffline);
     banner.classList.toggle('is-visible', isOffline);
   }
@@ -1363,8 +1380,10 @@ export function initInonuApp() {
       });
     });
 
+    const navEl = document.getElementById('appNav');
     let isDragging = false;
     let didMove = false;
+    let isAdminVerticalSwipe = false;
     let startX = 0;
     let startY = 0;
     let currentTargetTab = state.activeTab;
@@ -1373,6 +1392,15 @@ export function initInonuApp() {
     let targetPillX = 0;
     let pillWidth = 0;
     let rafId = null;
+
+    function resetNavVerticalLift() {
+      if (!navEl) return;
+      navEl.style.transition = 'transform 0.24s cubic-bezier(0.22, 1, 0.36, 1)';
+      navEl.style.transform = '';
+      window.setTimeout(() => {
+        if (!isAdminVerticalSwipe && navEl) navEl.style.transition = '';
+      }, 260);
+    }
 
     function measureDock() {
       const rect = dock.getBoundingClientRect();
@@ -1405,7 +1433,7 @@ export function initInonuApp() {
     }
 
     function tickDrag() {
-      if (!isDragging || !didMove) {
+      if (!isDragging || !didMove || isAdminVerticalSwipe) {
         rafId = null;
         return;
       }
@@ -1422,6 +1450,7 @@ export function initInonuApp() {
       }
       isDragging = true;
       didMove = false;
+      isAdminVerticalSwipe = false;
       startX = e.clientX;
       startY = e.clientY;
       currentTargetTab = state.activeTab;
@@ -1439,6 +1468,32 @@ export function initInonuApp() {
       if (!isDragging || !metrics) return;
       const dx = Math.abs(e.clientX - startX);
       const dy = Math.abs(e.clientY - startY);
+      const upwardDy = startY - e.clientY;
+      const isAdminNow = Boolean(getActiveAuthSession()?.isAdmin) && !isSiteLoginLocked();
+
+      // Admin-only upward swipe gesture: lift dock smoothly & prevent tab pill switching
+      if (isAdminNow && !isAdminVerticalSwipe && upwardDy > 12 && upwardDy > dx * 1.15) {
+        isAdminVerticalSwipe = true;
+        didMove = false;
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        dock.classList.remove('is-dock-dragging');
+        pill.classList.remove('is-dragging');
+        currentTargetTab = state.activeTab;
+        setDockActiveVisual(state.activeTab);
+        updateTabIndicator(state.activeTab, false);
+      }
+
+      if (isAdminVerticalSwipe) {
+        if (navEl) {
+          const lift = Math.max(0, Math.min(24, Math.round((upwardDy - 10) * 0.42)));
+          navEl.style.transition = 'none';
+          navEl.style.transform = `translate3d(0, -${lift}px, 0)`;
+        }
+        return;
+      }
 
       if (!didMove) {
         if (dx <= 6 && dy <= 6) return;
@@ -1463,11 +1518,17 @@ export function initInonuApp() {
     function endDrag(e) {
       if (!isDragging) return;
       isDragging = false;
+      const wasVerticalSwipe = isAdminVerticalSwipe;
+      isAdminVerticalSwipe = false;
       if (rafId) {
         cancelAnimationFrame(rafId);
         rafId = null;
       }
       try { dock.releasePointerCapture(e.pointerId); } catch (err) {}
+
+      if (wasVerticalSwipe) {
+        resetNavVerticalLift();
+      }
 
       dock.classList.remove('is-dock-dragging');
       pill.classList.remove('is-dragging');
@@ -1484,9 +1545,26 @@ export function initInonuApp() {
 
       const upwardDy = startY - e.clientY;
       const horizontalDx = Math.abs(e.clientX - startX);
-      const isAdminUpwardSwipe = Boolean(getActiveAuthSession()?.isAdmin) && upwardDy > 40 && upwardDy > horizontalDx * 1.4;
+      const isAdminUpwardSwipe =
+        Boolean(getActiveAuthSession()?.isAdmin) &&
+        !isSiteLoginLocked() &&
+        upwardDy > 34 &&
+        upwardDy > horizontalDx * 1.15;
 
       if (isAdminUpwardSwipe) {
+        setDockActiveVisual(state.activeTab);
+        updateTabIndicator(state.activeTab, true);
+        metrics = null;
+        if (window.__INONU_BOTTOM_SHEET__?.open) {
+          window.__INONU_BOTTOM_SHEET__.open();
+        } else {
+          triggerHaptic('selection');
+          openAdminModal('hub');
+        }
+        return;
+      }
+
+      if (wasVerticalSwipe) {
         setDockActiveVisual(state.activeTab);
         updateTabIndicator(state.activeTab, true);
         metrics = null;
@@ -7683,12 +7761,19 @@ export function initInonuApp() {
         );
       }
 
+      const readCount = getAnnouncementReadCount(ann.id);
+      const readLabel = state.lang === 'en' ? `${readCount} views` : `${readCount} okunma`;
+
       const header = document.createElement('div');
       header.className = 'flex items-start justify-between gap-2';
       header.innerHTML = `
         <div class="min-w-0 flex-1 space-y-1">
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-1.5 flex-wrap">
             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${toneBadgeCls}">${escapeHtml(toneLabel)}</span>
+            <span data-ann-read-count="${escapeHtml(ann.id)}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 tabular-nums shrink-0" title="${state.lang === 'en' ? 'Unique student views' : 'Tekil öğrenci görüntülenmesi'}">
+              <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              <span>${escapeHtml(readLabel)}</span>
+            </span>
             <span class="text-[11px] font-medium ${ann.active ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'}">${escapeHtml(metaParts.join(' · '))}</span>
           </div>
           <h5 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">${escapeHtml(ann.title)}</h5>
@@ -7770,6 +7855,7 @@ export function initInonuApp() {
         row.classList.add('admin-row-exit');
         try {
           await api.deleteAnnouncement(ann.id, secret === 'active' ? undefined : secret);
+          void deleteAnnouncementReadStat(ann.id);
           pushAdminHistory({
             label: state.lang === 'en' ? 'Announcement deleted' : 'Duyuru silindi',
             sub: ann.title,
@@ -11750,6 +11836,15 @@ export function initInonuApp() {
     window.addEventListener('offline', () => {
       updateOfflineBannerUI();
       showToast(t('offlineToast'));
+    });
+    window.addEventListener('inonu-read-stats-changed', () => {
+      const modal = document.getElementById('adminModal');
+      if (modal && !modal.classList.contains('hidden') && adminState.activeTab === 'announcements') {
+        renderAdminAnnouncementsList(false);
+      }
+    });
+    window.addEventListener('inonu-cloud-synced', () => {
+      updateOfflineBannerUI();
     });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {

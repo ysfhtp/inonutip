@@ -1473,107 +1473,213 @@
             </div>
           </div>
 
-          <!-- Site Erişim Modu -->
-          <div id="adminSiteAccessCard" class="admin-glass-section p-3.5 sm:p-4 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0 flex-1">
-              <span id="adminSiteAccessIconWrap" class="w-9 h-9 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0 transition">
-                <svg id="iconSiteAccessPublic" class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <svg id="iconSiteAccessLocked" class="w-4.5 h-4.5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-              </span>
-              <div class="min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h4 id="lblAdminSiteAccessTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Sadece Öğrenci No ile Giriş</h4>
-                  <span id="adminSiteAccessStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0">Herkese Açık</span>
-                </div>
-                <p id="lblAdminSiteAccessDesc" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug mt-0.5">Kapalıyken site herkese açıktır; misafirler giriş yapmadan görebilir.</p>
-              </div>
-            </div>
-            <button id="btnToggleSiteRequireLogin" type="button" role="switch" aria-checked="false" class="ios-press relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full bg-slate-300 dark:bg-slate-700 p-0.5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40" aria-label="Sadece öğrenci numarası ile girişi aç veya kapat">
-              <span id="siteAccessSwitchKnob" class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 translate-x-0"></span>
-            </button>
-          </div>
+          <!-- BÖLÜM 1: ERİŞİM & BAKIM -->
+          <div class="space-y-2">
+            <span class="block px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Erişim &amp; Bakım</span>
 
-          <!-- Bakım Modu & İzinli Numaralar (Site Ayarları İçinde) -->
-          <form id="adminMaintForm" class="admin-glass-section p-3.5 sm:p-4 space-y-3" novalidate>
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Site Bakım Modu</h4>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Açıkken yalnızca yöneticiler ve izinli numaralar siteye erişebilir.</p>
-              </div>
-              <button id="btnAdminMaintToggle" type="button" role="switch" aria-checked="false" class="ios-toggle-switch shrink-0">
-                <span class="ios-toggle-knob"></span>
-              </button>
-            </div>
-            <input id="adminMaintTitleInput" type="text" maxlength="120" placeholder="Bakım başlığı (örn. Sistem Bakımda)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40" />
-            <textarea id="adminMaintMsgInput" rows="3" maxlength="400" placeholder="Bakım açıklaması (öğrencilerin göreceği mesaj)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40"></textarea>
-            <div class="ios-pill-control rounded-2xl p-2.5 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
-              <strong>Gizli Giriş:</strong> Bakım ekranındaki ayar ikonuna <strong>5 kez üst üste</strong> dokununca öğrenci numarası giriş ekranı açılır.
-            </div>
-            <div class="flex justify-end">
-              <button type="submit" class="ios-press px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm">Bakım Ayarlarını Kaydet</button>
-            </div>
-          </form>
-
-          <div class="admin-glass-section p-3.5 sm:p-4 space-y-3">
-            <div>
-              <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Bakımda İzinli Numaralar</h4>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400">Eklenen numaralar şifreli (hash) olarak saklanır.</p>
-            </div>
-            <form id="adminMaintAllowForm" class="space-y-2" novalidate>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input id="adminMaintAllowIdInput" type="text" inputmode="numeric" maxlength="20" placeholder="Öğrenci Numarası" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none" />
-                <input id="adminMaintAllowLabelInput" type="text" maxlength="40" placeholder="Kısa Etiket / İsim (opsiyonel)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2.5 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none" />
-              </div>
-              <div class="flex justify-end">
-                <button type="submit" class="ios-press px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm">+ İzinli Numara Ekle</button>
-              </div>
-            </form>
-            <div id="adminMaintAllowedList" class="space-y-2"></div>
-          </div>
-
-          <!-- Yönetici Şifresini Güncelle -->
-          <form id="adminPwdForm" class="admin-glass-section p-3.5 sm:p-4 space-y-2.5" novalidate>
-            <h4 id="lblAdminPwdChangeTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Yönetici Giriş Şifresini Güncelle</h4>
-            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <input id="adminNewPwdInput" type="password" maxlength="64" placeholder="Yeni şifre (en az 4 karakter)" class="flex-1 min-w-0 ios-pill-control rounded-2xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
-              <button id="btnAdminSaveNewPwd" type="submit" class="ios-press min-h-[42px] w-full sm:w-auto px-4 py-2 rounded-2xl bg-amber-500/18 hover:bg-amber-500/28 text-amber-700 dark:text-amber-300 text-xs font-bold shrink-0 transition">Şifreyi Kaydet</button>
-            </div>
-          </form>
-
-          <!-- Gelişmiş: GitHub Pages / data.json Senkronizasyon (Katlanabilir) -->
-          <div id="adminDataJsonCard" class="admin-glass-section p-3.5 sm:p-4 space-y-2.5">
-            <div class="flex items-center justify-between gap-2.5">
-              <button id="btnAdminToggleGhConfig" type="button" aria-expanded="false" class="flex-1 min-w-0 text-left flex items-center justify-between gap-2">
+            <!-- Site Erişim Modu -->
+            <div id="adminSiteAccessCard" class="admin-glass-section p-3.5 sm:p-4 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <span id="adminSiteAccessIconWrap" class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0 transition">
+                  <svg id="iconSiteAccessPublic" class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <svg id="iconSiteAccessLocked" class="w-4.5 h-4.5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </span>
                 <div class="min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
-                    <h4 id="lblAdminDataJsonTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">GitHub / Gist Yayını</h4>
-                    <span id="adminDataJsonModeBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0">data.json</span>
+                    <h4 id="lblAdminSiteAccessTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Sadece Öğrenci No ile Giriş</h4>
+                    <span id="adminSiteAccessStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0">Herkese Açık</span>
                   </div>
-                  <p id="adminDataJsonModeText" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug mt-0.5 truncate">Gelişmiş statik yedekleme ayarları</p>
+                  <p id="lblAdminSiteAccessDesc" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug mt-0.5">Kapalıyken site herkese açıktır; misafirler giriş yapmadan görebilir.</p>
                 </div>
-                <svg class="admin-gh-chevron w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              </div>
+              <button id="btnToggleSiteRequireLogin" type="button" role="switch" aria-checked="false" class="ios-press relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full bg-slate-300 dark:bg-slate-700 p-0.5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40" aria-label="Sadece öğrenci numarası ile girişi aç veya kapat">
+                <span id="siteAccessSwitchKnob" class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 translate-x-0"></span>
               </button>
-              <button id="btnAdminSyncRemoteDataJson" type="button" class="ios-press min-h-[32px] px-3 py-1 rounded-full ios-pill-control text-[11px] font-semibold text-slate-700 dark:text-slate-200 shrink-0">Yenile</button>
             </div>
 
-            <div id="adminGitHubPushConfigWrap" class="admin-collapse-panel is-collapsed" aria-hidden="true">
-              <div class="admin-collapse-inner">
-                <div class="pt-2.5 border-t border-slate-200/60 dark:border-slate-800/80 space-y-2.5">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <label for="adminGhRepoInput" class="block text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 mb-1 px-0.5">GitHub Repo veya Gist ID</label>
-                      <input id="adminGhRepoInput" type="text" placeholder="kullanici/repo veya Gist ID" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-                    </div>
-                    <div>
-                      <label for="adminGhTokenInput" class="block text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 mb-1 px-0.5">GitHub PAT (Token)</label>
-                      <input id="adminGhTokenInput" type="password" autocomplete="off" placeholder="ghp_... (yalnızca bu tarayıcıda)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+            <!-- Birleşik Bakım Modu Kartı (Düzenli + Planlı Zamanlama + Katlanabilir Alt Bölümler) -->
+            <div class="admin-glass-section overflow-hidden divide-y divide-slate-200/60 dark:divide-slate-800/75">
+              <!-- Üst Başlık & Ana Anahtar -->
+              <div class="p-3.5 sm:p-4 space-y-2.5">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <span class="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                      <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </span>
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Site Bakım Modu</h4>
+                        <span id="adminMaintStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/12 text-slate-500 dark:text-slate-300 shrink-0">Kapalı</span>
+                      </div>
+                      <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug mt-0.5">Yöneticiler ve izinli numaralar hariç erişimi kapatır.</p>
                     </div>
                   </div>
-                  <input id="adminGhBranchInput" type="hidden" value="main">
-                  <input id="adminGhPathInput" type="hidden" value="public/data.json">
-                  <div class="flex items-center justify-between gap-2 flex-wrap">
-                    <span id="adminGhHelpHint" class="text-[10.5px] text-slate-500 dark:text-slate-400">Token yalnızca tarayıcınızda saklanır.</span>
-                    <button id="btnAdminPushGitHubDataJson" type="button" class="ios-press min-h-[36px] px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shrink-0">Şimdi Yayınla</button>
+                  <button id="btnAdminMaintToggle" type="button" role="switch" aria-checked="false" class="ios-toggle-switch shrink-0" aria-label="Bakım modunu aç veya kapat">
+                    <span class="ios-toggle-knob"></span>
+                  </button>
+                </div>
+
+                <!-- Planlı Bakım Özet Şeridi (Zamanlama varsa görünür) -->
+                <div id="adminMaintScheduleSummary" class="hidden px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] font-semibold text-amber-800 dark:text-amber-200 flex items-center justify-between gap-2">
+                  <span id="adminMaintScheduleSummaryText" class="truncate"></span>
+                </div>
+              </div>
+
+              <!-- Katlanabilir 1: Mesaj & Otomatik Zamanlama -->
+              <div>
+                <button id="btnToggleMaintDetails" type="button" aria-expanded="false" class="w-full px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 text-left hover:bg-slate-500/5 transition">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <svg class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">Mesaj &amp; Otomatik Planlı Zamanlama</span>
+                  </div>
+                  <svg id="iconMaintDetailsChevron" class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+
+                <div id="adminMaintDetailsWrap" class="admin-collapse-panel is-collapsed" aria-hidden="true">
+                  <div class="admin-collapse-inner">
+                    <form id="adminMaintForm" class="px-3.5 sm:px-4 pb-3.5 pt-1 space-y-3" novalidate>
+                      <div class="space-y-2">
+                        <input id="adminMaintTitleInput" type="text" maxlength="120" placeholder="Bakım başlığı (örn. Sistem Bakımda)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40" />
+                        <textarea id="adminMaintMsgInput" rows="2" maxlength="400" placeholder="Bakım açıklaması (öğrencilerin göreceği mesaj)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40"></textarea>
+                      </div>
+
+                      <!-- Otomatik Planlı Bakım Zamanlayıcısı (#9) -->
+                      <div class="ios-pill-control rounded-2xl p-3 space-y-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Otomatik Zamanlama (Opsiyonel)</span>
+                          <button id="btnAdminMaintClearSchedule" type="button" class="text-[10.5px] font-bold text-rose-600 dark:text-rose-400 hover:underline">Temizle</button>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div class="space-y-1">
+                            <span class="block text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">Başlangıç (Boş = Hemen)</span>
+                            <button id="btnAdminMaintStartTrigger" type="button" class="ios-press w-full rounded-xl bg-white/70 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-700/70 px-3 py-2 flex items-center justify-between gap-2 text-xs font-semibold text-slate-800 dark:text-slate-100">
+                              <span id="lblAdminMaintStart" class="truncate tabular-nums">Hemen başla</span>
+                              <svg class="w-3.5 h-3.5 text-amber-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </button>
+                          </div>
+
+                          <div class="space-y-1">
+                            <span class="block text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">Bitiş (Otomatik Açılış)</span>
+                            <button id="btnAdminMaintEndTrigger" type="button" class="ios-press w-full rounded-xl bg-white/70 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-700/70 px-3 py-2 flex items-center justify-between gap-2 text-xs font-semibold text-slate-800 dark:text-slate-100">
+                              <span id="lblAdminMaintEnd" class="truncate tabular-nums">Manuel kapat</span>
+                              <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </button>
+                          </div>
+                        </div>
+
+                        <!-- Hızlı Süre Kısayolları -->
+                        <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+                          <span class="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 mr-0.5">Hızlı süre:</span>
+                          <button type="button" data-maint-quick-min="30" class="ios-press px-2.5 py-1 rounded-full bg-amber-500/12 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold">+30 dk</button>
+                          <button type="button" data-maint-quick-min="60" class="ios-press px-2.5 py-1 rounded-full bg-amber-500/12 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold">+1 saat</button>
+                          <button type="button" data-maint-quick-min="120" class="ios-press px-2.5 py-1 rounded-full bg-amber-500/12 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold">+2 saat</button>
+                          <button type="button" data-maint-quick-min="360" class="ios-press px-2.5 py-1 rounded-full bg-amber-500/12 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10.5px] font-bold">+6 saat</button>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                        <span class="text-[10.5px] text-slate-500 dark:text-slate-400">Gizli giriş: Ayar ikonuna <strong>5 kez</strong> dokunun.</span>
+                        <button type="submit" class="ios-press px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm shrink-0">Bakım Ayarlarını Kaydet</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Katlanabilir 2: Bakımda İzinli Numaralar -->
+              <div>
+                <button id="btnToggleMaintWhitelist" type="button" aria-expanded="false" class="w-full px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 text-left hover:bg-slate-500/5 transition">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">İzinli Öğrenci Numaraları</span>
+                    <span id="adminMaintAllowedCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 tabular-nums shrink-0">0</span>
+                  </div>
+                  <svg id="iconMaintWhitelistChevron" class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+
+                <div id="adminMaintWhitelistWrap" class="admin-collapse-panel is-collapsed" aria-hidden="true">
+                  <div class="admin-collapse-inner">
+                    <div class="px-3.5 sm:px-4 pb-3.5 pt-1 space-y-2.5">
+                      <form id="adminMaintAllowForm" class="space-y-2" novalidate>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input id="adminMaintAllowIdInput" type="text" inputmode="numeric" maxlength="20" placeholder="Öğrenci Numarası" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none" />
+                          <input id="adminMaintAllowLabelInput" type="text" maxlength="40" placeholder="Etiket / İsim (opsiyonel)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none" />
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="text-[10.5px] text-slate-500 dark:text-slate-400">Numaralar şifreli (hash) saklanır.</span>
+                          <button type="submit" class="ios-press px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shrink-0">+ Ekle</button>
+                        </div>
+                      </form>
+                      <div id="adminMaintAllowedList" class="space-y-1.5"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BÖLÜM 2: GÜVENLİK -->
+          <div class="space-y-2">
+            <span class="block px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Güvenlik</span>
+
+            <form id="adminPwdForm" class="admin-glass-section p-3.5 sm:p-4 space-y-2.5" novalidate>
+              <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                </span>
+                <h4 id="lblAdminPwdChangeTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Yönetici Giriş Şifresini Güncelle</h4>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                <input id="adminNewPwdInput" type="password" maxlength="64" placeholder="Yeni şifre (en az 4 karakter)" class="flex-1 min-w-0 ios-pill-control rounded-2xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+                <button id="btnAdminSaveNewPwd" type="submit" class="ios-press min-h-[42px] w-full sm:w-auto px-4 py-2 rounded-2xl bg-amber-500/18 hover:bg-amber-500/28 text-amber-700 dark:text-amber-300 text-xs font-bold shrink-0 transition">Şifreyi Kaydet</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- BÖLÜM 3: YEDEKLEME & YAYIN -->
+          <div class="space-y-2">
+            <span class="block px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Yedekleme &amp; Yayın</span>
+
+            <div id="adminDataJsonCard" class="admin-glass-section p-3.5 sm:p-4 space-y-2.5">
+              <div class="flex items-center justify-between gap-2.5">
+                <button id="btnAdminToggleGhConfig" type="button" aria-expanded="false" class="flex-1 min-w-0 text-left flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    </span>
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <h4 id="lblAdminDataJsonTitle" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">GitHub / Gist Yayını</h4>
+                        <span id="adminDataJsonModeBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0">data.json</span>
+                      </div>
+                      <p id="adminDataJsonModeText" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug mt-0.5 truncate">Gelişmiş statik yedekleme ayarları</p>
+                    </div>
+                  </div>
+                  <svg class="admin-gh-chevron w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <button id="btnAdminSyncRemoteDataJson" type="button" class="ios-press min-h-[32px] px-3 py-1 rounded-full ios-pill-control text-[11px] font-semibold text-slate-700 dark:text-slate-200 shrink-0">Yenile</button>
+              </div>
+
+              <div id="adminGitHubPushConfigWrap" class="admin-collapse-panel is-collapsed" aria-hidden="true">
+                <div class="admin-collapse-inner">
+                  <div class="pt-2.5 border-t border-slate-200/60 dark:border-slate-800/80 space-y-2.5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label for="adminGhRepoInput" class="block text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 mb-1 px-0.5">GitHub Repo veya Gist ID</label>
+                        <input id="adminGhRepoInput" type="text" placeholder="kullanici/repo veya Gist ID" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                      </div>
+                      <div>
+                        <label for="adminGhTokenInput" class="block text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 mb-1 px-0.5">GitHub PAT (Token)</label>
+                        <input id="adminGhTokenInput" type="password" autocomplete="off" placeholder="ghp_... (yalnızca bu tarayıcıda)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                      </div>
+                    </div>
+                    <input id="adminGhBranchInput" type="hidden" value="main">
+                    <input id="adminGhPathInput" type="hidden" value="public/data.json">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                      <span id="adminGhHelpHint" class="text-[10.5px] text-slate-500 dark:text-slate-400">Token yalnızca tarayıcınızda saklanır.</span>
+                      <button id="btnAdminPushGitHubDataJson" type="button" class="ios-press min-h-[36px] px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shrink-0">Şimdi Yayınla</button>
+                    </div>
                   </div>
                 </div>
               </div>

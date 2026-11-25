@@ -282,8 +282,23 @@ if (import.meta.env.DEV) {
   };
   void cleanupDevSw();
 } else {
-  registerSW({
+  const updateSW = registerSW({
     immediate: true,
+    onOfflineReady() {
+      try {
+        localStorage.setItem('inonu_pwa_offline_ready_v1', '1');
+      } catch {
+        // ignore
+      }
+      window.dispatchEvent(new CustomEvent('inonu-pwa-offline-ready'));
+    },
+    onNeedRefresh() {
+      window.dispatchEvent(
+        new CustomEvent('inonu-pwa-update-available', {
+          detail: { applyUpdate: () => updateSW(true) },
+        })
+      );
+    },
   });
 }
 

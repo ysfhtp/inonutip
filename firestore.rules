@@ -121,7 +121,7 @@ service cloud.firestore {
 
     function isValidMaintenanceConfig(data) {
       return data.keys().hasAll(['active', 'title', 'message', 'allowedHashes', 'allowedLabels', 'updatedAtMs']) &&
-        data.keys().hasOnly(['active', 'title', 'message', 'allowedHashes', 'allowedLabels', 'updatedAtMs']) &&
+        data.keys().hasOnly(['active', 'title', 'message', 'allowedHashes', 'allowedLabels', 'startAtMs', 'endAtMs', 'updatedAtMs']) &&
         data.active is bool &&
         data.title is string && data.title.size() <= 120 &&
         data.message is string && data.message.size() <= 400 &&
@@ -129,6 +129,8 @@ service cloud.firestore {
         (data.allowedHashes.size() == 0 || (data.allowedHashes[0] is string && data.allowedHashes[0].size() == 32 && data.allowedHashes[0].matches('^[a-f0-9]{32}$'))) &&
         data.allowedLabels is list && data.allowedLabels.size() == data.allowedHashes.size() &&
         (data.allowedLabels.size() == 0 || (data.allowedLabels[0] is string && data.allowedLabels[0].size() <= 80)) &&
+        (!('startAtMs' in data) || ((data.startAtMs is int || data.startAtMs is float) && data.startAtMs >= 0)) &&
+        (!('endAtMs' in data) || ((data.endAtMs is int || data.endAtMs is float) && data.endAtMs >= 0)) &&
         (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
     }
 
@@ -259,6 +261,28 @@ service cloud.firestore {
       allow list: if true;
       allow create, update: if dateId is string && dateId.size() == 10 && dateId.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') && isValidFoodRating(request.resource.data);
       allow delete: if false;
+    }
+
+    function isValidReadStat(data) {
+      return data.keys().hasAll(['id', 'kind', 'count', 'revision', 'updatedAtMs']) &&
+        data.keys().hasOnly(['id', 'kind', 'count', 'revision', 'updatedAtMs']) &&
+        isValidId(data.id) &&
+        data.kind is string && data.kind in ['announcement', 'banner'] &&
+        (data.count is int || data.count is float) && data.count >= 0 && data.count <= 1000000 &&
+        (data.revision is int || data.revision is float) && data.revision >= 0 &&
+        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
+    }
+
+    match /readStats/{statId} {
+      allow get: if isValidId(statId);
+      allow list: if true;
+      allow create: if isValidId(statId) && isValidReadStat(request.resource.data) && request.resource.data.count <= 1;
+      allow update: if isValidId(statId) && isValidReadStat(request.resource.data) &&
+        (
+          request.resource.data.count == resource.data.count + 1 ||
+          (request.resource.data.revision > resource.data.revision && request.resource.data.count <= 1)
+        );
+      allow delete: if isValidId(statId);
     }
   }
 }

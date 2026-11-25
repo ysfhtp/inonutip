@@ -287,7 +287,7 @@
     },
     "MaintenanceConfig": {
       "title": "MaintenanceConfig",
-      "description": "Global maintenance mode lock with hashed student ID allowlist for selective access",
+      "description": "Global maintenance mode lock with scheduled window and hashed student ID allowlist for selective access",
       "type": "object",
       "properties": {
         "active": { "type": "boolean" },
@@ -295,6 +295,8 @@
         "message": { "type": "string", "maxLength": 400 },
         "allowedHashes": { "type": "array" },
         "allowedLabels": { "type": "array" },
+        "startAtMs": { "type": "number" },
+        "endAtMs": { "type": "number" },
         "updatedAtMs": { "type": "number" }
       },
       "required": ["active", "title", "message", "allowedHashes", "allowedLabels", "updatedAtMs"]
@@ -311,6 +313,19 @@
         "updatedAtMs": { "type": "number" }
       },
       "required": ["id", "ratingCount", "ratingSum", "tagCounts", "updatedAtMs"]
+    },
+    "ReadStat": {
+      "title": "ReadStat",
+      "description": "Aggregate unique device/student read count for announcements and emergency banner",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "kind": { "type": "string", "enum": ["announcement", "banner"], "maxLength": 16 },
+        "count": { "type": "number" },
+        "revision": { "type": "number" },
+        "updatedAtMs": { "type": "number" }
+      },
+      "required": ["id", "kind", "count", "revision", "updatedAtMs"]
     }
   },
   "firestore": {
@@ -397,6 +412,12 @@
         "$ref": "#/entities/FoodRating"
       },
       "description": "Daily cafeteria star ratings and quick tag counts"
+    },
+    "/readStats/{statId}": {
+      "schema": {
+        "$ref": "#/entities/ReadStat"
+      },
+      "description": "Unique read/view counts for announcements and emergency banner"
     }
   }
 }

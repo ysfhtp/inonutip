@@ -85,6 +85,31 @@ export interface MaintenanceConfig {
   message: string;
   allowedHashes: string[];
   allowedLabels: string[];
+  startAtMs: number;
+  endAtMs: number;
+  updatedAtMs: number;
+}
+
+export type MaintenanceRuntimeStatus = 'off' | 'scheduled' | 'active' | 'expired';
+
+export function getMaintenanceStatus(m: MaintenanceConfig, nowMs: number = Date.now()): MaintenanceRuntimeStatus {
+  if (!m.active) return 'off';
+  const start = Number(m.startAtMs) || 0;
+  const end = Number(m.endAtMs) || 0;
+  if (end > 0 && nowMs >= end) return 'expired';
+  if (start > 0 && nowMs < start) return 'scheduled';
+  return 'active';
+}
+
+export function isMaintenanceCurrentlyActive(m: MaintenanceConfig, nowMs: number = Date.now()): boolean {
+  return getMaintenanceStatus(m, nowMs) === 'active';
+}
+
+export interface ReadStatDoc {
+  id: string;
+  kind: 'announcement' | 'banner';
+  count: number;
+  revision: number;
   updatedAtMs: number;
 }
 
@@ -115,11 +140,14 @@ export interface LiveStoreSnapshot {
   quickLinksFromCloud: boolean;
   feedbacks: StudentFeedback[];
   foodRatings: Record<string, FoodRatingDoc>;
+  readStats: Record<string, ReadStatDoc>;
 }
 
 const LS_KEY = 'inonu_live_extras_v1';
 const VOTES_LS_KEY = 'inonu_poll_votes_v1';
 const FOOD_VOTES_LS_KEY = 'inonu_food_ratings_v1';
+const READ_TRACKED_LS_KEY = 'inonu_read_tracked_v1';
+export const LAST_SYNC_LS_KEY = 'inonu_last_cloud_sync_ms_v1';
 
 export const DEFAULT_QUICK_LINKS: QuickLink[] = [
   {
@@ -166,6 +194,8 @@ const DEFAULT_MAINTENANCE: MaintenanceConfig = {
   message: 'Kısa süreli bakım ve güncelleme çalışması yapılıyor. Lütfen daha sonra tekrar deneyin.',
   allowedHashes: [],
   allowedLabels: [],
+  startAtMs: 0,
+  endAtMs: 0,
   updatedAtMs: 0,
 };
 
@@ -180,6 +210,7 @@ function createEmptyState(): LiveStoreSnapshot {
     quickLinksFromCloud: false,
     feedbacks: [],
     foodRatings: {},
+    readStats: {},
   };
 }
 
@@ -200,12 +231,16 @@ function normalizeMaintenance(raw: unknown): MaintenanceConfig {
     allowedHashes.push(h);
     allowedLabels.push(String(rawLabels[i] || '••••').trim().slice(0, 80) || '••••');
   }
+  const startAtMs = Math.max(0, Math.floor(Number(d.startAtMs) || 0));
+  const endAtMs = Math.max(0, Math.floor(Number(d.endAtMs) || 0));
   return {
     active: Boolean(d.active),
     title: String(d.title || DEFAULT_MAINTENANCE.title).trim().slice(0, 120) || DEFAULT_MAINTENANCE.title,
     message: String(d.message || DEFAULT_MAINTENANCE.message).trim().slice(0, 400) || DEFAULT_MAINTENANCE.message,
     allowedHashes,
     allowedLabels,
+    startAtMs,
+    endAtMs,
     updatedAtMs: Number(d.updatedAtMs) || 0,
   };
 }
@@ -235,6 +270,9 @@ function loadCachedState(): LiveStoreSnapshot {
     if (Array.isArray(parsed.feedbacks)) base.feedbacks = parsed.feedbacks;
     if (parsed.foodRatings && typeof parsed.foodRatings === 'object') {
       base.foodRatings = parsed.foodRatings;
+    }
+    if (parsed.readStats && typeof parsed.readStats === 'object') {
+      base.readStats = parsed.readStats;
     }
   } catch {
     // ignore storage errors
@@ -627,6 +665,43 @@ export function initLiveStore(): void {
   } catch (err) {
     handleFirestoreError(err, OperationType.LIST, 'foodRatings');
   }
+
+  try {
+    unsubs.push(
+      onSnapshot(
+        collection(db, 'readStats'),
+        (snap) => {
+          const map: Record<string, ReadStatDoc> = {};
+          snap.forEach((d) => {
+            const raw = d.data() as Record<string, unknown>;
+            map[d.id] = {
+              id: d.id,
+              kind: raw.kind === 'banner' ? 'banner' : 'announcement',
+              count: Math.max(0, Math.floor(Number(raw.count) || 0)),
+              revision: Math.max(0, Math.floor(Number(raw.revision) || 0)),
+              updatedAtMs: Number(raw.updatedAtMs) || 0,
+            };
+          });
+          try {
+            if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+              localStorage.setItem(LAST_SYNC_LS_KEY, String(Date.now()));
+              window.dispatchEvent(new CustomEvent('inonu-cloud-synced'));
+            }
+          } catch {
+            // ignore
+          }
+          state = { ...state, readStats: map };
+          notify(false);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('inonu-read-stats-changed'));
+          }
+        },
+        (err) => handleFirestoreError(err, OperationType.LIST, 'readStats')
+      )
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, 'readStats');
+  }
 }
 
 // ==================== MUTATIONS ====================
@@ -660,9 +735,13 @@ export async function saveMaintenanceConfig(input: {
   message: string;
   allowedHashes: string[];
   allowedLabels: string[];
+  startAtMs?: number;
+  endAtMs?: number;
 }): Promise<MaintenanceConfig> {
   const payload = normalizeMaintenance({
     ...input,
+    startAtMs: input.startAtMs !== undefined ? input.startAtMs : state.maintenance.startAtMs,
+    endAtMs: input.endAtMs !== undefined ? input.endAtMs : state.maintenance.endAtMs,
     updatedAtMs: Date.now(),
   });
   state = { ...state, maintenance: payload };
@@ -1109,4 +1188,162 @@ export async function submitFoodRating(
     }
   }
   return true;
+}
+
+// ==================== READ STATISTICS (#7) ====================
+
+const trackedReadKeysInMemory = new Set<string>();
+
+function loadTrackedReadMap(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(READ_TRACKED_LS_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function markTrackedReadLocally(key: string): void {
+  trackedReadKeysInMemory.add(key);
+  try {
+    const map = loadTrackedReadMap();
+    map[key] = Date.now();
+    // Cap stored keys to latest 250 entries
+    const entries = Object.entries(map);
+    if (entries.length > 250) {
+      entries.sort((a, b) => b[1] - a[1]);
+      const trimmed: Record<string, number> = {};
+      entries.slice(0, 220).forEach(([k, v]) => {
+        trimmed[k] = v;
+      });
+      localStorage.setItem(READ_TRACKED_LS_KEY, JSON.stringify(trimmed));
+    } else {
+      localStorage.setItem(READ_TRACKED_LS_KEY, JSON.stringify(map));
+    }
+  } catch {
+    // ignore storage quota errors
+  }
+}
+
+function hasTrackedReadLocally(key: string): boolean {
+  if (trackedReadKeysInMemory.has(key)) return true;
+  const map = loadTrackedReadMap();
+  if (map[key]) {
+    trackedReadKeysInMemory.add(key);
+    return true;
+  }
+  return false;
+}
+
+export function sanitizeStatId(raw: string): string {
+  return String(raw || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .slice(0, 120);
+}
+
+export function getAnnouncementReadCount(annId: string): number {
+  const statId = sanitizeStatId(`ann_${annId}`);
+  return state.readStats[statId]?.count || 0;
+}
+
+export function getBannerReadCount(bannerUpdatedAtMs?: number): number {
+  const docItem = state.readStats['banner_current'];
+  if (!docItem) return 0;
+  const expectedRev = Math.max(1, Math.floor(Number(bannerUpdatedAtMs ?? state.banner.updatedAtMs) || 1));
+  if (docItem.revision && docItem.revision < expectedRev) return 0;
+  return docItem.count || 0;
+}
+
+export async function trackContentRead(
+  rawStatId: string,
+  kind: 'announcement' | 'banner',
+  revision: number = 1
+): Promise<void> {
+  if (typeof window === 'undefined') return;
+  if (window.__INONU_BRIDGE__?.isAdmin()) return;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+
+  const statId = sanitizeStatId(rawStatId);
+  if (!statId) return;
+  const rev = Math.max(1, Math.floor(Number(revision) || 1));
+  const localKey = `${statId}:${rev}`;
+  if (hasTrackedReadLocally(localKey)) return;
+
+  markTrackedReadLocally(localKey);
+
+  // Optimistic local state bump
+  const prev = state.readStats[statId];
+  const nextCount = prev && prev.revision === rev ? prev.count + 1 : 1;
+  state = {
+    ...state,
+    readStats: {
+      ...state.readStats,
+      [statId]: {
+        id: statId,
+        kind,
+        count: nextCount,
+        revision: rev,
+        updatedAtMs: Date.now(),
+      },
+    },
+  };
+
+  if (db && !isFirebaseQuotaExceeded()) {
+    const ref = doc(db, 'readStats', statId);
+    try {
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) {
+          tx.set(ref, {
+            id: statId,
+            kind,
+            count: 1,
+            revision: rev,
+            updatedAtMs: Date.now(),
+          });
+          return;
+        }
+        const cur = snap.data() as Partial<ReadStatDoc>;
+        const curRev = Math.max(0, Math.floor(Number(cur.revision) || 0));
+        const curCount = Math.max(0, Math.floor(Number(cur.count) || 0));
+        if (rev > curRev) {
+          tx.set(ref, {
+            id: statId,
+            kind,
+            count: 1,
+            revision: rev,
+            updatedAtMs: Date.now(),
+          });
+        } else {
+          tx.set(ref, {
+            id: statId,
+            kind,
+            count: curCount + 1,
+            revision: curRev || rev,
+            updatedAtMs: Date.now(),
+          });
+        }
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `readStats/${statId}`);
+    }
+  }
+}
+
+export async function deleteAnnouncementReadStat(annId: string): Promise<void> {
+  const statId = sanitizeStatId(`ann_${annId}`);
+  if (!statId) return;
+  const next = { ...state.readStats };
+  delete next[statId];
+  state = { ...state, readStats: next };
+  notify(false);
+  if (db && !isFirebaseQuotaExceeded()) {
+    try {
+      await deleteDoc(doc(db, 'readStats', statId));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `readStats/${statId}`);
+    }
+  }
 }

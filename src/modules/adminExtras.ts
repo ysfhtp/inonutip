@@ -4,8 +4,10 @@ import {
   deleteLessonOverride,
   deleteLivePoll,
   deleteStudentFeedback,
+  getBannerReadCount,
   getLessonOverrideForSlot,
   getLiveStore,
+  getMaintenanceStatus,
   saveEmergencyBanner,
   saveExtraLesson,
   saveLessonOverride,
@@ -289,9 +291,15 @@ export function initAdminExtras(): void {
     <div id="adminPaneExtrasBanner" class="hidden space-y-4">
       <form id="adminBannerForm" class="admin-glass-section p-3.5 sm:p-4 space-y-3" novalidate>
         <div class="flex items-center justify-between gap-3">
-          <div>
-            <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Site Üstü Acil / Bakım Bannerı</h4>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400">Aktif edildiğinde tüm öğrencilerin ekranının en üstünde sabit görünür ve öğrenci tarafından kapatılamaz.</p>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Site Üstü Acil / Bakım Bannerı</h4>
+              <span id="adminBannerReadStatBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 tabular-nums shrink-0">
+                <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                <span id="adminBannerReadStatText">0 okunma</span>
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Aktif edildiğinde tüm öğrencilerin ekranının en üstünde sabit görünür ve öğrenci tarafından kapatılamaz.</p>
           </div>
           <button id="btnAdminBannerToggle" type="button" role="switch" aria-checked="false" class="ios-toggle-switch shrink-0">
             <span class="ios-toggle-knob"></span>
@@ -526,6 +534,11 @@ export function initAdminExtras(): void {
     document.querySelectorAll<HTMLButtonElement>('[data-banner-tone]').forEach((b) => {
       b.classList.toggle('is-active', b.getAttribute('data-banner-tone') === bannerToneDraft);
     });
+    const readTextEl = document.getElementById('adminBannerReadStatText');
+    if (readTextEl) {
+      const reads = getBannerReadCount(banner.updatedAtMs);
+      readTextEl.textContent = `${reads} okunma`;
+    }
   };
 
   bannerToggleBtn.addEventListener('click', () => {
@@ -560,15 +573,80 @@ export function initAdminExtras(): void {
     getBridge()?.showToast(bannerActiveDraft ? 'Acil banner sabit olarak yayınlandı.' : 'Banner kapatıldı.');
   });
 
-  // ==================== MAINTENANCE MODE CONTROLS ====================
+  // ==================== MAINTENANCE MODE & SCHEDULED CONTROLS (#9) ====================
   let maintActiveDraft = false;
+  let maintStartAtDraft = 0;
+  let maintEndAtDraft = 0;
+  let maintDraftDirty = false;
   const maintToggleBtn = document.getElementById('btnAdminMaintToggle')!;
   const maintTitleInp = document.getElementById('adminMaintTitleInput') as HTMLInputElement;
   const maintMsgInp = document.getElementById('adminMaintMsgInput') as HTMLTextAreaElement;
+  const maintStatusBadge = document.getElementById('adminMaintStatusBadge');
+  const maintSchedSummary = document.getElementById('adminMaintScheduleSummary');
+  const maintSchedSummaryText = document.getElementById('adminMaintScheduleSummaryText');
+  const maintStartLbl = document.getElementById('lblAdminMaintStart');
+  const maintEndLbl = document.getElementById('lblAdminMaintEnd');
 
-  const syncMaintenanceFormFromStore = () => {
+  const formatDateTimeShort = (ms: number): string => {
+    if (!ms) return '';
+    const d = new Date(ms);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const toDateTimeLocalIso = (ms: number): string => {
+    if (!ms) return '';
+    const d = new Date(ms);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const setupCollapsibleDrawer = (btnId: string, wrapId: string, chevronId: string) => {
+    const btn = document.getElementById(btnId);
+    const wrap = document.getElementById(wrapId);
+    const chev = document.getElementById(chevronId);
+    if (!btn || !wrap) return;
+    btn.addEventListener('click', () => {
+      const willOpen = wrap.classList.contains('is-collapsed');
+      wrap.classList.toggle('is-collapsed', !willOpen);
+      wrap.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
+      btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      if (chev) chev.style.transform = willOpen ? 'rotate(180deg)' : '';
+      getBridge()?.triggerHaptic('selection');
+    });
+  };
+  setupCollapsibleDrawer('btnToggleMaintDetails', 'adminMaintDetailsWrap', 'iconMaintDetailsChevron');
+  setupCollapsibleDrawer('btnToggleMaintWhitelist', 'adminMaintWhitelistWrap', 'iconMaintWhitelistChevron');
+
+  const renderMaintScheduleLabels = () => {
+    if (maintStartLbl) {
+      maintStartLbl.textContent = maintStartAtDraft > 0 ? formatDateTimeShort(maintStartAtDraft) : 'Hemen başla';
+    }
+    if (maintEndLbl) {
+      maintEndLbl.textContent = maintEndAtDraft > 0 ? formatDateTimeShort(maintEndAtDraft) : 'Manuel kapat';
+    }
+    if (maintSchedSummary && maintSchedSummaryText) {
+      if (maintStartAtDraft > 0 || maintEndAtDraft > 0) {
+        const parts: string[] = [];
+        if (maintStartAtDraft > 0) parts.push(`Başlangıç: ${formatDateTimeShort(maintStartAtDraft)}`);
+        if (maintEndAtDraft > 0) parts.push(`Oto Açılış: ${formatDateTimeShort(maintEndAtDraft)}`);
+        maintSchedSummaryText.textContent = parts.join(' · ');
+        maintSchedSummary.classList.remove('hidden');
+      } else {
+        maintSchedSummary.classList.add('hidden');
+        maintSchedSummaryText.textContent = '';
+      }
+    }
+  };
+
+  const syncMaintenanceFormFromStore = (force = false) => {
     const { maintenance } = getLiveStore();
+    const status = getMaintenanceStatus(maintenance);
     maintActiveDraft = maintenance.active;
+    if (force || !maintDraftDirty) {
+      maintStartAtDraft = maintenance.startAtMs || 0;
+      maintEndAtDraft = maintenance.endAtMs || 0;
+    }
     maintToggleBtn.setAttribute('aria-checked', maintActiveDraft ? 'true' : 'false');
     maintToggleBtn.classList.toggle('is-on', maintActiveDraft);
     if (document.activeElement !== maintTitleInp) {
@@ -577,18 +655,134 @@ export function initAdminExtras(): void {
     if (document.activeElement !== maintMsgInp) {
       maintMsgInp.value = maintenance.message;
     }
+    if (maintStatusBadge) {
+      if (status === 'active') {
+        maintStatusBadge.textContent = 'Aktif';
+        maintStatusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0';
+      } else if (status === 'scheduled') {
+        maintStatusBadge.textContent = 'Planlı';
+        maintStatusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0';
+      } else if (status === 'expired') {
+        maintStatusBadge.textContent = 'Süresi Doldu';
+        maintStatusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0';
+      } else {
+        maintStatusBadge.textContent = 'Kapalı';
+        maintStatusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/12 text-slate-500 dark:text-slate-300 shrink-0';
+      }
+    }
+    const countBadge = document.getElementById('adminMaintAllowedCountBadge');
+    if (countBadge) countBadge.textContent = String(maintenance.allowedHashes.length);
+    renderMaintScheduleLabels();
   };
 
-  maintToggleBtn.addEventListener('click', () => {
+  maintToggleBtn.addEventListener('click', async () => {
     maintActiveDraft = !maintActiveDraft;
     maintToggleBtn.setAttribute('aria-checked', maintActiveDraft ? 'true' : 'false');
     maintToggleBtn.classList.toggle('is-on', maintActiveDraft);
     getBridge()?.triggerHaptic('selection');
+
+    // If turning ON while previous endAtMs is already in the past, clear stale endAtMs so it doesn't stay expired
+    const now = Date.now();
+    let nextStart = maintStartAtDraft;
+    let nextEnd = maintEndAtDraft;
+    if (maintActiveDraft && nextEnd > 0 && nextEnd <= now) {
+      nextStart = 0;
+      nextEnd = 0;
+      maintStartAtDraft = 0;
+      maintEndAtDraft = 0;
+    }
+
+    const cur = getLiveStore().maintenance;
+    maintDraftDirty = false;
+    await saveMaintenanceConfig({
+      active: maintActiveDraft,
+      title: maintTitleInp.value.trim() || cur.title || 'Sistem Bakımda',
+      message:
+        maintMsgInp.value.trim() ||
+        cur.message ||
+        'Kısa süreli bakım ve güncelleme çalışması yapılıyor. Lütfen daha sonra tekrar deneyin.',
+      allowedHashes: cur.allowedHashes,
+      allowedLabels: cur.allowedLabels,
+      startAtMs: nextStart,
+      endAtMs: nextEnd,
+    });
+    const statusAfter = getMaintenanceStatus(getLiveStore().maintenance);
+    getBridge()?.showToast(
+      !maintActiveDraft
+        ? 'Bakım modu kapatıldı.'
+        : statusAfter === 'scheduled'
+          ? 'Planlı bakım zamanlandı.'
+          : 'Bakım modu aktif edildi.'
+    );
+  });
+
+  document.getElementById('btnAdminMaintStartTrigger')?.addEventListener('click', () => {
+    getBridge()?.openDateTimePicker({
+      mode: 'datetime',
+      title: 'Bakım Başlangıç Zamanı',
+      initialValue: toDateTimeLocalIso(maintStartAtDraft || Date.now()),
+      onApply: (val) => {
+        if (!val) return;
+        const ms = new Date(val).getTime();
+        if (!Number.isNaN(ms)) {
+          maintStartAtDraft = ms;
+          maintDraftDirty = true;
+          renderMaintScheduleLabels();
+          getBridge()?.triggerHaptic('selection');
+        }
+      },
+    });
+  });
+
+  document.getElementById('btnAdminMaintEndTrigger')?.addEventListener('click', () => {
+    getBridge()?.openDateTimePicker({
+      mode: 'datetime',
+      title: 'Otomatik Açılış (Bitiş) Zamanı',
+      initialValue: toDateTimeLocalIso(maintEndAtDraft || Date.now() + 60 * 60 * 1000),
+      onApply: (val) => {
+        if (!val) return;
+        const ms = new Date(val).getTime();
+        if (!Number.isNaN(ms)) {
+          maintEndAtDraft = ms;
+          maintDraftDirty = true;
+          renderMaintScheduleLabels();
+          getBridge()?.triggerHaptic('selection');
+        }
+      },
+    });
+  });
+
+  document.getElementById('btnAdminMaintClearSchedule')?.addEventListener('click', () => {
+    maintStartAtDraft = 0;
+    maintEndAtDraft = 0;
+    maintDraftDirty = true;
+    renderMaintScheduleLabels();
+    getBridge()?.triggerHaptic('selection');
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-maint-quick-min]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mins = Number(btn.getAttribute('data-maint-quick-min')) || 0;
+      if (mins <= 0) return;
+      const base = maintStartAtDraft > Date.now() ? maintStartAtDraft : Date.now();
+      maintEndAtDraft = base + mins * 60 * 1000;
+      maintActiveDraft = true;
+      maintDraftDirty = true;
+      maintToggleBtn.setAttribute('aria-checked', 'true');
+      maintToggleBtn.classList.add('is-on');
+      renderMaintScheduleLabels();
+      getBridge()?.triggerHaptic('selection');
+    });
   });
 
   document.getElementById('adminMaintForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (maintStartAtDraft > 0 && maintEndAtDraft > 0 && maintEndAtDraft <= maintStartAtDraft) {
+      getBridge()?.showToast('Bitiş zamanı başlangıçtan sonra olmalıdır.');
+      return;
+    }
     const cur = getLiveStore().maintenance;
+    maintDraftDirty = false;
     await saveMaintenanceConfig({
       active: maintActiveDraft,
       title: maintTitleInp.value.trim() || 'Sistem Bakımda',
@@ -597,9 +791,18 @@ export function initAdminExtras(): void {
         'Kısa süreli bakım ve güncelleme çalışması yapılıyor. Lütfen daha sonra tekrar deneyin.',
       allowedHashes: cur.allowedHashes,
       allowedLabels: cur.allowedLabels,
+      startAtMs: maintStartAtDraft,
+      endAtMs: maintEndAtDraft,
     });
+    const statusAfter = getMaintenanceStatus(getLiveStore().maintenance);
     getBridge()?.triggerHaptic('success');
-    getBridge()?.showToast(maintActiveDraft ? 'Bakım modu aktif edildi.' : 'Bakım modu kapatıldı.');
+    getBridge()?.showToast(
+      !maintActiveDraft
+        ? 'Bakım ayarları kaydedildi (kapalı).'
+        : statusAfter === 'scheduled'
+          ? 'Planlı bakım kaydedildi.'
+          : 'Bakım ayarları kaydedildi ve aktif edildi.'
+    );
   });
 
   document.getElementById('adminMaintAllowForm')?.addEventListener('submit', async (e) => {
@@ -631,6 +834,8 @@ export function initAdminExtras(): void {
       message: cur.message,
       allowedHashes: [...cur.allowedHashes, h],
       allowedLabels: [...cur.allowedLabels, label],
+      startAtMs: cur.startAtMs,
+      endAtMs: cur.endAtMs,
     });
     idInp.value = '';
     lblInp.value = '';
@@ -761,14 +966,21 @@ export function initAdminExtras(): void {
         : 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/12 text-slate-500 dark:text-slate-300 shrink-0';
     }
     if (sMaint) {
-      sMaint.textContent = snap.maintenance.active ? 'Açık' : 'Kapalı';
-      sMaint.className = snap.maintenance.active
-        ? 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0'
-        : 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/12 text-slate-500 dark:text-slate-300 shrink-0';
+      const mStatus = getMaintenanceStatus(snap.maintenance);
+      if (mStatus === 'active') {
+        sMaint.textContent = 'Açık';
+        sMaint.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0';
+      } else if (mStatus === 'scheduled') {
+        sMaint.textContent = 'Planlı';
+        sMaint.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0';
+      } else {
+        sMaint.textContent = 'Kapalı';
+        sMaint.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/12 text-slate-500 dark:text-slate-300 shrink-0';
+      }
     }
 
     syncBannerFormFromStore();
-    syncMaintenanceFormFromStore();
+    syncMaintenanceFormFromStore(false);
 
     // Maintenance allowed list
     const maintList = document.getElementById('adminMaintAllowedList');
@@ -1022,7 +1234,8 @@ export function initAdminExtras(): void {
     } else if (activeTab === 'extras-banner') {
       syncBannerFormFromStore();
     } else if (activeTab === 'site-settings') {
-      syncMaintenanceFormFromStore();
+      maintDraftDirty = false;
+      syncMaintenanceFormFromStore(true);
       renderAdminLists();
     } else if (activeTab === 'extras-feedback') {
       renderAdminLists();

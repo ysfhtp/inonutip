@@ -1,4 +1,5 @@
 import { getBridge } from './bridge.ts';
+import { trackContentRead } from './liveStore.ts';
 
 const STORAGE_KEY = 'inonu_tip_d1_ios_v3_annPrefs_v1';
 
@@ -153,6 +154,9 @@ export function initAnnouncementReads(): void {
       cards.forEach((card) => {
         const annId = card.dataset.annId || '';
         if (!annId) return;
+
+        // Track unique student view once per device (skips admins automatically)
+        void trackContentRead(`ann_${annId}`, 'announcement', 1);
 
         if (!card.dataset.annEnhanced) {
           card.dataset.annEnhanced = '1';

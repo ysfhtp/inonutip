@@ -114,7 +114,33 @@ export default defineConfig(() => {
           runtimeCaching: [
             {
               urlPattern: /\/data\.json(\?.*)?$/i,
-              handler: 'NetworkOnly',
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'inonu-data-json-cache',
+                networkTimeoutSeconds: 4,
+                expiration: {
+                  maxEntries: 5,
+                  maxAgeSeconds: 60 * 60 * 24 * 14,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              urlPattern: /^https:\/\/gist\.githubusercontent\.com\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'inonu-gist-cache',
+                networkTimeoutSeconds: 5,
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 14,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
             },
             {
               urlPattern: /^\/api\/.*/i,
