@@ -236,12 +236,12 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 7px 4px;
+  padding: 7px 3px 6px;
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.22);
   background: rgba(255, 255, 255, 0.5);
-  cursor: pointer;
-  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.15s ease;
+  cursor: text;
+  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
 }
 
 .dark .cs-slot {
@@ -259,7 +259,8 @@
   border-color: rgba(129, 140, 248, 0.32);
 }
 
-.cs-slot.is-selected {
+.cs-slot.is-selected,
+.cs-slot:focus-within {
   border-color: #6366f1;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
 }
@@ -269,6 +270,8 @@
   font-weight: 800;
   letter-spacing: 0.04em;
   color: #64748b;
+  cursor: pointer;
+  user-select: none;
 }
 
 .dark .cs-slot-lbl {
@@ -276,24 +279,52 @@
 }
 
 .cs-slot.is-selected .cs-slot-lbl,
-.cs-slot.is-filled .cs-slot-lbl {
+.cs-slot.is-filled .cs-slot-lbl,
+.cs-slot:focus-within .cs-slot-lbl {
   color: #4f46e5;
 }
 
 .dark .cs-slot.is-selected .cs-slot-lbl,
-.dark .cs-slot.is-filled .cs-slot-lbl {
+.dark .cs-slot.is-filled .cs-slot-lbl,
+.dark .cs-slot:focus-within .cs-slot-lbl {
   color: #a5b4fc;
 }
 
-.cs-slot-val {
-  font-size: 12px;
+.cs-slot-val,
+.cs-slot-input {
+  font-size: 12.5px;
   font-weight: 800;
   color: #0f172a;
   font-variant-numeric: tabular-nums;
 }
 
-.dark .cs-slot-val {
+.cs-slot-input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+  line-height: 1.25;
+  caret-color: #6366f1;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.cs-slot-input::placeholder {
+  color: rgba(100, 116, 139, 0.55);
+  font-weight: 700;
+}
+
+.dark .cs-slot-val,
+.dark .cs-slot-input {
   color: #f8fafc;
+}
+
+.dark .cs-slot-input::placeholder {
+  color: rgba(148, 163, 184, 0.5);
 }
 
 .cs-actions {

@@ -29,15 +29,20 @@ function saveScores(scores: ScoreMap): void {
   } catch {}
 }
 
+function formatScore(v: number): string {
+  return String(Math.round(v * 100) / 100);
+}
+
 function getStrings(lang: 'tr' | 'en') {
   if (lang === 'en') {
     return {
       title: 'Committee Score History (C1–C5)',
       avgLabel: (n: number, avg: string) => `${n}/${COMMITTEE_COUNT} Avg: ${avg}`,
-      emptyAvg: 'No saved scores yet',
+      emptyAvg: 'Type or save scores',
       saveBtn: (i: number, val: string) => `Save ${val} to C${i}`,
       clearBtn: (i: number) => `Clear C${i}`,
       shortPrefix: 'C',
+      inputAria: (i: number) => `Committee ${i} Score`,
       savedToast: (i: number, val: string) => `Committee ${i} saved (${val}) • Average updated`,
       clearedToast: (i: number) => `Committee ${i} cleared`,
     };
@@ -45,10 +50,11 @@ function getStrings(lang: 'tr' | 'en') {
   return {
     title: 'Kurul Notu Geçmişi (K1–K5)',
     avgLabel: (n: number, avg: string) => `${n}/${COMMITTEE_COUNT} Ort: ${avg}`,
-    emptyAvg: 'Henüz kayıtlı kurul yok',
+    emptyAvg: 'Puan yazın veya kaydedin',
     saveBtn: (i: number, val: string) => `K${i}'e Kaydet (${val})`,
     clearBtn: (i: number) => `K${i} Temizle`,
     shortPrefix: 'K',
+    inputAria: (i: number) => `${i}. Kurul Puanı`,
     savedToast: (i: number, val: string) => `${i}. Kurul kaydedildi (${val}) • Ortalama güncellendi`,
     clearedToast: (i: number) => `${i}. Kurul temizlendi`,
   };
@@ -62,7 +68,7 @@ export function initCommitteeScores(): void {
   if (!hintEl || !outKurulEl || !inpKurulOrt) return;
 
   initialized = true;
-  let scores = loadScores();
+  const scores = loadScores();
 
   const container = document.createElement('div');
   container.id = 'committeeHistoryWrap';
@@ -103,11 +109,24 @@ export function initCommitteeScores(): void {
     return { count: vals.length, avg: Math.round((sum / vals.length) * 100) / 100 };
   };
 
-  const syncKurulOrtInput = (avg: number | null) => {
-    if (avg === null) return;
+  const syncKurulOrtInput = (avg: number | null, clearWhenEmpty = false) => {
+    if (avg === null) {
+      if (!clearWhenEmpty) return;
+      inpKurulOrt.value = '';
+      inpKurulOrt.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
     inpKurulOrt.value = avg.toFixed(2);
     inpKurulOrt.dispatchEvent(new Event('input', { bubbles: true }));
   };
+
+  interface SlotNodes {
+    wrap: HTMLDivElement;
+    label: HTMLLabelElement;
+    input: HTMLInputElement;
+  }
+
+  const slots: SlotNodes[] = [];
 
   const render = () => {
     const bridge = getBridge();
@@ -121,24 +140,20 @@ export function initCommitteeScores(): void {
     avgBadge.textContent = count > 0 && avg !== null ? loc.avgLabel(count, avg.toFixed(2)) : loc.emptyAvg;
     avgBadge.classList.toggle('has-avg', count > 0);
 
-    gridEl.innerHTML = '';
     for (let i = 1; i <= COMMITTEE_COUNT; i++) {
+      const slot = slots[i - 1];
+      if (!slot) continue;
       const v = scores[String(i)];
       const hasVal = typeof v === 'number';
       const isSelected = i === selectedIdx;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `cs-slot ios-press${isSelected ? ' is-selected' : ''}${hasVal ? ' is-filled' : ''}`;
-      btn.innerHTML = `
-        <span class="cs-slot-lbl">${loc.shortPrefix}${i}</span>
-        <span class="cs-slot-val">${hasVal ? v.toFixed(1) : '—'}</span>
-      `;
-      btn.addEventListener('click', () => {
-        selectedIdx = i;
-        bridge?.triggerHaptic('selection');
-        render();
-      });
-      gridEl.appendChild(btn);
+
+      slot.wrap.classList.toggle('is-selected', isSelected);
+      slot.wrap.classList.toggle('is-filled', hasVal);
+      slot.label.textContent = `${loc.shortPrefix}${i}`;
+      slot.input.setAttribute('aria-label', loc.inputAria(i));
+      if (document.activeElement !== slot.input) {
+        slot.input.value = hasVal ? formatScore(v) : '';
+      }
     }
 
     btnSave.textContent = loc.saveBtn(selectedIdx, curStr);
@@ -149,6 +164,96 @@ export function initCommitteeScores(): void {
     btnClear.textContent = loc.clearBtn(selectedIdx);
   };
 
+  // Build persistent K1–K5 editable slot inputs once so focus is never lost on render
+  for (let i = 1; i <= COMMITTEE_COUNT; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'cs-slot';
+
+    const label = document.createElement('label');
+    label.className = 'cs-slot-lbl';
+    label.htmlFor = `csSlotInput${i}`;
+
+    const input = document.createElement('input');
+    input.id = `csSlotInput${i}`;
+    input.className = 'cs-slot-input';
+    input.type = 'text';
+    input.inputMode = 'decimal';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.maxLength = 6;
+    input.placeholder = '—';
+
+    wrap.addEventListener('click', (e) => {
+      if (e.target !== input) {
+        input.focus();
+      }
+    });
+
+    input.addEventListener('focus', () => {
+      if (selectedIdx !== i) {
+        selectedIdx = i;
+        getBridge()?.triggerHaptic('selection');
+        render();
+      }
+    });
+
+    input.addEventListener('input', () => {
+      const cleaned = input.value.replace(/[^0-9.,]/g, '');
+      if (cleaned !== input.value) {
+        input.value = cleaned;
+      }
+
+      const normalized = cleaned.replace(/,/g, '.').trim();
+      if (!normalized || normalized === '.') {
+        scores[String(i)] = null;
+        saveScores(scores);
+        const { avg } = computeAvg();
+        syncKurulOrtInput(avg, true);
+        render();
+        return;
+      }
+
+      const parsed = parseFloat(normalized);
+      if (!Number.isFinite(parsed)) return;
+
+      let val = Math.round(parsed * 100) / 100;
+      if (val > 100) {
+        val = 100;
+        input.value = '100';
+      } else if (val < 0) {
+        val = 0;
+        input.value = '0';
+      }
+
+      scores[String(i)] = val;
+      saveScores(scores);
+      const { avg } = computeAvg();
+      syncKurulOrtInput(avg, true);
+      render();
+    });
+
+    input.addEventListener('blur', () => {
+      const v = scores[String(i)];
+      input.value = typeof v === 'number' ? formatScore(v) : '';
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (i < COMMITTEE_COUNT) {
+          slots[i]?.input.focus();
+        } else {
+          input.blur();
+        }
+      }
+    });
+
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    gridEl.appendChild(wrap);
+    slots.push({ wrap, label, input });
+  }
+
   btnSave.addEventListener('click', () => {
     const curVal = getCurrentCalculatedScore();
     if (curVal === null) return;
@@ -156,15 +261,21 @@ export function initCommitteeScores(): void {
     const lang = bridge?.getState().lang === 'en' ? 'en' : 'tr';
     const loc = getStrings(lang);
 
-    scores[String(selectedIdx)] = curVal;
+    const targetIdx = selectedIdx;
+    scores[String(targetIdx)] = curVal;
     saveScores(scores);
+    const targetSlot = slots[targetIdx - 1];
+    if (targetSlot) {
+      targetSlot.input.value = formatScore(curVal);
+    }
+
     const { avg } = computeAvg();
-    syncKurulOrtInput(avg);
+    syncKurulOrtInput(avg, true);
     bridge?.triggerHaptic('medium');
-    bridge?.showToast(loc.savedToast(selectedIdx, curVal.toFixed(2)));
+    bridge?.showToast(loc.savedToast(targetIdx, curVal.toFixed(2)));
 
     // Auto-advance to next empty committee slot if available
-    for (let i = selectedIdx + 1; i <= COMMITTEE_COUNT; i++) {
+    for (let i = targetIdx + 1; i <= COMMITTEE_COUNT; i++) {
       if (scores[String(i)] === null) {
         selectedIdx = i;
         break;
@@ -177,12 +288,17 @@ export function initCommitteeScores(): void {
     const bridge = getBridge();
     const lang = bridge?.getState().lang === 'en' ? 'en' : 'tr';
     const loc = getStrings(lang);
-    scores[String(selectedIdx)] = null;
+    const targetIdx = selectedIdx;
+    scores[String(targetIdx)] = null;
     saveScores(scores);
+    const targetSlot = slots[targetIdx - 1];
+    if (targetSlot) {
+      targetSlot.input.value = '';
+    }
     const { avg } = computeAvg();
-    syncKurulOrtInput(avg);
+    syncKurulOrtInput(avg, true);
     bridge?.triggerHaptic('light');
-    bridge?.showToast(loc.clearedToast(selectedIdx));
+    bridge?.showToast(loc.clearedToast(targetIdx));
     render();
   });
 
