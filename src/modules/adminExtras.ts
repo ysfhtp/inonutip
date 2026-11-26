@@ -8,6 +8,7 @@ import {
   getLessonOverrideForSlot,
   getLiveStore,
   getMaintenanceStatus,
+  saveAnimeWelcomeConfig,
   saveEmergencyBanner,
   saveExtraLesson,
   saveLessonOverride,
@@ -70,6 +71,7 @@ const EXTRA_PANE_IDS: Record<string, string> = {
   'extras-overrides': 'adminPaneExtrasOverrides',
   'extras-extra-lessons': 'adminPaneExtrasExtraLessons',
   'extras-banner': 'adminPaneExtrasBanner',
+  'extras-anime': 'adminPaneExtrasAnime',
 };
 
 function replayExtraPaneEnter(el: HTMLElement | null, dir: string): void {
@@ -154,6 +156,18 @@ export function initAdminExtras(): void {
             <span class="block text-[11.5px] text-slate-500 dark:text-slate-400 truncate mt-0.5">Kaldırılamaz sabit acil şerit</span>
           </div>
           <span id="statusHubBanner" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/12 text-slate-500 dark:text-slate-300 shrink-0">Kapalı</span>
+          <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </button>
+
+        <button type="button" data-admin-hub-open="extras-anime" class="admin-hub-row w-full px-3.5 py-3 flex items-center gap-3 text-left">
+          <span class="w-9 h-9 rounded-xl bg-pink-500/15 text-pink-600 dark:text-pink-400 flex items-center justify-center shrink-0">
+            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+          </span>
+          <div class="min-w-0 flex-1">
+            <span class="block text-sm font-bold text-slate-900 dark:text-white leading-tight">Anime Karşılama</span>
+            <span class="block text-[11.5px] text-slate-500 dark:text-slate-400 truncate mt-0.5">Belirli öğrenci numaralarına açılış animasyonu</span>
+          </div>
+          <span id="statusHubAnime" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/12 text-slate-500 dark:text-slate-300 shrink-0">Kapalı</span>
           <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
@@ -315,6 +329,59 @@ export function initAdminExtras(): void {
           <button type="submit" class="ios-press px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm">Bannerı Güncelle</button>
         </div>
       </form>
+    </div>
+
+    <!-- PANE: ANİME KARŞILAMA (BELİRLİ ÖĞRENCİ NUMARALARI) -->
+    <div id="adminPaneExtrasAnime" class="hidden space-y-3.5">
+      <div class="admin-glass-section p-3.5 sm:p-4 space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Açılışta Anime Kızı Animasyonu</h4>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Sadece aşağıdaki listedeki öğrenci numaraları giriş yaptığında uygulama açılışında oynatılır.</p>
+          </div>
+          <button id="btnAdminAnimeToggle" type="button" role="switch" aria-checked="false" class="ios-toggle-switch shrink-0">
+            <span class="ios-toggle-knob"></span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
+          <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Animasyonu hemen test et</span>
+          <button id="btnAdminAnimePreview" type="button" class="ios-press px-3.5 py-1.5 rounded-full bg-pink-500/15 hover:bg-pink-500/25 text-pink-600 dark:text-pink-300 text-xs font-bold transition">
+            Animasyonu Önizle ✨
+          </button>
+        </div>
+      </div>
+
+      <form id="adminAnimeTextForm" class="admin-glass-section p-3.5 sm:p-4 space-y-2.5" novalidate>
+        <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100">Karşılama Metni</h4>
+        <input id="adminAnimeTitleInput" type="text" maxlength="80" placeholder="Başlık (örn. Hoş Geldin! 🌸)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none" />
+        <textarea id="adminAnimeMsgInput" rows="2" maxlength="240" placeholder="Mesaj (örn. Bugünkü derslerinde bol şans, harika bir gün dilerim!)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"></textarea>
+        <div class="flex justify-end">
+          <button type="submit" class="ios-press px-4 py-2 rounded-full bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold shadow-sm">Mesajı Kaydet</button>
+        </div>
+      </form>
+
+      <div class="admin-glass-section p-3.5 sm:p-4 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">İzinli Öğrenci Numaraları</h4>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Sadece bu listedeki numaralara anime karşılama açılır.</p>
+          </div>
+          <span id="adminAnimeAllowedCountBadge" class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-pink-500/15 text-pink-600 dark:text-pink-300 tabular-nums shrink-0">0</span>
+        </div>
+
+        <form id="adminAnimeAllowForm" class="space-y-2" novalidate>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input id="adminAnimeAllowIdInput" type="text" inputmode="numeric" maxlength="20" placeholder="Öğrenci Numarası (11 hane)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none" />
+            <input id="adminAnimeAllowLabelInput" type="text" maxlength="40" placeholder="İsim / Not (opsiyonel)" class="w-full ios-pill-control rounded-2xl px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none" />
+          </div>
+          <div class="flex justify-end">
+            <button type="submit" class="ios-press px-4 py-2 rounded-full bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold shadow-sm">Numara Ekle</button>
+          </div>
+        </form>
+
+        <div id="adminAnimeAllowedList" class="space-y-1.5"></div>
+      </div>
     </div>
   `;
   while (panesWrapper.firstElementChild) {
@@ -847,6 +914,103 @@ export function initAdminExtras(): void {
     getBridge()?.showToast('Numara bakım izin listesine eklendi.');
   });
 
+  // ==================== ANIME WELCOME FORM & ALLOWLIST ====================
+  let animeDraftDirty = false;
+  const syncAnimeFormFromStore = (force = false) => {
+    const cfg = getLiveStore().animeWelcome;
+    const toggleBtn = document.getElementById('btnAdminAnimeToggle');
+    const titleInp = document.getElementById('adminAnimeTitleInput') as HTMLInputElement | null;
+    const msgInp = document.getElementById('adminAnimeMsgInput') as HTMLTextAreaElement | null;
+    const countBadge = document.getElementById('adminAnimeAllowedCountBadge');
+    if (toggleBtn) toggleBtn.setAttribute('aria-checked', cfg.active ? 'true' : 'false');
+    if (countBadge) countBadge.textContent = String(cfg.allowedHashes.length);
+    if (!animeDraftDirty || force) {
+      if (titleInp && document.activeElement !== titleInp) titleInp.value = cfg.title || '';
+      if (msgInp && document.activeElement !== msgInp) msgInp.value = cfg.message || '';
+    }
+  };
+
+  document.getElementById('adminAnimeTitleInput')?.addEventListener('input', () => {
+    animeDraftDirty = true;
+  });
+  document.getElementById('adminAnimeMsgInput')?.addEventListener('input', () => {
+    animeDraftDirty = true;
+  });
+
+  document.getElementById('btnAdminAnimeToggle')?.addEventListener('click', async () => {
+    const cur = getLiveStore().animeWelcome;
+    const nextActive = !cur.active;
+    await saveAnimeWelcomeConfig({
+      active: nextActive,
+      title: cur.title,
+      message: cur.message,
+      allowedHashes: cur.allowedHashes,
+      allowedLabels: cur.allowedLabels,
+    });
+    getBridge()?.triggerHaptic('selection');
+    getBridge()?.showToast(
+      nextActive ? 'Anime karşılama aktif edildi.' : 'Anime karşılama kapatıldı.'
+    );
+  });
+
+  document.getElementById('btnAdminAnimePreview')?.addEventListener('click', () => {
+    getBridge()?.triggerHaptic('selection');
+    window.__INONU_ANIME_WELCOME__?.preview();
+  });
+
+  document.getElementById('adminAnimeTextForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const cur = getLiveStore().animeWelcome;
+    const titleInp = document.getElementById('adminAnimeTitleInput') as HTMLInputElement;
+    const msgInp = document.getElementById('adminAnimeMsgInput') as HTMLTextAreaElement;
+    animeDraftDirty = false;
+    await saveAnimeWelcomeConfig({
+      active: cur.active,
+      title: titleInp.value.trim() || 'Hoş Geldin! 🌸',
+      message: msgInp.value.trim() || 'Bugünkü derslerinde bol şans, harika bir gün dilerim!',
+      allowedHashes: cur.allowedHashes,
+      allowedLabels: cur.allowedLabels,
+    });
+    getBridge()?.triggerHaptic('success');
+    getBridge()?.showToast('Anime karşılama metni kaydedildi.');
+  });
+
+  document.getElementById('adminAnimeAllowForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const idInp = document.getElementById('adminAnimeAllowIdInput') as HTMLInputElement;
+    const lblInp = document.getElementById('adminAnimeAllowLabelInput') as HTMLInputElement;
+    const cleaned = normalizeStudentId(idInp.value);
+    if (!cleaned || cleaned.length < 4) {
+      getBridge()?.showToast('Geçerli bir öğrenci numarası girin.');
+      idInp.focus();
+      return;
+    }
+    const cur = getLiveStore().animeWelcome;
+    if (cur.allowedHashes.length >= 50) {
+      getBridge()?.showToast('En fazla 50 öğrenci numarası eklenebilir.');
+      return;
+    }
+    const h = hashStudentId(cleaned);
+    if (cur.allowedHashes.includes(h)) {
+      getBridge()?.showToast('Bu öğrenci numarası zaten listede.');
+      return;
+    }
+    const masked = `••••••${cleaned.slice(-4)}`;
+    const extraLbl = lblInp.value.trim().slice(0, 40);
+    const label = extraLbl ? `${masked} · ${extraLbl}` : masked;
+    await saveAnimeWelcomeConfig({
+      active: cur.active,
+      title: cur.title,
+      message: cur.message,
+      allowedHashes: [...cur.allowedHashes, h],
+      allowedLabels: [...cur.allowedLabels, label],
+    });
+    idInp.value = '';
+    lblInp.value = '';
+    getBridge()?.triggerHaptic('success');
+    getBridge()?.showToast('Öğrenci numarası anime karşılama listesine eklendi.');
+  });
+
   // ==================== POLLS FORM ====================
   const pollOptsWrap = document.getElementById('adminPollOptionsWrap')!;
   document.getElementById('btnAdminPollAddOpt')?.addEventListener('click', () => {
@@ -985,6 +1149,42 @@ export function initAdminExtras(): void {
 
     syncBannerFormFromStore();
     syncMaintenanceFormFromStore(false);
+    syncAnimeFormFromStore(false);
+
+    const sAnime = document.getElementById('statusHubAnime');
+    if (sAnime) {
+      const aCfg = snap.animeWelcome;
+      if (aCfg.active) {
+        sAnime.textContent = aCfg.allowedHashes.length > 0 ? `Açık · ${aCfg.allowedHashes.length}` : 'Açık';
+        sAnime.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-pink-500/15 text-pink-600 dark:text-pink-300 shrink-0';
+      } else {
+        sAnime.textContent = 'Kapalı';
+        sAnime.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/12 text-slate-500 dark:text-slate-300 shrink-0';
+      }
+    }
+
+    // Anime welcome allowed list
+    const animeList = document.getElementById('adminAnimeAllowedList');
+    if (animeList) {
+      const { allowedHashes, allowedLabels } = snap.animeWelcome;
+      if (allowedHashes.length === 0) {
+        animeList.innerHTML = `<div class="ios-pill-control rounded-2xl p-3.5 text-center text-xs text-slate-500 dark:text-slate-400">Henüz izinli öğrenci numarası eklenmedi.</div>`;
+      } else {
+        animeList.innerHTML = allowedHashes
+          .map(
+            (h, idx) => `
+            <div class="ios-pill-control rounded-2xl px-3 py-2.5 flex items-center justify-between gap-2 admin-stagger-item" style="--admin-delay:${Math.min(idx * 35, 240)}ms">
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-slate-900 dark:text-white truncate">${escapeHtml(allowedLabels[idx] || '••••')}</p>
+                <p class="text-[10px] font-mono text-slate-400 truncate">Hash: ${escapeHtml(h.slice(0, 12))}…</p>
+              </div>
+              <button type="button" data-anime-del-hash="${escapeHtml(h)}" class="ios-press px-3 py-1 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 text-[11px] font-semibold shrink-0">Kaldır</button>
+            </div>
+          `
+          )
+          .join('');
+      }
+    }
 
     // Maintenance allowed list
     const maintList = document.getElementById('adminMaintAllowedList');
@@ -1182,6 +1382,27 @@ export function initAdminExtras(): void {
       return;
     }
 
+    const animeDel = t.closest<HTMLButtonElement>('[data-anime-del-hash]');
+    if (animeDel) {
+      const targetHash = animeDel.getAttribute('data-anime-del-hash') || '';
+      const cur = getLiveStore().animeWelcome;
+      const idx = cur.allowedHashes.indexOf(targetHash);
+      if (idx >= 0) {
+        const nextHashes = cur.allowedHashes.filter((_, i) => i !== idx);
+        const nextLabels = cur.allowedLabels.filter((_, i) => i !== idx);
+        await saveAnimeWelcomeConfig({
+          active: cur.active,
+          title: cur.title,
+          message: cur.message,
+          allowedHashes: nextHashes,
+          allowedLabels: nextLabels,
+        });
+        getBridge()?.triggerHaptic('selection');
+        getBridge()?.showToast('Numara anime karşılama listesinden kaldırıldı.');
+      }
+      return;
+    }
+
     const fbDel = t.closest<HTMLButtonElement>('[data-fb-del]');
     if (fbDel) {
       await deleteStudentFeedback(fbDel.getAttribute('data-fb-del') || '');
@@ -1237,6 +1458,10 @@ export function initAdminExtras(): void {
       syncExDateDefault();
     } else if (activeTab === 'extras-banner') {
       syncBannerFormFromStore();
+    } else if (activeTab === 'extras-anime') {
+      animeDraftDirty = false;
+      syncAnimeFormFromStore(true);
+      renderAdminLists();
     } else if (activeTab === 'site-settings') {
       maintDraftDirty = false;
       syncMaintenanceFormFromStore(true);

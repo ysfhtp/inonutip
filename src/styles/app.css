@@ -350,36 +350,6 @@ body[data-active-tab="food"] .ambient-bottom {
 .ios-glass-bar {
   background: transparent;
   border-bottom: 0.5px solid transparent;
-  isolation: isolate;
-  transform: translate3d(0, 0, 0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  will-change: transform;
-}
-.ios-glass-bar::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: rgba(244, 247, 252, 0.78);
-  -webkit-backdrop-filter: saturate(180%) blur(32px);
-  backdrop-filter: saturate(180%) blur(32px);
-  border-bottom: none !important;
-  opacity: var(--header-scroll-ratio, 0);
-  transform: translate3d(0, 0, 0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.28s ease;
-}
-.dark .ios-glass-bar::before {
-  background: rgba(16, 20, 30, 0.78);
-  border-bottom: none !important;
-  -webkit-backdrop-filter: saturate(180%) blur(32px);
-  backdrop-filter: saturate(180%) blur(32px);
-}
-.ios-glass-bar.is-scrolled::before {
-  opacity: var(--header-scroll-ratio, 1);
 }
 
 /* PWA Install Button Visibility Control (Auto-hidden when installed or in standalone mode) */

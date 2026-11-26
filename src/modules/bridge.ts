@@ -142,6 +142,10 @@ declare global {
         title?: string;
       }) => void;
     };
+    __INONU_ANIME_WELCOME__?: {
+      preview: () => void;
+      close: () => void;
+    };
     __INONU_ANATOMY_3D__?: {
       open: (opts?: Record<string, unknown>) => void;
       close: () => void;

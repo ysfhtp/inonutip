@@ -466,7 +466,7 @@ export function initInonuApp() {
   }
 
   function syncModalScrollLock() {
-    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #pdfArchiveModal:not(.hidden), #maintenanceGateOverlay:not(.hidden)'));
+    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #pdfArchiveModal:not(.hidden), #maintenanceGateOverlay:not(.hidden), #animeWelcomeOverlay:not(.hidden)'));
     document.documentElement.classList.toggle('modal-open', hasOpenModal);
   }
 
@@ -1261,13 +1261,6 @@ export function initInonuApp() {
   }
 
   function updateHeaderScrollState() {
-    const header = document.getElementById('appHeader');
-    if (!header) return;
-    const y = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
-    const ratio = Math.min(1, Math.max(0, y / 50));
-    const eased = 1 - Math.pow(1 - ratio, 2.5);
-    header.style.setProperty('--header-scroll-ratio', eased.toFixed(3));
-    header.classList.toggle('is-scrolled', y > 4);
     syncSystemBarsThemeColor();
   }
 
@@ -5591,9 +5584,6 @@ export function initInonuApp() {
         openAuthModal(true);
       }
     } else {
-      if (headerEl && spacerEl && !headerEl.classList.contains('hidden')) {
-        spacerEl.style.height = `${headerEl.offsetHeight}px`;
-      }
       if (authGate && !authGate.classList.contains('hidden') && authGateOpenedByLock) {
         closeAuthModal(true);
       }
@@ -6936,6 +6926,7 @@ export function initInonuApp() {
         'extras-overrides': isEn ? 'Lesson Overrides' : 'Saat / Amfi Değişikliği',
         'extras-extra-lessons': isEn ? 'Extra Lessons' : 'Ek / Telafi Ders',
         'extras-banner': isEn ? 'Emergency Banner' : 'Acil / Bakım Bannerı',
+        'extras-anime': isEn ? 'Anime Welcome' : 'Anime Karşılama',
       };
       const nextTitle = titles[tabKey] || loc.adminModalTitle;
       if (titleEl.textContent !== nextTitle) {
@@ -9111,12 +9102,7 @@ export function initInonuApp() {
     applyLanguageUI();
 
     const appHeaderEl = document.getElementById('appHeader');
-    const headerSpacerEl = document.getElementById('headerSpacer');
-    const syncHeaderSpacer = () => {
-      if (appHeaderEl && headerSpacerEl && !appHeaderEl.classList.contains('hidden')) {
-        headerSpacerEl.style.height = `${appHeaderEl.offsetHeight}px`;
-      }
-    };
+    const syncHeaderSpacer = () => {};
     const scheduleLayoutResync = () => {
       syncHeaderSpacer();
       updateHeaderScrollState();
@@ -10544,7 +10530,8 @@ export function initInonuApp() {
           'extras-polls': 'adminPaneExtrasPolls',
           'extras-overrides': 'adminPaneExtrasOverrides',
           'extras-extra-lessons': 'adminPaneExtrasExtraLessons',
-          'extras-banner': 'adminPaneExtrasBanner'
+          'extras-banner': 'adminPaneExtrasBanner',
+          'extras-anime': 'adminPaneExtrasAnime'
         };
         const id = map[adminState.activeTab];
         return id ? document.getElementById(id) : null;

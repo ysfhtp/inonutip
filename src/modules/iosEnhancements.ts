@@ -342,123 +342,19 @@ function initStudentSlotContextMenu(): {
   return { open, close };
 }
 
-/* ==================== #6: iOS COLLAPSING LARGE TITLE ==================== */
-function getTabLargeTitle(tab: string, lang: 'tr' | 'en'): string {
-  const trMap: Record<string, string> = {
-    daily: 'Günlük Program',
-    weekly: 'Haftalık Program',
-    food: 'Yemekhane',
-    search: 'Arama',
-    info: 'Sınav & Bilgi',
-  };
-  const enMap: Record<string, string> = {
-    daily: 'Daily Schedule',
-    weekly: 'Weekly Schedule',
-    food: 'Cafeteria',
-    search: 'Search',
-    info: 'Exams & Info',
-  };
-  return (lang === 'en' ? enMap : trMap)[tab] || (lang === 'en' ? 'Schedule' : 'Program');
-}
-
-function initCollapsingLargeTitle(): { sync: () => void } {
-  const mainEl = document.getElementById('appMain');
-  const headerTitleEl = document.getElementById('headerAppTitle');
-  if (!mainEl) return { sync: () => {} };
-
-  let bar = document.getElementById('iosLargeTitleBar') as HTMLDivElement | null;
-  if (!bar) {
-    bar = document.createElement('div');
-    bar.id = 'iosLargeTitleBar';
-    bar.className = 'ios-large-title-bar';
-    bar.innerHTML = `<h2 id="iosLargeTitleText" class="ios-large-title-text">Günlük Program</h2>`;
-    const ptr = document.getElementById('ptrIndicator');
-    if (ptr && ptr.parentElement === mainEl) {
-      ptr.insertAdjacentElement('afterend', bar);
-    } else {
-      mainEl.insertBefore(bar, mainEl.firstChild);
-    }
-  }
-
-  const titleTextEl = document.getElementById('iosLargeTitleText')!;
-  let defaultHeaderTitle = headerTitleEl?.textContent?.trim() || 'İnönü Tıp Dönem I';
-  let isCollapsed = false;
-  let rafPending = false;
-
-  const applyScrollState = () => {
-    rafPending = false;
-    const bridge = getBridge();
-    const state = bridge?.getState();
-    const lang: 'tr' | 'en' = state?.lang === 'en' ? 'en' : 'tr';
-    const tab = state?.activeTab || 'daily';
-    const tabTitle = getTabLargeTitle(tab, lang);
-
-    if (titleTextEl.textContent !== tabTitle) {
-      titleTextEl.textContent = tabTitle;
-    }
-
-    const y = window.scrollY || document.documentElement.scrollTop || 0;
-    const progress = Math.min(1, Math.max(0, y / 40));
-    const opacity = Math.max(0, 1 - progress * 1.15);
-    const shiftY = -(progress * 10);
-    const scale = 1 - progress * 0.045;
-
-    titleTextEl.style.opacity = opacity.toFixed(3);
-    titleTextEl.style.transform = `translate3d(0, ${shiftY.toFixed(1)}px, 0) scale(${scale.toFixed(3)})`;
-    bar?.classList.toggle('is-collapsed', progress >= 0.85);
-
-    const nextCollapsed = y >= 32;
-    if (headerTitleEl && nextCollapsed !== isCollapsed) {
-      isCollapsed = nextCollapsed;
-      headerTitleEl.classList.add('ios-header-title-swap');
-      if (isCollapsed) {
-        headerTitleEl.textContent = tabTitle;
-      } else {
-        headerTitleEl.textContent = defaultHeaderTitle;
-      }
-    } else if (headerTitleEl && isCollapsed && headerTitleEl.textContent !== tabTitle) {
-      headerTitleEl.textContent = tabTitle;
-    }
-  };
-
-  const sync = () => {
-    const bridge = getBridge();
-    const lang: 'tr' | 'en' = bridge?.getState().lang === 'en' ? 'en' : 'tr';
-    defaultHeaderTitle = lang === 'en' ? 'İnönü Medicine Year I' : 'İnönü Tıp Dönem I';
-    if (headerTitleEl && !isCollapsed) {
-      headerTitleEl.textContent = defaultHeaderTitle;
-    }
-    applyScrollState();
-  };
-
-  window.addEventListener(
-    'scroll',
-    () => {
-      if (!rafPending) {
-        rafPending = true;
-        requestAnimationFrame(applyScrollState);
-      }
-    },
-    { passive: true }
-  );
-
-  sync();
-  return { sync };
-}
-
 export function initIosEnhancements(): void {
   if (initialized) return;
   initialized = true;
 
   initUniversalIosSheets();
   const ctxMenu = initStudentSlotContextMenu();
-  const largeTitle = initCollapsingLargeTitle();
 
-  window.addEventListener('inonu-ui-sync', () => largeTitle.sync());
+  // Remove any stale large title bar if present
+  document.getElementById('iosLargeTitleBar')?.remove();
 
   window.__INONU_IOS__ = {
     openStudentSlotMenu: ctxMenu.open,
     closeStudentSlotMenu: ctxMenu.close,
-    syncLargeTitle: largeTitle.sync,
+    syncLargeTitle: () => {},
   };
 }

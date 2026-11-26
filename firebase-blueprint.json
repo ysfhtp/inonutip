@@ -301,6 +301,20 @@
       },
       "required": ["active", "title", "message", "allowedHashes", "allowedLabels", "updatedAtMs"]
     },
+    "AnimeWelcomeConfig": {
+      "title": "AnimeWelcomeConfig",
+      "description": "Launch anime girl welcome animation configuration and hashed allowlist of permitted student IDs",
+      "type": "object",
+      "properties": {
+        "active": { "type": "boolean" },
+        "title": { "type": "string", "maxLength": 80 },
+        "message": { "type": "string", "maxLength": 240 },
+        "allowedHashes": { "type": "array" },
+        "allowedLabels": { "type": "array" },
+        "updatedAtMs": { "type": "number" }
+      },
+      "required": ["active", "title", "message", "allowedHashes", "allowedLabels", "updatedAtMs"]
+    },
     "FoodRating": {
       "title": "FoodRating",
       "description": "Daily cafeteria meal aggregate star rating and quick tag counts",
@@ -346,6 +360,12 @@
         "$ref": "#/entities/MaintenanceConfig"
       },
       "description": "Global maintenance mode state and hashed allowlist of permitted student IDs"
+    },
+    "/config/animeWelcome": {
+      "schema": {
+        "$ref": "#/entities/AnimeWelcomeConfig"
+      },
+      "description": "Anime girl launch welcome animation settings and hashed student ID allowlist"
     },
     "/announcements/{announcementId}": {
       "schema": {
