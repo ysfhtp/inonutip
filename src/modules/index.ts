@@ -11,11 +11,13 @@ import { initFoodRatings } from './foodRatings.ts';
 import { initMaintenanceGate } from './maintenanceGate.ts';
 import { initBottomSheet } from './bottomSheet.ts';
 import { initOfflineSupport } from './offlineSupport.ts';
+import { initBackNavigation } from './backNavigation.ts';
 
 export function initModularMenus(): void {
   initLiveStore();
   onBridgeReady(() => {
     initMaintenanceGate();
+    initBackNavigation();
     initBottomSheet();
     initOfflineSupport();
     initCommitteeScores();

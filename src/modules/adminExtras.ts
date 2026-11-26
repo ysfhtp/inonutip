@@ -377,6 +377,7 @@ export function initAdminExtras(): void {
       void ovSlotPanel.offsetWidth;
       ovSlotPanel.classList.add('admin-dropdown-enter');
     }
+    window.__INONU_BACK_NAV__?.sync(open ? 'open' : 'close');
   };
 
   ovSlotTrigger.addEventListener('click', (e) => {

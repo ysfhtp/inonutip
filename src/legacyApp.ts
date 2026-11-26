@@ -466,7 +466,7 @@ export function initInonuApp() {
   }
 
   function syncModalScrollLock() {
-    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #maintenanceGateOverlay:not(.hidden)'));
+    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #pdfArchiveModal:not(.hidden), #maintenanceGateOverlay:not(.hidden)'));
     document.documentElement.classList.toggle('modal-open', hasOpenModal);
   }
 
@@ -483,6 +483,7 @@ export function initInonuApp() {
     void modal.offsetWidth;
     modal.classList.add('modal-backdrop-in');
     if (card) card.classList.add('modal-card-in');
+    window.__INONU_BACK_NAV__?.sync('open');
     if (typeof onOpenFocus === 'function') {
       requestAnimationFrame(onOpenFocus);
     }
@@ -503,6 +504,7 @@ export function initInonuApp() {
       card.classList.remove('modal-card-in');
       card.classList.add('modal-card-out');
     }
+    window.__INONU_BACK_NAV__?.sync('close');
     const timer = setTimeout(() => {
       modalCloseTimers.delete(modal);
       modal.classList.add('hidden');
@@ -1593,6 +1595,7 @@ export function initInonuApp() {
   function switchTab(tabName, animate = true, preserveScroll = false) {
     updateTabIndicator(tabName, animate);
     activateTabView(tabName, preserveScroll);
+    window.__INONU_BACK_NAV__?.sync('tab');
   }
 
   function isSecondaryCourseSlot(slot) {
@@ -6947,6 +6950,7 @@ export function initInonuApp() {
     }
     adminState.activeTab = nextTab;
     updateAdminHeaderForTab(nextTab);
+    window.__INONU_BACK_NAV__?.sync('tab');
 
     const pHub = document.getElementById('adminPaneHub');
     const pAnn = document.getElementById('adminPaneAnnouncements');
@@ -7437,6 +7441,7 @@ export function initInonuApp() {
     syncModalScrollLock();
     void modal.offsetWidth;
     modal.classList.add('is-entering');
+    window.__INONU_BACK_NAV__?.sync('open');
   }
   function openAdminSlotQuickModal(slot) {
     const session = getActiveAuthSession();
@@ -7643,6 +7648,7 @@ export function initInonuApp() {
     if (adminSlotQuickCloseTimer) clearTimeout(adminSlotQuickCloseTimer);
     modal.classList.remove('is-entering');
     modal.classList.add('is-leaving');
+    window.__INONU_BACK_NAV__?.sync('close');
     adminSlotQuickCloseTimer = setTimeout(() => {
       adminSlotQuickCloseTimer = null;
       modal.classList.add('hidden');
@@ -8141,6 +8147,7 @@ export function initInonuApp() {
       const listEl = document.getElementById('adminCancelDateOptions');
       if (listEl) listEl.scrollTop = 0;
     }
+    window.__INONU_BACK_NAV__?.sync(nextOpen ? 'open' : 'close');
   }
 
   function setAdminCancelSelectedDate(dateStr, animDir = 'none') {
@@ -8550,6 +8557,7 @@ export function initInonuApp() {
     if (!which) {
       setState(datePanel, dateBtn, false);
       setState(slotPanel, slotBtn, false);
+      window.__INONU_BACK_NAV__?.sync('close');
       return;
     }
 
@@ -8562,6 +8570,7 @@ export function initInonuApp() {
         const listEl = document.getElementById('adminMatDateOptions');
         if (listEl) listEl.scrollTop = 0;
       }
+      window.__INONU_BACK_NAV__?.sync(nextOpen ? 'open' : 'close');
       return;
     }
 
@@ -8576,6 +8585,7 @@ export function initInonuApp() {
           true
         );
       }
+      window.__INONU_BACK_NAV__?.sync(nextOpen ? 'open' : 'close');
     }
   }
 
@@ -12267,6 +12277,30 @@ export function initInonuApp() {
         return true;
       },
       switchAdminTab: (tabKey: string, animate: boolean = true) => switchAdminTab(tabKey, animate),
+      getAdminActiveTab: () => adminState.activeTab || 'hub',
+      closeModalById: (id: string) => {
+        switch (id) {
+          case 'adminDateTimeModal': closeAdminDateTimeModal(); return true;
+          case 'adminSlotQuickModal': closeAdminSlotQuickModal(); return true;
+          case 'adminPickers':
+            toggleAdminMatPicker(null, false);
+            toggleAdminCancelDatePicker(false);
+            return true;
+          case 'foodPhotoModal': closeFoodPhotoModal(); return true;
+          case 'instructorModal': closeInstructorModal(); return true;
+          case 'lessonPdfsModal': closeLessonPdfsModal(); return true;
+          case 'noteModal': closeNoteModal(); return true;
+          case 'dailyDateModal': closeDailyDateModal(); return true;
+          case 'foodDateModal': closeFoodDateModal(); return true;
+          case 'groupModal': closeGroupModal(); return true;
+          case 'paletteModal': closePaletteModal(); return true;
+          case 'settingsMenuModal': closeSettingsMenu(); return true;
+          case 'installModal': closeInstallModal(); return true;
+          case 'authGate': closeAuthModal(); return true;
+          case 'adminModal': closeAdminModal(); return true;
+          default: return false;
+        }
+      },
       triggerAdminQuickAction: (action: 'urgent-ann' | 'cancel-today') => {
         if (!getActiveAuthSession()?.isAdmin) return false;
         openAdminModal();

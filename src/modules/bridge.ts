@@ -76,6 +76,8 @@ export interface InonuBridge {
   openSettingsMenu: () => void;
   openAdminModal: (tabKey?: string) => boolean;
   switchAdminTab: (tabKey: string, animate?: boolean) => void;
+  getAdminActiveTab: () => string;
+  closeModalById: (id: string) => boolean;
   triggerAdminQuickAction: (action: 'urgent-ann' | 'cancel-today') => boolean;
   toggleDarkMode: () => void;
   triggerHaptic: (kind?: string) => void;
@@ -102,6 +104,9 @@ export interface InonuBridge {
 declare global {
   interface Window {
     __INONU_BRIDGE__?: InonuBridge;
+    __INONU_BACK_NAV__?: {
+      sync: (reason?: 'open' | 'close' | 'tab') => void;
+    };
     __INONU_BOTTOM_SHEET__?: {
       open: () => void;
       close: () => void;

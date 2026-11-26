@@ -162,6 +162,7 @@ export function initPdfArchive(): void {
     requestAnimationFrame(() => overlay.classList.add('is-open'));
     bridge?.syncModalScrollLock();
     bridge?.triggerHaptic('light');
+    window.__INONU_BACK_NAV__?.sync('open');
   };
 
   const closeModal = () => {
@@ -169,6 +170,7 @@ export function initPdfArchive(): void {
     modalOpen = false;
     overlay.classList.remove('is-open');
     overlay.setAttribute('aria-hidden', 'true');
+    window.__INONU_BACK_NAV__?.sync('close');
     window.setTimeout(() => {
       overlay.classList.add('hidden');
       getBridge()?.syncModalScrollLock();
