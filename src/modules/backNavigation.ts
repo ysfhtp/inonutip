@@ -8,9 +8,6 @@ interface InonuHistoryState {
 
 let initialized = false;
 let handlingPopstate = false;
-let expectedIgnoreDepth: number | null = null;
-let ignoreSafetyTimer: number | null = null;
-let trimTimer: number | null = null;
 let lastExitPromptAt = 0;
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -219,48 +216,17 @@ function pushUpToDepth(targetDepth: number): void {
   }
 }
 
-function scheduleTrimToDesired(): void {
-  if (trimTimer !== null) {
-    window.clearTimeout(trimTimer);
-    trimTimer = null;
-  }
-  trimTimer = window.setTimeout(() => {
-    trimTimer = null;
-    if (handlingPopstate) return;
-    const desired = getDesiredDepth();
-    const cur = getCurrentDepth();
-    if (cur <= desired) return;
-    const delta = cur - desired;
-    expectedIgnoreDepth = desired;
-    if (ignoreSafetyTimer !== null) {
-      window.clearTimeout(ignoreSafetyTimer);
-    }
-    ignoreSafetyTimer = window.setTimeout(() => {
-      expectedIgnoreDepth = null;
-      ignoreSafetyTimer = null;
-    }, 450);
-    try {
-      window.history.go(-delta);
-    } catch {
-      expectedIgnoreDepth = null;
-    }
-  }, 280);
-}
-
-export function syncBackNav(_reason: 'open' | 'close' | 'tab' = 'open'): void {
-  if (!initialized || handlingPopstate) return;
-  if (trimTimer !== null) {
-    window.clearTimeout(trimTimer);
-    trimTimer = null;
-  }
-
+/**
+ * Monotonic sync: ONLY pushes history entries when opening deeper UI layers.
+ * NEVER calls history.go(-delta) on close/tab changes, eliminating async popstate races
+ * that could unexpectedly close sub-panes (e.g. Student Settings) or bounce to Home.
+ */
+export function syncBackNav(reason: 'open' | 'close' | 'tab' = 'open'): void {
+  if (!initialized || handlingPopstate || reason === 'close') return;
   const desired = getDesiredDepth();
   const cur = getCurrentDepth();
-
   if (cur < desired) {
     pushUpToDepth(desired);
-  } else if (cur > desired) {
-    scheduleTrimToDesired();
   }
 }
 
@@ -283,7 +249,7 @@ export function initBackNavigation(): void {
     // Ignore history replace errors
   }
 
-  // Ensure depth is synced with user activation (satisfies Chromium's History Manipulation Intervention)
+  // Arm history entries on user gestures so Chromium's History Manipulation Intervention never skips them
   const armOnUserGesture = () => {
     if (handlingPopstate) return;
     const desired = getDesiredDepth();
@@ -296,36 +262,24 @@ export function initBackNavigation(): void {
   document.addEventListener('pointerdown', armOnUserGesture, { passive: true, capture: true });
   document.addEventListener('keydown', armOnUserGesture, { passive: true, capture: true });
 
-  // Also arm initial depth immediately for non-intervention browsers
-  pushUpToDepth(getDesiredDepth());
-
   window.addEventListener('popstate', () => {
     const poppedDepth = getCurrentDepth();
-
-    // Ignore our own silent history.go(-delta) trims triggered after clicking ✕ / backdrop
-    if (expectedIgnoreDepth !== null) {
-      if (ignoreSafetyTimer !== null) {
-        window.clearTimeout(ignoreSafetyTimer);
-        ignoreSafetyTimer = null;
-      }
-      const match = poppedDepth === expectedIgnoreDepth;
-      expectedIgnoreDepth = null;
-      if (match) return;
-    }
-
-    if (trimTimer !== null) {
-      window.clearTimeout(trimTimer);
-      trimTimer = null;
-    }
 
     if (isHardBlocked()) {
       return;
     }
 
+    // Dismiss lingering keyboard focus in main view & guarantee bottom dock is never stuck hidden
+    const activeEl = document.activeElement as HTMLElement | null;
+    if (activeEl && typeof activeEl.blur === 'function' && activeEl.closest('#appMain')) {
+      activeEl.blur();
+    }
+    document.getElementById('appNav')?.classList.remove('is-keyboard-open');
+
     handlingPopstate = true;
     let closed = false;
     try {
-      closed = closeTopmostLayer();
+      closed = closeTopmostLayer(true);
     } finally {
       handlingPopstate = false;
     }
@@ -338,32 +292,31 @@ export function initBackNavigation(): void {
       const afterDesired = getDesiredDepth();
       if (poppedDepth < afterDesired) {
         pushUpToDepth(afterDesired);
-      } else if (poppedDepth > afterDesired) {
-        scheduleTrimToDesired();
       }
       return;
     }
 
     // Nothing was open -> user pressed Back at root home screen
     const now = Date.now();
-    if (poppedDepth === 0) {
-      if (now - lastExitPromptAt < 2400) {
-        lastExitPromptAt = 0;
-        try {
-          window.history.back();
-        } catch {}
-        return;
+    if (now - lastExitPromptAt < 2400) {
+      lastExitPromptAt = 0;
+      try {
+        // Exit past depth-0 base entry in a single step regardless of prior non-trimmed depth
+        window.history.go(-(poppedDepth + 1));
+      } catch {
+        // Ignore restricted history environments
       }
-      lastExitPromptAt = now;
-      const isEn = bridge?.getState().lang === 'en';
-      bridge?.showToast(
-        isEn ? 'Press back again to exit' : 'Çıkmak için tekrar geri tuşuna basın'
-      );
-      bridge?.triggerHaptic('light');
+      return;
+    }
+
+    lastExitPromptAt = now;
+    const isEn = bridge?.getState().lang === 'en';
+    bridge?.showToast(
+      isEn ? 'Press back again to exit' : 'Çıkmak için tekrar geri tuşuna basın'
+    );
+    bridge?.triggerHaptic('light');
+    if (poppedDepth === 0) {
       pushUpToDepth(1);
-    } else {
-      // Stale depth > 0 with no open layer: rewind cleanly to root guard
-      scheduleTrimToDesired();
     }
   });
 
@@ -372,16 +325,11 @@ export function initBackNavigation(): void {
     if (closeTopmostLayer(false)) {
       e.preventDefault();
       getBridge()?.triggerHaptic('selection');
-      syncBackNav('close');
     }
   });
 
   window.__INONU_BACK_NAV__ = {
     sync: syncBackNav,
-    closeTopmost: (includeTabs = false) => {
-      const closed = closeTopmostLayer(includeTabs);
-      if (closed) syncBackNav('close');
-      return closed;
-    },
+    closeTopmost: (includeTabs = false) => closeTopmostLayer(includeTabs),
   };
 }

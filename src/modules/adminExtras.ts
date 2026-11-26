@@ -369,6 +369,7 @@ export function initAdminExtras(): void {
   const ovNoteInp = document.getElementById('adminOvNoteInput') as HTMLInputElement;
 
   const setOvSlotPickerOpen = (open: boolean) => {
+    const wasOpen = !ovSlotPanel.classList.contains('hidden');
     ovSlotPanel.classList.toggle('hidden', !open);
     ovSlotTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
     ovSlotChevron.style.transform = open ? 'rotate(180deg)' : '';
@@ -377,7 +378,9 @@ export function initAdminExtras(): void {
       void ovSlotPanel.offsetWidth;
       ovSlotPanel.classList.add('admin-dropdown-enter');
     }
-    window.__INONU_BACK_NAV__?.sync(open ? 'open' : 'close');
+    if (wasOpen !== open) {
+      window.__INONU_BACK_NAV__?.sync(open ? 'open' : 'close');
+    }
   };
 
   ovSlotTrigger.addEventListener('click', (e) => {

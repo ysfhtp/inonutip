@@ -37,12 +37,12 @@ html.site-locked-locked #appNav {
   display: none !important;
 }
 #appNav {
-  transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.22s cubic-bezier(0.32, 0.72, 0, 1), transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
 }
 #appNav.is-keyboard-open {
   opacity: 0 !important;
   pointer-events: none !important;
-  transform: translate3d(0, 26px, 0) !important;
+  transform: translate3d(0, 28px, 0) scale(0.96) !important;
 }
 main {
   position: relative;
@@ -1029,7 +1029,7 @@ body {
 }
 .ios-safe-modal {
   padding-top: max(0.75rem, env(safe-area-inset-top, 0px)) !important;
-  padding-bottom: calc(max(0.75rem, env(safe-area-inset-bottom, 0px)) + var(--app-kb-inset, 0px)) !important;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)) !important;
   padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
   padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
   overflow-y: auto;
@@ -1039,13 +1039,18 @@ body {
 .ios-safe-modal > div {
   margin-top: auto;
   margin-bottom: auto;
+  box-shadow:
+    0 24px 56px -14px rgba(15, 23, 42, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52);
 }
-#adminModal {
-  padding-bottom: var(--app-kb-inset, 0px);
+.dark .ios-safe-modal > div {
+  box-shadow:
+    0 26px 60px -14px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 #adminModalCard {
   max-height: 88vh;
-  max-height: calc(var(--app-vvh, 100dvh) - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
 }
 #lessonPdfsModalList {
   max-height: 55vh;
@@ -1055,13 +1060,83 @@ body {
   max-height: 62vh;
   max-height: 62dvh;
 }
-@media (pointer: coarse) {
-  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-  select,
-  textarea {
-    font-size: 16px !important;
-  }
+/* Native iOS Search Bar */
+.ios-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
 }
+.ios-search-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.ios-search-input {
+  -webkit-appearance: none;
+  appearance: none;
+  transition: box-shadow 0.22s cubic-bezier(0.32, 0.72, 0, 1), background-color 0.2s ease;
+}
+.ios-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ios-search-input:focus {
+  box-shadow: 0 0 0 2.5px rgba(0, 122, 255, 0.28);
+}
+.dark .ios-search-input:focus {
+  box-shadow: 0 0 0 2.5px rgba(10, 132, 255, 0.36);
+}
+.ios-search-clear {
+  position: absolute;
+  right: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(100, 116, 139, 0.26);
+  color: #ffffff;
+  cursor: pointer;
+}
+.dark .ios-search-clear {
+  background: rgba(148, 163, 184, 0.32);
+  color: #0f172a;
+}
+.ios-search-cancel {
+  flex-shrink: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0;
+  margin-left: 0;
+  border: 0;
+  background: transparent;
+  color: #007aff;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  transition:
+    max-width 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.2s ease,
+    margin-left 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+    padding 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.dark .ios-search-cancel {
+  color: #0a84ff;
+}
+.ios-search-row.is-search-active .ios-search-cancel {
+  max-width: 84px;
+  opacity: 1;
+  margin-left: 8px;
+  padding: 6px 4px;
+  pointer-events: auto;
+}
+/* Prevent iOS Safari input auto-zoom ONLY on iOS WebKit (Android never auto-zooms) */
 @supports (-webkit-touch-callout: none) {
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
   select,

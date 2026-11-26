@@ -465,33 +465,9 @@ export function initInonuApp() {
     }
   }
 
-  let lockedScrollY: number | null = null;
   function syncModalScrollLock() {
     const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #pdfArchiveModal:not(.hidden), #maintenanceGateOverlay:not(.hidden)'));
-    const htmlEl = document.documentElement;
-    if (hasOpenModal) {
-      if (lockedScrollY === null) {
-        lockedScrollY = window.scrollY || htmlEl.scrollTop || 0;
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${lockedScrollY}px`;
-        document.body.style.left = '0';
-        document.body.style.right = '0';
-        document.body.style.width = '100%';
-      }
-      htmlEl.classList.add('modal-open');
-    } else {
-      htmlEl.classList.remove('modal-open');
-      if (lockedScrollY !== null) {
-        const restoreY = lockedScrollY;
-        lockedScrollY = null;
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        document.body.style.right = '';
-        document.body.style.width = '';
-        window.scrollTo({ top: restoreY, behavior: 'auto' });
-      }
-    }
+    document.documentElement.classList.toggle('modal-open', hasOpenModal);
   }
 
   function openAnimatedModal(modal, card, onOpenFocus) {
@@ -1060,7 +1036,9 @@ export function initInonuApp() {
     document.getElementById('btnFilterKurul2').textContent = loc.filterK2;
 
     document.getElementById('inputSearchQuery').placeholder = loc.searchPlaceholder;
-    document.getElementById('btnClearSearch').textContent = loc.clearSearch;
+    document.getElementById('btnClearSearch')?.setAttribute('aria-label', loc.clearSearch);
+    const cancelSearchBtn = document.getElementById('btnCancelSearch');
+    if (cancelSearchBtn) cancelSearchBtn.textContent = state.lang === 'en' ? 'Cancel' : 'Vazgeç';
 
     document.getElementById('infoCalcTitle').textContent = loc.infoCalcTitle;
     document.getElementById('lblAraSinav').textContent = loc.lblAraSinav;
@@ -1312,7 +1290,12 @@ export function initInonuApp() {
       : 0;
 
     if (changed && !preserveScroll) {
-      if (prevTab && lockedScrollY === null) {
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (activeEl && typeof activeEl.blur === 'function' && activeEl.closest && activeEl.closest('#appMain')) {
+        activeEl.blur();
+      }
+      document.getElementById('appNav')?.classList.remove('is-keyboard-open');
+      if (prevTab) {
         tabScrollPositions[prevTab] = window.scrollY || 0;
       }
       if (tabName === 'daily' || tabName === 'food') {
@@ -1374,12 +1357,10 @@ export function initInonuApp() {
     }
 
     persistNavViewState();
-    if (changed && !preserveScroll && lockedScrollY === null) {
+    if (changed && !preserveScroll) {
       const targetScrollY = tabScrollPositions[tabName] || 0;
       requestAnimationFrame(() => {
-        if (lockedScrollY === null) {
-          window.scrollTo({ top: targetScrollY, behavior: 'auto' });
-        }
+        window.scrollTo({ top: targetScrollY, behavior: 'auto' });
         updateHeaderScrollState();
       });
     } else {
@@ -8182,7 +8163,8 @@ export function initInonuApp() {
     const datePanel = document.getElementById('adminCancelDatePickerPanel');
     const dateBtn = document.getElementById('btnAdminCancelDateTrigger');
     if (!datePanel || !dateBtn) return;
-    const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : datePanel.classList.contains('hidden');
+    const wasOpen = !datePanel.classList.contains('hidden');
+    const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : !wasOpen;
     datePanel.classList.toggle('hidden', !nextOpen);
     dateBtn.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
     const arrow = dateBtn.querySelector('.admin-picker-chevron') || dateBtn.querySelector('svg:last-child');
@@ -8195,7 +8177,9 @@ export function initInonuApp() {
       const listEl = document.getElementById('adminCancelDateOptions');
       if (listEl) listEl.scrollTop = 0;
     }
-    window.__INONU_BACK_NAV__?.sync(nextOpen ? 'open' : 'close');
+    if (wasOpen !== nextOpen) {
+      window.__INONU_BACK_NAV__?.sync(nextOpen ? 'open' : 'close');
+    }
   }
 
   function setAdminCancelSelectedDate(dateStr, animDir = 'none') {
@@ -8603,9 +8587,12 @@ export function initInonuApp() {
     };
 
     if (!which) {
+      const anyWasOpen =
+        Boolean(datePanel && !datePanel.classList.contains('hidden')) ||
+        Boolean(slotPanel && !slotPanel.classList.contains('hidden'));
       setState(datePanel, dateBtn, false);
       setState(slotPanel, slotBtn, false);
-      window.__INONU_BACK_NAV__?.sync('close');
+      if (anyWasOpen) window.__INONU_BACK_NAV__?.sync('close');
       return;
     }
 
@@ -9248,40 +9235,42 @@ export function initInonuApp() {
       mainEl.addEventListener('pointerout', handleLeave, { passive: true });
     })();
 
-    // Hide fixed bottom dock + keep modals keyboard-aware via --app-vvh / --app-kb-inset across orientations
+    // Hide fixed bottom dock ONLY while virtual keyboard is actually open + keep modals keyboard-aware across iOS & Android
     (() => {
       const navEl = document.getElementById('appNav');
       let lastWidth = window.innerWidth;
       let baseViewportHeight = window.innerHeight;
+      let wasKeyboardOpen = false;
       const isEditable = (el) => Boolean(
         el && el.tagName && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !/^(checkbox|radio|file|button|submit|reset)$/i.test(el.type || '')))
       );
-      const syncViewportVars = (editableFocused) => {
+      const isElementVisible = (el) => Boolean(el && el.isConnected && !el.closest('.hidden') && el.getClientRects().length > 0);
+      const detectKeyboardOpen = (editableFocused) => {
         const vv = window.visualViewport;
         const winH = window.innerHeight;
+        const vvh = vv ? Math.round(vv.height) : winH;
         if (Math.abs(window.innerWidth - lastWidth) > 40) {
           lastWidth = window.innerWidth;
-          baseViewportHeight = Math.max(winH, vv ? vv.height : winH);
-        } else if (!editableFocused) {
-          baseViewportHeight = Math.max(winH, vv ? vv.height : winH);
+          baseViewportHeight = Math.max(winH, vvh);
+        } else if (!editableFocused || vvh > baseViewportHeight) {
+          baseViewportHeight = Math.max(winH, vvh);
         }
-        const vvh = vv ? Math.round(vv.height) : winH;
         const kbInset = vv ? Math.max(0, Math.round(winH - vv.height - vv.offsetTop)) : 0;
-        const effectiveKb = (editableFocused && (kbInset > 60 || baseViewportHeight - vvh > 120))
-          ? Math.max(kbInset, Math.max(0, Math.round(baseViewportHeight - vvh)))
-          : 0;
-        document.documentElement.style.setProperty('--app-vvh', `${vvh}px`);
-        document.documentElement.style.setProperty('--app-kb-inset', `${effectiveKb}px`);
-        return { vvh, heightDrop: baseViewportHeight - vvh > 120 };
+        const heightDrop = baseViewportHeight - vvh > 110;
+        const keyboardOpen = Boolean(editableFocused && (kbInset > 60 || heightDrop));
+        return { keyboardOpen };
       };
       const syncKeyboardDock = () => {
-        const activeEl = document.activeElement;
-        const editableFocused = isEditable(activeEl);
-        const { heightDrop } = syncViewportVars(editableFocused);
+        const activeEl = document.activeElement as HTMLElement | null;
+        const editableFocused = isEditable(activeEl) && isElementVisible(activeEl);
+        const { keyboardOpen } = detectKeyboardOpen(editableFocused);
+        // When Android hardware Back or keyboard-hide dismisses keyboard without blurring input, blur cleanly so dock always returns
+        if (wasKeyboardOpen && !keyboardOpen && editableFocused && activeEl && activeEl.closest && activeEl.closest('#appMain')) {
+          activeEl.blur();
+        }
+        wasKeyboardOpen = keyboardOpen;
         if (!navEl) return;
-        const mainInputFocused = editableFocused && Boolean(activeEl && activeEl.closest && activeEl.closest('#appMain'));
-        const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-        navEl.classList.toggle('is-keyboard-open', (isTouch && mainInputFocused) || (editableFocused && heightDrop));
+        navEl.classList.toggle('is-keyboard-open', keyboardOpen);
       };
       document.addEventListener('focusin', (e) => {
         syncKeyboardDock();
@@ -9295,12 +9284,33 @@ export function initInonuApp() {
           }, 260);
         }
       }, { passive: true });
-      document.addEventListener('focusout', () => setTimeout(syncKeyboardDock, 80), { passive: true });
+      document.addEventListener('focusout', () => setTimeout(syncKeyboardDock, 70), { passive: true });
       window.addEventListener('resize', syncKeyboardDock, { passive: true });
-      window.addEventListener('orientationchange', () => setTimeout(syncKeyboardDock, 150), { passive: true });
+      window.addEventListener('orientationchange', () => setTimeout(syncKeyboardDock, 180), { passive: true });
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', syncKeyboardDock, { passive: true });
         window.visualViewport.addEventListener('scroll', syncKeyboardDock, { passive: true });
+      }
+      // iOS-style tap outside main inputs dismisses lingering focus & restores bottom dock
+      document.addEventListener('pointerdown', (e) => {
+        const activeEl = document.activeElement as HTMLElement | null;
+        if (!activeEl || !isEditable(activeEl) || !activeEl.closest || !activeEl.closest('#appMain')) return;
+        const target = e.target as HTMLElement | null;
+        if (target && target.closest && target.closest('input, textarea, select, label, #btnClearSearch, #btnCancelSearch, .cs-slot')) return;
+        activeEl.blur();
+        if (navEl) navEl.classList.remove('is-keyboard-open');
+      }, { passive: true });
+      // Native iOS tap-top-header-to-scroll-to-top
+      const appHeader = document.getElementById('appHeader');
+      if (appHeader) {
+        appHeader.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement | null;
+          if (target && target.closest && target.closest('button, a, input, select')) return;
+          if (window.scrollY > 12) {
+            triggerHaptic('selection');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        });
       }
       syncKeyboardDock();
     })();
@@ -9868,11 +9878,64 @@ export function initInonuApp() {
       renderFoodView(true);
     });
 
-    document.getElementById('inputSearchQuery').addEventListener('input', renderSearchView);
-    document.getElementById('btnClearSearch').addEventListener('click', () => {
-      document.getElementById('inputSearchQuery').value = '';
+    const searchInputEl = document.getElementById('inputSearchQuery') as HTMLInputElement | null;
+    const searchCancelBtn = document.getElementById('btnCancelSearch') as HTMLButtonElement | null;
+    const searchRowEl = searchInputEl?.closest('.ios-search-row') as HTMLElement | null;
+    const syncSearchBarState = () => {
+      if (!searchInputEl || !searchRowEl) return;
+      const isActive = document.activeElement === searchInputEl || searchInputEl.value.trim().length > 0;
+      searchRowEl.classList.toggle('is-search-active', isActive);
+      if (searchCancelBtn) {
+        searchCancelBtn.textContent = state.lang === 'en' ? 'Cancel' : 'Vazgeç';
+      }
+    };
+    if (searchInputEl) {
+      searchInputEl.addEventListener('input', () => {
+        renderSearchView();
+        syncSearchBarState();
+      });
+      searchInputEl.addEventListener('focus', syncSearchBarState);
+      searchInputEl.addEventListener('blur', () => setTimeout(syncSearchBarState, 80));
+      searchInputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          searchInputEl.blur();
+          document.getElementById('appNav')?.classList.remove('is-keyboard-open');
+        }
+      });
+    }
+    document.getElementById('btnClearSearch')?.addEventListener('click', () => {
+      if (searchInputEl) {
+        searchInputEl.value = '';
+        searchInputEl.focus();
+      }
       renderSearchView();
+      syncSearchBarState();
     });
+    if (searchCancelBtn) {
+      searchCancelBtn.addEventListener('click', () => {
+        if (searchInputEl) {
+          searchInputEl.value = '';
+          searchInputEl.blur();
+        }
+        document.getElementById('appNav')?.classList.remove('is-keyboard-open');
+        renderSearchView();
+        syncSearchBarState();
+        triggerHaptic('selection');
+      });
+    }
+    // iOS keyboardDismissMode = .onDrag inside search results
+    const searchResultsEl = document.getElementById('searchResultsContainer');
+    if (searchResultsEl && searchInputEl) {
+      const dismissSearchKeyboard = () => {
+        if (document.activeElement === searchInputEl) {
+          searchInputEl.blur();
+          document.getElementById('appNav')?.classList.remove('is-keyboard-open');
+        }
+      };
+      searchResultsEl.addEventListener('touchmove', dismissSearchKeyboard, { passive: true });
+      searchResultsEl.addEventListener('wheel', dismissSearchKeyboard, { passive: true });
+    }
 
     document.getElementById('btnCloseNoteModal').addEventListener('click', closeNoteModal);
     document.getElementById('noteModal').addEventListener('click', (e) => {
@@ -10489,9 +10552,11 @@ export function initInonuApp() {
 
       scrollBody.addEventListener('touchstart', (e) => {
         if (adminState.activeTab === 'hub' || !e.touches || e.touches.length !== 1) return;
+        const targetEl = e.target as HTMLElement | null;
+        if (targetEl && typeof targetEl.closest === 'function' && targetEl.closest('.overflow-x-auto, input, textarea, select, button, a, label')) return;
         const rect = scrollBody.getBoundingClientRect();
         const relX = e.touches[0].clientX - rect.left;
-        if (relX > 40) return;
+        if (relX > 26) return;
         edgeTracking = true;
         sx = e.touches[0].clientX;
         sy = e.touches[0].clientY;

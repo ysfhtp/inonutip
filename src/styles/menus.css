@@ -327,7 +327,7 @@
   color: rgba(148, 163, 184, 0.5);
 }
 
-@media (pointer: coarse) {
+@supports (-webkit-touch-callout: none) {
   .cs-slot-input {
     letter-spacing: -0.04em;
     padding: 0 1px;
@@ -747,7 +747,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(14px, env(safe-area-inset-top, 0px)) 16px calc(max(14px, env(safe-area-inset-bottom, 0px)) + var(--app-kb-inset, 0px));
+  padding: max(14px, env(safe-area-inset-top, 0px)) 16px max(14px, env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -772,7 +772,7 @@
 .pdf-arch-card {
   width: 100%;
   max-width: 480px;
-  max-height: calc(var(--app-vvh, 100dvh) - 2rem);
+  max-height: 82dvh;
   margin-top: auto;
   margin-bottom: auto;
   border-radius: 28px;
@@ -914,7 +914,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(14px, env(safe-area-inset-top, 0px)) 16px calc(max(14px, env(safe-area-inset-bottom, 0px)) + var(--app-kb-inset, 0px));
+  padding: max(14px, env(safe-area-inset-top, 0px)) 16px max(14px, env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -939,7 +939,7 @@
 .fb-card {
   width: 100%;
   max-width: 440px;
-  max-height: calc(var(--app-vvh, 100dvh) - 2rem);
+  max-height: 86dvh;
   margin-top: auto;
   margin-bottom: auto;
   border-radius: 28px;

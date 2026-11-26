@@ -87,6 +87,11 @@ export interface InonuBridge {
   getScheduleDays: (prog?: 'tr' | 'en') => BridgeScheduleDay[];
   getAllMaterials: () => BridgeMaterialItem[];
   openMaterial: (mat: BridgeMaterialItem) => void;
+  openNoteModalForSlot: (slot: BridgeScheduleSlot) => void;
+  openInstructorModalByName: (name: string) => void;
+  openLessonPdfsForSlot: (slot: BridgeScheduleSlot) => boolean;
+  getMaterialsCountForSlot: (slot: BridgeScheduleSlot) => number;
+  hasNoteForSlot: (slot: BridgeScheduleSlot) => boolean;
   openDateTimePicker: (opts: {
     mode: 'date' | 'datetime';
     title: string;
@@ -107,6 +112,11 @@ declare global {
     __INONU_BACK_NAV__?: {
       sync: (reason?: 'open' | 'close' | 'tab') => void;
       closeTopmost: (includeTabs?: boolean) => boolean;
+    };
+    __INONU_IOS__?: {
+      openStudentSlotMenu: (slot: BridgeScheduleSlot) => void;
+      closeStudentSlotMenu: () => void;
+      syncLargeTitle: () => void;
     };
     __INONU_BOTTOM_SHEET__?: {
       open: () => void;
