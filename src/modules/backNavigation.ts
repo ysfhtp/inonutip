@@ -82,7 +82,6 @@ function getActiveLayerCount(): number {
   const bridge = getBridge();
   let count = 0;
 
-  if (isModuleOverlayOpen('animeWelcomeOverlay')) count++;
   if (isStandardModalOpen('adminDateTimeModal')) count++;
   if (isStandardModalOpen('adminSlotQuickModal')) count++;
   if (isAnyAdminInlinePickerOpen()) count++;
@@ -124,12 +123,6 @@ function closeTopmostLayer(includeTabs = true): boolean {
   if (isHardBlocked()) return false;
   const bridge = getBridge();
   if (!bridge) return false;
-
-  // 0. Anime Welcome launch splash overlay
-  if (isModuleOverlayOpen('animeWelcomeOverlay') && window.__INONU_ANIME_WELCOME__) {
-    window.__INONU_ANIME_WELCOME__.close();
-    return true;
-  }
 
   // 1. Nested topmost pickers & WhatsApp-style quick context menu
   if (isStandardModalOpen('adminDateTimeModal')) {

@@ -466,7 +466,7 @@ export function initInonuApp() {
   }
 
   function syncModalScrollLock() {
-    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #pdfArchiveModal:not(.hidden), #maintenanceGateOverlay:not(.hidden), #animeWelcomeOverlay:not(.hidden)'));
+    const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #pdfArchiveModal:not(.hidden), #maintenanceGateOverlay:not(.hidden)'));
     document.documentElement.classList.toggle('modal-open', hasOpenModal);
   }
 
@@ -6926,7 +6926,6 @@ export function initInonuApp() {
         'extras-overrides': isEn ? 'Lesson Overrides' : 'Saat / Amfi Değişikliği',
         'extras-extra-lessons': isEn ? 'Extra Lessons' : 'Ek / Telafi Ders',
         'extras-banner': isEn ? 'Emergency Banner' : 'Acil / Bakım Bannerı',
-        'extras-anime': isEn ? 'Anime Welcome' : 'Anime Karşılama',
       };
       const nextTitle = titles[tabKey] || loc.adminModalTitle;
       if (titleEl.textContent !== nextTitle) {
@@ -10530,8 +10529,7 @@ export function initInonuApp() {
           'extras-polls': 'adminPaneExtrasPolls',
           'extras-overrides': 'adminPaneExtrasOverrides',
           'extras-extra-lessons': 'adminPaneExtrasExtraLessons',
-          'extras-banner': 'adminPaneExtrasBanner',
-          'extras-anime': 'adminPaneExtrasAnime'
+          'extras-banner': 'adminPaneExtrasBanner'
         };
         const id = map[adminState.activeTab];
         return id ? document.getElementById(id) : null;

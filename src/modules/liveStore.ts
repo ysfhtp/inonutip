@@ -90,15 +90,6 @@ export interface MaintenanceConfig {
   updatedAtMs: number;
 }
 
-export interface AnimeWelcomeConfig {
-  active: boolean;
-  title: string;
-  message: string;
-  allowedHashes: string[];
-  allowedLabels: string[];
-  updatedAtMs: number;
-}
-
 export type MaintenanceRuntimeStatus = 'off' | 'scheduled' | 'active' | 'expired';
 
 export function getMaintenanceStatus(m: MaintenanceConfig, nowMs: number = Date.now()): MaintenanceRuntimeStatus {
@@ -142,7 +133,6 @@ export const FOOD_RATING_TAGS: ReadonlyArray<{ tr: string; en: string }> = [
 export interface LiveStoreSnapshot {
   banner: EmergencyBanner;
   maintenance: MaintenanceConfig;
-  animeWelcome: AnimeWelcomeConfig;
   polls: LivePoll[];
   overrides: LessonOverride[];
   extraLessons: ExtraLesson[];
@@ -209,20 +199,10 @@ const DEFAULT_MAINTENANCE: MaintenanceConfig = {
   updatedAtMs: 0,
 };
 
-const DEFAULT_ANIME_WELCOME: AnimeWelcomeConfig = {
-  active: false,
-  title: 'Hoş Geldin! 🌸',
-  message: 'Bugünkü derslerinde bol şans, harika bir gün dilerim!',
-  allowedHashes: [],
-  allowedLabels: [],
-  updatedAtMs: 0,
-};
-
 function createEmptyState(): LiveStoreSnapshot {
   return {
     banner: { active: false, text: '', tone: 'urgent', updatedAtMs: 0 },
     maintenance: { ...DEFAULT_MAINTENANCE, allowedHashes: [], allowedLabels: [] },
-    animeWelcome: { ...DEFAULT_ANIME_WELCOME, allowedHashes: [], allowedLabels: [] },
     polls: [],
     overrides: [],
     extraLessons: [],
@@ -265,33 +245,6 @@ function normalizeMaintenance(raw: unknown): MaintenanceConfig {
   };
 }
 
-function normalizeAnimeWelcome(raw: unknown): AnimeWelcomeConfig {
-  if (!raw || typeof raw !== 'object') {
-    return { ...DEFAULT_ANIME_WELCOME, allowedHashes: [], allowedLabels: [] };
-  }
-  const d = raw as Record<string, unknown>;
-  const rawHashes = Array.isArray(d.allowedHashes) ? d.allowedHashes : [];
-  const rawLabels = Array.isArray(d.allowedLabels) ? d.allowedLabels : [];
-  const allowedHashes: string[] = [];
-  const allowedLabels: string[] = [];
-  const seen = new Set<string>();
-  for (let i = 0; i < rawHashes.length && allowedHashes.length < 50; i += 1) {
-    const h = String(rawHashes[i] || '').trim().toLowerCase();
-    if (!/^[a-f0-9]{32}$/.test(h) || seen.has(h)) continue;
-    seen.add(h);
-    allowedHashes.push(h);
-    allowedLabels.push(String(rawLabels[i] || '••••').trim().slice(0, 80) || '••••');
-  }
-  return {
-    active: Boolean(d.active),
-    title: String(d.title || DEFAULT_ANIME_WELCOME.title).trim().slice(0, 80) || DEFAULT_ANIME_WELCOME.title,
-    message: String(d.message || DEFAULT_ANIME_WELCOME.message).trim().slice(0, 240) || DEFAULT_ANIME_WELCOME.message,
-    allowedHashes,
-    allowedLabels,
-    updatedAtMs: Number(d.updatedAtMs) || 0,
-  };
-}
-
 function loadCachedState(): LiveStoreSnapshot {
   const base = createEmptyState();
   try {
@@ -308,9 +261,6 @@ function loadCachedState(): LiveStoreSnapshot {
     }
     if (parsed.maintenance && typeof parsed.maintenance === 'object') {
       base.maintenance = normalizeMaintenance(parsed.maintenance);
-    }
-    if (parsed.animeWelcome && typeof parsed.animeWelcome === 'object') {
-      base.animeWelcome = normalizeAnimeWelcome(parsed.animeWelcome);
     }
     if (Array.isArray(parsed.polls)) base.polls = parsed.polls;
     if (Array.isArray(parsed.overrides)) base.overrides = parsed.overrides;
@@ -516,26 +466,6 @@ export function initLiveStore(): void {
     );
   } catch (err) {
     handleFirestoreError(err, OperationType.GET, 'config/maintenance');
-  }
-
-  try {
-    unsubs.push(
-      onSnapshot(
-        doc(db, 'config', 'animeWelcome'),
-        (snap) => {
-          state = {
-            ...state,
-            animeWelcome: snap.exists()
-              ? normalizeAnimeWelcome(snap.data())
-              : { ...DEFAULT_ANIME_WELCOME, allowedHashes: [], allowedLabels: [] },
-          };
-          notify(false);
-        },
-        (err) => handleFirestoreError(err, OperationType.GET, 'config/animeWelcome')
-      )
-    );
-  } catch (err) {
-    handleFirestoreError(err, OperationType.GET, 'config/animeWelcome');
   }
 
   try {
@@ -821,29 +751,6 @@ export async function saveMaintenanceConfig(input: {
       await setDoc(doc(db, 'config', 'maintenance'), payload);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'config/maintenance');
-    }
-  }
-  return payload;
-}
-
-export async function saveAnimeWelcomeConfig(input: {
-  active: boolean;
-  title: string;
-  message: string;
-  allowedHashes: string[];
-  allowedLabels: string[];
-}): Promise<AnimeWelcomeConfig> {
-  const payload = normalizeAnimeWelcome({
-    ...input,
-    updatedAtMs: Date.now(),
-  });
-  state = { ...state, animeWelcome: payload };
-  notify(false);
-  if (db && !isFirebaseQuotaExceeded()) {
-    try {
-      await setDoc(doc(db, 'config', 'animeWelcome'), payload);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, 'config/animeWelcome');
     }
   }
   return payload;

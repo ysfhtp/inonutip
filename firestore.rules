@@ -141,26 +141,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    function isValidAnimeWelcomeConfig(data) {
-      return data.keys().hasAll(['active', 'title', 'message', 'allowedHashes', 'allowedLabels', 'updatedAtMs']) &&
-        data.keys().hasOnly(['active', 'title', 'message', 'allowedHashes', 'allowedLabels', 'updatedAtMs']) &&
-        data.active is bool &&
-        data.title is string && data.title.size() <= 80 &&
-        data.message is string && data.message.size() <= 240 &&
-        data.allowedHashes is list && data.allowedHashes.size() <= 50 &&
-        (data.allowedHashes.size() == 0 || (data.allowedHashes[0] is string && data.allowedHashes[0].size() == 32 && data.allowedHashes[0].matches('^[a-f0-9]{32}$'))) &&
-        data.allowedLabels is list && data.allowedLabels.size() == data.allowedHashes.size() &&
-        (data.allowedLabels.size() == 0 || (data.allowedLabels[0] is string && data.allowedLabels[0].size() <= 80)) &&
-        (data.updatedAtMs is int || data.updatedAtMs is float) && data.updatedAtMs >= 0;
-    }
-
-    match /config/animeWelcome {
-      allow get: if true;
-      allow list: if false;
-      allow create, update: if isValidAnimeWelcomeConfig(request.resource.data);
-      allow delete: if false;
-    }
-
     function isValidLivePoll(data) {
       return data.keys().hasAll(['id', 'question', 'options', 'counts', 'targetProg', 'active', 'createdAtMs', 'updatedAtMs']) &&
         data.keys().hasOnly(['id', 'question', 'options', 'counts', 'targetProg', 'active', 'createdAtMs', 'updatedAtMs']) &&

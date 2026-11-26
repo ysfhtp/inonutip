@@ -13,7 +13,6 @@ import { initBottomSheet } from './bottomSheet.ts';
 import { initOfflineSupport } from './offlineSupport.ts';
 import { initBackNavigation } from './backNavigation.ts';
 import { initIosEnhancements } from './iosEnhancements.ts';
-import { initAnimeWelcome } from './animeWelcome.ts';
 
 export function initModularMenus(): void {
   initLiveStore();
@@ -31,6 +30,5 @@ export function initModularMenus(): void {
     initFoodRatings();
     initAdminExtras();
     initIosEnhancements();
-    initAnimeWelcome();
   });
 }
