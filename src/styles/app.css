@@ -1029,7 +1029,7 @@ body {
 }
 .ios-safe-modal {
   padding-top: max(0.75rem, env(safe-area-inset-top, 0px)) !important;
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)) !important;
+  padding-bottom: calc(max(0.75rem, env(safe-area-inset-bottom, 0px)) + var(--app-kb-inset, 0px)) !important;
   padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
   padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
   overflow-y: auto;
@@ -1040,9 +1040,12 @@ body {
   margin-top: auto;
   margin-bottom: auto;
 }
+#adminModal {
+  padding-bottom: var(--app-kb-inset, 0px);
+}
 #adminModalCard {
   max-height: 88vh;
-  max-height: calc(100dvh - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(var(--app-vvh, 100dvh) - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
 }
 #lessonPdfsModalList {
   max-height: 55vh;
@@ -1058,6 +1061,24 @@ body {
   textarea {
     font-size: 16px !important;
   }
+}
+@supports (-webkit-touch-callout: none) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+.slot-card,
+.ann-card,
+.exam-card,
+.food-card,
+.nav-tab-btn,
+#adminSheetHandle,
+#adminModalHeader {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .slot-mbu-bar { background-color: var(--color-amber-500, #f59e0b); }

@@ -388,9 +388,6 @@ export function initStudentFeedback(): void {
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeModal();
   });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modalOpen) closeModal();
-  });
 
   formEl.addEventListener('submit', async (e) => {
     e.preventDefault();

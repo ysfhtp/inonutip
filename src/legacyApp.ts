@@ -465,9 +465,33 @@ export function initInonuApp() {
     }
   }
 
+  let lockedScrollY: number | null = null;
   function syncModalScrollLock() {
     const hasOpenModal = Boolean(document.querySelector('.ios-safe-modal:not(.hidden), .ios-popover-backdrop:not(.hidden), #adminModal:not(.hidden), #adminSlotQuickModal:not(.hidden), #adminDateTimeModal:not(.hidden), #studentFeedbackModal:not(.hidden), #pdfArchiveModal:not(.hidden), #maintenanceGateOverlay:not(.hidden)'));
-    document.documentElement.classList.toggle('modal-open', hasOpenModal);
+    const htmlEl = document.documentElement;
+    if (hasOpenModal) {
+      if (lockedScrollY === null) {
+        lockedScrollY = window.scrollY || htmlEl.scrollTop || 0;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${lockedScrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+      }
+      htmlEl.classList.add('modal-open');
+    } else {
+      htmlEl.classList.remove('modal-open');
+      if (lockedScrollY !== null) {
+        const restoreY = lockedScrollY;
+        lockedScrollY = null;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        window.scrollTo({ top: restoreY, behavior: 'auto' });
+      }
+    }
   }
 
   function openAnimatedModal(modal, card, onOpenFocus) {
@@ -1276,6 +1300,8 @@ export function initInonuApp() {
     aura.setAttribute('data-bloom', next);
   }
 
+  const tabScrollPositions: Record<string, number> = {};
+
   function activateTabView(tabName, preserveScroll = false) {
     const prevTab = state.activeTab;
     const changed = prevTab !== tabName;
@@ -1286,8 +1312,9 @@ export function initInonuApp() {
       : 0;
 
     if (changed && !preserveScroll) {
-      window.scrollTo({ top: 0, behavior: 'auto' });
-      updateHeaderScrollState();
+      if (prevTab && lockedScrollY === null) {
+        tabScrollPositions[prevTab] = window.scrollY || 0;
+      }
       if (tabName === 'daily' || tabName === 'food') {
         forceInstantCarouselSync = true;
       }
@@ -1347,7 +1374,17 @@ export function initInonuApp() {
     }
 
     persistNavViewState();
-    requestAnimationFrame(updateHeaderScrollState);
+    if (changed && !preserveScroll && lockedScrollY === null) {
+      const targetScrollY = tabScrollPositions[tabName] || 0;
+      requestAnimationFrame(() => {
+        if (lockedScrollY === null) {
+          window.scrollTo({ top: targetScrollY, behavior: 'auto' });
+        }
+        updateHeaderScrollState();
+      });
+    } else {
+      requestAnimationFrame(updateHeaderScrollState);
+    }
   }
 
   function setDockActiveVisual(tabName, syncOnly = false) {
@@ -1575,14 +1612,25 @@ export function initInonuApp() {
 
       if (didMove) {
         triggerHaptic('tick');
-        switchTab(currentTargetTab, true);
+        if (currentTargetTab === state.activeTab) {
+          if (window.scrollY > 12) window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          switchTab(currentTargetTab, true);
+        }
       } else if (e.type !== 'pointercancel') {
         const hit = (e.target && e.target.closest && e.target.closest('.nav-tab-btn'));
         const closestBtn = metrics && getClosestBtn(e.clientX);
         const clickedTab = (hit && hit.getAttribute('data-tab')) || (closestBtn && closestBtn.tab);
         if (clickedTab) {
-          triggerHaptic('tick');
-          switchTab(clickedTab, true);
+          if (clickedTab === state.activeTab) {
+            if (window.scrollY > 12) {
+              triggerHaptic('selection');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          } else {
+            triggerHaptic('tick');
+            switchTab(clickedTab, true);
+          }
         }
       }
       metrics = null;
@@ -9200,28 +9248,61 @@ export function initInonuApp() {
       mainEl.addEventListener('pointerout', handleLeave, { passive: true });
     })();
 
-    // Hide fixed bottom dock when Android/iPhone virtual keyboard opens on main form inputs
+    // Hide fixed bottom dock + keep modals keyboard-aware via --app-vvh / --app-kb-inset across orientations
     (() => {
       const navEl = document.getElementById('appNav');
-      if (!navEl) return;
-      const baseViewportHeight = window.innerHeight;
+      let lastWidth = window.innerWidth;
+      let baseViewportHeight = window.innerHeight;
       const isEditable = (el) => Boolean(
         el && el.tagName && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !/^(checkbox|radio|file|button|submit|reset)$/i.test(el.type || '')))
       );
+      const syncViewportVars = (editableFocused) => {
+        const vv = window.visualViewport;
+        const winH = window.innerHeight;
+        if (Math.abs(window.innerWidth - lastWidth) > 40) {
+          lastWidth = window.innerWidth;
+          baseViewportHeight = Math.max(winH, vv ? vv.height : winH);
+        } else if (!editableFocused) {
+          baseViewportHeight = Math.max(winH, vv ? vv.height : winH);
+        }
+        const vvh = vv ? Math.round(vv.height) : winH;
+        const kbInset = vv ? Math.max(0, Math.round(winH - vv.height - vv.offsetTop)) : 0;
+        const effectiveKb = (editableFocused && (kbInset > 60 || baseViewportHeight - vvh > 120))
+          ? Math.max(kbInset, Math.max(0, Math.round(baseViewportHeight - vvh)))
+          : 0;
+        document.documentElement.style.setProperty('--app-vvh', `${vvh}px`);
+        document.documentElement.style.setProperty('--app-kb-inset', `${effectiveKb}px`);
+        return { vvh, heightDrop: baseViewportHeight - vvh > 120 };
+      };
       const syncKeyboardDock = () => {
         const activeEl = document.activeElement;
         const editableFocused = isEditable(activeEl);
-        const vv = window.visualViewport;
-        const heightDrop = vv ? (baseViewportHeight - vv.height > 140) : false;
-        const mainInputFocused = editableFocused && Boolean(activeEl.closest('#appMain'));
+        const { heightDrop } = syncViewportVars(editableFocused);
+        if (!navEl) return;
+        const mainInputFocused = editableFocused && Boolean(activeEl && activeEl.closest && activeEl.closest('#appMain'));
         const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
         navEl.classList.toggle('is-keyboard-open', (isTouch && mainInputFocused) || (editableFocused && heightDrop));
       };
-      document.addEventListener('focusin', syncKeyboardDock, { passive: true });
-      document.addEventListener('focusout', () => setTimeout(syncKeyboardDock, 60), { passive: true });
+      document.addEventListener('focusin', (e) => {
+        syncKeyboardDock();
+        const target = e.target as HTMLElement | null;
+        const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        if (isTouch && target && isEditable(target) && target.closest('.ios-safe-modal, .fb-card, .pdf-arch-card, #adminModalCard')) {
+          setTimeout(() => {
+            if (document.activeElement === target && typeof target.scrollIntoView === 'function') {
+              target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+          }, 260);
+        }
+      }, { passive: true });
+      document.addEventListener('focusout', () => setTimeout(syncKeyboardDock, 80), { passive: true });
+      window.addEventListener('resize', syncKeyboardDock, { passive: true });
+      window.addEventListener('orientationchange', () => setTimeout(syncKeyboardDock, 150), { passive: true });
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', syncKeyboardDock, { passive: true });
+        window.visualViewport.addEventListener('scroll', syncKeyboardDock, { passive: true });
       }
+      syncKeyboardDock();
     })();
 
     // Global subtle micro-haptics on interactive taps (capture phase so DOM re-renders don't cancel bubbling; zero buzz on scroll/drag)
@@ -9999,17 +10080,20 @@ export function initInonuApp() {
       });
     }
 
-    // Feature 4: Mobile Bottom-Sheet Swipe-to-Dismiss on Grab Handle & Header
+    // Feature 4: Mobile Bottom-Sheet Swipe-to-Dismiss on Grab Handle & Header (with scrollTop & horizontal intent guards)
     (() => {
       const sheetCard = document.getElementById('adminModalCard');
       const sheetOverlay = document.getElementById('adminModal');
+      const scrollBody = document.getElementById('adminModalScrollBody');
       const dragTargets = [
         document.getElementById('adminSheetHandle'),
         document.getElementById('adminModalHeader')
       ].filter(Boolean);
       if (!sheetCard || !sheetOverlay || dragTargets.length === 0) return;
 
+      let tracking = false;
       let dragging = false;
+      let startX = 0;
       let startY = 0;
       let startTime = 0;
       let currentDy = 0;
@@ -10018,18 +10102,31 @@ export function initInonuApp() {
         if (window.innerWidth >= 640) return;
         if (!e.touches || e.touches.length !== 1) return;
         const targetEl = e.target;
-        if (targetEl && typeof targetEl.closest === 'function' && targetEl.closest('button, input, a')) return;
-        dragging = true;
+        if (targetEl && typeof targetEl.closest === 'function' && targetEl.closest('button, input, textarea, select, a')) return;
+        const onHandle = Boolean(targetEl && typeof targetEl.closest === 'function' && targetEl.closest('#adminSheetHandle'));
+        if (!onHandle && scrollBody && scrollBody.scrollTop > 2) return;
+        tracking = true;
+        dragging = false;
+        startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
         startTime = Date.now();
         currentDy = 0;
-        sheetCard.classList.remove('is-snapping-back');
-        sheetCard.classList.add('is-dragging');
       };
 
       const onTouchMove = (e) => {
-        if (!dragging || !e.touches || e.touches.length !== 1) return;
+        if (!tracking || !e.touches || e.touches.length !== 1) return;
+        const dx = Math.abs(e.touches[0].clientX - startX);
         const dy = e.touches[0].clientY - startY;
+        if (!dragging) {
+          if (Math.abs(dy) < 6 && dx < 6) return;
+          if (dx > Math.abs(dy) * 0.9 || dy < -8) {
+            tracking = false;
+            return;
+          }
+          dragging = true;
+          sheetCard.classList.remove('is-snapping-back');
+          sheetCard.classList.add('is-dragging');
+        }
         if (dy <= 0) {
           currentDy = dy * 0.14;
         } else {
@@ -10042,6 +10139,7 @@ export function initInonuApp() {
       };
 
       const onTouchEnd = () => {
+        tracking = false;
         if (!dragging) return;
         dragging = false;
         sheetCard.classList.remove('is-dragging');
@@ -11030,14 +11128,6 @@ export function initInonuApp() {
         renderSearchView();
       });
     }
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        const instModal = document.getElementById('instructorModal');
-        if (instModal && !instModal.classList.contains('hidden')) {
-          closeInstructorModal();
-        }
-      }
-    });
 
     document.querySelectorAll('[data-mat-prog]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -11782,30 +11872,31 @@ export function initInonuApp() {
     }
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        const dtModal = document.getElementById('adminDateTimeModal');
-        if (dtModal && !dtModal.classList.contains('hidden')) {
-          closeAdminDateTimeModal();
-          return;
-        }
-        const quickModal = document.getElementById('adminSlotQuickModal');
-        if (quickModal && !quickModal.classList.contains('hidden')) {
-          closeAdminSlotQuickModal();
-          return;
-        }
-        toggleAdminMatPicker(null, false);
-        toggleAdminCancelDatePicker(false);
-        closeSettingsMenu();
-        closePaletteModal();
-        closeAdminModal();
-        closeAuthModal();
-        closeFoodPhotoModal();
-        closeFoodDateModal();
-        closeNoteModal();
-        closeLessonPdfsModal();
-        closeGroupModal();
-        closeInstallModal();
+      if (e.key !== 'Escape') return;
+      // Primary centralized topmost-only Escape handling runs in backNavigation.ts
+      if (window.__INONU_BACK_NAV__?.closeTopmost) return;
+      const dtModal = document.getElementById('adminDateTimeModal');
+      if (dtModal && !dtModal.classList.contains('hidden')) {
+        closeAdminDateTimeModal();
+        return;
       }
+      const quickModal = document.getElementById('adminSlotQuickModal');
+      if (quickModal && !quickModal.classList.contains('hidden')) {
+        closeAdminSlotQuickModal();
+        return;
+      }
+      toggleAdminMatPicker(null, false);
+      toggleAdminCancelDatePicker(false);
+      closeSettingsMenu();
+      closePaletteModal();
+      closeAdminModal();
+      closeAuthModal();
+      closeFoodPhotoModal();
+      closeFoodDateModal();
+      closeNoteModal();
+      closeLessonPdfsModal();
+      closeGroupModal();
+      closeInstallModal();
     });
 
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -11865,10 +11956,48 @@ export function initInonuApp() {
     window.addEventListener('inonu-cloud-synced', () => {
       updateOfflineBannerUI();
     });
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        void verifyActiveStudentSessionNow();
+    let lastVisibleTodayIso = getTodayIso();
+    let lastVisibleDefaultDate = getBestDefaultDate();
+    let lastResumeRefreshAt = Date.now();
+
+    const handleAppResume = () => {
+      if (document.hidden) return;
+      void verifyActiveStudentSessionNow();
+
+      const now = Date.now();
+      const nowTodayIso = getTodayIso();
+      const nowDefaultDate = getBestDefaultDate();
+      const dayRolledOver = nowTodayIso !== lastVisibleTodayIso;
+
+      if (dayRolledOver) {
+        if (state.selectedDate === lastVisibleDefaultDate) {
+          state.selectedDate = nowDefaultDate;
+        }
+        if (state.foodDateISO === lastVisibleTodayIso) {
+          state.foodDateISO = nowTodayIso;
+        }
+        lastVisibleTodayIso = nowTodayIso;
+        lastVisibleDefaultDate = nowDefaultDate;
       }
+
+      if (dayRolledOver || now - lastResumeRefreshAt > 45000) {
+        lastResumeRefreshAt = now;
+        lastDailyRenderSig = '';
+        if (state.activeTab === 'daily') renderDailyView();
+        else if (state.activeTab === 'weekly') renderWeeklyView();
+        else if (state.activeTab === 'food') renderFoodView();
+        else if (state.activeTab === 'info') renderInfoView();
+
+        if (navigator.onLine) {
+          void refreshDailyAnnouncements(false);
+          void refreshLessonMaterials(false);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleAppResume);
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) handleAppResume();
     });
 
     window.addEventListener('resize', () => {

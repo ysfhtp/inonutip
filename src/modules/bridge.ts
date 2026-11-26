@@ -106,6 +106,7 @@ declare global {
     __INONU_BRIDGE__?: InonuBridge;
     __INONU_BACK_NAV__?: {
       sync: (reason?: 'open' | 'close' | 'tab') => void;
+      closeTopmost: (includeTabs?: boolean) => boolean;
     };
     __INONU_BOTTOM_SHEET__?: {
       open: () => void;
@@ -130,6 +131,11 @@ declare global {
         instructor?: string;
         title?: string;
       }) => void;
+    };
+    __INONU_ANATOMY_3D__?: {
+      open: (opts?: Record<string, unknown>) => void;
+      close: () => void;
+      matchLesson: (slot: { title?: string; code?: string }) => unknown;
     };
   }
 }

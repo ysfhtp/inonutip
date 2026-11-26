@@ -119,10 +119,10 @@ function getActiveLayerCount(): number {
 }
 
 /**
- * Closes the single topmost open menu/modal/picker/sub-pane/tab in strict visual priority order.
- * Returns true if a layer was closed, false if already at the root home screen.
+ * Closes the single topmost open menu/modal/picker/sub-pane (and optionally non-home tab) in strict visual priority order.
+ * Returns true if a layer was closed, false if nothing applicable was open.
  */
-function closeTopmostLayer(): boolean {
+function closeTopmostLayer(includeTabs = true): boolean {
   if (isHardBlocked()) return false;
   const bridge = getBridge();
   if (!bridge) return false;
@@ -184,11 +184,13 @@ function closeTopmostLayer(): boolean {
     return bridge.closeModalById('adminModal');
   }
 
-  // 6. Non-home bottom-nav tabs return to Daily (home) tab
-  const activeTab = bridge.getState().activeTab || 'daily';
-  if (activeTab !== 'daily') {
-    bridge.switchTab('daily');
-    return true;
+  // 6. Non-home bottom-nav tabs return to Daily (home) tab (hardware Back only, not Escape)
+  if (includeTabs) {
+    const activeTab = bridge.getState().activeTab || 'daily';
+    if (activeTab !== 'daily') {
+      bridge.switchTab('daily');
+      return true;
+    }
   }
 
   return false;
@@ -365,7 +367,21 @@ export function initBackNavigation(): void {
     }
   });
 
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (closeTopmostLayer(false)) {
+      e.preventDefault();
+      getBridge()?.triggerHaptic('selection');
+      syncBackNav('close');
+    }
+  });
+
   window.__INONU_BACK_NAV__ = {
     sync: syncBackNav,
+    closeTopmost: (includeTabs = false) => {
+      const closed = closeTopmostLayer(includeTabs);
+      if (closed) syncBackNav('close');
+      return closed;
+    },
   };
 }
