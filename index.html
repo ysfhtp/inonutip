@@ -383,13 +383,16 @@
         <div class="flex items-center justify-between gap-2 flex-wrap">
           <div class="min-w-0">
             <h2 id="weeklyViewTitle" class="text-base font-bold text-slate-900 dark:text-white truncate">Haftalık Program</h2>
-            <p id="weeklyViewSubtitle" class="text-xs text-slate-500 dark:text-slate-400 truncate">13 Hafta • 65 Gün</p>
+            <p id="weeklyViewSubtitle" class="text-xs text-slate-500 dark:text-slate-400 truncate">34 Hafta • 170 Gün</p>
           </div>
-          <div id="weeklyKurulSegmentedBar" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full flex items-center text-[11px] sm:text-xs shrink-0">
+          <div id="weeklyKurulSegmentedBar" class="segmented-pill-bar ios-pill-control p-0.5 rounded-full flex items-center text-[11px] sm:text-xs shrink-0 max-w-full overflow-x-auto no-scrollbar">
             <div id="weeklyKurulSegmentedIndicator" class="segmented-pill-indicator"></div>
-            <button id="btnFilterKurulAll" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors">Tümü</button>
-            <button id="btnFilterKurul1" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">Kurul I</button>
-            <button id="btnFilterKurul2" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors">Kurul II</button>
+            <button id="btnFilterKurulAll" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors shrink-0">Tümü</button>
+            <button id="btnFilterKurul1" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors shrink-0">K1</button>
+            <button id="btnFilterKurul2" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors shrink-0">K2</button>
+            <button id="btnFilterKurul3" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors shrink-0">K3</button>
+            <button id="btnFilterKurul4" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors shrink-0">K4</button>
+            <button id="btnFilterKurul5" type="button" class="px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors shrink-0">K5</button>
           </div>
         </div>
         <div id="weekSelectorPills" class="segmented-pill-bar flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5"></div>
@@ -775,6 +778,9 @@
         <button id="btnDailyCalJumpToday" type="button" class="ios-press px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 text-[11px] font-bold transition">Bugün</button>
         <button id="btnDailyCalJumpK1" type="button" class="ios-press px-2.5 py-1 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition">Kurul I</button>
         <button id="btnDailyCalJumpK2" type="button" class="ios-press px-2.5 py-1 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition">Kurul II</button>
+        <button id="btnDailyCalJumpK3" type="button" class="ios-press px-2.5 py-1 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition">Kurul III</button>
+        <button id="btnDailyCalJumpK4" type="button" class="ios-press px-2.5 py-1 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition">Kurul IV</button>
+        <button id="btnDailyCalJumpK5" type="button" class="ios-press px-2.5 py-1 rounded-full ios-pill-control text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition">Kurul V</button>
       </div>
 
       <div class="flex items-center justify-between gap-2 pt-0.5">

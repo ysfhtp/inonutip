@@ -210,8 +210,10 @@ export function initInonuApp() {
       c === 'SINAV' ||
       c === 'EXAM' ||
       c === 'DEĞERLENDİRME' ||
-      titleUpper.includes('EXAM') ||
-      titleUpper.includes('QUIZ') ||
+      titleUpper.includes('SINAV') ||
+      titleUpper.includes('DEĞERLENDİRME') ||
+      /\bEXAMS?\b/i.test(slot.title || '') ||
+      /\bQUIZ\b/i.test(slot.title || '') ||
       titleUpper.includes('EVALUATION')
     ) {
       return 'exam';
@@ -1032,8 +1034,14 @@ export function initInonuApp() {
     document.getElementById('weeklyViewTitle').textContent = loc.weeklyTitle;
     document.getElementById('weeklyViewSubtitle').textContent = loc.weeklySubtitle;
     document.getElementById('btnFilterKurulAll').textContent = loc.filterAll;
-    document.getElementById('btnFilterKurul1').textContent = loc.filterK1;
-    document.getElementById('btnFilterKurul2').textContent = loc.filterK2;
+    document.getElementById('btnFilterKurul1').textContent = loc.filterK1Short || loc.filterK1;
+    document.getElementById('btnFilterKurul2').textContent = loc.filterK2Short || loc.filterK2;
+    const btnFK3 = document.getElementById('btnFilterKurul3');
+    if (btnFK3) btnFK3.textContent = loc.filterK3Short || loc.filterK3;
+    const btnFK4 = document.getElementById('btnFilterKurul4');
+    if (btnFK4) btnFK4.textContent = loc.filterK4Short || loc.filterK4;
+    const btnFK5 = document.getElementById('btnFilterKurul5');
+    if (btnFK5) btnFK5.textContent = loc.filterK5Short || loc.filterK5;
 
     document.getElementById('inputSearchQuery').placeholder = loc.searchPlaceholder;
     document.getElementById('btnClearSearch')?.setAttribute('aria-label', loc.clearSearch);
@@ -1103,6 +1111,12 @@ export function initInonuApp() {
     if (btnDailyCalK1) btnDailyCalK1.textContent = loc.filterK1;
     const btnDailyCalK2 = document.getElementById('btnDailyCalJumpK2');
     if (btnDailyCalK2) btnDailyCalK2.textContent = loc.filterK2;
+    const btnDailyCalK3 = document.getElementById('btnDailyCalJumpK3');
+    if (btnDailyCalK3) btnDailyCalK3.textContent = loc.filterK3;
+    const btnDailyCalK4 = document.getElementById('btnDailyCalJumpK4');
+    if (btnDailyCalK4) btnDailyCalK4.textContent = loc.filterK4;
+    const btnDailyCalK5 = document.getElementById('btnDailyCalJumpK5');
+    if (btnDailyCalK5) btnDailyCalK5.textContent = loc.filterK5;
     const dailyLegendCls = document.getElementById('dailyCalLegendClass');
     if (dailyLegendCls) dailyLegendCls.textContent = loc.dailyCalLegendClass;
     const dailyLegendEx = document.getElementById('dailyCalLegendExam');
@@ -1627,7 +1641,7 @@ export function initInonuApp() {
     if (
       code === 'BÇ' ||
       code === 'BC' ||
-      /^(İNG|ING|ENG|TD|TL|AİİT|AIIT|APHR)\s*10[12]\b/.test(code)
+      /^(İNG|ING|ENG|TD|TL|AİİT|AIIT|APHR)\s*10[1-5]\b/.test(code)
     ) {
       return true;
     }
@@ -2800,20 +2814,25 @@ export function initInonuApp() {
       });
     }
 
-    const activeBtnCls = 'px-2 min-[360px]:px-2.5 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors';
-    const inactBtnCls = 'px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors';
-    const btnKAll = document.getElementById('btnFilterKurulAll');
-    const btnK1 = document.getElementById('btnFilterKurul1');
-    const btnK2 = document.getElementById('btnFilterKurul2');
-    btnKAll.className = state.weeklyFilterKurul === 'all' ? activeBtnCls : inactBtnCls;
-    btnK1.className = state.weeklyFilterKurul === '1' ? activeBtnCls : inactBtnCls;
-    btnK2.className = state.weeklyFilterKurul === '2' ? activeBtnCls : inactBtnCls;
+    const activeBtnCls = 'px-2 min-[360px]:px-2.5 py-1 rounded-full font-semibold text-slate-900 dark:text-white transition-colors shrink-0';
+    const inactBtnCls = 'px-2 min-[360px]:px-2.5 py-1 rounded-full font-medium text-slate-600 dark:text-slate-300 transition-colors shrink-0';
+    const kurulFilterBtns = {
+      all: document.getElementById('btnFilterKurulAll'),
+      '1': document.getElementById('btnFilterKurul1'),
+      '2': document.getElementById('btnFilterKurul2'),
+      '3': document.getElementById('btnFilterKurul3'),
+      '4': document.getElementById('btnFilterKurul4'),
+      '5': document.getElementById('btnFilterKurul5'),
+    };
+    Object.entries(kurulFilterBtns).forEach(([k, el]) => {
+      if (el) el.className = state.weeklyFilterKurul === k ? activeBtnCls : inactBtnCls;
+    });
 
     const animateWeeklyControls = !suppressEntryStagger && !isTabSwitchRender;
     updateSegmentedIndicator(
       document.getElementById('weeklyKurulSegmentedBar'),
       document.getElementById('weeklyKurulSegmentedIndicator'),
-      state.weeklyFilterKurul === '1' ? btnK1 : (state.weeklyFilterKurul === '2' ? btnK2 : btnKAll),
+      kurulFilterBtns[state.weeklyFilterKurul] || kurulFilterBtns.all,
       animateWeeklyControls
     );
 
@@ -3149,7 +3168,7 @@ export function initInonuApp() {
           codeUpper === 'SINAV' ||
           codeUpper === 'DEĞERLENDİRME' ||
           codeUpper === 'EXAM' ||
-          /SINAV|EXAM|QUIZ|DEĞERLENDİRME|EVALUATION/i.test(slot.title || '')
+          /SINAV|\bEXAMS?\b|\bQUIZ\b|DEĞERLENDİRME|EVALUATION/i.test(slot.title || '')
         ) {
           const titleText = String(slot.title || '').trim();
           const titleKey = titleText.toLocaleUpperCase(isEn ? 'en-US' : 'tr-TR');
@@ -9732,28 +9751,19 @@ export function initInonuApp() {
         renderDailyView();
       });
     }
-    const btnDailyCalJumpK1 = document.getElementById('btnDailyCalJumpK1');
-    if (btnDailyCalJumpK1) {
-      btnDailyCalJumpK1.addEventListener('click', () => {
-        const firstK1 = getScheduleDays().find((d) => Number(d.kurulNo) === 1);
-        if (firstK1) {
-          state.selectedDate = firstK1.date;
-          closeDailyDateModal();
-          renderDailyView();
-        }
-      });
-    }
-    const btnDailyCalJumpK2 = document.getElementById('btnDailyCalJumpK2');
-    if (btnDailyCalJumpK2) {
-      btnDailyCalJumpK2.addEventListener('click', () => {
-        const firstK2 = getScheduleDays().find((d) => Number(d.kurulNo) === 2);
-        if (firstK2) {
-          state.selectedDate = firstK2.date;
-          closeDailyDateModal();
-          renderDailyView();
-        }
-      });
-    }
+    [1, 2, 3, 4, 5].forEach((kNo) => {
+      const jumpBtn = document.getElementById(`btnDailyCalJumpK${kNo}`);
+      if (jumpBtn) {
+        jumpBtn.addEventListener('click', () => {
+          const firstK = getScheduleDays().find((d) => Number(d.kurulNo) === kNo);
+          if (firstK) {
+            state.selectedDate = firstK.date;
+            closeDailyDateModal();
+            renderDailyView();
+          }
+        });
+      }
+    });
 
     document.getElementById('btnExportDayIcs').addEventListener('click', () => {
       const dayObj = getScheduleDays().find((d) => d.date === state.selectedDate);
@@ -9825,8 +9835,10 @@ export function initInonuApp() {
     });
 
     document.getElementById('btnFilterKurulAll').addEventListener('click', () => { state.weeklyFilterKurul = 'all'; renderWeeklyView(); });
-    document.getElementById('btnFilterKurul1').addEventListener('click', () => { state.weeklyFilterKurul = '1'; renderWeeklyView(); });
-    document.getElementById('btnFilterKurul2').addEventListener('click', () => { state.weeklyFilterKurul = '2'; renderWeeklyView(); });
+    ['1', '2', '3', '4', '5'].forEach((kVal) => {
+      const btn = document.getElementById(`btnFilterKurul${kVal}`);
+      if (btn) btn.addEventListener('click', () => { state.weeklyFilterKurul = kVal; renderWeeklyView(); });
+    });
 
     document.getElementById('btnFoodModeDaily').addEventListener('click', () => {
       if (state.foodViewMode !== 'daily') {
@@ -12080,9 +12092,9 @@ export function initInonuApp() {
         );
       }
       if (state.activeTab === 'weekly') {
-        const activeKBtn = state.weeklyFilterKurul === '1'
-          ? document.getElementById('btnFilterKurul1')
-          : (state.weeklyFilterKurul === '2' ? document.getElementById('btnFilterKurul2') : document.getElementById('btnFilterKurulAll'));
+        const activeKBtn = ['1', '2', '3', '4', '5'].includes(state.weeklyFilterKurul)
+          ? document.getElementById(`btnFilterKurul${state.weeklyFilterKurul}`)
+          : document.getElementById('btnFilterKurulAll');
         updateSegmentedIndicator(
           document.getElementById('weeklyKurulSegmentedBar'),
           document.getElementById('weeklyKurulSegmentedIndicator'),
